@@ -1,0 +1,31 @@
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  pr_commented:
+    # This job only runs for pull request comments
+    name: PR comment
+    if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/re-trigger') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add temporary re-trigger label
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: pipeline/trigger
+
+      - name: Comment a PR
+        uses: actions/github-script@v4
+        with:
+          script: |
+            github.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'The certification pipeline will be triggered soon.'
+            })
+
+      - name: Remove a temporary label
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: pipeline/trigger

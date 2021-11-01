@@ -1,0 +1,384 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "nodered.com/v1alpha1",
+          "kind": "NodeRed",
+          "metadata": {
+            "name": "nodered"
+          },
+          "spec": {
+            "adminpassword": "$2a$08$zZWtXTja0fB1pzD4sHCMyOCMYz2Z6dNbM6tl8sJogENOMcxWV9DN.",
+            "persistentvolume": {
+              "enabled": true,
+              "size": "100Mi",
+              "storageclass": "ibmc-file-silver-gid",
+              "accessmode":"ReadWriteMany"
+            },
+            "secretkey": "c2VjcmV0",
+            "size": 1
+          }
+        },
+        {
+          "apiVersion": "nodered.com/v1alpha1",
+          "kind": "NodeRedBackup",
+          "metadata": {
+            "name": "noderedbackup"
+          },
+          "spec": {
+            "backup": {
+              "schedule": null
+            },
+            "ibm_s3": {
+              "bucket_name": null,
+              "endpoint": null,
+              "api_key": null,
+              "auth_endpoint": null,
+              "resource_crn": null
+            }
+          }
+        },
+        {
+          "apiVersion": "nodered.com/v1alpha1",
+          "kind": "NodeRedRestore",
+          "metadata": {
+            "name": "noderedrestore"
+          },
+          "spec": {
+            "restore_file_name": null,
+            "ibm_s3": {
+              "bucket_name": null,
+              "endpoint": null,
+              "api_key": null,
+              "auth_endpoint": null,
+              "resource_crn": null
+            }
+          }
+        }
+      ]
+    capabilities: Full Lifecycle
+    categories: Developer Tools
+    certified: "false"
+    containerImage: registry.connect.redhat.com/ibm-edge/node-red:v0.0.3
+    createdAt: "2021-02-03T12:00:00Z"
+    description: Node-RED is a programming tool for wiring together hardware devices, APIs and online services in new and interesting ways.
+    repository: https://github.com/rhm-samples/node-red-operator/
+    support: Refer Readme- https://github.com/rhm-samples/node-red-operator/issues.
+    olm.skipRange: "<0.0.4"
+  name: node-red-operator-certified
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Installs Node-RED
+      displayname: Node-RED
+      kind: NodeRed
+      name: nodereds.nodered.com
+      version: v1alpha1
+      resources:
+        - kind: Route
+          name: ''
+          version: route.openshift.io/v1
+      statusDescriptors:
+        - description: Node Red Dashbaord
+          displayName: Node Red Dashboard URL
+          path: url
+          x-descriptors:
+            - 'urn:alm:descriptor:org.w3:link'
+    - displayname: Backup Node-RED
+      kind: NodeRedBackup
+      name: noderedbackups.nodered.com
+      version: v1alpha1
+      resources:
+        - kind: Cronjob
+          name: ''
+          version: batch/v1
+        - kind: Job
+          name: ''
+          version: batch/v1
+        - kind: Pod
+          name: ''
+          version: v1
+        - kind: Secret
+          name: ''
+          version: v1
+    - description: Restores Node-RED
+      displayname: Restore Node-RED
+      kind: NodeRedRestore
+      name: noderedrestores.nodered.com
+      version: v1alpha1
+      resources:
+        - kind: Job
+          name: ''
+          version: batch/v1
+        - kind: Pod
+          name: ''
+          version: v1
+        - kind: Secret
+          name: ''
+          version: v1
+  displayName: Node-RED Operator
+  icon:
+  - base64data: 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
+    mediatype: image/png
+  install:
+    spec:
+      deployments:
+      - name: node-red-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: node-red-ansible-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                name: node-red-ansible-operator
+            spec:
+              containers:
+              - env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: node-red-operator
+                - name: ANSIBLE_GATHERING
+                  value: explicit
+                - name: RELATED_IMAGE_NODERED
+                  value: registry.connect.redhat.com/ibm-edge/node-red:v0.0.3
+                - name: RELATED_IMAGE_NODERED_BACKUP
+                  value: registry.connect.redhat.com/ibm-edge/node-red-backup-restore:v0.0.1
+                - name: RELATED_IMAGE_NODERED_RESTORE
+                  value: registry.connect.redhat.com/ibm-edge/node-red-backup-restore:v0.0.1
+                image: registry.connect.redhat.com/ibm-edge/node-red-operator:v-0.0.3
+                imagePullPolicy: Always
+                name: node-red-operator
+                resources: {}
+                volumeMounts:
+                - mountPath: /tmp/ansible-operator/runner
+                  name: runner
+              serviceAccountName: node-red-operator
+              volumes:
+              - emptyDir: {}
+                name: runner
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          resourceNames:
+          - anyuid
+          verbs:
+          - use
+        serviceAccountName: node-red-operator
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          - services/finalizers
+          - endpoints
+          - persistentvolumeclaims
+          - events
+          - configmaps
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - get
+          - create
+        - apiGroups:
+          - apps
+          resourceNames:
+          - node-red-operator
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          - deployments
+          verbs:
+          - get
+        - apiGroups:
+          - nodered.com
+          resources:
+          - '*'
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - '*'
+        - apiGroups:
+          - batch
+          resources:
+          - cronjobs
+          - jobs
+          verbs:
+          - '*'
+        serviceAccountName: node-red-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - "Developer tools"
+  links:
+  - name: Node-RED
+    url: https://nodered.org/
+  maintainers:
+  - email: edge@us.ibm.com
+    name: IBM-Edge
+  maturity: alpha
+  provider:
+    name: IBM-Edge
+  version: 0.0.4
+  description: |
+    Node-RED is a flow-based programming tool, originally developed by IBM's Emerging Technology Services team and now a part of the JS Foundation.
+    **How to get the Application Images from registry?**
+    -----
+    - First Login to redhat catalogue webpage using your credentials.
+    - Search for the Operator.
+    - Click on the Operator.
+    - There is a description that redirects you (upon clicking) to page that explains how to create service accounts.
+    - Create a Service Account. Refer page : <https://access.redhat.com/terms-based-registry/#/accounts>
+    - Once a service account is created , you can click on it and then navigate to tab Openshift Secret to get the yaml file for your ImagePullSecret.
+    - Download the Secret. Create the secret using command
+    ```sh
+        kubectl create -f <secretfile.yml> --namespace=NAMESPACEHERE
+    ```
+    - Use the name of the created secret in the CR file.
+    - For all the application images we would need the secret name to be passed in the CR Spec.
+
+    ----------
+
+    **Node-RED CR Spec Details**
+    -----
+      Spec                         |            Details
+    -------------------------------|-----------------------------
+    size                           | Number of instances of Node-RED
+    imagePullSecrets               | Secret if the image is private
+    persistentvolume.enabled       | If volume is to be mounted at /data
+    persistentvolume.storageclass  | Storage class of the Persistent Volume of type ReadWriteMany
+    persistentvolume.accessmode    | The accessMode of the Persistent Volume. This should be of type ReadWriteMany.
+    persistentvolume.size          | Size of the volume in Mi or Gi
+    adminpassword                  | Default password is **password**.
+                                   | To password protect the Node-RED editor and admin API.
+                                   | Give the bcrypt hash of the password.
+                                   | See http://nodered.org/docs/security.html#generating-the-password-hash
+                                   |
+    secretkey                      | By default, credentials are encrypted in storage using a generated key.
+                                   | To specify your own secret, set the following property in base64 encoding.
+                                   | Note- the secret should not have a newline or whitespace.
+                                   | If you want to disable encryption of credentials, set this property to 'false'.
+
+    ----------
+
+    **NOTE** For Backup feature its required that the NodeRed is deployed with a Persistent Volume of type RedWriteMany.
+
+    ----------
+    **Node-RED Backup CR Spec Details**
+    -----
+      Spec                         |            Details
+    -------------------------------|-----------------------------
+    backup.schedule                | Set this value based on the type of backup you opt.
+                                   | There are two types of backup available:
+                                   | 1. One Time Backup:
+                                   |    For this type of backup the value of backup.schedule should be left empty or null.
+                                   | 2. Scheduled Backup:
+                                   |    For this type of backup provide Cronjob schedule expression
+                                   |    (e.g. "*/30 * * * *" to take backup after every 30 minutes) as a value for backup.schedule
+                                   |
+    ibm_s3.bucket_name             | IBM S3 storage bucket name
+    ibm_s3.endpoint                | Bucket endpoint
+    ibm_s3.api_key                 | Bucket API Key
+    ibm_s3.auth_endpoint           | Bucket Authentication Endpoint
+    ibm_s3.resource_crn            | Bucket Rescource
+
+    ----------
+
+
+    **NOTE** For Restore feature its required that the NodeRed is deployed with a Persistent Volume of type RedWriteMany.
+
+    ----------
+
+    **Node-RED Restore CR Spec Details**
+    -----
+      Spec                         |            Details
+    -------------------------------|-----------------------------
+    restore_file_name              | Name of the backup file in S3 bucket which needs to be restored
+    ibm_s3.bucket_name             | IBM S3 storage bucket name
+    ibm_s3.endpoint                | Bucket Endpoint
+    ibm_s3.api_key                 | Bucket API Key
+    ibm_s3.auth_endpoint           | Bucket Authentication Endpoint
+    ibm_s3.resource_crn            | Bucket Rescource
+
+    ----------
+
+
+    **Logging into the Node-RED dashboard**
+    -----
+
+    Once the Node-RED pod is ready, you can access the URL to the dashboard on the route path. The credentails to dashboard is admin and the password set in the "adminpassword" field.

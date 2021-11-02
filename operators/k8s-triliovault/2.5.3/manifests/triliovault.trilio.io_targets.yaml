@@ -1,0 +1,337 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: targets.triliovault.trilio.io
+spec:
+  group: triliovault.trilio.io
+  names:
+    kind: Target
+    listKind: TargetList
+    plural: targets
+    singular: target
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.type
+      name: Type
+      type: string
+    - jsonPath: .spec.thresholdCapacity
+      name: Threshold Capacity
+      type: string
+    - jsonPath: .spec.vendor
+      name: Vendor
+      type: string
+    - jsonPath: .status.status
+      name: Status
+      type: string
+    - jsonPath: .status.browsingEnabled
+      name: Browsing Enabled
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Target is a location where TrilioVault stores backup.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TargetSpec defines the specification of a Target.
+            properties:
+              enableBrowsing:
+                description: EnableBrowsing specifies if target browser feature should
+                  be enabled for this target or not
+                type: boolean
+              nfsCredentials:
+                description: NfsCredentials specifies the credentials for TargetType
+                  NFS
+                properties:
+                  nfsExport:
+                    description: A NFS location in format trilio.net:/data/location/abcde
+                      or 192.156.13.1:/user/keeth/data.
+                    type: string
+                  nfsOptions:
+                    description: An additional options passed to mount NFS directory
+                      e.g. rw, suid, hard, intr, timeo, retry.
+                    type: string
+                required:
+                - nfsExport
+                type: object
+              objectStoreCredentials:
+                description: ObjectStoreCredentials specifies the credentials for
+                  TargetType ObjectStore
+                properties:
+                  accessKey:
+                    description: 'AccessKey is to authenticate access to Object Store.
+                      Deprecated: after addition of secret object ref'
+                    type: string
+                  bucketName:
+                    description: BucketName is the name of a bucket within Object
+                      Store.
+                    type: string
+                  credentialSecret:
+                    description: CredentialSecret is object ref of a secret which
+                      contains target credentials like accessKey, secretKey, etc.
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: 'If referring to a piece of an object instead
+                          of an entire object, this string should contain a valid
+                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within
+                          a pod, this would take on a value like: "spec.containers{name}"
+                          (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]"
+                          (container with index 2 in this pod). This syntax is chosen
+                          only to have some well-defined way of referencing a part
+                          of an object. TODO: this design is not final and this field
+                          is subject to change in the future.'
+                        type: string
+                      kind:
+                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                        type: string
+                      namespace:
+                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                        type: string
+                      resourceVersion:
+                        description: 'Specific resourceVersion to which this reference
+                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                        type: string
+                      uid:
+                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        type: string
+                    type: object
+                  objectLockingEnabled:
+                    description: ObjectLockingEnabled specify if target is set to
+                      be immutable
+                    type: boolean
+                  region:
+                    description: Region where the Object Store resides.
+                    type: string
+                  secretKey:
+                    description: 'SecretKey is to authenticate access to Object Store.
+                      Deprecated: after addition of secret object ref'
+                    type: string
+                  url:
+                    description: URL to connect the Object Store.
+                    type: string
+                required:
+                - bucketName
+                type: object
+              thresholdCapacity:
+                anyOf:
+                - type: integer
+                - type: string
+                description: ThresholdCapacity is the maximum threshold capacity to
+                  store backup data.
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              type:
+                description: Type is the type of target for backup storage.
+                enum:
+                - ObjectStore
+                - NFS
+                type: string
+              vendor:
+                description: Vendor is the third party storage vendor hosting the
+                  target
+                enum:
+                - AWS
+                - RedhatCeph
+                - Ceph
+                - IBMCleversafe
+                - Cloudian
+                - Scality
+                - NetApp
+                - Cohesity
+                - SwiftStack
+                - Wassabi
+                - MinIO
+                - DellEMC
+                - Other
+                type: string
+            required:
+            - type
+            - vendor
+            type: object
+          status:
+            description: TargetStatus defines the observed state of Target
+            properties:
+              browsingEnabled:
+                description: BrowsingEnabled specifies if target browser feature is
+                  enabled for this target or not
+                type: boolean
+              condition:
+                description: Condition is the current condition of a target.
+                items:
+                  description: TargetCondition specifies the current condition of
+                    a target resource.
+                  properties:
+                    phase:
+                      description: Phase defines the current phase of the controller.
+                      enum:
+                      - Validation
+                      - TargetBrowsing
+                      type: string
+                    reason:
+                      description: A brief message indicating details about why the
+                        component is in this condition.
+                      type: string
+                    status:
+                      description: Status is the status of the condition.
+                      enum:
+                      - InProgress
+                      - Error
+                      - Completed
+                      - Failed
+                      type: string
+                    timestamp:
+                      description: Timestamp is the time a condition occurred.
+                      format: date-time
+                      type: string
+                  type: object
+                type: array
+              defaultRetentionPeriod:
+                description: DefaultRetentionPeriod is the period set by default on
+                  the target This value will always be in number of days
+                type: integer
+              nfsPersistentVolume:
+                description: NFSPersistentVolume is the object reference to the PersistentVolume
+                  of NFS volume type with target NFS credentials
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+              nfsPersistentVolumeClaim:
+                description: NFSPersistentVolumeClaim is the object reference to the
+                  PersistentVolumeClaim bound to NFS volume attached to the Container
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
+              stats:
+                description: TargetStats defines the stats for a Target
+                properties:
+                  applicationCapacity:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  applicationCapacityConsumed:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  capacityOccupied:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: CapacityOccupied is the aggregate of total size occupied
+                      on the Target by Backups
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  totalBackupPlans:
+                    description: TotalBackupPlans is the count of total number of
+                      BackupPlans of a Target
+                    format: int32
+                    type: integer
+                type: object
+              status:
+                description: Status is the final Status of target Available/Unavailable
+                enum:
+                - InProgress
+                - Available
+                - Unavailable
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -1,0 +1,258 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.2
+  creationTimestamp: null
+  labels:
+    redhat.marketplace.com/name: redhat-marketplace-operator
+  name: meterbases.marketplace.redhat.com
+spec:
+  group: marketplace.redhat.com
+  names:
+    kind: MeterBase
+    listKind: MeterBaseList
+    plural: meterbases
+    singular: meterbase
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type == "Installing")].status
+      name: INSTALLING
+      type: string
+    - jsonPath: .status.conditions[?(@.type == "Installing")].reason
+      name: STEP
+      type: string
+    - jsonPath: .status.availableReplicas
+      name: AvailableReplicas
+      type: integer
+    - jsonPath: .status.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .status.updatedReplicas
+      name: UpdatedReplicas
+      type: integer
+    - jsonPath: .status.unavailableReplicas
+      name: UnavailableReplicas
+      type: integer
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MeterBase is the resource that sets up Metering for Red Hat Marketplace. This is an internal resource not meant to be modified directly.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MeterBaseSpec defines the desired state of MeterBase
+            properties:
+              additionalScrapeConfigs:
+                description: AdditionalConfigs are set by meter definitions and meterbase to what is available on the system.
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a valid secret key.
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                type: object
+              dataServiceEnabled:
+                description: DataServiceEnabled is the flag that controls if the DataService will be created. Setting enabled to "true" will install DataService components. False will delete the DataServicecomponents.
+                type: boolean
+              enabled:
+                description: Enabled is the flag that controls if the controller does work. Setting enabled to "true" will install metering components. False will suspend controller operations for metering components.
+                type: boolean
+              prometheus:
+                description: Prometheus deployment configuration.
+                properties:
+                  replicas:
+                    description: Replicas defines the number of desired replicas for the prometheus deployment. Used primarily when running metering on CRC
+                    format: int32
+                    type: integer
+                  resources:
+                    description: Resource requirements for the deployment. Default is not defined.
+                    properties:
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute resources required. If Requests is omitted for a container, it defaults to Limits if that is explicitly specified, otherwise to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/'
+                        type: object
+                    type: object
+                  selector:
+                    additionalProperties:
+                      type: string
+                    description: Selector for the pods in the Prometheus deployment
+                    type: object
+                  storage:
+                    description: Storage for the deployment.
+                    properties:
+                      class:
+                        description: Storage class for the prometheus stateful set. Default is "" i.e. default.
+                        type: string
+                      emptyDir:
+                        description: EmptyDir is a temporary storage type that gets created on the prometheus pod. When this is defined metering will run on CRC.
+                        properties:
+                          medium:
+                            description: 'What type of storage medium should back this directory. The default is "" which means to use the node''s default medium. Must be an empty string (default) or Memory. More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir'
+                            type: string
+                          sizeLimit:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: 'Total amount of local storage required for this EmptyDir volume. The size limit is also applicable for memory medium. The maximum usage on memory medium EmptyDir would be the minimum value between the SizeLimit specified here and the sum of memory limits of all containers in a pod. The default is nil which means that the limit is undefined. More info: http://kubernetes.io/docs/user-guide/volumes#emptydir'
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                        type: object
+                      size:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: Storage size for the prometheus deployment. Default is 40Gi.
+                        format: quantity
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        type: string
+                        x-kubernetes-int-or-string: true
+                    type: object
+                required:
+                - storage
+                type: object
+              userWorkloadMonitoringEnabled:
+                description: UserWorkloadMonitoringEnabled controls whether to attempt to use Openshift user-defined workload monitoring as the Prometheus provider
+                type: boolean
+            required:
+            - enabled
+            type: object
+          status:
+            description: MeterBaseStatus defines the observed state of MeterBase.
+            properties:
+              availableReplicas:
+                description: Total number of available pods (ready for at least minReadySeconds) targeted by this Prometheus deployment.
+                format: int32
+                type: integer
+              conditions:
+                description: MeterBaseConditions represent the latest available observations of an object's stateonfig
+                items:
+                  description: "Condition represents an observation of an object's state. Conditions are an extension mechanism intended to be used when the details of an observation are not a priori known or would not apply to all instances of a given Kind. \n Conditions should be added to explicitly convey properties that users and components care about rather than requiring those properties to be inferred from other observations. Once defined, the meaning of a Condition can not be changed arbitrarily - it becomes part of the API, and has the same backwards- and forwards-compatibility concerns of any other part of the API."
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      description: ConditionReason is intended to be a one-word, CamelCase representation of the category of cause of the current status. It is intended to be used in concise output, such as one-line kubectl get output, and in summarizing occurrences of causes.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: "ConditionType is the type of the condition and is typically a CamelCased word or short phrase. \n Condition types should indicate state in the \"abnormal-true\" polarity. For example, if the condition indicates when a policy is invalid, the \"is valid\" case is probably the norm, so the condition should be called \"Invalid\"."
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              prometheusStatus:
+                description: PrometheusStatus is the most recent observed status of the Prometheus cluster. Read-only. Not included when requesting from the apiserver, only from the Prometheus
+                properties:
+                  availableReplicas:
+                    description: Total number of available pods (ready for at least minReadySeconds) targeted by this Prometheus deployment.
+                    format: int32
+                    type: integer
+                  paused:
+                    description: Represents whether any actions on the underlying managed objects are being performed. Only delete actions will be performed.
+                    type: boolean
+                  replicas:
+                    description: Total number of non-terminated pods targeted by this Prometheus deployment (their labels match the selector).
+                    format: int32
+                    type: integer
+                  unavailableReplicas:
+                    description: Total number of unavailable pods targeted by this Prometheus deployment.
+                    format: int32
+                    type: integer
+                  updatedReplicas:
+                    description: Total number of non-terminated pods targeted by this Prometheus deployment that have the desired version spec.
+                    format: int32
+                    type: integer
+                required:
+                - availableReplicas
+                - paused
+                - replicas
+                - unavailableReplicas
+                - updatedReplicas
+                type: object
+              replicas:
+                description: Total number of non-terminated pods targeted by this Prometheus deployment (their labels match the selector).
+                format: int32
+                type: integer
+              targets:
+                description: Targets is a list of prometheus activeTargets
+                items:
+                  description: Target is used by meterbase as a list of prometheus activeTargets with failed health, without DiscoveredLabels
+                  properties:
+                    health:
+                      description: HealthStatus models the health status of a scrape target.
+                      type: string
+                    labels:
+                      additionalProperties:
+                        description: A LabelValue is an associated value for a LabelName.
+                        type: string
+                      description: A LabelSet is a collection of LabelName and LabelValue pairs.  The LabelSet may be fully-qualified down to the point where it may resolve to a single Metric in the data store or not.  All operations that occur within the realm of a LabelSet can emit a vector of Metric entities to which the LabelSet may match.
+                      type: object
+                    lastError:
+                      type: string
+                    lastScrape:
+                      type: string
+                    scrapeUrl:
+                      type: string
+                  required:
+                  - health
+                  - labels
+                  - lastError
+                  - lastScrape
+                  - scrapeUrl
+                  type: object
+                type: array
+              unavailableReplicas:
+                description: Total number of unavailable pods targeted by this Prometheus deployment.
+                format: int32
+                type: integer
+              updatedReplicas:
+                description: Total number of non-terminated pods targeted by this Prometheus deployment that have the desired version spec.
+                format: int32
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -1,0 +1,350 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: clusterlinks.platform.confluent.io
+spec:
+  group: platform.confluent.io
+  names:
+    categories:
+    - all
+    - confluent-platform
+    - confluent
+    kind: ClusterLink
+    listKind: ClusterLinkList
+    plural: clusterlinks
+    shortNames:
+    - cl
+    - clusterlink
+    - clink
+    singular: clusterlink
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.clusterLinkID
+      name: ID
+      type: string
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    - jsonPath: .status.destinationKafkaClusterID
+      name: DestClusterID
+      type: string
+    - jsonPath: .status.sourceKafkaClusterID
+      name: SrcClusterID
+      type: string
+    - jsonPath: .status.numMirrorTopics
+      name: MirrorTopicCount
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: ClusterLink is the Schema for the ClusterLinks API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterLinkSpec defines the desired state of a Cluster Link
+            properties:
+              configs:
+                additionalProperties:
+                  type: string
+                description: Configs defines any other configs for the Cluster Link.
+                  More information about Cluster Link configs available here https://docs.confluent.io/platform/current/multi-dc-deployments/cluster-linking/configs.html
+                type: object
+              consumerGroupFilters:
+                description: ConsumerGroupFilters defines filters for consumer groups.
+                items:
+                  description: ConsumerGroupFilter defines consumer Offset migration
+                    filter config.
+                  properties:
+                    filterType:
+                      description: FilterType defines filter type INCLUDE OR EXCLUDE
+                        for the filter
+                      enum:
+                      - INCLUDE
+                      - EXCLUDE
+                      type: string
+                    name:
+                      description: Name defines the name of resource associated with
+                        this filter
+                      type: string
+                    patternType:
+                      description: PatternType defines whether the pattern of resource
+                        is PREFIXED or LITERAL, default is LITERAL if not set
+                      enum:
+                      - PREFIXED
+                      - LITERAL
+                      type: string
+                  required:
+                  - filterType
+                  - name
+                  - patternType
+                  type: object
+                type: array
+              destinationKafkaCluster:
+                description: DestinationKafkaCluster defines the destination Kafka
+                  cluster and its REST API configuration. Cluster Link will be set
+                  up in the destination cluster.
+                properties:
+                  kafkaRestClassRef:
+                    description: KafkaRestClassRef defines the reference for KafkaRestClass
+                      which defines Kafka Rest API
+                    properties:
+                      name:
+                        description: Name defines the name of KafkaRestClass
+                        minLength: 1
+                        type: string
+                      namespace:
+                        description: Namespace defines the namespace of the KafkaRestClass
+                        type: string
+                    required:
+                    - name
+                    type: object
+                required:
+                - kafkaRestClassRef
+                type: object
+              mirrorTopics:
+                description: MirrorTopics defines the list of mirror topics under
+                  this Cluster Link
+                items:
+                  description: MirrorTopic Mirror topic configuration for each mirror
+                    topic
+                  properties:
+                    ' configs':
+                      additionalProperties:
+                        type: string
+                      description: Configs defines any additional configuration or
+                        configuration overrides for the mirror topic
+                      type: object
+                    name:
+                      description: Name defines mirror topic name. A topic with exact
+                        same name should exist on the source cluster and no topic
+                        with this name should exist on the destination cluster
+                      maxLength: 255
+                      minLength: 1
+                      pattern: ^[a-zA-Z0-9\._\-]*$
+                      type: string
+                    state:
+                      description: State defines desired state for the topic. Possible
+                        values are ACTIVE, FAILOVER, PAUSE, PROMOTE. If not defined,
+                        default state is ACTIVE
+                      enum:
+                      - PAUSE
+                      - PROMOTE
+                      - FAILOVER
+                      - ACTIVE
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              sourceKafkaCluster:
+                description: SourceKafkaCluster defines source Kafka cluster for the
+                  Cluster Link and its REST API.
+                properties:
+                  authentication:
+                    description: Authentication defines the authentication for the
+                      kafka cluster
+                    properties:
+                      jaasConfig:
+                        description: JaaS defines opinionated CP component's JaaS
+                          configuration.
+                        properties:
+                          secretRef:
+                            description: SecretRef defines secret reference to pass
+                              required credentials
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      jaasConfigPassThrough:
+                        description: JaaSPassThrough user provided complete JaaS configuration.
+                        properties:
+                          directoryPathInContainer:
+                            minLength: 1
+                            type: string
+                          secretRef:
+                            description: SecretRef defines the secret name referenced
+                              for authentication
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        type: object
+                      type:
+                        enum:
+                        - plain
+                        - oauthbearer
+                        - scram
+                        - digest
+                        - kerberos
+                        - mtls
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  bootstrapEndpoint:
+                    description: BootstrapEndpoint defines the kafka bootstrap endpoint
+                    minLength: 1
+                    pattern: .+:[0-9]+
+                    type: string
+                  clusterID:
+                    description: ClusterID defines the clusterID of the source Kafka
+                      cluster. If clusterID is defined for source Kafka cluster that
+                      takes precedence over using REST API to get the clusterID.
+                    minLength: 1
+                    type: string
+                  kafkaRestClassRef:
+                    description: KafkaRestClassRef defines the reference for KafkaRestClass
+                      which defines Kafka Rest API This is optional if clusterID is
+                      defined.
+                    properties:
+                      name:
+                        description: Name defines the name of KafkaRestClass
+                        minLength: 1
+                        type: string
+                      namespace:
+                        description: Namespace defines the namespace of the KafkaRestClass
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  tls:
+                    description: TLSDependencyConfig defines the client side TLS setting
+                      for Kafka cluster
+                    properties:
+                      enabled:
+                        description: Enabled enables the TLS configuration for Cluster
+                          Link
+                        type: boolean
+                      keyPassword:
+                        description: KeyPassword defines the secret name referenced
+                          for ssl key password if the private key passed in secretRef
+                          above is encrypted
+                        properties:
+                          secretRef:
+                            description: SecretRef defines the secret name referenced
+                              for jks password More information about jks password
+                              key/value format can be found in Confluent Operator
+                              document
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      secretRef:
+                        description: SecretRef defines the secret name referenced
+                          for certificates More information about certificates key/value
+                          format can be found in Confluent Operator document
+                        maxLength: 30
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                required:
+                - bootstrapEndpoint
+                type: object
+            required:
+            - destinationKafkaCluster
+            - sourceKafkaCluster
+            type: object
+          status:
+            description: ClusterLinkStatus defines the observed state of ClusterLink
+            properties:
+              clusterLinkID:
+                description: ClusterLinkID
+                type: string
+              clusterLinkName:
+                description: ClusterLinkName
+                type: string
+              conditions:
+                description: Conditions
+                items:
+                  description: Conditions represents the latest available observations
+                    of a statefulset's current state.
+                  properties:
+                    lastProbeTime:
+                      description: LastProbeTime defines a last time the condition
+                        is evaluated.
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: LastTransitionTime defines a last time the condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: ' Message defines  a human readable message indicating
+                        details about the transition.'
+                      type: string
+                    reason:
+                      description: ' Reason defines reason for the condition''s last
+                        transition.'
+                      type: string
+                    status:
+                      description: Status defines a status of the condition, one of
+                        True, False, Unknown
+                      type: string
+                    type:
+                      description: Type defines type of condition
+                      type: string
+                  type: object
+                type: array
+              destinationKafkaClusterID:
+                description: DestinationKafkaClusterID
+                type: string
+              kafkaCluster:
+                description: KafkaCluster
+                type: string
+              mirrorTopics:
+                additionalProperties:
+                  type: string
+                description: MirrorTopics defins list of all mirror topics for the
+                  Cluster Link and its status
+                type: object
+              numMirrorTopics:
+                description: NumMirrorTopics
+                type: integer
+              sourceKafkaClusterID:
+                description: SourceKafkaClusterID
+                type: string
+              state:
+                description: ClusterLinkState
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

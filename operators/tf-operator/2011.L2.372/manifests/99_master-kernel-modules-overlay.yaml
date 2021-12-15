@@ -1,0 +1,54 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 02-master-modules
+spec:
+  config:
+    ignition:
+      version: 2.2.0
+    storage:
+      directories:
+        - filesystem: "root"
+          path: "/opt/modules"
+          mode: 0755
+        - filesystem: "root"
+          path: "/opt/modules.wd"
+          mode: 0755
+        - filesystem: "root"
+          path: "/opt/usrbin"
+          mode: 0755
+        - filesystem: "root"
+          path: "/opt/usrbin.wd"
+          mode: 0755
+    systemd:
+      units:
+        - name: usr-lib-modules.mount
+          enabled: true
+          contents: |
+            [Unit]
+            Description=contrail mount for kernel module
+            Wants=network-online.target
+            After=network-online.target machine-config-daemon-pull.service
+            [Mount]
+            Where=/usr/lib/modules
+            What=overlay
+            Type=overlay
+            Options=lowerdir=/usr/lib/modules,upperdir=/opt/modules,workdir=/opt/modules.wd
+            [Install]
+            WantedBy=multi-user.target
+        - name: usr-bin.mount
+          enabled: true
+          contents: |
+            [Unit]
+            Description=contrail mount for scripts
+            Wants=network-online.target
+            After=network-online.target machine-config-daemon-pull.service
+            [Mount]
+            Where=/usr/bin
+            What=overlay
+            Type=overlay
+            Options=lowerdir=/usr/bin,upperdir=/opt/usrbin,workdir=/opt/usrbin.wd
+            [Install]
+            WantedBy=multi-user.target

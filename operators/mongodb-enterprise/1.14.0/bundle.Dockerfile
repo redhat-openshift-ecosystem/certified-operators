@@ -19,6 +19,6 @@ LABEL operators.operatorframework.io.test.config.v1=tests/scorecard/
 COPY 1.14.0/manifests /manifests/
 COPY 1.14.0/metadata /metadata/
 COPY 1.14.0/tests/scorecard /tests/scorecard/
-LABEL com.redhat.openshift.versions="v4.6-v4.9"
+LABEL com.redhat.openshift.versions=v4.8
 LABEL com.redhat.delivery.backport=false
 LABEL com.redhat.delivery.operator.bundle=true

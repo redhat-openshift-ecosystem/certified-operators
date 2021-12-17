@@ -1,0 +1,255 @@
+apiVersion: tf.tungsten.io/v1alpha1
+kind: Manager
+metadata:
+  name: cluster1
+  namespace: tf
+spec:
+  commonConfiguration:
+    authParameters:
+      authMode: noauth
+    clusterConfig:
+      clusterName: ocp4
+      networking:
+        cniConfig:
+          binaryPath: /var/lib/cni/bin
+          configPath: /etc/kubernetes/cni
+        dnsDomain: example.com
+        podSubnet: 10.128.0.0/14
+        serviceSubnet: 172.30.0.0/16
+    hostNetwork: true
+    replicas: 3
+    tuneSysctl: false
+  services:
+    analyticsAlarm:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: analyticsalarm1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          cassandraInstance: configdb1
+          configInstance: config1
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-nodemgr:R2011.L2.372
+            name: nodemanager
+          - image: hub.juniper.net/contrail-nightly/contrail-provisioner:R2011.L2.372
+            name: provisioner
+          - image: hub.juniper.net/contrail-nightly/contrail-analytics-alarm-gen:R2011.L2.372
+            name: analytics-alarm-gen
+          - image: hub.juniper.net/contrail-nightly/contrail-external-kafka:R2011.L2.372
+            name: kafka
+          logLevel: SYS_DEBUG
+          rabbitmqInstance: rabbitmq1
+          zookeeperInstance: zookeeper1
+    analyticsSnmp:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: analyticssnmp1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          cassandraInstance: configdb1
+          configInstance: config1
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-nodemgr:R2011.L2.372
+            name: nodemanager
+          - image: hub.juniper.net/contrail-nightly/contrail-provisioner:R2011.L2.372
+            name: provisioner
+          - image: hub.juniper.net/contrail-nightly/contrail-analytics-snmp-collector:R2011.L2.372
+            name: analytics-snmp-collector
+          - image: hub.juniper.net/contrail-nightly/contrail-analytics-snmp-topology:R2011.L2.372
+            name: analytics-snmp-topology
+          logLevel: SYS_DEBUG
+          rabbitmqInstance: rabbitmq1
+          zookeeperInstance: zookeeper1
+    cassandras:
+    - metadata:
+        labels:
+          tf_cluster: cluster1
+        name: configdb1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          configInstance: config1
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-external-cassandra:R2011.L2.372
+            name: cassandra
+          - image: hub.juniper.net/contrail-nightly/contrail-nodemgr:R2011.L2.372
+            name: nodemanager
+          - image: hub.juniper.net/contrail-nightly/contrail-provisioner:R2011.L2.372
+            name: provisioner
+    config:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: config1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          cassandraInstance: configdb1
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-external-redis:R2011.L2.372
+            name: redis
+          - image: hub.juniper.net/contrail-nightly/contrail-external-stunnel:R2011.L2.372
+            name: stunnel
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-config-api:R2011.L2.372
+            name: api
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-config-devicemgr:R2011.L2.372
+            name: devicemanager
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-config-dnsmasq:R2011.L2.372
+            name: dnsmasq
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-config-schema:R2011.L2.372
+            name: schematransformer
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-config-svcmonitor:R2011.L2.372
+            name: servicemonitor
+          - image: hub.juniper.net/contrail-nightly/contrail-nodemgr:R2011.L2.372
+            name: nodemanagerconfig
+          - image: hub.juniper.net/contrail-nightly/contrail-provisioner:R2011.L2.372
+            name: provisionerconfig
+          - image: hub.juniper.net/contrail-nightly/contrail-analytics-api:R2011.L2.372
+            name: analyticsapi
+          - image: hub.juniper.net/contrail-nightly/contrail-analytics-collector:R2011.L2.372
+            name: collector
+          - image: hub.juniper.net/contrail-nightly/contrail-analytics-query-engine:R2011.L2.372
+            name: queryengine
+          - image: hub.juniper.net/contrail-nightly/contrail-nodemgr:R2011.L2.372
+            name: nodemanageranalytics
+          - image: hub.juniper.net/contrail-nightly/contrail-provisioner:R2011.L2.372
+            name: provisioneranalytics
+          - image: hub.juniper.net/contrail-nightly/contrail-node-init:R2011.L2.372
+            name: nodeinit
+          logLevel: SYS_DEBUG
+          rabbitmqInstance: rabbitmq1
+          zookeeperInstance: zookeeper1
+    controls:
+    - metadata:
+        labels:
+          control_role: master
+          tf_cluster: cluster1
+        name: control1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          cassandraInstance: configdb1
+          configInstance: config1
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-control-control:R2011.L2.372
+            name: control
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-control-dns:R2011.L2.372
+            name: dns
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-control-named:R2011.L2.372
+            name: named
+          - image: hub.juniper.net/contrail-nightly/contrail-nodemgr:R2011.L2.372
+            name: nodemanager
+          - image: hub.juniper.net/contrail-nightly/contrail-provisioner:R2011.L2.372
+            name: provisioner
+          logLevel: SYS_DEBUG
+          rabbitmqInstance: rabbitmq1
+    kubemanagers:
+    - metadata:
+        labels:
+          tf_cluster: cluster1
+        name: kubemanager1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          cassandraInstance: configdb1
+          configInstance: config1
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-kubernetes-kube-manager:R2011.L2.372
+            name: kubemanager
+          hostNetworkService: true
+          ipFabricForwarding: false
+          ipFabricSnat: true
+          kubernetesTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+          logLevel: SYS_DEBUG
+          publicFIPPool: '{}'
+          rabbitmqInstance: rabbitmq1
+          zookeeperInstance: zookeeper1
+    rabbitmq:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: rabbitmq1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-external-rabbitmq:R2011.L2.372
+            name: rabbitmq
+          logLevel: SYS_DEBUG
+    vrouters:
+    - metadata:
+        labels:
+          tf_cluster: cluster1
+        name: vrouter1
+      spec:
+        serviceConfiguration:
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-node-init:R2011.L2.372
+            name: nodeinit
+          - image: hub.juniper.net/contrail-nightly/contrail-vrouter-kernel-init:R2011.L2.372
+            name: vrouterkernelinit
+          - image: hub.juniper.net/contrail-nightly/contrail-vrouter-kernel-build-init:R2011.L2.372
+            name: vrouterkernelbuildinit
+          - image: hub.juniper.net/contrail-nightly/contrail-provisioner:R2011.L2.372
+            name: provisioner
+          - image: hub.juniper.net/contrail-nightly/contrail-nodemgr:R2011.L2.372
+            name: nodemanager
+          - image: hub.juniper.net/contrail-nightly/contrail-vrouter-agent:R2011.L2.372
+            name: vrouteragent
+          - image: hub.juniper.net/contrail-nightly/contrail-kubernetes-cni-init:R2011.L2.372
+            name: vroutercni
+          controlInstance: control1
+          logLevel: SYS_DEBUG
+    webui:
+      metadata:
+        labels:
+          tf_cluster: cluster1
+        name: webui1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          cassandraInstance: configdb1
+          configInstance: config1
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-external-redis:R2011.L2.372
+            name: redis
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-webui-job:R2011.L2.372
+            name: webuijob
+          - image: hub.juniper.net/contrail-nightly/contrail-controller-webui-web:R2011.L2.372
+            name: webuiweb
+          controlInstance: control1
+          logLevel: SYS_DEBUG
+    zookeepers:
+    - metadata:
+        labels:
+          tf_cluster: cluster1
+        name: zookeeper1
+      spec:
+        commonConfiguration:
+          nodeSelector:
+            node-role.kubernetes.io/master: ""
+        serviceConfiguration:
+          containers:
+          - image: hub.juniper.net/contrail-nightly/contrail-external-zookeeper:R2011.L2.372
+            name: zookeeper
+          logLevel: SYS_DEBUG

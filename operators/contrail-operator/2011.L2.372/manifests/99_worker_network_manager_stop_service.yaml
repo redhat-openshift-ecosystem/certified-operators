@@ -1,0 +1,39 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 10-worker-nm-stop-service
+spec:
+  config:
+    ignition:
+      version: 2.2.0
+    systemd:
+      units:
+      - name: nm-stop.service
+        enabled: true
+        contents: |
+          [Unit]
+          Description=Stop NetworkManager if vhost0 interface is present
+          After=syslog.target
+          AssertPathExists=/etc/contrail/nm_stop.sh
+
+          [Service]
+          Type=simple
+          ExecStart=/etc/contrail/nm_stop.sh
+          StandardOutput=syslog
+          StandardError=syslog
+
+          [Install]
+          WantedBy=multi-user.target
+    storage:
+      files:
+      - filesystem: root
+        path: /etc/contrail/nm_stop.sh
+        mode: 0744
+        user:
+          name: root
+        contents:
+          # 'data:,' and URL encoded openshift-install/sources/nm_stop.sh
+          source: data:,%23%21%2Fbin%2Fbash%0A%0Awhile%20true%3B%0Ado%0A%20%20FQHOSTNAME%3D%24%28hostname%20-f%29%0A%20%20if%20%5B%5B%20%24FQHOSTNAME%20%21%3D%20%27localhost%27%20%5D%5D%20%26%26%20%5B%5B%20%24FQHOSTNAME%20%21%3D%20%27localhost.localdomain%27%20%5D%5D%3B%0A%20%20then%0A%20%20%20%20break%0A%20%20fi%0A%20%20sleep%202%0Adone%0A%0Awhile%20true%3B%20do%0A%20%20FQHOSTNAME%3D%24%28hostname%20-f%29%0A%20%20echo%20%22Setting%20static%20hostname%20to%20%24FQHOSTNAME%22%0A%20%20hostnamectl%20set-hostname%20%24FQHOSTNAME%0A%20%20if%20%5B%5B%20%24%3F%20-eq%200%20%5D%5D%3B%20then%0A%20%20%20%20break%3B%0A%20%20fi%0Adone%0A%0Awhile%20true%3B%0Ado%0A%20%20if%20%5B%5B%20-L%20%22%2Fsys%2Fclass%2Fnet%2Fvhost0%22%20%26%26%20%24%28ip%20address%20show%20vhost0%20%7C%20grep%20inet%5B%5E6%5D%29%20%5D%5D%3B%0A%20%20then%0A%20%20%20%20%20%20%20%20%20%20echo%20%22%5BINFO%5D%20Detected%20vhost0%20interface.%20Stopping%20NetworkManager...%22%0A%20%20%20%20%20%20%20%20%20%20systemctl%20stop%20NetworkManager%0A%20%20%20%20%20%20%20%20%20%20echo%20%22%5BINFO%5D%20Networkmanager%20stopped.%22%0A%20%20fi%0A%20%20sleep%2010%0Adone%0A
+

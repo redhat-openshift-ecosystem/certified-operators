@@ -11,11 +11,9 @@ LABEL operators.operatorframework.io.metrics.mediatype.v1=metrics+v1
 LABEL operators.operatorframework.io.metrics.project_layout=go.kubebuilder.io/v2
 LABEL operators.operatorframework.io.test.config.v1=tests/scorecard/
 LABEL operators.operatorframework.io.test.mediatype.v1=scorecard+v1
-
-LABEL com.redhat.openshift.versions="v4.5,v4.6"
+LABEL com.redhat.openshift.versions="v4.6-v4.8"
 LABEL com.redhat.delivery.operator.bundle=true
 LABEL com.redhat.delivery.backport=true
-
-COPY 1.5.0/manifests /manifests/
-COPY 1.5.0/metadata /metadata/
-COPY 1.5.0/tests/scorecard /tests/scorecard/
+COPY 1.8.0/manifests /manifests/
+COPY 1.8.0/metadata /metadata/
+COPY 1.8.0/tests/scorecard /tests/scorecard/

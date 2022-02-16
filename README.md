@@ -1,7 +1,7 @@
 # Red Hat certified operators production catalog
 Production catalog for Red Hat Certified Operator Bundles
 
-# Operator bundle submission
+# Operator bundle submissionss
 A new operator bundle submission needs to follow a predefined directory
 structure that is described below in this section. The new submission is
 done through Github pull requests which can be either open by the [CI pipeline][ci-pipeline] or

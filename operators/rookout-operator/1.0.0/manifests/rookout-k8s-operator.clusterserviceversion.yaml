@@ -1,0 +1,210 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "rookout.rookout.com/v1alpha1",
+          "kind": "Rookout",
+          "metadata": {
+            "labels": {
+              "app": "roookout-operator"
+            },
+            "name": "rookout-operator-configuration"
+          },
+          "spec": {
+            "init_container": {
+              "image": "docker.io/rookout/k8s-operator-init-container-ubi:latest@sha256:30bbbaaf23e65ad3384430bfd07c92c795a7c3fcfec7a83d67bedb41df3bddf7",
+              "image_pull_policy": "Always"
+            },
+            "matchers": [
+              {
+                "container": "test_container",
+                "deployment": "test_deployment",
+                "env_vars": [
+                  {
+                    "name": "ROOKOUT_TOKEN",
+                    "value": "fba5d2d413de317d77110867968ecc413bc13e65a7c75a32f6002adb2d7aebee"
+                  }
+                ],
+                "labels": "test_labels",
+                "namespace": "test_namespace"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.16.0-ocp
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+  name: rookout-k8s-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Rookout is the Schema for the rookouts API
+      displayName: Rookout
+      kind: Rookout
+      name: rookouts.rookout.rookout.com
+      version: v1alpha1
+  description: Rookout Operator for instrumenting applications with the Rookout agent
+  displayName: Rookout Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - get
+          - list
+          - patch
+          - watch
+        - apiGroups:
+          - rookout.rookout.com
+          resources:
+          - rookouts
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rookout.rookout.com
+          resources:
+          - rookouts/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - rookout.rookout.com
+          resources:
+          - rookouts/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: default
+      deployments:
+      - name: rookout-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:f000432f07cd187469f0310e3ed9dcf9a5db2be14b8bab9c5293dd1ee8518176
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /manager
+                image: docker.io/rookout/k8s-operator-ubi:1.8@0e2dd4d24d92420613aec597badcfe89042c6bf6c7d463bafa6255ede9ad8026
+                imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 30Mi
+                  requests:
+                    cpu: 100m
+                    memory: 20Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          - coordination.k8s.io
+          resources:
+          - configmaps
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: default
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - developer tools
+  - rookout
+  - operator
+  links:
+  - name: Rookout K8s Operator
+    url: https://rookout-k8s-operator.domain
+  maturity: alpha
+  provider:
+    name: Rookout
+    url: http://www.rookout.com
+  version: 0.0.1

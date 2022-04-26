@@ -1,1 +1,0 @@
-Standalone deployment (S1) with Service Account

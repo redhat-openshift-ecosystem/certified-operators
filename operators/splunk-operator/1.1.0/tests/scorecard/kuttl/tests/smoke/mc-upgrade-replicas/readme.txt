@@ -1,1 +1,0 @@
-Clustered deployment (C3 - clustered indexer, search head cluster

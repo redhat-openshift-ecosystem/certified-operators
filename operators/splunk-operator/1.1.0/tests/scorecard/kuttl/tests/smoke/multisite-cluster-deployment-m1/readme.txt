@@ -1,1 +1,0 @@
-Multisite cluster deployment (M1 - multisite indexer cluster)

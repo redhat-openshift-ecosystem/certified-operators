@@ -1,0 +1,259 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: kafkatopics.platform.confluent.io
+spec:
+  group: platform.confluent.io
+  names:
+    categories:
+    - all
+    - confluent-platform
+    - confluent
+    kind: KafkaTopic
+    listKind: KafkaTopicList
+    plural: kafkatopics
+    shortNames:
+    - kt
+    - topic
+    singular: kafkatopic
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.replicas
+      name: Replicas
+      type: string
+    - jsonPath: .status.partitionCount
+      name: Partition
+      type: string
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    - jsonPath: .status.kafkaClusterId
+      name: ClusterId
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .status.kafkaCluster
+      name: KafkaCluster
+      priority: 1
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: KafkaTopic is the Schema for the kafkatopics API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: KafkaTopicSpec defines the desired state of KafkaTopic
+            properties:
+              configs:
+                additionalProperties:
+                  type: string
+                description: Configs allows passing configs for topic More information
+                  about topic configs is available here https://docs.confluent.io/current/installation/configuration/topic-configs.html
+                type: object
+              kafkaClusterRef:
+                description: KafkaClusterRef defines the name of the kafka cluster
+                properties:
+                  name:
+                    description: Name defines name of the cluster
+                    type: string
+                  namespace:
+                    description: Namespace defines namespace where cluster is running
+                    type: string
+                required:
+                - name
+                type: object
+              kafkaRest:
+                description: KafkaRestRef defines the Kafka Rest API configuration
+                properties:
+                  authentication:
+                    description: Authentication defines the Rest API authentication
+                      mechanism
+                    properties:
+                      basic:
+                        description: Basic defines basic authentication for the rest
+                          client
+                        properties:
+                          secretRef:
+                            description: Name of the secret reference
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      bearer:
+                        description: BearerAuthentication defines bearer authentication
+                          for the rest client
+                        properties:
+                          secretRef:
+                            description: Name of the secret reference
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      type:
+                        enum:
+                        - basic
+                        - bearer
+                        - mtls
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  endpoint:
+                    description: Endpoint defines where confluent Rest API is running
+                    minLength: 1
+                    pattern: ^https?://.*
+                    type: string
+                  tls:
+                    description: TLSDependencyConfig defines custom TLS structure
+                      for the child resources(connector, topic, schema, etc) of CP
+                      component
+                    properties:
+                      directoryPathInContainer:
+                        description: DirectoryPathInContainer contains the directory
+                          path in container where keystore/truststore.jks/jksPassword.txt
+                          keys are mounted.
+                        minLength: 1
+                        type: string
+                      jksPassword:
+                        description: JksPassword defines the secret name referenced
+                          for jks password
+                        properties:
+                          secretRef:
+                            description: SecretRef defines the secret name referenced
+                              for jks password More information about jks password
+                              key/value format can be found in Confluent Operator
+                              document
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      secretRef:
+                        description: SecretRef defines the secret name referenced
+                          for certificates More information about certificates key/value
+                          format can be found in Confluent Operator document
+                        maxLength: 30
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                    type: object
+                type: object
+              kafkaRestClassRef:
+                description: KafkaRestClassRef defines the reference for KafkaRestClass
+                  which defines Kafka Rest API
+                properties:
+                  name:
+                    description: Name defines the name of KafkaRestClass
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: Namespace defines the namespace of the KafkaRestClass
+                    type: string
+                required:
+                - name
+                type: object
+              name:
+                description: Name defines the topic name. If not configured uses the
+                  CR name as topic name.
+                maxLength: 255
+                minLength: 1
+                pattern: ^[a-zA-Z0-9\._\-]*$
+                type: string
+              partitionCount:
+                description: PartitionCount defines the partition count. If not configured
+                  then it will be defaulted to whatever kafkarest V3 APIs supports
+                format: int32
+                type: integer
+              replicas:
+                description: Replicas defines the replication factor for a topic.
+                  If not configured then it will be defaulted to whatever kafkarest
+                  V3 APIs supports
+                format: int32
+                type: integer
+            type: object
+          status:
+            description: KafkaTopicStatus defines the observed state of KafkaTopic
+            properties:
+              conditions:
+                items:
+                  description: Conditions represents the latest available observations
+                    of a statefulset's current state.
+                  properties:
+                    lastProbeTime:
+                      description: LastProbeTime defines a last time the condition
+                        is evaluated.
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: LastTransitionTime defines a last time the condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: ' Message defines  a human readable message indicating
+                        details about the transition.'
+                      type: string
+                    reason:
+                      description: ' Reason defines reason for the condition''s last
+                        transition.'
+                      type: string
+                    status:
+                      description: Status defines a status of the condition, one of
+                        True, False, Unknown
+                      type: string
+                    type:
+                      description: Type defines type of condition
+                      type: string
+                  type: object
+                type: array
+              kafkaCluster:
+                type: string
+              kafkaClusterId:
+                type: string
+              kafkaRestEndpoint:
+                type: string
+              partitionCount:
+                format: int32
+                type: integer
+              replicas:
+                format: int32
+                type: integer
+              state:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

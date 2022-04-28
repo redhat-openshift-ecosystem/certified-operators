@@ -1,0 +1,110 @@
+apiVersion: v1
+data:
+  daemonSet_container_config.yaml: '{}'
+  daemonSet_pod_config.yaml: '{}'
+  injection_pod_prefix_list.yaml: '[]'
+  sidecar_container_config.yaml: "env: \n- name: MVMALLOC_CONFIG\n  value: \"/etc/memverge/config/mvmalloc.yml\"\n-
+    name: LD_PRELOAD\n  value: \"/opt/memverge/lib64/mvmalloc.so\"\n- name: LD_LIBRARY_PATH\n
+    \ value: \"/tmp/memverge\"\n- name: MM_NODE_NAME\n  valueFrom:\n    fieldRef:\n
+    \     fieldPath: spec.nodeName\n- name: MM_POD_NAME\n  valueFrom:\n    fieldRef:\n
+    \     fieldPath: metadata.name\n- name: MM_POD_NAMESPACE\n  valueFrom:\n    fieldRef:\n
+    \     fieldPath: metadata.namespace\n- name: MM_POD_IP\n  valueFrom:\n    fieldRef:\n
+    \     fieldPath: status.podIP\nvolumeMounts:\n- mountPath: /tmp/memverge\n  name:
+    mm\n- mountPath: /var/log/memverge\n  name: log\n- mountPath: /var/memverge/data\n
+    \ name: mmdata\n- mountPath: /etc/memverge\n  name: etc-memverge\n- mountPath:
+    /opt/memverge\n  name: opt-memverge\n"
+  sidecar_pod_config.yaml: |
+    imagePullSecrets:
+    - name: memverge-github-dockerconfig
+    initContainers:
+    - name: init-mm
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+      image: ghcr.io/memverge/memory-machine:master
+      imagePullPolicy: Always
+      command: ["/bin/bash", "-c"]
+      args: [/home/memverge/init_env.sh]
+      volumeMounts:
+      - mountPath: /mnt/pmem0
+        name: pmem-csi-ephemeral-volume
+      - mountPath: "/etc/memverge-license"
+        name: mm-license
+        readOnly: true
+      - mountPath: /tmp/memverge
+        name: mm
+      - mountPath: /var/log/memverge
+        name: log
+      - mountPath: /var/memverge/data
+        name: mmdata
+      - mountPath: /etc/memverge
+        name: etc-memverge
+      - mountPath: /opt/memverge
+        name: opt-memverge
+      - mountPath: /etc/memverge/config
+        name: mvmalloc-config
+    containers:
+    - name: memory-machine-sidecar
+      securityContext:
+        runAsUser: 0
+        fsGroupChangePolicy: "OnRootMismatch"
+      image: ghcr.io/memverge/memory-machine:master
+      imagePullPolicy: Always
+      env:
+      - name: PATH
+        value: "/bin:/sbin:/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/etc/memverge:/opt/memverge/sbin"
+      - name: MM_NODE_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: spec.nodeName
+      - name: MM_POD_NAME
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.name
+      - name: MM_POD_NAMESPACE
+        valueFrom:
+          fieldRef:
+            fieldPath: metadata.namespace
+      - name: MM_POD_IP
+        valueFrom:
+          fieldRef:
+            fieldPath: status.podIP
+      volumeMounts:
+      - mountPath: /mnt/pmem0
+        name: pmem-volume-memverge
+      - mountPath: /tmp/memverge
+        name: mm
+      - mountPath: /var/log/memverge
+        name: log
+      - mountPath: /var/memverge/data
+        name: mmdata
+      - mountPath: /etc/memverge
+        name: etc-memverge
+      - mountPath: /opt/memverge
+        name: opt-memverge
+    volumes:
+    - name: pmem-volume-memverge
+      persistentVolumeClaim:
+        claimName: pmem-volume-claim
+    - name: mm-license
+      secret:
+        secretName: memory-machine-license
+        items:
+        - key: license
+          path: license.lic
+    - name: mm
+      emptyDir: {}
+    - name: log
+      emptyDir: {}
+    - name: etc-memverge
+      emptyDir: {}
+    - name: opt-memverge
+      emptyDir: {}
+    - name: mmdata
+      emptyDir: {}
+    - name: mvmalloc-config
+      configMap:
+        name: mvmalloc-config
+kind: ConfigMap
+metadata:
+  name: memverge-webhook-configmap

@@ -1,0 +1,3172 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: restores.triliovault.trilio.io
+spec:
+  group: triliovault.trilio.io
+  names:
+    kind: Restore
+    listKind: RestoreList
+    plural: restores
+    singular: restore
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.stats.backup.name
+      name: Backup
+      type: string
+    - jsonPath: .status.stats.backup.namespace
+      name: Backup Namespace
+      type: string
+    - jsonPath: .status.status
+      name: Status
+      type: string
+    - jsonPath: .status.size
+      name: Data Size
+      type: string
+    - jsonPath: .status.startTimestamp
+      name: Start Time
+      type: string
+    - jsonPath: .status.completionTimestamp
+      name: End Time
+      type: string
+    - jsonPath: .status.percentageCompletion
+      name: Percentage Completed
+      type: number
+    - jsonPath: .status.restoreScope
+      name: Restore Scope
+      type: string
+    - jsonPath: .status.duration
+      name: Duration
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Restore is the Schema for the restores API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RestoreSpec defines the desired state of Restore
+            properties:
+              actionFlags:
+                properties:
+                  cleanupOnFailure:
+                    description: CleanupOnFailure is flag to perform cleanup after
+                      restore fails. Defaults to false
+                    type: boolean
+                  protectRestoredApp:
+                    description: ProtectRestoredApp decides if TVK will setup a backupPlan
+                      to protect the restored application.
+                    type: boolean
+                type: object
+              cleanupOnFailure:
+                description: 'CleanupOnFailure is flag to perform cleanup after restore
+                  fails. Defaults to false Deprecated: CleanupOnFailure flag is now
+                  moved under `ActionFlags` struct'
+                type: boolean
+              disableIgnoreResources:
+                description: 'DisableIgnoreResources is responsible for the behavior
+                  of default list of resources being ignored at the restore. If set
+                  to true, those resources will not be ignored Deprecated: DisableIgnoreResources
+                  flag is now moved under `RestoreFlags` struct'
+                type: boolean
+              encryption:
+                description: Encryption specify encryption key to decrypt the encrypted
+                  data.
+                properties:
+                  encryptionSecret:
+                    description: EncryptionSecret is object ref of a secret which
+                      contains encryption key for backup encryption
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: 'If referring to a piece of an object instead
+                          of an entire object, this string should contain a valid
+                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within
+                          a pod, this would take on a value like: "spec.containers{name}"
+                          (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]"
+                          (container with index 2 in this pod). This syntax is chosen
+                          only to have some well-defined way of referencing a part
+                          of an object. TODO: this design is not final and this field
+                          is subject to change in the future.'
+                        type: string
+                      kind:
+                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                        type: string
+                      namespace:
+                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                        type: string
+                      resourceVersion:
+                        description: 'Specific resourceVersion to which this reference
+                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                        type: string
+                      uid:
+                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        type: string
+                    type: object
+                required:
+                - encryptionSecret
+                type: object
+              env:
+                description: Env is the List of environment variables to set in the
+                  container. Cannot be updated.
+                items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
+                  properties:
+                    name:
+                      description: Name of the environment variable. Must be a C_IDENTIFIER.
+                      type: string
+                    value:
+                      description: 'Variable references $(VAR_NAME) are expanded using
+                        the previously defined environment variables in the container
+                        and any service environment variables. If a variable cannot
+                        be resolved, the reference in the input string will be unchanged.
+                        Double $$ are reduced to a single $, which allows for escaping
+                        the $(VAR_NAME) syntax: i.e. "$$(VAR_NAME)" will produce the
+                        string literal "$(VAR_NAME)". Escaped references will never
+                        be expanded, regardless of whether the variable exists or
+                        not. Defaults to "".'
+                      type: string
+                    valueFrom:
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
+                      properties:
+                        configMapKeyRef:
+                          description: Selects a key of a ConfigMap.
+                          properties:
+                            key:
+                              description: The key to select.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the ConfigMap or its key
+                                must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                        fieldRef:
+                          description: 'Selects a field of the pod: supports metadata.name,
+                            metadata.namespace, `metadata.labels[''<KEY>'']`, `metadata.annotations[''<KEY>'']`,
+                            spec.nodeName, spec.serviceAccountName, status.hostIP,
+                            status.podIP, status.podIPs.'
+                          properties:
+                            apiVersion:
+                              description: Version of the schema the FieldPath is
+                                written in terms of, defaults to "v1".
+                              type: string
+                            fieldPath:
+                              description: Path of the field to select in the specified
+                                API version.
+                              type: string
+                          required:
+                          - fieldPath
+                          type: object
+                        resourceFieldRef:
+                          description: 'Selects a resource of the container: only
+                            resources limits and requests (limits.cpu, limits.memory,
+                            limits.ephemeral-storage, requests.cpu, requests.memory
+                            and requests.ephemeral-storage) are currently supported.'
+                          properties:
+                            containerName:
+                              description: 'Container name: required for volumes,
+                                optional for env vars'
+                              type: string
+                            divisor:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Specifies the output format of the exposed
+                                resources, defaults to "1"
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            resource:
+                              description: 'Required: resource to select'
+                              type: string
+                          required:
+                          - resource
+                          type: object
+                        secretKeyRef:
+                          description: Selects a key of a secret in the pod's namespace
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+              excludeResources:
+                description: ExcludeResources specifies the resources to be excluded
+                  from backup while restoring
+                items:
+                  description: Resource defines the list of names of a Kubernetes
+                    resource of a particular GVK.
+                  properties:
+                    groupVersionKind:
+                      description: GroupVersionKind specifies GVK uniquely representing
+                        particular resource type.
+                      properties:
+                        group:
+                          type: string
+                        kind:
+                          type: string
+                        version:
+                          type: string
+                      type: object
+                    objects:
+                      description: Objects is the list of names of all the objects
+                        of the captured GVK
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - groupVersionKind
+                  type: object
+                minItems: 1
+                type: array
+              hookConfig:
+                description: HookConfig specifies the Post Restore Hooks Executed
+                  in reverse sequence of the sequence specified here
+                properties:
+                  hooks:
+                    description: Hooks defines the config's for hook action object
+                      reference to the matching regexes of pod and containers
+                    items:
+                      description: HookInfo defines the config for hook action object
+                        reference to the matching regexes of pod and containers
+                      properties:
+                        containerRegex:
+                          description: ContainerRegex identifies containers for hook
+                            execution from pods which are filtered using PodSelector.
+                            If not given then hooks will be executed in all the containers
+                            of the identified pods
+                          type: string
+                        hook:
+                          description: Hook is the object reference of the Hook resource
+                            which will be run while quiescing
+                          properties:
+                            apiVersion:
+                              description: API version of the referent.
+                              type: string
+                            fieldPath:
+                              description: 'If referring to a piece of an object instead
+                                of an entire object, this string should contain a
+                                valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                                For example, if the object reference is to a container
+                                within a pod, this would take on a value like: "spec.containers{name}"
+                                (where "name" refers to the name of the container
+                                that triggered the event) or if no container name
+                                is specified "spec.containers[2]" (container with
+                                index 2 in this pod). This syntax is chosen only to
+                                have some well-defined way of referencing a part of
+                                an object. TODO: this design is not final and this
+                                field is subject to change in the future.'
+                              type: string
+                            kind:
+                              description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                              type: string
+                            namespace:
+                              description: 'Namespace of the referent. More info:
+                                https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                              type: string
+                            resourceVersion:
+                              description: 'Specific resourceVersion to which this
+                                reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                              type: string
+                            uid:
+                              description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                              type: string
+                          type: object
+                        podSelector:
+                          description: PodSelector will identify set of pods for hook
+                            config based on either Labels or Regex pattern.
+                          properties:
+                            labels:
+                              items:
+                                description: A label selector is a label query over
+                                  a set of resources. The result of matchLabels and
+                                  matchExpressions are ANDed. An empty label selector
+                                  matches all objects. A null label selector matches
+                                  no objects.
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: A label selector requirement is
+                                        a selector that contains values, a key, and
+                                        an operator that relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: operator represents a key's
+                                            relationship to a set of values. Valid
+                                            operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: values is an array of string
+                                            values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If
+                                            the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array
+                                            is replaced during a strategic merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: matchLabels is a map of {key,value}
+                                      pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions,
+                                      whose key field is "key", the operator is "In",
+                                      and the values array contains only "value".
+                                      The requirements are ANDed.
+                                    type: object
+                                type: object
+                              minItems: 1
+                              type: array
+                            regex:
+                              type: string
+                          type: object
+                      required:
+                      - hook
+                      - podSelector
+                      type: object
+                    minItems: 1
+                    type: array
+                  mode:
+                    description: Mode can be sequential or parallel which defines
+                      the way hooks will be executed. If mode is parallel, ignore
+                      the hook sequence.
+                    enum:
+                    - Sequential
+                    - Parallel
+                    type: string
+                  podReadyWaitSeconds:
+                    description: PodReadyWaitSeconds is the wait time for which hook
+                      execution waits before performing hook Quiescing/UnQuiescing
+                      It is only applicable for pods which are found in NotRunning
+                      state during hook execution Default value is 120s, that will
+                      be set by webhook.
+                    maximum: 600
+                    minimum: 1
+                    type: integer
+                required:
+                - hooks
+                type: object
+              omitMetadata:
+                description: 'OmitMetadata specifies whether to omit metadata like
+                  labels, annotations of resources while restoring them. Deprecated:
+                  OmitMetadata flag is now moved under `RestoreFlags` struct'
+                type: boolean
+              patchCRD:
+                description: 'PatchCRD specifies whether to patch spec of a already
+                  exists crd. Deprecated: PatchCRD flag is now moved under `RestoreFlags`
+                  struct'
+                type: boolean
+              patchIfAlreadyExists:
+                description: 'PatchIfAlreadyExists specifies whether to patch spec
+                  of a already exists resource in the namespace restored. Deprecated:
+                  PatchIfAlreadyExists flag is now moved under `RestoreFlags` struct'
+                type: boolean
+              protectRestoredApp:
+                description: 'ProtectRestoredApp decides if TVK will setup a backupplan
+                  to protect the restored application. Deprecated: ProtectRestoredApp
+                  flag is now moved under `ActionFlags` struct'
+                type: boolean
+              resourcesReadyWaitSeconds:
+                description: ResourcesReadyWaitSeconds is the wait time for restored
+                  application's pods to come up. If user application is having webhook
+                  then CR creation will fail is webhook is not up. Provide the wait
+                  time in such case.
+                maximum: 1200
+                minimum: 0
+                type: integer
+              restoreFlags:
+                properties:
+                  disableIgnoreResources:
+                    description: DisableIgnoreResources is responsible for the behavior
+                      of default list of resources being ignored at the restore. If
+                      set to true, those resources will not be ignored
+                    type: boolean
+                  omitMetadata:
+                    description: OmitMetadata specifies whether to omit metadata like
+                      labels, annotations of resources while restoring them.
+                    type: boolean
+                  onlyData:
+                    description: OnlyData flag decides if the restore operation will
+                      only restore data components.
+                    type: boolean
+                  onlyMetadata:
+                    description: OnlyMetadata flag decides if the restore operation
+                      will only restore metadata components.
+                    type: boolean
+                  patchCRD:
+                    description: PatchCRD specifies whether to patch spec of a already
+                      exists crd.
+                    type: boolean
+                  patchIfAlreadyExists:
+                    description: PatchIfAlreadyExists specifies whether to patch spec
+                      of a already exists resource in the namespace restored.
+                    type: boolean
+                  skipIfAlreadyExists:
+                    description: SkipIfAlreadyExists specifies whether to skip restore
+                      of a resource if already exists in the namespace restored.
+                    type: boolean
+                  skipOperatorResources:
+                    description: SkipOperatorResources specifies whether to skip operator
+                      resources or not at the time of restore. (for the use case when
+                      operator is already present and the application of that operator
+                      needs to be restored)
+                    type: boolean
+                type: object
+              restoreNamespace:
+                description: 'Namespace is a name of namespace in cluster where backed
+                  resources will be restored Deprecated: Restore will be allowed only
+                  in Restore CR Namespace so RestoreNamespace is redundant.'
+                type: string
+              skipIfAlreadyExists:
+                description: 'SkipIfAlreadyExists specifies whether to skip restore
+                  of a resource if already exists in the namespace restored. Deprecated:
+                  SkipIfAlreadyExists flag is now moved under `RestoreFlags` struct'
+                type: boolean
+              skipOperatorResources:
+                description: 'SkipOperatorResources specifies whether to skip operator
+                  resources or not at the time of restore. (for the use case when
+                  operator is already present and the application of that operator
+                  needs to be restored) Deprecated: SkipOperatorResources flag is
+                  now moved under `RestoreFlags` struct'
+                type: boolean
+              source:
+                description: Source defines the source referred for performing restore
+                  operation
+                properties:
+                  backup:
+                    description: Backup is a reference to the Backup instance restored
+                      if type is Backup.
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: 'If referring to a piece of an object instead
+                          of an entire object, this string should contain a valid
+                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within
+                          a pod, this would take on a value like: "spec.containers{name}"
+                          (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]"
+                          (container with index 2 in this pod). This syntax is chosen
+                          only to have some well-defined way of referencing a part
+                          of an object. TODO: this design is not final and this field
+                          is subject to change in the future.'
+                        type: string
+                      kind:
+                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                        type: string
+                      namespace:
+                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                        type: string
+                      resourceVersion:
+                        description: 'Specific resourceVersion to which this reference
+                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                        type: string
+                      uid:
+                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        type: string
+                    type: object
+                  backupPlan:
+                    description: BackupPlan is a reference to the BackupPlan whose
+                      latest successful backup is to be restored.
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: 'If referring to a piece of an object instead
+                          of an entire object, this string should contain a valid
+                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within
+                          a pod, this would take on a value like: "spec.containers{name}"
+                          (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]"
+                          (container with index 2 in this pod). This syntax is chosen
+                          only to have some well-defined way of referencing a part
+                          of an object. TODO: this design is not final and this field
+                          is subject to change in the future.'
+                        type: string
+                      kind:
+                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                        type: string
+                      namespace:
+                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                        type: string
+                      resourceVersion:
+                        description: 'Specific resourceVersion to which this reference
+                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                        type: string
+                      uid:
+                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        type: string
+                    type: object
+                  location:
+                    description: Location is an absolute path to remote target from
+                      where restore is performed if type is Location.
+                    type: string
+                  target:
+                    description: Target is a reference to the Target instance where
+                      from restore is performed if type is Location.
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: 'If referring to a piece of an object instead
+                          of an entire object, this string should contain a valid
+                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within
+                          a pod, this would take on a value like: "spec.containers{name}"
+                          (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]"
+                          (container with index 2 in this pod). This syntax is chosen
+                          only to have some well-defined way of referencing a part
+                          of an object. TODO: this design is not final and this field
+                          is subject to change in the future.'
+                        type: string
+                      kind:
+                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                        type: string
+                      namespace:
+                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                        type: string
+                      resourceVersion:
+                        description: 'Specific resourceVersion to which this reference
+                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                        type: string
+                      uid:
+                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        type: string
+                    type: object
+                  type:
+                    description: Type is the type of source for restore
+                    enum:
+                    - Backup
+                    - Location
+                    - BackupPlan
+                    type: string
+                required:
+                - type
+                type: object
+              transformComponents:
+                description: TransformComponents specifies the component-wise transformation
+                  configuration
+                properties:
+                  custom:
+                    description: CustomTransform specifies the Transformation configuration
+                      for Custom label-based backup
+                    items:
+                      description: CustomTransform specifies transformation configuration
+                        for Custom label-based resources
+                      properties:
+                        jsonPatches:
+                          description: JSONPatches specifies the JSON patches to be
+                            applied
+                          items:
+                            properties:
+                              from:
+                                description: From specifies the source element path.
+                                  This field is mandatory for copy/move operation
+                                type: string
+                              op:
+                                description: Op specifies the operation to perform,
+                                  can be test/add/remove/replace/copy/move
+                                enum:
+                                - test
+                                - add
+                                - remove
+                                - replace
+                                - copy
+                                - move
+                                type: string
+                              path:
+                                description: Path specifies the destination element
+                                  path which needs to be transformed
+                                type: string
+                              value:
+                                description: Values specifies the value for any operation.
+                                  This field is mandatory for test/add/replace operation
+                                x-kubernetes-preserve-unknown-fields: true
+                            required:
+                            - op
+                            - path
+                            type: object
+                          minItems: 1
+                          type: array
+                        resources:
+                          description: Resources specifies the resources for which
+                            transformation needs to be applied
+                          properties:
+                            groupVersionKind:
+                              description: GroupVersionKind specifies GVK uniquely
+                                representing particular resource type.
+                              properties:
+                                group:
+                                  type: string
+                                kind:
+                                  type: string
+                                version:
+                                  type: string
+                              type: object
+                            objects:
+                              description: Objects is the list of names of all the
+                                objects of the captured GVK
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - groupVersionKind
+                          type: object
+                        transformName:
+                          description: TransformName specifies the name of transformation
+                          type: string
+                      required:
+                      - jsonPatches
+                      - resources
+                      - transformName
+                      type: object
+                    minItems: 1
+                    type: array
+                  helm:
+                    description: HelmTransform specifies the Transformation configuration
+                      for Helm charts
+                    items:
+                      description: HelmTransform specifies transformation configuration
+                        for Helm
+                      properties:
+                        release:
+                          description: Release specifies the release name for which
+                            the transformation is to be done
+                          type: string
+                        set:
+                          description: Set specifies the key-value pair to be set
+                          items:
+                            description: KeyValue specifies key-value pair for helm
+                              transformation
+                            properties:
+                              key:
+                                description: Key denotes the key for which value is
+                                  to be set
+                                type: string
+                              value:
+                                description: Value denotes the value to be set
+                                type: string
+                            required:
+                            - key
+                            - value
+                            type: object
+                          minItems: 1
+                          type: array
+                        transformName:
+                          description: TransformName specifies the name of transformation
+                          type: string
+                      required:
+                      - release
+                      - set
+                      - transformName
+                      type: object
+                    minItems: 1
+                    type: array
+                type: object
+            required:
+            - source
+            type: object
+          status:
+            description: RestoreStatus defines the observed state of Restore
+            properties:
+              applicationType:
+                description: ApplicationType is the type of Application restored in
+                  the App Scoped backup
+                enum:
+                - Helm
+                - Operator
+                - Custom
+                - Namespace
+                - MultiNamespace
+                type: string
+              completionTimestamp:
+                description: CompletionTimestamp is the time a restore was finished.
+                format: date-time
+                type: string
+              condition:
+                description: Condition is the current condition of restore resource.
+                items:
+                  description: RestoreCondition specifies the current condition of
+                    a restore resource.
+                  properties:
+                    phase:
+                      description: Phase defines the current phase of the controller.
+                      enum:
+                      - TargetValidation
+                      - Validation
+                      - DataRestore
+                      - MetadataRestore
+                      - PrimitiveMetadataRestore
+                      - Unquiesce
+                      - RestoreCleanup
+                      - AddProtection
+                      type: string
+                    reason:
+                      description: A brief message indicating details about why the
+                        component is in this condition.
+                      type: string
+                    status:
+                      description: Status is the status of the condition.
+                      enum:
+                      - InProgress
+                      - Error
+                      - Completed
+                      - Failed
+                      type: string
+                    timestamp:
+                      description: Timestamp is the time a condition occurred.
+                      format: date-time
+                      type: string
+                  type: object
+                type: array
+              duration:
+                description: Duration is the amount of time the restore process took
+                  to finish.
+                type: string
+              hookStatus:
+                description: HookStatus specifies pre/post hook execution status for
+                  current backup.
+                properties:
+                  hookPriorityStatus:
+                    description: HookPriorityStatuses specifies pre/post hook execution
+                      status for current backup.
+                    items:
+                      description: HookPriorityStatus defines observed state for hooks
+                        priority wise.
+                      properties:
+                        hooks:
+                          description: Hooks defines list of hooks with priority `Priority`.
+                          items:
+                            description: HookPriority contain hook & their targeted
+                              resources
+                            properties:
+                              hook:
+                                description: Hook is the object reference of the Hook
+                                  resource which will be run while quiescing
+                                properties:
+                                  apiVersion:
+                                    description: API version of the referent.
+                                    type: string
+                                  fieldPath:
+                                    description: 'If referring to a piece of an object
+                                      instead of an entire object, this string should
+                                      contain a valid JSON/Go field access statement,
+                                      such as desiredState.manifest.containers[2].
+                                      For example, if the object reference is to a
+                                      container within a pod, this would take on a
+                                      value like: "spec.containers{name}" (where "name"
+                                      refers to the name of the container that triggered
+                                      the event) or if no container name is specified
+                                      "spec.containers[2]" (container with index 2
+                                      in this pod). This syntax is chosen only to
+                                      have some well-defined way of referencing a
+                                      part of an object. TODO: this design is not
+                                      final and this field is subject to change in
+                                      the future.'
+                                    type: string
+                                  kind:
+                                    description: 'Kind of the referent. More info:
+                                      https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                    type: string
+                                  name:
+                                    description: 'Name of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                    type: string
+                                  namespace:
+                                    description: 'Namespace of the referent. More
+                                      info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                    type: string
+                                  resourceVersion:
+                                    description: 'Specific resourceVersion to which
+                                      this reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                    type: string
+                                  uid:
+                                    description: 'UID of the referent. More info:
+                                      https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                    type: string
+                                type: object
+                              hookTarget:
+                                description: HookTarget defines targeting hook resources.
+                                items:
+                                  properties:
+                                    containerRegex:
+                                      description: ContainerRegex identifies containers
+                                        in identified pods to execute hooks.
+                                      type: string
+                                    owner:
+                                      description: Owner specifies the parent for
+                                        identified pods in PodHookStatus. backup controller
+                                        will fetch pods from Owner to execute the
+                                        hooks. Owner will be nil for pods with no
+                                        owner.
+                                      properties:
+                                        groupVersionKind:
+                                          description: GroupVersionKind specifies
+                                            GVK uniquely representing particular owner
+                                            type.
+                                          properties:
+                                            group:
+                                              type: string
+                                            kind:
+                                              type: string
+                                            version:
+                                              type: string
+                                          type: object
+                                        name:
+                                          description: Name is name of owner
+                                          type: string
+                                      required:
+                                      - groupVersionKind
+                                      - name
+                                      type: object
+                                    podHookStatus:
+                                      description: PodHookStatus specifies pre/post
+                                        hook execution status for current backup.
+                                      items:
+                                        description: PodHookStatus defines observed
+                                          state for hooks
+                                        properties:
+                                          containerHookStatus:
+                                            description: ContainerHookStatus defines
+                                              status for filtered containers in a
+                                              pod named 'PodName' One Container can
+                                              have multiple hook executions.
+                                            items:
+                                              description: ContainerHookStatus defines
+                                                hook execution status for a containers
+                                              properties:
+                                                containerName:
+                                                  description: ContainerName is container
+                                                    in which hooks are executed.
+                                                  type: string
+                                                postHookStatus:
+                                                  description: PostHookStatus defines
+                                                    status for post hooks
+                                                  properties:
+                                                    exitStatus:
+                                                      description: ExitStatus contains
+                                                        returned exit code and error
+                                                        trace after pre/post hook
+                                                        execution
+                                                      type: string
+                                                    retryCount:
+                                                      description: RetryCount count
+                                                        used to retry hook execution
+                                                        within the time range specified
+                                                        by Timeout. This is the actual
+                                                        number of times backup controller
+                                                        retried for pre/post hook
+                                                        execution if MaxRetryCount>0.
+                                                        Default is 0
+                                                      maximum: 10
+                                                      minimum: 0
+                                                      type: integer
+                                                    status:
+                                                      description: Status is the status
+                                                        for pre/post hook execution
+                                                      enum:
+                                                      - InProgress
+                                                      - Completed
+                                                      - Failed
+                                                      type: string
+                                                  type: object
+                                                preHookStatus:
+                                                  description: PreHookStatus defines
+                                                    status for pre hooks
+                                                  properties:
+                                                    exitStatus:
+                                                      description: ExitStatus contains
+                                                        returned exit code and error
+                                                        trace after pre/post hook
+                                                        execution
+                                                      type: string
+                                                    retryCount:
+                                                      description: RetryCount count
+                                                        used to retry hook execution
+                                                        within the time range specified
+                                                        by Timeout. This is the actual
+                                                        number of times backup controller
+                                                        retried for pre/post hook
+                                                        execution if MaxRetryCount>0.
+                                                        Default is 0
+                                                      maximum: 10
+                                                      minimum: 0
+                                                      type: integer
+                                                    status:
+                                                      description: Status is the status
+                                                        for pre/post hook execution
+                                                      enum:
+                                                      - InProgress
+                                                      - Completed
+                                                      - Failed
+                                                      type: string
+                                                  type: object
+                                              required:
+                                              - containerName
+                                              type: object
+                                            minItems: 1
+                                            type: array
+                                          podName:
+                                            description: PodName is the single pod
+                                              name from identified sets of pods filtered
+                                              for hook config.
+                                            type: string
+                                        required:
+                                        - containerHookStatus
+                                        - podName
+                                        type: object
+                                      type: array
+                                  type: object
+                                type: array
+                              postHookConf:
+                                description: PostHookConf defines how post hook implementation
+                                  will be handled
+                                properties:
+                                  ignoreFailure:
+                                    description: IgnoreFailure is a boolean, if set
+                                      to true all the failures will be ignored for
+                                      both in pre and post hooks Default is false.
+                                    type: boolean
+                                  maxRetryCount:
+                                    description: MaxRetryCount is the maximum number
+                                      of times pre/post hook execution can be retried.
+                                      MaxRetryCount will be equal to the RetryCount
+                                      specified in Hook Spec.
+                                    maximum: 10
+                                    minimum: 0
+                                    type: integer
+                                  timeoutSeconds:
+                                    description: TimeoutSeconds is A Maximum allowed
+                                      time in seconds to execute Hook. timeout here
+                                      is a hard timeout. Meaning the command needs
+                                      to exit in that time, either with exit code
+                                      0 or non 0. hook execution will be considered
+                                      in error if it fails to complete within timeout.
+                                    maximum: 300
+                                    minimum: 1
+                                    type: integer
+                                type: object
+                              preHookConf:
+                                description: PreHookConf defines how pre hook implementation
+                                  will be handled
+                                properties:
+                                  ignoreFailure:
+                                    description: IgnoreFailure is a boolean, if set
+                                      to true all the failures will be ignored for
+                                      both in pre and post hooks Default is false.
+                                    type: boolean
+                                  maxRetryCount:
+                                    description: MaxRetryCount is the maximum number
+                                      of times pre/post hook execution can be retried.
+                                      MaxRetryCount will be equal to the RetryCount
+                                      specified in Hook Spec.
+                                    maximum: 10
+                                    minimum: 0
+                                    type: integer
+                                  timeoutSeconds:
+                                    description: TimeoutSeconds is A Maximum allowed
+                                      time in seconds to execute Hook. timeout here
+                                      is a hard timeout. Meaning the command needs
+                                      to exit in that time, either with exit code
+                                      0 or non 0. hook execution will be considered
+                                      in error if it fails to complete within timeout.
+                                    maximum: 300
+                                    minimum: 1
+                                    type: integer
+                                type: object
+                            required:
+                            - hook
+                            - hookTarget
+                            - postHookConf
+                            - preHookConf
+                            type: object
+                          minItems: 1
+                          type: array
+                        priority:
+                          description: Priority defines priority for hooks. backup
+                            controller will use `Priority` to determine sequence of
+                            hook execution. In case of parallel Mode, priority will
+                            be same for all, in case of sequential Mode, priority
+                            will be same for a group and not individual HookConfig
+                            Set. Default Priority is 0.
+                          minimum: 0
+                          type: integer
+                      required:
+                      - hooks
+                      - priority
+                      type: object
+                    type: array
+                  podReadyWaitSeconds:
+                    description: PodReadyWaitSeconds is the wait time for which hook
+                      execution waits before performing hook Quiescing/UnQuiescing
+                      It is only applicable for  pods which are found in NotRunning
+                      state during hook execution Default value is 120s, that will
+                      be set by webhook.
+                    maximum: 600
+                    minimum: 1
+                    type: integer
+                type: object
+              percentageCompletion:
+                description: PercentageCompletion is the amount of restore operation
+                  completed.
+                maximum: 100
+                minimum: 0
+                type: integer
+              phase:
+                description: Phase is the current phase of the restore operation.
+                enum:
+                - TargetValidation
+                - Validation
+                - DataRestore
+                - MetadataRestore
+                - PrimitiveMetadataRestore
+                - Unquiesce
+                - RestoreCleanup
+                - AddProtection
+                type: string
+              phaseStatus:
+                description: PhaseStatus is the status of phase restore operation
+                  going through.
+                enum:
+                - InProgress
+                - Pending
+                - Error
+                - Completed
+                - Failed
+                type: string
+              protectingResources:
+                description: ProtectingResources lists the Trilio resources and dependent
+                  resources which are getting created after user application restore
+                  operation. It's applicable only if ProtectRestoredApp is set to
+                  true.
+                items:
+                  description: Resource defines the list of names of a Kubernetes
+                    resource of a particular GVK.
+                  properties:
+                    groupVersionKind:
+                      description: GroupVersionKind specifies GVK uniquely representing
+                        particular resource type.
+                      properties:
+                        group:
+                          type: string
+                        kind:
+                          type: string
+                        version:
+                          type: string
+                      type: object
+                    objects:
+                      description: Objects is the list of names of all the objects
+                        of the captured GVK
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - groupVersionKind
+                  type: object
+                type: array
+              restoreApplication:
+                description: RestoreApplication defines the information about the
+                  different applications restored back to cluster.
+                properties:
+                  custom:
+                    description: Custom specifies the backup up kubernetes resources.
+                    properties:
+                      snapshot:
+                        description: Snapshot defines the snapshot of custom application
+                          to be restored.
+                        properties:
+                          dataSnapshots:
+                            description: DataSnapshot specifies the Snapshot of the
+                              Volumes resources in the Custom defined application.
+                            items:
+                              description: DataSnapshot defines Snapshot of a Persistent
+                                Volume
+                              properties:
+                                backupType:
+                                  description: BackupType is the type of Volume backup
+                                    in the sequence of backups.
+                                  enum:
+                                  - Incremental
+                                  - Full
+                                  - Mixed
+                                  type: string
+                                conditions:
+                                  description: Conditions are the current statuses
+                                    for backup and restore PVCs.
+                                  items:
+                                    properties:
+                                      phase:
+                                        description: Phase defines the current phase
+                                          of the data components.
+                                        enum:
+                                        - Snapshot
+                                        - Upload
+                                        - DataRestore
+                                        type: string
+                                      reason:
+                                        description: A brief message indicating details
+                                          about why the component is in this condition.
+                                        type: string
+                                      status:
+                                        description: Status is the status of the condition.
+                                        enum:
+                                        - InProgress
+                                        - Error
+                                        - Completed
+                                        - Failed
+                                        type: string
+                                      timestamp:
+                                        description: Timestamp is the time a condition
+                                          occurred.
+                                        format: date-time
+                                        type: string
+                                    type: object
+                                  type: array
+                                error:
+                                  description: Error is the error occurred while backing
+                                    up data component if any.
+                                  type: string
+                                location:
+                                  description: Location is the absolute path of qcow2
+                                    image of a volume in the target.
+                                  type: string
+                                operatorResourceVolume:
+                                  description: OperatorResourceVolume will be true
+                                    for the PVC created by the operator resource.
+                                  type: boolean
+                                persistentVolumeClaimMetadata:
+                                  description: PersistentVolumeClaimMetadata is the
+                                    metadata of PersistentVolumeClaim which is bound
+                                    to Volume.
+                                  minLength: 1
+                                  type: string
+                                persistentVolumeClaimName:
+                                  description: PersistentVolumeClaimName is the name
+                                    of PersistentVolumeClaim which is bound to Volume.
+                                  type: string
+                                podContainersMap:
+                                  description: PodContainersMap is the set of Pod-Containers
+                                    which share Persistent Volume.
+                                  items:
+                                    description: PodContainers defines Pod and containers
+                                      running in that Pod.
+                                    properties:
+                                      containers:
+                                        description: Containers is the list of containers
+                                          inside a pod
+                                        items:
+                                          type: string
+                                        type: array
+                                      podName:
+                                        description: PodName is the name of pod which
+                                          will be the key for the map between pod
+                                          containers list
+                                        minLength: 1
+                                        type: string
+                                    type: object
+                                  type: array
+                                pvSize:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: PVSize is the actual size of the persistent
+                                    volume for which backup is happening.
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                size:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Size is the size of qcow2 created/restored
+                                    in backup/restore.
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                snapshotSize:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: SnapshotSize is the size of the volume
+                                    snapshot of a Persistent Volume.
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                uploaded:
+                                  description: Uploaded is to imply whether volume
+                                    snapshot taken is uploaded to target.
+                                  type: boolean
+                                volumeSnapshot:
+                                  description: VolumeSnapshot specifies the CSI snapshot
+                                    of a Persistent Volume.
+                                  properties:
+                                    error:
+                                      description: Error is the error occurred while
+                                        capturing Volume Snapshot if any.
+                                      type: string
+                                    retryCount:
+                                      description: RetryCount is the number of attempts
+                                        made to capture Volume Snapshot.
+                                      type: integer
+                                    status:
+                                      description: Status is the status defining the
+                                        progress of Volume Snapshot capture.
+                                      enum:
+                                      - InProgress
+                                      - Pending
+                                      - Error
+                                      - Completed
+                                      - Failed
+                                      type: string
+                                    volumeSnapshot:
+                                      description: VolumeSnapshot is a reference to
+                                        the Persistent Volume Snapshot captured.
+                                      properties:
+                                        apiVersion:
+                                          description: API version of the referent.
+                                          type: string
+                                        fieldPath:
+                                          description: 'If referring to a piece of
+                                            an object instead of an entire object,
+                                            this string should contain a valid JSON/Go
+                                            field access statement, such as desiredState.manifest.containers[2].
+                                            For example, if the object reference is
+                                            to a container within a pod, this would
+                                            take on a value like: "spec.containers{name}"
+                                            (where "name" refers to the name of the
+                                            container that triggered the event) or
+                                            if no container name is specified "spec.containers[2]"
+                                            (container with index 2 in this pod).
+                                            This syntax is chosen only to have some
+                                            well-defined way of referencing a part
+                                            of an object. TODO: this design is not
+                                            final and this field is subject to change
+                                            in the future.'
+                                          type: string
+                                        kind:
+                                          description: 'Kind of the referent. More
+                                            info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                          type: string
+                                        name:
+                                          description: 'Name of the referent. More
+                                            info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                          type: string
+                                        namespace:
+                                          description: 'Namespace of the referent.
+                                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                          type: string
+                                        resourceVersion:
+                                          description: 'Specific resourceVersion to
+                                            which this reference is made, if any.
+                                            More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                          type: string
+                                        uid:
+                                          description: 'UID of the referent. More
+                                            info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                          type: string
+                                      type: object
+                                  type: object
+                              required:
+                              - persistentVolumeClaimMetadata
+                              - persistentVolumeClaimName
+                              type: object
+                            type: array
+                          resources:
+                            description: Resources defines the Kubernetes resources
+                              found from Custom application.
+                            items:
+                              description: Resource defines the list of names of a
+                                Kubernetes resource of a particular GVK.
+                              properties:
+                                groupVersionKind:
+                                  description: GroupVersionKind specifies GVK uniquely
+                                    representing particular resource type.
+                                  properties:
+                                    group:
+                                      type: string
+                                    kind:
+                                      type: string
+                                    version:
+                                      type: string
+                                  type: object
+                                objects:
+                                  description: Objects is the list of names of all
+                                    the objects of the captured GVK
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - groupVersionKind
+                              type: object
+                            type: array
+                          warnings:
+                            description: Warnings is the list of warnings captured
+                              during backup or restore of an application
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      status:
+                        description: Status specifies the details of component restore
+                          in a namespace
+                        properties:
+                          excludedResources:
+                            description: ExcludedResources specifies the resources
+                              excluded during restore
+                            items:
+                              description: Resource defines the list of names of a
+                                Kubernetes resource of a particular GVK.
+                              properties:
+                                groupVersionKind:
+                                  description: GroupVersionKind specifies GVK uniquely
+                                    representing particular resource type.
+                                  properties:
+                                    group:
+                                      type: string
+                                    kind:
+                                      type: string
+                                    version:
+                                      type: string
+                                  type: object
+                                objects:
+                                  description: Objects is the list of names of all
+                                    the objects of the captured GVK
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - groupVersionKind
+                              type: object
+                            type: array
+                          existingResource:
+                            description: ExistingResource specifies the resources
+                              already existing in cluster defined in application.
+                            items:
+                              description: Resource defines the list of names of a
+                                Kubernetes resource of a particular GVK.
+                              properties:
+                                groupVersionKind:
+                                  description: GroupVersionKind specifies GVK uniquely
+                                    representing particular resource type.
+                                  properties:
+                                    group:
+                                      type: string
+                                    kind:
+                                      type: string
+                                    version:
+                                      type: string
+                                  type: object
+                                objects:
+                                  description: Objects is the list of names of all
+                                    the objects of the captured GVK
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - groupVersionKind
+                              type: object
+                            type: array
+                          failedCleanupResources:
+                            description: FailedCleanupResources specified the resources
+                              which doesn't get clean up in failed restore
+                            items:
+                              description: Resource defines the list of names of a
+                                Kubernetes resource of a particular GVK.
+                              properties:
+                                groupVersionKind:
+                                  description: GroupVersionKind specifies GVK uniquely
+                                    representing particular resource type.
+                                  properties:
+                                    group:
+                                      type: string
+                                    kind:
+                                      type: string
+                                    version:
+                                      type: string
+                                  type: object
+                                objects:
+                                  description: Objects is the list of names of all
+                                    the objects of the captured GVK
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - groupVersionKind
+                              type: object
+                            type: array
+                          failedResources:
+                            description: FailedResources specifies the resources for
+                              which the restore operation failed
+                            items:
+                              description: Resource defines the list of names of a
+                                Kubernetes resource of a particular GVK.
+                              properties:
+                                groupVersionKind:
+                                  description: GroupVersionKind specifies GVK uniquely
+                                    representing particular resource type.
+                                  properties:
+                                    group:
+                                      type: string
+                                    kind:
+                                      type: string
+                                    version:
+                                      type: string
+                                  type: object
+                                objects:
+                                  description: Objects is the list of names of all
+                                    the objects of the captured GVK
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - groupVersionKind
+                              type: object
+                            type: array
+                          newResourcesAdded:
+                            description: NewResourcesAdded specifies the resources
+                              added(duplicated and modified) during restore.
+                            items:
+                              description: Resource defines the list of names of a
+                                Kubernetes resource of a particular GVK.
+                              properties:
+                                groupVersionKind:
+                                  description: GroupVersionKind specifies GVK uniquely
+                                    representing particular resource type.
+                                  properties:
+                                    group:
+                                      type: string
+                                    kind:
+                                      type: string
+                                    version:
+                                      type: string
+                                  type: object
+                                objects:
+                                  description: Objects is the list of names of all
+                                    the objects of the captured GVK
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - groupVersionKind
+                              type: object
+                            type: array
+                          phase:
+                            description: Phase is the current phase of the application
+                              component while restore.
+                            enum:
+                            - TargetValidation
+                            - Validation
+                            - DataRestore
+                            - MetadataRestore
+                            - PrimitiveMetadataRestore
+                            - Unquiesce
+                            - RestoreCleanup
+                            - AddProtection
+                            type: string
+                          phaseStatus:
+                            description: PhaseStatus is the status of phase restore
+                              operation going through.
+                            enum:
+                            - InProgress
+                            - Pending
+                            - Error
+                            - Completed
+                            - Failed
+                            type: string
+                          reason:
+                            description: A brief message indicating details about
+                              why the application component is in this state.
+                            type: string
+                          skippedResources:
+                            description: SkippedResources specifies the resources
+                              skipped while restoring.
+                            items:
+                              description: Resource defines the list of names of a
+                                Kubernetes resource of a particular GVK.
+                              properties:
+                                groupVersionKind:
+                                  description: GroupVersionKind specifies GVK uniquely
+                                    representing particular resource type.
+                                  properties:
+                                    group:
+                                      type: string
+                                    kind:
+                                      type: string
+                                    version:
+                                      type: string
+                                  type: object
+                                objects:
+                                  description: Objects is the list of names of all
+                                    the objects of the captured GVK
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - groupVersionKind
+                              type: object
+                            type: array
+                          transformStatus:
+                            description: TransformStatus is the status of transformation
+                              performed
+                            items:
+                              description: TransformStatus specifies the details of
+                                transform operation
+                              properties:
+                                reason:
+                                  description: Reason is reason for status in case
+                                    of failure
+                                  type: string
+                                status:
+                                  description: Status is the status of transform operation
+                                  enum:
+                                  - Completed
+                                  - Failed
+                                  type: string
+                                transformName:
+                                  description: TransformName is the name of transformation
+                                  type: string
+                                transformedResources:
+                                  description: TransformedResources Specifies the
+                                    resources transformed as part of transformation
+                                  items:
+                                    description: Resource defines the list of names
+                                      of a Kubernetes resource of a particular GVK.
+                                    properties:
+                                      groupVersionKind:
+                                        description: GroupVersionKind specifies GVK
+                                          uniquely representing particular resource
+                                          type.
+                                        properties:
+                                          group:
+                                            type: string
+                                          kind:
+                                            type: string
+                                          version:
+                                            type: string
+                                        type: object
+                                      objects:
+                                        description: Objects is the list of names
+                                          of all the objects of the captured GVK
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - groupVersionKind
+                                    type: object
+                                  type: array
+                              required:
+                              - status
+                              - transformName
+                              type: object
+                            type: array
+                        type: object
+                    type: object
+                  helmCharts:
+                    description: HelmCharts specifies the backed up helm resources
+                      restored as Helm Charts.
+                    items:
+                      description: RestoreHelm defines the backed up helm application
+                        to be restored.
+                      properties:
+                        snapshot:
+                          description: Snapshot defines the snapshot of application
+                            to be restored by a Helm.
+                          properties:
+                            dataSnapshots:
+                              description: DataSnapshot specifies the Snapshot of
+                                the Volumes defined in the helm chart resources.
+                              items:
+                                description: DataSnapshot defines Snapshot of a Persistent
+                                  Volume
+                                properties:
+                                  backupType:
+                                    description: BackupType is the type of Volume
+                                      backup in the sequence of backups.
+                                    enum:
+                                    - Incremental
+                                    - Full
+                                    - Mixed
+                                    type: string
+                                  conditions:
+                                    description: Conditions are the current statuses
+                                      for backup and restore PVCs.
+                                    items:
+                                      properties:
+                                        phase:
+                                          description: Phase defines the current phase
+                                            of the data components.
+                                          enum:
+                                          - Snapshot
+                                          - Upload
+                                          - DataRestore
+                                          type: string
+                                        reason:
+                                          description: A brief message indicating
+                                            details about why the component is in
+                                            this condition.
+                                          type: string
+                                        status:
+                                          description: Status is the status of the
+                                            condition.
+                                          enum:
+                                          - InProgress
+                                          - Error
+                                          - Completed
+                                          - Failed
+                                          type: string
+                                        timestamp:
+                                          description: Timestamp is the time a condition
+                                            occurred.
+                                          format: date-time
+                                          type: string
+                                      type: object
+                                    type: array
+                                  error:
+                                    description: Error is the error occurred while
+                                      backing up data component if any.
+                                    type: string
+                                  location:
+                                    description: Location is the absolute path of
+                                      qcow2 image of a volume in the target.
+                                    type: string
+                                  operatorResourceVolume:
+                                    description: OperatorResourceVolume will be true
+                                      for the PVC created by the operator resource.
+                                    type: boolean
+                                  persistentVolumeClaimMetadata:
+                                    description: PersistentVolumeClaimMetadata is
+                                      the metadata of PersistentVolumeClaim which
+                                      is bound to Volume.
+                                    minLength: 1
+                                    type: string
+                                  persistentVolumeClaimName:
+                                    description: PersistentVolumeClaimName is the
+                                      name of PersistentVolumeClaim which is bound
+                                      to Volume.
+                                    type: string
+                                  podContainersMap:
+                                    description: PodContainersMap is the set of Pod-Containers
+                                      which share Persistent Volume.
+                                    items:
+                                      description: PodContainers defines Pod and containers
+                                        running in that Pod.
+                                      properties:
+                                        containers:
+                                          description: Containers is the list of containers
+                                            inside a pod
+                                          items:
+                                            type: string
+                                          type: array
+                                        podName:
+                                          description: PodName is the name of pod
+                                            which will be the key for the map between
+                                            pod containers list
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                    type: array
+                                  pvSize:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: PVSize is the actual size of the
+                                      persistent volume for which backup is happening.
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  size:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: Size is the size of qcow2 created/restored
+                                      in backup/restore.
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  snapshotSize:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: SnapshotSize is the size of the volume
+                                      snapshot of a Persistent Volume.
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  uploaded:
+                                    description: Uploaded is to imply whether volume
+                                      snapshot taken is uploaded to target.
+                                    type: boolean
+                                  volumeSnapshot:
+                                    description: VolumeSnapshot specifies the CSI
+                                      snapshot of a Persistent Volume.
+                                    properties:
+                                      error:
+                                        description: Error is the error occurred while
+                                          capturing Volume Snapshot if any.
+                                        type: string
+                                      retryCount:
+                                        description: RetryCount is the number of attempts
+                                          made to capture Volume Snapshot.
+                                        type: integer
+                                      status:
+                                        description: Status is the status defining
+                                          the progress of Volume Snapshot capture.
+                                        enum:
+                                        - InProgress
+                                        - Pending
+                                        - Error
+                                        - Completed
+                                        - Failed
+                                        type: string
+                                      volumeSnapshot:
+                                        description: VolumeSnapshot is a reference
+                                          to the Persistent Volume Snapshot captured.
+                                        properties:
+                                          apiVersion:
+                                            description: API version of the referent.
+                                            type: string
+                                          fieldPath:
+                                            description: 'If referring to a piece
+                                              of an object instead of an entire object,
+                                              this string should contain a valid JSON/Go
+                                              field access statement, such as desiredState.manifest.containers[2].
+                                              For example, if the object reference
+                                              is to a container within a pod, this
+                                              would take on a value like: "spec.containers{name}"
+                                              (where "name" refers to the name of
+                                              the container that triggered the event)
+                                              or if no container name is specified
+                                              "spec.containers[2]" (container with
+                                              index 2 in this pod). This syntax is
+                                              chosen only to have some well-defined
+                                              way of referencing a part of an object.
+                                              TODO: this design is not final and this
+                                              field is subject to change in the future.'
+                                            type: string
+                                          kind:
+                                            description: 'Kind of the referent. More
+                                              info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                            type: string
+                                          name:
+                                            description: 'Name of the referent. More
+                                              info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                            type: string
+                                          namespace:
+                                            description: 'Namespace of the referent.
+                                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                            type: string
+                                          resourceVersion:
+                                            description: 'Specific resourceVersion
+                                              to which this reference is made, if
+                                              any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                            type: string
+                                          uid:
+                                            description: 'UID of the referent. More
+                                              info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                            type: string
+                                        type: object
+                                    type: object
+                                required:
+                                - persistentVolumeClaimMetadata
+                                - persistentVolumeClaimName
+                                type: object
+                              type: array
+                            newRelease:
+                              description: NewRelease string is the new release name
+                                which will get used while validation and restore process
+                              type: string
+                            release:
+                              description: Release string is the name of release
+                              minLength: 1
+                              type: string
+                            resource:
+                              description: 'Deprecated: Resource is the captured GVK
+                                (secret or configmap) and corresponding object names
+                                slice.'
+                              properties:
+                                groupVersionKind:
+                                  description: GroupVersionKind specifies GVK uniquely
+                                    representing particular resource type.
+                                  properties:
+                                    group:
+                                      type: string
+                                    kind:
+                                      type: string
+                                    version:
+                                      type: string
+                                  type: object
+                                objects:
+                                  description: Objects is the list of names of all
+                                    the objects of the captured GVK
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - groupVersionKind
+                              type: object
+                            resources:
+                              description: Resources are the helm release resources
+                                with their GVK and Name
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            revision:
+                              description: Revision defines the version of deployed
+                                release backed up
+                              format: int32
+                              type: integer
+                            storageBackend:
+                              description: StorageBackend is the enum which can be
+                                either configmaps and secrets
+                              enum:
+                              - ConfigMap
+                              - Secret
+                              type: string
+                            version:
+                              description: Version represents the Helm binary version
+                                used at the time of snapshot
+                              enum:
+                              - v3
+                              type: string
+                            warnings:
+                              description: Warnings is the list of warnings captured
+                                during backup or restore of an application
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - release
+                          - revision
+                          - storageBackend
+                          - version
+                          type: object
+                        status:
+                          description: Status specifies the details of component restore
+                            in a namespace
+                          properties:
+                            excludedResources:
+                              description: ExcludedResources specifies the resources
+                                excluded during restore
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            existingResource:
+                              description: ExistingResource specifies the resources
+                                already existing in cluster defined in application.
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            failedCleanupResources:
+                              description: FailedCleanupResources specified the resources
+                                which doesn't get clean up in failed restore
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            failedResources:
+                              description: FailedResources specifies the resources
+                                for which the restore operation failed
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            newResourcesAdded:
+                              description: NewResourcesAdded specifies the resources
+                                added(duplicated and modified) during restore.
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            phase:
+                              description: Phase is the current phase of the application
+                                component while restore.
+                              enum:
+                              - TargetValidation
+                              - Validation
+                              - DataRestore
+                              - MetadataRestore
+                              - PrimitiveMetadataRestore
+                              - Unquiesce
+                              - RestoreCleanup
+                              - AddProtection
+                              type: string
+                            phaseStatus:
+                              description: PhaseStatus is the status of phase restore
+                                operation going through.
+                              enum:
+                              - InProgress
+                              - Pending
+                              - Error
+                              - Completed
+                              - Failed
+                              type: string
+                            reason:
+                              description: A brief message indicating details about
+                                why the application component is in this state.
+                              type: string
+                            skippedResources:
+                              description: SkippedResources specifies the resources
+                                skipped while restoring.
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            transformStatus:
+                              description: TransformStatus is the status of transformation
+                                performed
+                              items:
+                                description: TransformStatus specifies the details
+                                  of transform operation
+                                properties:
+                                  reason:
+                                    description: Reason is reason for status in case
+                                      of failure
+                                    type: string
+                                  status:
+                                    description: Status is the status of transform
+                                      operation
+                                    enum:
+                                    - Completed
+                                    - Failed
+                                    type: string
+                                  transformName:
+                                    description: TransformName is the name of transformation
+                                    type: string
+                                  transformedResources:
+                                    description: TransformedResources Specifies the
+                                      resources transformed as part of transformation
+                                    items:
+                                      description: Resource defines the list of names
+                                        of a Kubernetes resource of a particular GVK.
+                                      properties:
+                                        groupVersionKind:
+                                          description: GroupVersionKind specifies
+                                            GVK uniquely representing particular resource
+                                            type.
+                                          properties:
+                                            group:
+                                              type: string
+                                            kind:
+                                              type: string
+                                            version:
+                                              type: string
+                                          type: object
+                                        objects:
+                                          description: Objects is the list of names
+                                            of all the objects of the captured GVK
+                                          items:
+                                            type: string
+                                          type: array
+                                      required:
+                                      - groupVersionKind
+                                      type: object
+                                    type: array
+                                required:
+                                - status
+                                - transformName
+                                type: object
+                              type: array
+                          type: object
+                      type: object
+                    type: array
+                  operators:
+                    description: Operators specifies the backed up operator resources
+                      restored as Operators.
+                    items:
+                      description: RestoreOperator defines the backed up operator
+                        application to be restored.
+                      properties:
+                        snapshot:
+                          description: Snapshot defines the snapshot of application
+                            to be restored by a Operator.
+                          properties:
+                            applicationResources:
+                              description: ApplicationResources defines the kubernetes
+                                resources found from operator Custom Resources.
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              minItems: 1
+                              type: array
+                            customResources:
+                              description: CustomResources is the list of all custom
+                                resource's GVK and names list
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              minItems: 1
+                              type: array
+                            dataSnapshots:
+                              description: DataSnapshot specifies the Snapshot of
+                                the Volumes defined in the operator resources.
+                              items:
+                                description: DataSnapshot defines Snapshot of a Persistent
+                                  Volume
+                                properties:
+                                  backupType:
+                                    description: BackupType is the type of Volume
+                                      backup in the sequence of backups.
+                                    enum:
+                                    - Incremental
+                                    - Full
+                                    - Mixed
+                                    type: string
+                                  conditions:
+                                    description: Conditions are the current statuses
+                                      for backup and restore PVCs.
+                                    items:
+                                      properties:
+                                        phase:
+                                          description: Phase defines the current phase
+                                            of the data components.
+                                          enum:
+                                          - Snapshot
+                                          - Upload
+                                          - DataRestore
+                                          type: string
+                                        reason:
+                                          description: A brief message indicating
+                                            details about why the component is in
+                                            this condition.
+                                          type: string
+                                        status:
+                                          description: Status is the status of the
+                                            condition.
+                                          enum:
+                                          - InProgress
+                                          - Error
+                                          - Completed
+                                          - Failed
+                                          type: string
+                                        timestamp:
+                                          description: Timestamp is the time a condition
+                                            occurred.
+                                          format: date-time
+                                          type: string
+                                      type: object
+                                    type: array
+                                  error:
+                                    description: Error is the error occurred while
+                                      backing up data component if any.
+                                    type: string
+                                  location:
+                                    description: Location is the absolute path of
+                                      qcow2 image of a volume in the target.
+                                    type: string
+                                  operatorResourceVolume:
+                                    description: OperatorResourceVolume will be true
+                                      for the PVC created by the operator resource.
+                                    type: boolean
+                                  persistentVolumeClaimMetadata:
+                                    description: PersistentVolumeClaimMetadata is
+                                      the metadata of PersistentVolumeClaim which
+                                      is bound to Volume.
+                                    minLength: 1
+                                    type: string
+                                  persistentVolumeClaimName:
+                                    description: PersistentVolumeClaimName is the
+                                      name of PersistentVolumeClaim which is bound
+                                      to Volume.
+                                    type: string
+                                  podContainersMap:
+                                    description: PodContainersMap is the set of Pod-Containers
+                                      which share Persistent Volume.
+                                    items:
+                                      description: PodContainers defines Pod and containers
+                                        running in that Pod.
+                                      properties:
+                                        containers:
+                                          description: Containers is the list of containers
+                                            inside a pod
+                                          items:
+                                            type: string
+                                          type: array
+                                        podName:
+                                          description: PodName is the name of pod
+                                            which will be the key for the map between
+                                            pod containers list
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                    type: array
+                                  pvSize:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: PVSize is the actual size of the
+                                      persistent volume for which backup is happening.
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  size:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: Size is the size of qcow2 created/restored
+                                      in backup/restore.
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  snapshotSize:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    description: SnapshotSize is the size of the volume
+                                      snapshot of a Persistent Volume.
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  uploaded:
+                                    description: Uploaded is to imply whether volume
+                                      snapshot taken is uploaded to target.
+                                    type: boolean
+                                  volumeSnapshot:
+                                    description: VolumeSnapshot specifies the CSI
+                                      snapshot of a Persistent Volume.
+                                    properties:
+                                      error:
+                                        description: Error is the error occurred while
+                                          capturing Volume Snapshot if any.
+                                        type: string
+                                      retryCount:
+                                        description: RetryCount is the number of attempts
+                                          made to capture Volume Snapshot.
+                                        type: integer
+                                      status:
+                                        description: Status is the status defining
+                                          the progress of Volume Snapshot capture.
+                                        enum:
+                                        - InProgress
+                                        - Pending
+                                        - Error
+                                        - Completed
+                                        - Failed
+                                        type: string
+                                      volumeSnapshot:
+                                        description: VolumeSnapshot is a reference
+                                          to the Persistent Volume Snapshot captured.
+                                        properties:
+                                          apiVersion:
+                                            description: API version of the referent.
+                                            type: string
+                                          fieldPath:
+                                            description: 'If referring to a piece
+                                              of an object instead of an entire object,
+                                              this string should contain a valid JSON/Go
+                                              field access statement, such as desiredState.manifest.containers[2].
+                                              For example, if the object reference
+                                              is to a container within a pod, this
+                                              would take on a value like: "spec.containers{name}"
+                                              (where "name" refers to the name of
+                                              the container that triggered the event)
+                                              or if no container name is specified
+                                              "spec.containers[2]" (container with
+                                              index 2 in this pod). This syntax is
+                                              chosen only to have some well-defined
+                                              way of referencing a part of an object.
+                                              TODO: this design is not final and this
+                                              field is subject to change in the future.'
+                                            type: string
+                                          kind:
+                                            description: 'Kind of the referent. More
+                                              info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                            type: string
+                                          name:
+                                            description: 'Name of the referent. More
+                                              info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                            type: string
+                                          namespace:
+                                            description: 'Namespace of the referent.
+                                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                            type: string
+                                          resourceVersion:
+                                            description: 'Specific resourceVersion
+                                              to which this reference is made, if
+                                              any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                            type: string
+                                          uid:
+                                            description: 'UID of the referent. More
+                                              info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                            type: string
+                                        type: object
+                                    type: object
+                                required:
+                                - persistentVolumeClaimMetadata
+                                - persistentVolumeClaimName
+                                type: object
+                              type: array
+                            helm:
+                              description: Helm represents the snapshot of the helm
+                                chart for helm based operator
+                              properties:
+                                dataSnapshots:
+                                  description: DataSnapshot specifies the Snapshot
+                                    of the Volumes defined in the helm chart resources.
+                                  items:
+                                    description: DataSnapshot defines Snapshot of
+                                      a Persistent Volume
+                                    properties:
+                                      backupType:
+                                        description: BackupType is the type of Volume
+                                          backup in the sequence of backups.
+                                        enum:
+                                        - Incremental
+                                        - Full
+                                        - Mixed
+                                        type: string
+                                      conditions:
+                                        description: Conditions are the current statuses
+                                          for backup and restore PVCs.
+                                        items:
+                                          properties:
+                                            phase:
+                                              description: Phase defines the current
+                                                phase of the data components.
+                                              enum:
+                                              - Snapshot
+                                              - Upload
+                                              - DataRestore
+                                              type: string
+                                            reason:
+                                              description: A brief message indicating
+                                                details about why the component is
+                                                in this condition.
+                                              type: string
+                                            status:
+                                              description: Status is the status of
+                                                the condition.
+                                              enum:
+                                              - InProgress
+                                              - Error
+                                              - Completed
+                                              - Failed
+                                              type: string
+                                            timestamp:
+                                              description: Timestamp is the time a
+                                                condition occurred.
+                                              format: date-time
+                                              type: string
+                                          type: object
+                                        type: array
+                                      error:
+                                        description: Error is the error occurred while
+                                          backing up data component if any.
+                                        type: string
+                                      location:
+                                        description: Location is the absolute path
+                                          of qcow2 image of a volume in the target.
+                                        type: string
+                                      operatorResourceVolume:
+                                        description: OperatorResourceVolume will be
+                                          true for the PVC created by the operator
+                                          resource.
+                                        type: boolean
+                                      persistentVolumeClaimMetadata:
+                                        description: PersistentVolumeClaimMetadata
+                                          is the metadata of PersistentVolumeClaim
+                                          which is bound to Volume.
+                                        minLength: 1
+                                        type: string
+                                      persistentVolumeClaimName:
+                                        description: PersistentVolumeClaimName is
+                                          the name of PersistentVolumeClaim which
+                                          is bound to Volume.
+                                        type: string
+                                      podContainersMap:
+                                        description: PodContainersMap is the set of
+                                          Pod-Containers which share Persistent Volume.
+                                        items:
+                                          description: PodContainers defines Pod and
+                                            containers running in that Pod.
+                                          properties:
+                                            containers:
+                                              description: Containers is the list
+                                                of containers inside a pod
+                                              items:
+                                                type: string
+                                              type: array
+                                            podName:
+                                              description: PodName is the name of
+                                                pod which will be the key for the
+                                                map between pod containers list
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                        type: array
+                                      pvSize:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: PVSize is the actual size of
+                                          the persistent volume for which backup is
+                                          happening.
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
+                                      size:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: Size is the size of qcow2 created/restored
+                                          in backup/restore.
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
+                                      snapshotSize:
+                                        anyOf:
+                                        - type: integer
+                                        - type: string
+                                        description: SnapshotSize is the size of the
+                                          volume snapshot of a Persistent Volume.
+                                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                        x-kubernetes-int-or-string: true
+                                      uploaded:
+                                        description: Uploaded is to imply whether
+                                          volume snapshot taken is uploaded to target.
+                                        type: boolean
+                                      volumeSnapshot:
+                                        description: VolumeSnapshot specifies the
+                                          CSI snapshot of a Persistent Volume.
+                                        properties:
+                                          error:
+                                            description: Error is the error occurred
+                                              while capturing Volume Snapshot if any.
+                                            type: string
+                                          retryCount:
+                                            description: RetryCount is the number
+                                              of attempts made to capture Volume Snapshot.
+                                            type: integer
+                                          status:
+                                            description: Status is the status defining
+                                              the progress of Volume Snapshot capture.
+                                            enum:
+                                            - InProgress
+                                            - Pending
+                                            - Error
+                                            - Completed
+                                            - Failed
+                                            type: string
+                                          volumeSnapshot:
+                                            description: VolumeSnapshot is a reference
+                                              to the Persistent Volume Snapshot captured.
+                                            properties:
+                                              apiVersion:
+                                                description: API version of the referent.
+                                                type: string
+                                              fieldPath:
+                                                description: 'If referring to a piece
+                                                  of an object instead of an entire
+                                                  object, this string should contain
+                                                  a valid JSON/Go field access statement,
+                                                  such as desiredState.manifest.containers[2].
+                                                  For example, if the object reference
+                                                  is to a container within a pod,
+                                                  this would take on a value like:
+                                                  "spec.containers{name}" (where "name"
+                                                  refers to the name of the container
+                                                  that triggered the event) or if
+                                                  no container name is specified "spec.containers[2]"
+                                                  (container with index 2 in this
+                                                  pod). This syntax is chosen only
+                                                  to have some well-defined way of
+                                                  referencing a part of an object.
+                                                  TODO: this design is not final and
+                                                  this field is subject to change
+                                                  in the future.'
+                                                type: string
+                                              kind:
+                                                description: 'Kind of the referent.
+                                                  More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                                type: string
+                                              name:
+                                                description: 'Name of the referent.
+                                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                                type: string
+                                              namespace:
+                                                description: 'Namespace of the referent.
+                                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                                type: string
+                                              resourceVersion:
+                                                description: 'Specific resourceVersion
+                                                  to which this reference is made,
+                                                  if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                                type: string
+                                              uid:
+                                                description: 'UID of the referent.
+                                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                                type: string
+                                            type: object
+                                        type: object
+                                    required:
+                                    - persistentVolumeClaimMetadata
+                                    - persistentVolumeClaimName
+                                    type: object
+                                  type: array
+                                newRelease:
+                                  description: NewRelease string is the new release
+                                    name which will get used while validation and
+                                    restore process
+                                  type: string
+                                release:
+                                  description: Release string is the name of release
+                                  minLength: 1
+                                  type: string
+                                resource:
+                                  description: 'Deprecated: Resource is the captured
+                                    GVK (secret or configmap) and corresponding object
+                                    names slice.'
+                                  properties:
+                                    groupVersionKind:
+                                      description: GroupVersionKind specifies GVK
+                                        uniquely representing particular resource
+                                        type.
+                                      properties:
+                                        group:
+                                          type: string
+                                        kind:
+                                          type: string
+                                        version:
+                                          type: string
+                                      type: object
+                                    objects:
+                                      description: Objects is the list of names of
+                                        all the objects of the captured GVK
+                                      items:
+                                        type: string
+                                      type: array
+                                  required:
+                                  - groupVersionKind
+                                  type: object
+                                resources:
+                                  description: Resources are the helm release resources
+                                    with their GVK and Name
+                                  items:
+                                    description: Resource defines the list of names
+                                      of a Kubernetes resource of a particular GVK.
+                                    properties:
+                                      groupVersionKind:
+                                        description: GroupVersionKind specifies GVK
+                                          uniquely representing particular resource
+                                          type.
+                                        properties:
+                                          group:
+                                            type: string
+                                          kind:
+                                            type: string
+                                          version:
+                                            type: string
+                                        type: object
+                                      objects:
+                                        description: Objects is the list of names
+                                          of all the objects of the captured GVK
+                                        items:
+                                          type: string
+                                        type: array
+                                    required:
+                                    - groupVersionKind
+                                    type: object
+                                  type: array
+                                revision:
+                                  description: Revision defines the version of deployed
+                                    release backed up
+                                  format: int32
+                                  type: integer
+                                storageBackend:
+                                  description: StorageBackend is the enum which can
+                                    be either configmaps and secrets
+                                  enum:
+                                  - ConfigMap
+                                  - Secret
+                                  type: string
+                                version:
+                                  description: Version represents the Helm binary
+                                    version used at the time of snapshot
+                                  enum:
+                                  - v3
+                                  type: string
+                                warnings:
+                                  description: Warnings is the list of warnings captured
+                                    during backup or restore of an application
+                                  items:
+                                    type: string
+                                  type: array
+                              required:
+                              - release
+                              - revision
+                              - storageBackend
+                              - version
+                              type: object
+                            operatorId:
+                              description: OperatorId is unique ID for a particular
+                                operator
+                              minLength: 1
+                              type: string
+                            operatorResources:
+                              description: OperatorResources defines the a kubernetes
+                                resources found from Operator resources.
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              minItems: 1
+                              type: array
+                            warnings:
+                              description: Warnings is the list of warnings captured
+                                during backup or restore of an application
+                              items:
+                                type: string
+                              type: array
+                          required:
+                          - operatorId
+                          type: object
+                        status:
+                          description: Status specifies the details of component restore
+                            in a namespace
+                          properties:
+                            excludedResources:
+                              description: ExcludedResources specifies the resources
+                                excluded during restore
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            existingResource:
+                              description: ExistingResource specifies the resources
+                                already existing in cluster defined in application.
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            failedCleanupResources:
+                              description: FailedCleanupResources specified the resources
+                                which doesn't get clean up in failed restore
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            failedResources:
+                              description: FailedResources specifies the resources
+                                for which the restore operation failed
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            newResourcesAdded:
+                              description: NewResourcesAdded specifies the resources
+                                added(duplicated and modified) during restore.
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            phase:
+                              description: Phase is the current phase of the application
+                                component while restore.
+                              enum:
+                              - TargetValidation
+                              - Validation
+                              - DataRestore
+                              - MetadataRestore
+                              - PrimitiveMetadataRestore
+                              - Unquiesce
+                              - RestoreCleanup
+                              - AddProtection
+                              type: string
+                            phaseStatus:
+                              description: PhaseStatus is the status of phase restore
+                                operation going through.
+                              enum:
+                              - InProgress
+                              - Pending
+                              - Error
+                              - Completed
+                              - Failed
+                              type: string
+                            reason:
+                              description: A brief message indicating details about
+                                why the application component is in this state.
+                              type: string
+                            skippedResources:
+                              description: SkippedResources specifies the resources
+                                skipped while restoring.
+                              items:
+                                description: Resource defines the list of names of
+                                  a Kubernetes resource of a particular GVK.
+                                properties:
+                                  groupVersionKind:
+                                    description: GroupVersionKind specifies GVK uniquely
+                                      representing particular resource type.
+                                    properties:
+                                      group:
+                                        type: string
+                                      kind:
+                                        type: string
+                                      version:
+                                        type: string
+                                    type: object
+                                  objects:
+                                    description: Objects is the list of names of all
+                                      the objects of the captured GVK
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - groupVersionKind
+                                type: object
+                              type: array
+                            transformStatus:
+                              description: TransformStatus is the status of transformation
+                                performed
+                              items:
+                                description: TransformStatus specifies the details
+                                  of transform operation
+                                properties:
+                                  reason:
+                                    description: Reason is reason for status in case
+                                      of failure
+                                    type: string
+                                  status:
+                                    description: Status is the status of transform
+                                      operation
+                                    enum:
+                                    - Completed
+                                    - Failed
+                                    type: string
+                                  transformName:
+                                    description: TransformName is the name of transformation
+                                    type: string
+                                  transformedResources:
+                                    description: TransformedResources Specifies the
+                                      resources transformed as part of transformation
+                                    items:
+                                      description: Resource defines the list of names
+                                        of a Kubernetes resource of a particular GVK.
+                                      properties:
+                                        groupVersionKind:
+                                          description: GroupVersionKind specifies
+                                            GVK uniquely representing particular resource
+                                            type.
+                                          properties:
+                                            group:
+                                              type: string
+                                            kind:
+                                              type: string
+                                            version:
+                                              type: string
+                                          type: object
+                                        objects:
+                                          description: Objects is the list of names
+                                            of all the objects of the captured GVK
+                                          items:
+                                            type: string
+                                          type: array
+                                      required:
+                                      - groupVersionKind
+                                      type: object
+                                    type: array
+                                required:
+                                - status
+                                - transformName
+                                type: object
+                              type: array
+                          type: object
+                      type: object
+                    type: array
+                type: object
+              restoreScope:
+                description: RestoreScope indicates scope of component being restored
+                  i.e. App or Namespace.
+                enum:
+                - App
+                - Namespace
+                type: string
+              size:
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size is the aggregate size of the data restored back.
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              startTimestamp:
+                description: StartTimestamp is the time a restore was started.
+                format: date-time
+                type: string
+              stats:
+                description: RestoreStats defines the stats for a Restore
+                properties:
+                  backup:
+                    description: Backup is the reference to the Backup associated
+                      with Restore
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: 'If referring to a piece of an object instead
+                          of an entire object, this string should contain a valid
+                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within
+                          a pod, this would take on a value like: "spec.containers{name}"
+                          (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]"
+                          (container with index 2 in this pod). This syntax is chosen
+                          only to have some well-defined way of referencing a part
+                          of an object. TODO: this design is not final and this field
+                          is subject to change in the future.'
+                        type: string
+                      kind:
+                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                        type: string
+                      namespace:
+                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                        type: string
+                      resourceVersion:
+                        description: 'Specific resourceVersion to which this reference
+                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                        type: string
+                      uid:
+                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        type: string
+                    type: object
+                  backupPlan:
+                    description: BackupPlan is the reference to BackupPlan associated
+                      with Restore
+                    properties:
+                      apiVersion:
+                        description: API version of the referent.
+                        type: string
+                      fieldPath:
+                        description: 'If referring to a piece of an object instead
+                          of an entire object, this string should contain a valid
+                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within
+                          a pod, this would take on a value like: "spec.containers{name}"
+                          (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]"
+                          (container with index 2 in this pod). This syntax is chosen
+                          only to have some well-defined way of referencing a part
+                          of an object. TODO: this design is not final and this field
+                          is subject to change in the future.'
+                        type: string
+                      kind:
+                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                        type: string
+                      namespace:
+                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                        type: string
+                      resourceVersion:
+                        description: 'Specific resourceVersion to which this reference
+                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                        type: string
+                      uid:
+                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        type: string
+                    type: object
+                type: object
+              status:
+                description: Status is the status of the restore operation.
+                enum:
+                - InProgress
+                - Pending
+                - Error
+                - Completed
+                - Failed
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

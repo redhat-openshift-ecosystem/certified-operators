@@ -3,7 +3,132 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: '[]'
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "tenantoperator.stakater.com/v1beta1",
+          "kind": "Tenant",
+          "metadata": {
+            "name": "bluesky"
+          },
+          "spec": {
+            "owners": {
+              "users": [
+                  "anna@aurora.org",
+                  "anthony@aurora.org"
+              ]
+            },
+            "editors": {
+              "users": [
+                  "john@aurora.org"
+              ],
+              "groups": [
+                  "alpha"
+              ]
+            },
+            "quota": "small",
+            "namespaces": [
+                "dev",
+                "build",
+                "prod"
+            ]
+          }
+        },
+        {
+          "apiVersion": "tenantoperator.stakater.com/v1alpha1",
+          "kind": "IntegrationConfig",
+          "metadata": {
+            "name": "tenant-operator-config",
+            "namespace": "stakater-tenant-operator"
+          },
+          "spec": {
+            "openshift": {
+              "project": {
+                "labels": {
+                  "stakater.com/workload-monitoring": "true"
+                },
+                "annotations": {
+                  "openshift.io/node-selector": "node-role.kubernetes.io/worker="
+                }
+              },
+              "group": {
+                "labels": {
+                  "role": "customer-reader"
+                }
+              },
+              "sandbox": {
+                "labels": {
+                  "stakater.com/kind": "sandbox"
+                }
+              },
+              "clusterAdminGroups": [
+                  "cluster-admins"
+              ],
+              "privilegedNamespaces": [
+                  "default",
+                  "^openshift-*",
+                  "^kube-*"
+              ],
+              "privilegedServiceAccounts": [
+                  "^system:serviceaccount:openshift-*",
+                  "^system:serviceaccount:kube-*"
+              ],
+              "namespaceAccessPolicy": {
+                "deny": {
+                  "privilegedNamespaces": {
+                    "users": [
+                        "system:serviceaccount:openshift-argocd:argocd-application-controller",
+                        "adam@stakater.com"
+                    ],
+                    "groups": [
+                        "cluster-admins"
+                    ]
+                  }
+                }
+              }
+            },
+            "argocd": {
+              "namespace": "openshift-operators",
+              "namespaceResourceBlacklist": [
+                {
+                  "group": "",
+                  "kind": "ResourceQuota"
+                }
+              ],
+              "clusterResourceWhitelist": [
+                {
+                  "group": "tronador.stakater.com",
+                  "kind": "EnvironmentProvisioner"
+                }
+              ]
+            },
+            "rhsso": {
+              "enabled": true,
+              "endpoint": {
+                "url": "https://iam-keycloak-auth.apps.prod.abcdefghi.kubeapp.cloud/",
+                "secretReference": {
+                  "name": "auth-secrets",
+                  "namespace": "openshift-auth"
+                }
+              }
+            },
+            "vault": {
+              "enabled": true,
+              "endpoint": {
+                "url": "https://vault.apps.prod.abcdefghi.kubeapp.cloud/",
+                "secretReference": {
+                  "name": "vault-root-token",
+                  "namespace": "vault"
+                }
+              },
+              "sso": {
+                "clientName": "vault",
+                "accessorID": "<ACCESSOR_ID_TOKEN>"
+              }
+            }
+          }
+        }
+      ]
     capabilities: Basic Install
     operators.operatorframework.io/builder: operator-sdk-v1.19.0+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3

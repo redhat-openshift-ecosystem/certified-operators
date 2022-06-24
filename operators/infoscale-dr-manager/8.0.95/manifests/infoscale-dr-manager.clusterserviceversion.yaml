@@ -110,7 +110,6 @@ metadata:
     categories: Storage
     containerImage: registry.connect.redhat.com/veritas-technologies/infoscale-dr-manager@sha256:eb999187a1f9a9ce5566089e24adf598b1c229d31c5e57ddcfe4439ba25e97dc
     createdAt: "2022-06-22T16:36:59Z"
-    description: InfoScale™ DR Manager manages the Disaster Recovery operations of InfoScale™ for container environment
     operatorframework.io/suggested-namespace: infoscale-vtas
     operators.operatorframework.io/builder: operator-sdk-v1.15.0+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
@@ -828,7 +827,7 @@ spec:
       - ReadWriteOnce
       resources:
         requests:
-          storage: 4Gi
+          storage: 1Gi
       storageClassName: infoscale-dr-csi-sc
       volumeMode: Filesystem
 
@@ -872,6 +871,21 @@ spec:
           # Port used for DR controller
           drControllerPort: "9090"
 
+      # If heartbeat with peer cluster missed more than CounterMissTolerance times, then cluster will be moved to FAULTED state
+      counterMissTolerance: 5
+
+      # User/Orchestrator initiated operation on Global Cluster Membership
+      globalClusterOperation: "none"
+
+      # Application metadata backup sync frequency to DR site(s) in minutes
+      metadataBackupInterval: 15
+
+      # Refresh data replication status after specified minutes
+      datarepRefreshStatusFrequency: 10
+
+      # Include cluster-scoped Custoum Resource Definitions (CRDs) in disaster recovery plan backup
+      backupClusterScopeCRD: true
+
     ```
 
     **2. Data Replication:**
@@ -893,6 +907,14 @@ spec:
       # Corresponding network interface to configure VVR (If NIC name is identical for all nodes)
       localNIC: eth0
 
+      # Corresponding network interface map (hostname and NIC name map) to configure VVR
+      # (If NIC name is not identical for all nodes)
+      #localNICMap:
+      #  "host1" : "eth0"
+      #  "host2" : "eth0"
+      #  "host3" : "eth0"
+      #  "host4" : "eth1"
+
       # Namespace and optional labels for which you want to configure data replication
       selector:
         namespace: mysql
@@ -901,6 +923,12 @@ spec:
 
       # Current primary cluster name - Name of the cluster you want to back up
       currentPrimary: Clus1
+
+      # (optional) In case of takeover operation, specify force to true along with
+      # the updated currentPriamry value. In case of migrate operation,
+      # force should be specified as false and only currentPriamry needs
+      # to be updated.
+      force: false
 
       # Secondary cluster details
       remoteClusterDetails:
@@ -916,9 +944,38 @@ spec:
           # Corresponding Network interface of this cluster
           remoteNIC: eth0
 
+          # Corresponding Network interface map of this cluster
+          #remoteNICMap:
+          #  "host5" : "eth1"
+          #  "host6" : "eth0"
+          #  "host7" : "eth0"
+          #  "host8" : "eth1"
+
           # (optional) replication type can be sync or async.
           # default value will be async if not specified.
           replicationType: async
+
+          # (optional) replicationState can have values start, stop, pause and resume.
+          # This field can be updated to start/stop/pasue/resume replication.
+          # Default value will be set to start during initial configuration.
+          replicationState: start
+
+          # (optional) network transport protocol can be TCP or UDP.
+          # Default value will be set to TCP during initial configuration and
+          # can be later changed to UDP.
+          networkTransportProtocol: TCP
+
+          # (optional) By default, it will be set to N/A during initial configuration, which means the available bandwidth will be used.
+          # It can be later changed to set the maximum network bandwidth (in bits per second).
+          bandwidthLimit: N/A
+
+          # (optional) Supported values for latency protection are: fail, disable and override.
+          # By default it will be set to disable during initial configuration and can be changed later.
+          latencyProtection: fail
+
+          # (optional) Supported values log (SRL) protection are: autodcm, dcm, fail, disable and override.
+          # By default it will be set to autodcm during initial configuration and can be changed later.
+          logProtection: autodcm
 
     ```
     **3. Disaster Recovery Plan:**
@@ -952,6 +1009,9 @@ spec:
 
       # (optional) Pointer to manage data replication
       dataReplicationPointer: test-datareplication
+
+      # (optional) Pointer to manage DNS endpoints
+      #dnsPointer: test-dns
 
     ```
   displayName: InfoScale™ DR Manager
@@ -1340,6 +1400,8 @@ spec:
                 - mountPath: /etc/vx/dr-serv/certs
                   name: dr-certs-dir
                   readOnly: true
+                - mountPath: /staging
+                  name: velero-bsl
               initContainers:
               - args:
                 - --create-certs
@@ -1380,6 +1442,9 @@ spec:
                 secret:
                   optional: true
                   secretName: infoscale-dr-server-cert
+              - name: velero-bsl
+                persistentVolumeClaim:
+                  claimName: infoscale-dr-meta-bkp-pvc
       permissions:
       - rules:
         - apiGroups:

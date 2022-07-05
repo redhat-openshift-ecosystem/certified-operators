@@ -1,0 +1,315 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "trino.starburstdata.com/v1alpha1",
+          "kind": "TrinoCluster",
+          "metadata": {
+            "name": "cluster-sample"
+          },
+          "spec": {
+            "coordinator_resources": {
+              "limits": {
+                "cpu": 1,
+                "memory": "1Mi"
+              },
+              "requests": {
+                "cpu": 1,
+                "memory": "1Mi"
+              }
+            },
+            "draining_timeout": 1800,
+            "image": {
+              "repository": "harbor.starburstdata.net/starburstdata/presto",
+              "version": "350-e.1"
+            },
+            "trino": {
+              "catalogs": [
+                {
+                  "name": "tpch",
+                  "properties": {
+                    "a": "b"
+                  }
+                }
+              ],
+              "properties": {
+                "jvm_config": {
+                  "a": "b"
+                },
+                "node_properties": {
+                  "a": "b",
+                  "c": "d"
+                },
+                "server_properties": {
+                  "a": "b"
+                }
+              }
+            },
+            "trino_cluster_host": "client-01.example.com",
+            "valuesSecretName": "test2",
+            "worker_count": 2
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.8.0+git
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+  name: starburst-enterprise-operator.v0.0.9
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: TrinoCluster is the Schema for the trinoclusters API
+      displayName: Trino Cluster
+      kind: TrinoCluster
+      name: trinoclusters.trino.starburstdata.com
+      version: v1alpha1
+    - description: TrinoCoordinator is the Schema for the trinocoordinators API
+      displayName: Trino Coordinator
+      kind: TrinoCoordinator
+      name: trinocoordinators.trino.starburstdata.com
+      version: v1alpha1
+    - description: TrinoWorker is the Schema for the trinoworkers API
+      displayName: Trino Worker
+      kind: TrinoWorker
+      name: trinoworkers.trino.starburstdata.com
+      version: v1alpha1
+  description: Alpha
+  displayName: Starburst enterprise operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          - apps
+          resources:
+          - pods
+          - replicasets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          - apps
+          - extensions
+          - networking.k8s.io
+          - trino.starburstdata.com
+          resources:
+          - ingresses
+          - secrets
+          - services
+          - trinoclusters
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          - extensions
+          - trino.starburstdata.com
+          resources:
+          - deployments
+          - ingresses
+          - services
+          - trinocoordinators
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          - extensions
+          - trino.starburstdata.com
+          resources:
+          - deployments
+          - services
+          - trinoworkers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - trino.starburstdata.com
+          resources:
+          - trinoclusters/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - trino.starburstdata.com
+          resources:
+          - trinoclusters/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - trino.starburstdata.com
+          resources:
+          - trinocoordinators/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - trino.starburstdata.com
+          resources:
+          - trinocoordinators/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - trino.starburstdata.com
+          resources:
+          - trinoworkers/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - trino.starburstdata.com
+          resources:
+          - trinoworkers/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: starburst-trino-operator-controller-manager
+      deployments:
+      - name: starburst-trino-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /manager
+                image: controller:latest
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 30Mi
+                  requests:
+                    cpu: 100m
+                    memory: 20Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsUser: 65532
+              serviceAccountName: starburst-trino-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          - coordination.k8s.io
+          resources:
+          - configmaps
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: starburst-trino-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - database
+  links:
+  - name: Starburst Enterprise Operator
+    url: https://starburst-enterprise-operator.domain
+  maturity: alpha
+  provider:
+    name: Starburstdata
+  version: 0.0.9

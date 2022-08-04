@@ -1,0 +1,831 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations: {alm-examples: "[\n  {\n    \"apiVersion\": \"mq.ibm.com/v1beta1\"\
+      ,\n    \"kind\": \"QueueManager\",\n    \"metadata\": {\n      \"name\": \"\
+      quickstart-cp4i\"\n    },\n    \"spec\": {\n      \"license\": {\n        \"\
+      accept\": false,\n        \"license\": \"L-RJON-BUVMQX\",\n        \"use\":\
+      \ \"NonProduction\"\n      },\n      \"queueManager\": {\n        \"name\":\
+      \ \"QUICKSTART\",\n        \"storage\": {\n          \"queueManager\": {\n \
+      \           \"type\": \"ephemeral\"\n          }\n        }\n      },\n    \
+      \  \"template\": {\n        \"pod\": {\n          \"containers\": [\n      \
+      \      {\n              \"env\": [\n                {\n                  \"\
+      name\": \"MQSNOAUT\",\n                  \"value\": \"yes\"\n              \
+      \  }\n              ],\n              \"name\": \"qmgr\"\n            }\n  \
+      \        ]\n        }\n      },\n      \"version\": \"9.2.0.2-r1-eus\",\n  \
+      \    \"web\": {\n        \"enabled\": true\n      }\n    }\n  },\n  {\n    \"\
+      apiVersion\": \"mq.ibm.com/v1beta1\",\n    \"kind\": \"QueueManager\",\n   \
+      \ \"metadata\": {\n      \"name\": \"custom-cp4i\"\n    },\n    \"spec\": {\n\
+      \      \"license\": {\n        \"accept\": false,\n        \"license\": \"L-RJON-BUVMQX\"\
+      ,\n        \"use\": \"Production\"\n      },\n      \"queueManager\": {\n  \
+      \      \"name\": \"CUSTOM\"\n      },\n      \"version\": \"9.2.0.2-r1-eus\"\
+      ,\n      \"web\": {\n        \"enabled\": true\n      }\n    }\n  }\n]", alm-examples-metadata: "{\n\
+      \  \"quickstart-cp4i\": {\n    \"name\": \"Quick start\",\n    \"description\"\
+      : \"MQ V9.2.0.2 queue manager for Quick start. This uses ephemeral storage,\
+      \ and MQ security is disabled.\",\n    \"resources\": {\n      \"cpu\": \"1\"\
+      ,\n      \"memory\": \"1 GB\",\n      \"vpc\": \"0.25\"\n    }\n  },\n  \"custom-cp4i\"\
+      : {\n    \"name\": \"Production (Custom)\",\n    \"description\": \"Custom MQ\
+      \ V9.2.0.2 queue manager deployment for production, providing options for high\
+      \ availability, security and tracing.\",\n    \"resources\": {\n      \"cpu\"\
+      : \"1\",\n      \"memory\": \"1 GB\",\n      \"vpc\": \"0.5\"\n    }\n  }\n}",
+    capabilities: Seamless Upgrades, categories: Streaming & Messaging, certified: 'false',
+    containerImage: 'docker.io/ibmcom/ibm-mq-operator-catalog:v1.3.1', createdAt: 'Mon
+      May 10 16:50:13 IST 2021', description: 'IBM MQ is an operator to manage the
+      life cycle of IBM MQ queue managers. This operator is available standalone,
+      or as part of the IBM Cloud Pak for Integration (CP4I).', olm.skipRange: '>=1.0.0
+      <1.3.1', operators.openshift.io/infrastructure-features: '["Disconnected"]',
+    repository: N/A, support: IBM}
+  labels: {operatorframework.io/arch.amd64: supported, operatorframework.io/arch.s390x: supported,
+    operatorframework.io/os.linux: supported}
+  name: ibm-mq.v1.3.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: A QueueManager is an IBM MQ server which provides queuing and publish/subscribe
+        services to applications
+      displayName: Queue Manager
+      kind: QueueManager
+      name: queuemanagers.mq.ibm.com
+      resources:
+      - {kind: Client, name: '', version: oidc.security.ibm.com/v1}
+      - {kind: Cp4iServicesBinding, name: '', version: cp4i.ibm.com/v1}
+      - {kind: Job, name: '', version: batch/v1}
+      - {kind: OperandRequest, name: '', version: operator.ibm.com/v1alpha1}
+      - {kind: PersistentVolumeClaim, name: '', version: v1}
+      - {kind: Route, name: '', version: route.openshift.io/v1}
+      - {kind: Service, name: '', version: v1}
+      - {kind: ServiceAccount, name: '', version: v1}
+      - {kind: StatefulSet, name: '', version: apps/v1}
+      specDescriptors:
+      - displayName: Affinity
+        path: affinity
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: The annotations field serves as a pass-through for Pod annotations.
+          Users can add any annotation to this field and have it apply to the Pod.
+          The annotations here overwrite the default annotations if provided. Requires
+          MQ Operator 1.3.0 or higher.
+        displayName: Pod Annotations
+        path: annotations
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: An optional list of references to secrets in the same namespace
+          to use for pulling any of the images used by this QueueManager. If specified,
+          these secrets will be passed to individual puller implementations for them
+          to use. For example, in the case of docker, only DockerConfig type secrets
+          are honored. For more information, see https://kubernetes.io/docs/concepts/containers/images#specifying-imagepullsecrets-on-a-pod
+        displayName: Image Pull Secrets
+        path: imagePullSecrets
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: The labels field serves as a pass-through for Pod labels. Users
+          can add any label to this field and have it apply to the Pod. The labels
+          here overwrite the default labels if provided. Requires MQ Operator 1.3.0
+          or higher.
+        displayName: Pod Labels
+        path: labels
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - {description: 'Settings that control your acceptance of the license, and which
+          license metrics to use', displayName: License, path: license}
+      - description: Whether or not you accept the license associated with this software
+          (required)
+        displayName: License acceptance
+        path: license.accept
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:booleanSwitch']
+      - description: The identifier of the license you are accepting.  This must be
+          the correct license identifier for the version of MQ you are using.  See
+          http://ibm.biz/BdqvCF for valid values.
+        displayName: License
+        path: license.license
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:select:L-APIG-BJAKBF',
+          'urn:alm:descriptor:com.tectonic.ui:select:L-APIG-BM7GDH', 'urn:alm:descriptor:com.tectonic.ui:select:L-APIG-BMJJBM',
+          'urn:alm:descriptor:com.tectonic.ui:select:L-APIG-BMKG5H', 'urn:alm:descriptor:com.tectonic.ui:select:L-RJON-BN7PN3',
+          'urn:alm:descriptor:com.tectonic.ui:select:L-RJON-BPHL2Y', 'urn:alm:descriptor:com.tectonic.ui:select:L-RJON-BQPGWD',
+          'urn:alm:descriptor:com.tectonic.ui:select:L-RJON-BUVMQX', 'urn:alm:descriptor:com.tectonic.ui:select:L-RJON-BUVMYB']
+      - description: Setting that specifies which license metric to use. For example,
+          "ProcessorValueUnit", "VirtualProcessorCore" or "ManagedVirtualServer".
+          Defaults to "ProcessorValueUnit" when using an MQ license and "VirtualProcessorCore"
+          when using a Cloud Pak for Integration license
+        displayName: License metric
+        path: license.metric
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:select:ManagedVirtualServer',
+          'urn:alm:descriptor:com.tectonic.ui:select:ProcessorValueUnit', 'urn:alm:descriptor:com.tectonic.ui:select:VirtualProcessorCore']
+      - description: Setting that controls how the software will to be used, where
+          the license supports multiple uses. See http://ibm.biz/BdqvCF for valid
+          values.
+        displayName: License use
+        path: license.use
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:text']
+      - displayName: PKI
+        path: pki
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - {description: Private keys to add to the Queue Manager's key repository, displayName: Keys,
+        path: pki.keys}
+      - description: Name is used as the label for the key or certificate.  Must be
+          a lowercase alphanumeric string.
+        displayName: Name
+        path: pki.keys[0].name
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:text']
+      - description: Keys inside the Kubernetes secret which should be added to the
+          Queue Manager container
+        displayName: Items
+        path: pki.keys[0].secret.items
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: The name of the Kubernetes secret
+        displayName: Secret name
+        path: pki.keys[0].secret.secretName
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:Secret']
+      - {description: Certificates to add to the Queue Manager's key repository, displayName: Trust,
+        path: pki.trust}
+      - description: Name is used as the label for the key or certificate.  Must be
+          a lowercase alphanumeric string.
+        displayName: Name
+        path: pki.trust[0].name
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:text']
+      - description: Keys inside the Kubernetes secret which should be added to the
+          Queue Manager container
+        displayName: Items
+        path: pki.trust[0].secret.items
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: The name of the Kubernetes secret
+        displayName: Secret name
+        path: pki.trust[0].secret.secretName
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:Secret']
+      - {displayName: Queue Manager, path: queueManager}
+      - {description: 'Availability settings for the Queue Manager, such as whether
+          or not to use an active-standby pair', displayName: Availability, path: queueManager.availability}
+      - description: The type of availability to use. Use "SingleInstance" for a single
+          Pod, which will be restarted automatically (in some cases) by Kubernetes.
+          Use "MultiInstance" for a pair of Pods, one of which is the "active" Queue
+          Manager, and the other of which is a standby. Defaults to "SingleInstance".
+          See http://ibm.biz/BdqAQa for more details.
+        displayName: Type of availability
+        path: queueManager.availability.type
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:select:MultiInstance',
+          'urn:alm:descriptor:com.tectonic.ui:select:SingleInstance']
+      - description: Whether or not to log debug messages from the container-specific
+          code, to the container log. Defaults to false.
+        displayName: Debug
+        path: queueManager.debug
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: The container image that will be used
+        displayName: Container image
+        path: queueManager.image
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: Setting that controls when the kubelet attempts to pull the specified
+          image. Defaults to "IfNotPresent".
+        displayName: Image pull policy
+        path: queueManager.imagePullPolicy
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:hidden',
+          'urn:alm:descriptor:com.tectonic.ui:imagePullPolicy']
+      - description: Settings for supplying INI for the Queue Manager. Requires MQ
+          Operator 1.1.0 or higher.
+        displayName: INI
+        path: queueManager.ini
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: The keys inside the Kubernetes config map which should be applied
+        displayName: Items
+        path: queueManager.ini[0].configMap.items
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: The name of the Kubernetes config map
+        displayName: Name
+        path: queueManager.ini[0].configMap.name
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:ConfigMap']
+      - description: The keys inside the Kubernetes secret which should be applied
+        displayName: Items
+        path: queueManager.ini[0].secret.items
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: The name of the Kubernetes secret
+        displayName: Name
+        path: queueManager.ini[0].secret.name
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:Secret']
+      - description: Settings that control the liveness probe
+        displayName: Liveness Probe
+        path: queueManager.livenessProbe
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - {description: Minimum consecutive failures for the probe to be considered
+          failed after having succeeded. Defaults to 1., displayName: Failure Threshold,
+        path: queueManager.livenessProbe.failureThreshold}
+      - {description: 'Number of seconds after the container has started before liveness
+          probes are initiated. Defaults to 90 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Initial Delay Seconds, path: queueManager.livenessProbe.initialDelaySeconds}
+      - {description: How often (in seconds) to perform the probe. Defaults to 10
+          seconds., displayName: Period Seconds, path: queueManager.livenessProbe.periodSeconds}
+      - {description: Minimum consecutive successes for the probe to be considered
+          successful after having failed. Defaults to 1., displayName: Success Threshold,
+        path: queueManager.livenessProbe.successThreshold}
+      - {description: 'Number of seconds after which the probe times out. Defaults
+          to 5 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Timeout Seconds, path: queueManager.livenessProbe.timeoutSeconds}
+      - description: Which log format to use for this container.  Use "JSON" for JSON-formatted
+          logs from the container.  Use "Basic" for text-formatted messages. Defaults
+          to "Basic".
+        displayName: Log format
+        path: queueManager.logFormat
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: Settings for Prometheus-style metrics
+        displayName: Metrics
+        path: queueManager.metrics
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: Settings for supplying MQSC for the Queue Manager. Requires MQ
+          Operator 1.1.0 or higher.
+        displayName: MQSC
+        path: queueManager.mqsc
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: The keys inside the Kubernetes config map which should be applied
+        displayName: Items
+        path: queueManager.mqsc[0].configMap.items
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: The name of the Kubernetes config map
+        displayName: Name
+        path: queueManager.mqsc[0].configMap.name
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:ConfigMap']
+      - description: The keys inside the Kubernetes secret which should be applied
+        displayName: Items
+        path: queueManager.mqsc[0].secret.items
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: The name of the Kubernetes secret
+        displayName: Name
+        path: queueManager.mqsc[0].secret.name
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:Secret']
+      - description: Name of the underlying MQ Queue Manager, if different from metadata.name.
+          Use this field if you want a Queue Manager name which does not conform to
+          the Kubernetes rules for names (for example, a name which includes captial
+          letters).
+        displayName: Name
+        path: queueManager.name
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:text']
+      - description: Settings that control the readiness probe
+        displayName: Readiness Probe
+        path: queueManager.readinessProbe
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - {description: Minimum consecutive failures for the probe to be considered
+          failed after having succeeded. Defaults to 1., displayName: Failure Threshold,
+        path: queueManager.readinessProbe.failureThreshold}
+      - {description: 'Number of seconds after the container has started before liveness
+          probes are initiated. Defaults to 10 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Initial Delay Seconds, path: queueManager.readinessProbe.initialDelaySeconds}
+      - {description: How often (in seconds) to perform the probe. Defaults to 5 seconds.,
+        displayName: Period Seconds, path: queueManager.readinessProbe.periodSeconds}
+      - {description: Minimum consecutive successes for the probe to be considered
+          successful after having failed. Defaults to 1., displayName: Success Threshold,
+        path: queueManager.readinessProbe.successThreshold}
+      - {description: 'Number of seconds after which the probe times out. Defaults
+          to 3 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Timeout Seconds, path: queueManager.readinessProbe.timeoutSeconds}
+      - description: Settings that control resource requirements
+        displayName: Resources
+        path: queueManager.resources
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:resourceRequirements']
+      - {description: Storage settings to control the Queue Manager's use of persistent
+          volumes and storage classes, displayName: Storage, path: queueManager.storage}
+      - description: Storage class to apply to all persistent volumes of this Queue
+          Manager by default. Specific persistent volumes can define their own storage
+          class which will override this default storage class setting. If "type of
+          availability" is "SingleInstance", storage class can be of type ReadWriteOnce
+          or ReadWriteMany. If "type of availability" is "MultiInstance", storage
+          class must be of type ReadWriteMany.
+        displayName: Default class
+        path: queueManager.storage.defaultClass
+        x-descriptors: ['urn:alm:descriptor:io.kubernetes:StorageClass']
+      - description: Whether or not all the volumes should be deleted when the queue
+          manager is deleted. Specific persistent volumes can define their own value
+          for deleteClaim which will override this defaultDeleteClaim setting. Defaults
+          to false.
+        displayName: Default delete claim
+        path: queueManager.storage.defaultDeleteClaim
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch']
+      - description: PersistentVolume details for MQ persisted data, including configuration,
+          queues and messages. Required when using multi-instance Queue Manager.
+        displayName: Persisted data
+        path: queueManager.storage.persistedData
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: Storage class to use for this volume. Only valid if "type" is
+          "persistent-claim". If "type of availability" is "SingleInstance", storage
+          class can be of type ReadWriteOnce or ReadWriteMany. If "type of availability"
+          is "MultiInstance", storage class must be of type ReadWriteMany.
+        displayName: Class
+        path: queueManager.storage.persistedData.class
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:StorageClass',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.persistedData.enabled:true']
+      - description: Whether or not this volume should be deleted when the queue manager
+          is deleted.
+        displayName: Delete Claim
+        path: queueManager.storage.persistedData.deleteClaim
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.persistedData.enabled:true']
+      - description: Whether or not this volume should be enabled as a separate volume,
+          or be placed on the default "queueManager" volume. Defaults to false.
+        displayName: Enabled
+        path: queueManager.storage.persistedData.enabled
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch']
+      - description: Size of the PersistentVolume to pass to Kubernetes, including
+          SI units. Only valid if "type" is "persistent-claim". For example, "2Gi".
+          Defaults to "2Gi".
+        displayName: Size
+        path: queueManager.storage.persistedData.size
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:text',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.persistedData.enabled:true']
+      - description: Size limit when using an "ephemeral" volume.  Files are still
+          written to a temporary directory, so you can use this option to limit the
+          size. Only valid if `type` is "ephemeral".
+        displayName: Size limit
+        path: queueManager.storage.persistedData.sizeLimit
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:hidden',
+          'urn:alm:descriptor:com.tectonic.ui:text']
+      - description: Type of volume to use. Choose `ephemeral` to use non-persistent
+          storage, or `persistent-claim` to use a persistent volume. Defaults to `persistent-claim`.
+        displayName: Type of volume
+        path: queueManager.storage.persistedData.type
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:select:ephemeral', 'urn:alm:descriptor:com.tectonic.ui:select:persistent-claim',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.persistedData.enabled:true']
+      - {description: 'Default PersistentVolume for any data normally under `/var/mqm`.
+          Will contain all persisted data and recovery logs, if no other volumes are
+          specified.', displayName: Queue Manager, path: queueManager.storage.queueManager}
+      - description: Storage class to use for this volume. Only valid if "type" is
+          "persistent-claim". If "type of availability" is "SingleInstance", storage
+          class can be of type ReadWriteOnce or ReadWriteMany. If "type of availability"
+          is "MultiInstance", storage class must be of type ReadWriteMany.
+        displayName: Class
+        path: queueManager.storage.queueManager.class
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:StorageClass',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.queueManager.type:persistent-claim']
+      - description: Whether or not this volume should be deleted when the queue manager
+          is deleted.
+        displayName: Delete Claim
+        path: queueManager.storage.queueManager.deleteClaim
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.queueManager.type:persistent-claim']
+      - description: Size of the PersistentVolume to pass to Kubernetes, including
+          SI units. Only valid if "type" is "persistent-claim". For example, "2Gi".
+          Defaults to "2Gi".
+        displayName: Size
+        path: queueManager.storage.queueManager.size
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:text',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.queueManager.type:persistent-claim']
+      - description: Size limit when using an "ephemeral" volume.  Files are still
+          written to a temporary directory, so you can use this option to limit the
+          size. Only valid if `type` is "ephemeral".
+        displayName: Size limit
+        path: queueManager.storage.queueManager.sizeLimit
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:hidden',
+          'urn:alm:descriptor:com.tectonic.ui:text']
+      - description: Type of volume to use. Choose `ephemeral` to use non-persistent
+          storage, or `persistent-claim` to use a persistent volume. Defaults to `persistent-claim`.
+        displayName: Type of volume
+        path: queueManager.storage.queueManager.type
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:select:ephemeral', 'urn:alm:descriptor:com.tectonic.ui:select:persistent-claim']
+      - description: Persistent volume details for MQ recovery logs. Required when
+          using multi-instance Queue Manager.
+        displayName: Recovery logs
+        path: queueManager.storage.recoveryLogs
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: Storage class to use for this volume. Only valid if "type" is
+          "persistent-claim". If "type of availability" is "SingleInstance", storage
+          class can be of type ReadWriteOnce or ReadWriteMany. If "type of availability"
+          is "MultiInstance", storage class must be of type ReadWriteMany.
+        displayName: Class
+        path: queueManager.storage.recoveryLogs.class
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:io.kubernetes:StorageClass',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.recoveryLogs.enabled:true']
+      - description: Whether or not this volume should be deleted when the queue manager
+          is deleted.
+        displayName: Delete Claim
+        path: queueManager.storage.recoveryLogs.deleteClaim
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.recoveryLogs.enabled:true']
+      - description: Whether or not this volume should be enabled as a separate volume,
+          or be placed on the default "queueManager" volume. Defaults to false.
+        displayName: Enabled
+        path: queueManager.storage.recoveryLogs.enabled
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch']
+      - description: Size of the PersistentVolume to pass to Kubernetes, including
+          SI units. Only valid if "type" is "persistent-claim". For example, "2Gi".
+          Defaults to "2Gi".
+        displayName: Size
+        path: queueManager.storage.recoveryLogs.size
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:text',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.recoveryLogs.enabled:true']
+      - description: Size limit when using an "ephemeral" volume.  Files are still
+          written to a temporary directory, so you can use this option to limit the
+          size. Only valid if `type` is "ephemeral".
+        displayName: Size limit
+        path: queueManager.storage.recoveryLogs.sizeLimit
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:hidden',
+          'urn:alm:descriptor:com.tectonic.ui:text']
+      - description: Type of volume to use. Choose `ephemeral` to use non-persistent
+          storage, or `persistent-claim` to use a persistent volume. Defaults to `persistent-claim`.
+        displayName: Type of volume
+        path: queueManager.storage.recoveryLogs.type
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:select:ephemeral', 'urn:alm:descriptor:com.tectonic.ui:select:persistent-claim',
+          'urn:alm:descriptor:com.tectonic.ui:fieldDependency:queueManager.storage.recoveryLogs.enabled:true']
+      - displayName: Security context
+        path: securityContext
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: 'A special supplemental group that applies to all containers
+          in a pod. Some volume types allow the Kubelet to change the ownership of
+          that volume to be owned by the pod: 1. The owning GID will be the FSGroup
+          2. The setgid bit is set (new files created in the volume will be owned
+          by FSGroup) 3. The permission bits are OR''d with rw-rw---- If unset, the
+          Kubelet will not modify the ownership and permissions of any volume.'
+        displayName: FSGroup
+        path: securityContext.fsGroup
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: This affects the securityContext used by the container which
+          initializes the PersistentVolume. Set this to "true" if you are using a
+          storage provider which requires you to be the root user to access newly
+          provisioned volumes. Setting this to "true" affects which Security Context
+          Constraints (SCC) object you can use, and the Queue Manager may fail to
+          start if you are not authorized to use an SCC which allows the root user.
+          Defaults to false. For more information, see https://docs.openshift.com/container-platform/latest/authentication/managing-security-context-constraints.html
+        displayName: Init Volume As Root
+        path: securityContext.initVolumeAsRoot
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: A list of groups applied to the first process run in each container,
+          in addition to the container's primary GID. If unspecified, no groups will
+          be added to any container.
+        displayName: Supplemental groups
+        path: securityContext.supplementalGroups
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - displayName: Template
+        path: template
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: Overrides for the template used for the Pod. See https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.17/#podspec-v1-core
+        displayName: Template overrides
+        path: template.pod
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: Optional duration in seconds the Pod needs to terminate gracefully.
+          Value must be non-negative integer. The value zero indicates delete immediately.
+          The target time in which ending the queue manager is attempted, escalating
+          the phases of application disconnection. Essential queue manager maintenance
+          tasks are interrupted if necessary. Defaults to 30 seconds.
+        displayName: Termination Grace Period Seconds
+        path: terminationGracePeriodSeconds
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - {description: Settings for tracing integration with the Cloud Pak for Integration
+          Operations Dashboard, displayName: Tracing, path: tracing}
+      - description: In Cloud Pak for Integration only, you can configure settings
+          for the optional Tracing Agent
+        displayName: Tracing agent
+        path: tracing.agent
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: The container image that will be used
+        displayName: Tracing agent container image
+        path: tracing.agent.image
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden', 'urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: Setting that controls when the kubelet attempts to pull the specified
+          image. Defaults to "IfNotPresent".
+        displayName: Tracing agent image pull policy
+        path: tracing.agent.imagePullPolicy
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:hidden',
+          'urn:alm:descriptor:com.tectonic.ui:imagePullPolicy', 'urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: Settings that control the liveness probe
+        displayName: Liveness Probe
+        path: tracing.agent.livenessProbe
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - {description: Minimum consecutive failures for the probe to be considered
+          failed after having succeeded. Defaults to 1., displayName: Failure Threshold,
+        path: tracing.agent.livenessProbe.failureThreshold}
+      - {description: 'Number of seconds after the container has started before liveness
+          probes are initiated. Defaults to 10 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Initial Delay Seconds, path: tracing.agent.livenessProbe.initialDelaySeconds}
+      - {description: How often (in seconds) to perform the probe. Defaults to 10
+          seconds., displayName: Period Seconds, path: tracing.agent.livenessProbe.periodSeconds}
+      - {description: Minimum consecutive successes for the probe to be considered
+          successful after having failed. Defaults to 1., displayName: Success Threshold,
+        path: tracing.agent.livenessProbe.successThreshold}
+      - {description: 'Number of seconds after which the probe times out. Defaults
+          to 2 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Timeout Seconds, path: tracing.agent.livenessProbe.timeoutSeconds}
+      - description: Settings that control the readiness probe
+        displayName: Readiness Probe
+        path: tracing.agent.readinessProbe
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - {description: Minimum consecutive failures for the probe to be considered
+          failed after having succeeded. Defaults to 1., displayName: Failure Threshold,
+        path: tracing.agent.readinessProbe.failureThreshold}
+      - {description: 'Number of seconds after the container has started before liveness
+          probes are initiated. Defaults to 10 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Initial Delay Seconds, path: tracing.agent.readinessProbe.initialDelaySeconds}
+      - {description: How often (in seconds) to perform the probe. Defaults to 10
+          seconds., displayName: Period Seconds, path: tracing.agent.readinessProbe.periodSeconds}
+      - {description: Minimum consecutive successes for the probe to be considered
+          successful after having failed. Defaults to 1., displayName: Success Threshold,
+        path: tracing.agent.readinessProbe.successThreshold}
+      - {description: 'Number of seconds after which the probe times out. Defaults
+          to 2 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Timeout Seconds, path: tracing.agent.readinessProbe.timeoutSeconds}
+      - description: In Cloud Pak for Integration only, you can configure settings
+          for the optional Tracing Collector
+        displayName: Tracing collector
+        path: tracing.collector
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - description: The container image that will be used
+        displayName: Tracing collector container image
+        path: tracing.collector.image
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden', 'urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: Setting that controls when the kubelet attempts to pull the specified
+          image. Defaults to "IfNotPresent".
+        displayName: Tracing collector image pull policy
+        path: tracing.collector.imagePullPolicy
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:advanced', 'urn:alm:descriptor:com.tectonic.ui:hidden',
+          'urn:alm:descriptor:com.tectonic.ui:imagePullPolicy', 'urn:alm:descriptor:com.tectonic.ui:advanced']
+      - description: Settings that control the liveness probe
+        displayName: Liveness Probe
+        path: tracing.collector.livenessProbe
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - {description: Minimum consecutive failures for the probe to be considered
+          failed after having succeeded. Defaults to 1., displayName: Failure Threshold,
+        path: tracing.collector.livenessProbe.failureThreshold}
+      - {description: 'Number of seconds after the container has started before liveness
+          probes are initiated. Defaults to 10 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Initial Delay Seconds, path: tracing.collector.livenessProbe.initialDelaySeconds}
+      - {description: How often (in seconds) to perform the probe. Defaults to 10
+          seconds., displayName: Period Seconds, path: tracing.collector.livenessProbe.periodSeconds}
+      - {description: Minimum consecutive successes for the probe to be considered
+          successful after having failed. Defaults to 1., displayName: Success Threshold,
+        path: tracing.collector.livenessProbe.successThreshold}
+      - {description: 'Number of seconds after which the probe times out. Defaults
+          to 2 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Timeout Seconds, path: tracing.collector.livenessProbe.timeoutSeconds}
+      - description: Settings that control the readiness probe
+        displayName: Readiness Probe
+        path: tracing.collector.readinessProbe
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:hidden']
+      - {description: Minimum consecutive failures for the probe to be considered
+          failed after having succeeded. Defaults to 1., displayName: Failure Threshold,
+        path: tracing.collector.readinessProbe.failureThreshold}
+      - {description: 'Number of seconds after the container has started before liveness
+          probes are initiated. Defaults to 10 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Initial Delay Seconds, path: tracing.collector.readinessProbe.initialDelaySeconds}
+      - {description: How often (in seconds) to perform the probe. Defaults to 10
+          seconds., displayName: Period Seconds, path: tracing.collector.readinessProbe.periodSeconds}
+      - {description: Minimum consecutive successes for the probe to be considered
+          successful after having failed. Defaults to 1., displayName: Success Threshold,
+        path: tracing.collector.readinessProbe.successThreshold}
+      - {description: 'Number of seconds after which the probe times out. Defaults
+          to 2 seconds. More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes',
+        displayName: Timeout Seconds, path: tracing.collector.readinessProbe.timeoutSeconds}
+      - description: Whether or not to enable integration with the Cloud Pak for Integration
+          Operations Dashboard, via tracing. Defaults to false.
+        displayName: Enable tracing
+        path: tracing.enabled
+        x-descriptors: ['urn:alm:descriptor:com.ibm.cp4i:omitWhen:false', 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch']
+      - description: Namespace where the Cloud Pak for Integration Operations Dashboard
+          is installed
+        displayName: Tracing namespace
+        path: tracing.namespace
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:fieldDependency:tracing.enabled:true',
+          'urn:alm:descriptor:io.kubernetes:Namespace']
+      - description: 'Setting that controls the version of MQ that will be used (required).
+          For example: "9.1.5.0-r2" would specify MQ version 9.1.5.0, using the second
+          revision of the container image. Container-specific fixes are often applied
+          in revisions, such as fixes to the base image.'
+        displayName: Version
+        path: version
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:text']
+      - {description: Settings for the MQ web server, displayName: Web, path: web}
+      - description: Whether or not to enable the web server. Defaults to false.
+        displayName: Enable web server
+        path: web.enabled
+        x-descriptors: ['urn:alm:descriptor:com.tectonic.ui:booleanSwitch']
+      statusDescriptors:
+      - description: URL for the Admin UI
+        displayName: Admin UI
+        path: adminUiUrl
+        x-descriptors: ['urn:alm:descriptor:org.w3:link']
+      - description: Phase of the Queue Manager's state
+        displayName: Phase
+        path: phase
+        x-descriptors: ['urn:alm:descriptor:io.kubernetes.phase']
+      version: v1beta1
+    required:
+    - {description: CommonService is the Schema for the common services API, displayName: CommonService,
+      kind: CommonService, name: commonservices.operator.ibm.com, version: v3}
+  description: "[IBM MQ](https://www.ibm.com/products/mq) is messaging middleware\
+    \ that simplifies and accelerates\nthe integration of diverse applications and\
+    \ business data across multiple platforms.\nIt uses message queues to facilitate\
+    \ the exchanges of information and offers\na single messaging solution for cloud,\
+    \ mobile, Internet of Things (IoT) and on-premises\nenvironments.\n\nThe IBM MQ\
+    \ Operator for Red Hat OpenShift Container Platform provides\nan easy way to manage\
+    \ the life cycle of IBM MQ queue managers.\n\nIBM MQ is part of the [IBM Cloud\
+    \ Pak for Integration](https://www.ibm.com/cloud/cloud-pak-for-integration).\n\
+    \n## Features\n\n* Creation and management of IBM MQ queue managers\n  * Use of\
+    \ single-instance or multi-instance queue managers, for high availability\n  *\
+    \ Integration with Cloud Pak for Integration Operations Dashboard\n  * Single\
+    \ Sign-On (SSO) with the Cloud Pak for Integration, using the IBM Common Services\
+    \ IAM\n\n# Details\n\n## Prerequisites\n\n* Red Hat OpenShift Container Platform\
+    \ V4.6 (Kubernetes 1.19)\n* If persistence is enabled you need to ensure a Storage\
+    \ Class is defined in your OpenShift cluster.\n\n### Resources Required\n\n* The\
+    \ IBM MQ Operator requires 1 CPU core and 1 GB memory\n* Each IBM MQ Queue Manager\
+    \ defaults to 1 CPU core and 1 GB memory, but can be run with fewer resources\
+    \ with lower performance\n* The IBM Common Services Operator and its dependencies\
+    \ will be installed automatically when you install the IBM MQ Operator.  In addition,\
+    \ when the IBM MQ Operator first starts, it will install the IBM Licensing Operator\
+    \ and its dependencies.  If you are using the Cloud Pak for Integration license\
+    \ with the web server enabled, then the IBM Identity and Access Management Operator\
+    \ and IBM Management Ingress Operator and their dependencies will also be installed\
+    \ automatically.  For more information, see [Hardware requirements and recommendations\
+    \ for IBM Common Services](https://www.ibm.com/support/knowledgecenter/SSHKN6/installer/3.x.x/hardware_sizing_reqs.html)\
+    \ and [Dependencies of the IBM Cloud Platform Common Services](https://www.ibm.com/support/knowledgecenter/SSHKN6/installer/3.x.x/disable_and_enable_services.html)\n\
+    \n# Installing\n\nSee [Installing and uninstalling the IBM MQ Operator on OpenShift](https://www.ibm.com/support/knowledgecenter/SSFKSJ_latest/com.ibm.mq.ctr.doc/ctr_install_uninstall.htm).\
+    \  Operators need to be installed by a cluster administrator.\n\n## Configuration\n\
+    \nSee [Deploying MQ in containers](https://www.ibm.com/support/knowledgecenter/SSFKSJ_latest/com.ibm.mq.ctr.doc/deploy_ctr.htm).\
+    \  Queue managers can be installed by a project (namespace) administrator.\n\n\
+    ## SecurityContextConstraints Requirements\n\n* IBM MQ runs under the default\
+    \ `restricted` SecurityContextConstraints.\n  \n## Storage\n\nMQ is configured\
+    \ to use dynamic provisioning of ReadWriteMany (RWX) Persistent Volumes, which\
+    \ use a shared filesystem.\nMQ is affected by other limits applied to the file\
+    \ system (such as limiting the number of file locks in AWS EFS). See [testing\
+    \ statement](https://www.ibm.com/support/pages/testing-statement-ibm-mq-multi-instance-queue-manager-file-systems).\n\
+    \n## Limitations\n\n* Supports only the `amd64 and s390x` CPU architecture\n*\
+    \ Supports OpenShift Container Platform V4.6 only\n* Do not edit the availability\
+    \ type of a QueueManager after initial creation\n* Do not edit the storage settings\
+    \ of a QueueManager after initial creation\n* The following alpha and beta APIs\
+    \ and features are used by the MQ operator:\n  * `apiextensions.k8s.io/v1beta1`\
+    \ for Operator installation\n  * `operators.coreos.com/v1alpha1` for Operator\
+    \ installation\n  * `operator.ibm.com/v1alpha1` for installation of additional\
+    \ IBM common operators\n  * `service.beta.openshift.io` annotations on Service,\
+    \ to provide a certificate for the webhook\n\n## Documentation\n\n[IBM MQ Knowledge\
+    \ Center](https://www.ibm.com/support/knowledgecenter/en/SSFKSJ_latest/)\n"
+  displayName: IBM MQ
+  icon:
+  - {base64data: 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,
+    mediatype: image/png}
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups: [admissionregistration.k8s.io]
+          resources: [validatingwebhookconfigurations]
+          verbs: [create, get, update]
+        - apiGroups: [storage.k8s.io]
+          resources: [storageclasses]
+          verbs: [get, list]
+        - apiGroups: [console.openshift.io]
+          resources: [consoleyamlsamples]
+          verbs: [create, get, update, delete]
+        - apiGroups: [config.openshift.io]
+          resources: [clusterversions]
+          verbs: [get, list, watch]
+        serviceAccountName: ibm-mq
+      deployments:
+      - name: ibm-mq
+        spec:
+          replicas: 1
+          selector:
+            matchLabels: {app.kubernetes.io/component: integration, app.kubernetes.io/managed-by: olm,
+              app.kubernetes.io/name: ibm-mq, name: ibm-mq}
+          strategy: {type: Recreate}
+          template:
+            metadata:
+              annotations: {productID: 208423bb063c43288328b1d788745b0c, productMetric: FREE,
+                productName: IBM MQ Operator, productVersion: 1.3.1}
+              labels: {app.kubernetes.io/component: integration, app.kubernetes.io/managed-by: olm,
+                app.kubernetes.io/name: ibm-mq, name: ibm-mq}
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values: [amd64, s390x]
+                      - key: kubernetes.io/os
+                        operator: In
+                        values: [linux]
+              containers:
+              - command: [ibm-mq]
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef: {fieldPath: 'metadata.annotations[''olm.targetNamespaces'']'}
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef: {fieldPath: metadata.name}
+                - {name: OPERATOR_NAME, value: ibm-mq}
+                - {name: IMAGE_MQ_ADVANCED_9150r2, value: 'cp.icr.io/cp/ibm-mqadvanced-server@sha256:8dee84b6f41a5da4b0a3e10e4e7e29832f571c30fc4d85bbbe5ef5f554a7d7af'}
+                - {name: IMAGE_MQ_ADVANCED_INTEGRATION_9150r2, value: 'cp.icr.io/cp/ibm-mqadvanced-server-integration@sha256:615a3730ab42a57537fe65a617a13eac59e9c0858d5cfc9abeb8555a6b534225'}
+                - {name: IMAGE_MQ_ADVANCED_DEV_9150r2, value: 'docker.io/ibmcom/mq@sha256:9bcee09b99b596610e7d660d597b76d9c395ed9bb6bdb970b8975ac6a3c0217e'}
+                - {name: IMAGE_MQ_ADVANCED_9200r1, value: 'cp.icr.io/cp/ibm-mqadvanced-server@sha256:10353222ecf9c0bd09034820d5c14a8ce03b9ffc18c9e148b99f7171da9be825'}
+                - {name: IMAGE_MQ_ADVANCED_INTEGRATION_9200r1, value: 'cp.icr.io/cp/ibm-mqadvanced-server-integration@sha256:cfe3a4cec7a353e7496d367f9789dbe21fbf60dac46f127d288dda329560d13a'}
+                - {name: IMAGE_MQ_ADVANCED_DEV_9200r1, value: 'docker.io/ibmcom/mq@sha256:2fa0766a68d936fc8a7e70cb1fc5be49795c74b99ea85e4babcbf934998a6b90'}
+                - {name: IMAGE_MQ_ADVANCED_9200r2, value: 'cp.icr.io/cp/ibm-mqadvanced-server@sha256:2f3697dd13dfe9d6ff2286a304864758a118692382502cff77722f35f8d75207'}
+                - {name: IMAGE_MQ_ADVANCED_INTEGRATION_9200r2, value: 'cp.icr.io/cp/ibm-mqadvanced-server-integration@sha256:8fcb49d89c250adc42ece9fca3f6774ba78361a082174958bd0f37373cdb6360'}
+                - {name: IMAGE_MQ_ADVANCED_DEV_9200r2, value: 'docker.io/ibmcom/mq@sha256:90643072d29782788321581a114d24af3fcaeac86b3b17fafe59031f3245b1be'}
+                - {name: IMAGE_MQ_ADVANCED_INTEGRATION_9201r1eus, value: 'cp.icr.io/cp/ibm-mqadvanced-server-integration@sha256:84f3bf90e6719a6d908df331304a2af854cc4e277b8bc21c7054ce9c24e4f2c5'}
+                - {name: IMAGE_MQ_ADVANCED_INTEGRATION_9202r1eus, value: 'cp.icr.io/cp/ibm-mqadvanced-server-integration@sha256:208e614e580a426c81ec7b41574e9f948c36b6460f697db06c10fff0095f35dc'}
+                - {name: IMAGE_TRACING_AGENT_106, value: 'cp.icr.io/cp/icp4i/od/icp4i-od-agent@sha256:f1abc56564c2e49a3608a334b2238c47bff855736e443c0694efa1613dc173d8'}
+                - {name: IMAGE_TRACING_COLLECTOR_106, value: 'cp.icr.io/cp/icp4i/od/icp4i-od-collector@sha256:25ce2acd5b7fec8b4adf39aee8c281c97c9a4dad40ed96298263a50896e93b90'}
+                - {name: IMAGE_TRACING_AGENT_108, value: 'cp.icr.io/cp/icp4i/od/icp4i-od-agent@sha256:9cd52f1fed6b1e61c1b388e2fe32d059322b367795c3195a64fb0fe1e2c6be9c'}
+                - {name: IMAGE_TRACING_COLLECTOR_108, value: 'cp.icr.io/cp/icp4i/od/icp4i-od-collector@sha256:81cc559193c335f01bd026d800bf9b030c7712363094815d4e724cda4c639747'}
+                image: docker.io/ibmcom/ibm-mq-operator@sha256:bc236a217cd8a46a715efff5cebaa20399e6e91cbf0345de05943b17774dd83f
+                imagePullPolicy: Always
+                livenessProbe:
+                  failureThreshold: 1
+                  httpGet: {path: /healthz, port: 6789}
+                  initialDelaySeconds: 90
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                name: ibm-mq
+                readinessProbe:
+                  failureThreshold: 3
+                  httpGet: {path: /readyz, port: 6789}
+                  initialDelaySeconds: 10
+                  periodSeconds: 5
+                  timeoutSeconds: 3
+                resources:
+                  limits: {cpu: '1', memory: 1Gi}
+                  requests: {cpu: '1', memory: 1Gi}
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop: [ALL]
+                  privileged: false
+                  readOnlyRootFilesystem: false
+                  runAsNonRoot: true
+              initContainers:
+              - command: [ibm-mq, --init]
+                env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef: {fieldPath: metadata.namespace}
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef: {fieldPath: metadata.name}
+                - {name: OPERATOR_NAME, value: ibm-mq}
+                image: docker.io/ibmcom/ibm-mq-operator@sha256:bc236a217cd8a46a715efff5cebaa20399e6e91cbf0345de05943b17774dd83f
+                imagePullPolicy: Always
+                name: ibm-mq-init
+                resources:
+                  limits: {cpu: '1', memory: 1Gi}
+                  requests: {cpu: '1', memory: 1Gi}
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop: [ALL]
+                  privileged: false
+                  readOnlyRootFilesystem: false
+                  runAsNonRoot: true
+              serviceAccountName: ibm-mq
+      permissions:
+      - rules:
+        - apiGroups: ['']
+          resources: [pods, services, services/finalizers, endpoints, persistentvolumeclaims,
+            events, configmaps, secrets, serviceaccounts, namespaces]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [apps]
+          resources: [deployments, daemonsets, replicasets, statefulsets]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [batch]
+          resources: [jobs]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [monitoring.coreos.com]
+          resources: [servicemonitors]
+          verbs: [get, create]
+        - apiGroups: [apps]
+          resourceNames: [ibm-mq]
+          resources: [deployments/finalizers]
+          verbs: [update]
+        - apiGroups: ['']
+          resources: [pods]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [apps]
+          resources: [replicasets, deployments]
+          verbs: [get]
+        - apiGroups: [mq.ibm.com]
+          resources: [queuemanagers, queuemanagers/finalizers, queuemanagers/status]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [route.openshift.io]
+          resources: [routes]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [cp4i.ibm.com]
+          resources: [cp4iservicesbindings]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [oidc.security.ibm.com]
+          resources: [clients]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [operator.ibm.com]
+          resources: [operandrequests]
+          verbs: [create, delete, get, list, patch, update, watch]
+        - apiGroups: [networking.k8s.io]
+          resources: [networkpolicies]
+          verbs: [create, get, patch, update, watch]
+        serviceAccountName: ibm-mq
+    strategy: deployment
+  installModes:
+  - {supported: true, type: OwnNamespace}
+  - {supported: true, type: SingleNamespace}
+  - {supported: false, type: MultiNamespace}
+  - {supported: true, type: AllNamespaces}
+  keywords: [mq, queue, messaging, publish, subscribe, integration, cloud pak, cloud
+      pak for integration, cp4i]
+  labels: {name: ibm-mq}
+  links:
+  - {name: Queue Manager Documentation, url: 'https://www.ibm.com/support/knowledgecenter/SSFKSJ_latest/com.ibm.mq.ctr.doc/ctr.htm'}
+  maintainers:
+  - {email: askmessaging@uk.ibm.com, name: IBM MQ}
+  maturity: stable
+  provider: {name: IBM}
+  replaces: ibm-mq.v1.3.0
+  version: 1.3.1

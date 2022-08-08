@@ -1,0 +1,446 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "sysdig.com/v1",
+          "kind": "SysdigAgent",
+          "metadata": {
+            "name": "sysdigagent-sample"
+          },
+          "spec": {
+            "sysdig": {
+              "accessKey": "REPLACE ME",
+              "disableCaptures": false,
+              "existingAccessKeySecret": "",
+              "settings": {}
+            },
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.kubernetes.io/master"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Security, Monitoring
+    certified: "true"
+    containerImage: registry.connect.redhat.com/sysdig/sysdig-operator@sha256:sha256:a95af2d139abd2180c52bb83588e997ffdf4831e88e826ba23fa7cbeda208119
+    description: |
+      Sysdig is a unified platform for container and microservices monitoring, troubleshooting, security and forensics. Sysdig platform has been built on top of Sysdig tool and Sysdig Inspect open-source technologies.
+    operators.operatorframework.io/builder: operator-sdk-v1.15.0
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    repository: https://github.com/sysdiglabs/sysdig-operator
+    support: Sysdig, Inc.
+  name: sysdig-certified.v1.15.24
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: SysdigAgent
+      name: sysdigagents.sysdig.com
+      resources:
+      - kind: Service
+        name: ""
+        version: v1
+      - kind: DaemonSet
+        name: ""
+        version: v1
+      specDescriptors:
+      - displayName: Tolerations
+        path: tolerations
+      - displayName: Sysdig
+        path: sysdig
+      statusDescriptors:
+      - description: The status of the Sysdig Agent
+        displayName: Sysdig Agent status
+        path: conditions
+      version: v1
+  description: |-
+    [Sysdig](https://www.sysdig.com/) is a unified platform for container and
+    microservices monitoring, troubleshooting, security and forensics. Sysdig
+    platform has been built on top of
+    [Sysdig tool](https://sysdig.com/opensource/sysdig/) and
+    [Sysdig Inspect](https://sysdig.com/blog/sysdig-inspect/) open-source
+    technologies.
+    This operator installs the Sysdig Agent for
+    [Sysdig Monitor](https://sysdig.com/product/monitor/) and
+    [Sysdig Secure](https://sysdig.com/product/secure/) to all nodes in your
+    cluster via a DaemonSet.
+    ## Settings
+    This operator, uses the same options than the
+    [Helm Chart](https://hub.helm.sh/charts/stable/sysdig), please take a look
+    to all the options in the following table:
+    | Parameter                         | Description                                                            | Default                                     |
+    | ---                               | ---                                                                    | ---                                         |
+    | `image.registry`                  | Sysdig agent image registry                                            | `docker.io`                                 |
+    | `image.repository`                | The image repository to pull from                                      | `sysdig/agent`                              |
+    | `image.tag`                       | The image tag to pull                                                  | `REPLACE_AGENT_VERSION`                                     |
+    | `image.pullPolicy`                | The Image pull policy                                                  | `IfNotPresent`                              |
+    | `image.pullSecrets`               | Image pull secrets                                                     | `nil`                                       |
+    | `resources.requests.cpu`          | CPU requested for being run in a node                                  | `600m`                                      |
+    | `resources.requests.memory`       | Memory requested for being run in a node                               | `512Mi`                                     |
+    | `resources.limits.cpu`            | CPU limit                                                              | `2000m`                                     |
+    | `resources.limits.memory`         | Memory limit                                                           | `1536Mi`                                    |
+    | `rbac.create`                     | If true, create & use RBAC resources                                   | `true`                                      |
+    | `serviceAccount.create`           | Create serviceAccount                                                  | `true`                                      |
+    | `serviceAccount.name`             | Use this value as serviceAccountName                                   | ` `                                         |
+    | `daemonset.updateStrategy.type`   | The updateStrategy for updating the daemonset                          | `RollingUpdate`                             |
+    | `daemonset.affinity`              | Node affinities                                                        | `nil`                                       |
+    | `daemonset.annotations`           | Custom annotations for daemonset                                       | `{}`                                        |
+    | `slim.enabled`                    | Use the slim based Sysdig Agent image                                  | `false`                                     |
+    | `slim.kmoduleImage.repository`    | The kernel module image builder repository to pull from                | `sysdig/agent-kmodule`                      |
+    | `slim.resources.requests.cpu`     | CPU requested for building the kernel module                           | `1000m`                                     |
+    | `slim.resources.requests.memory`  | Memory requested for building the kernel module                        | `348Mi`                                     |
+    | `slim.resources.limits.memory`    | Memory limit for building the kernel module                            | `512Mi`                                     |
+    | `ebpf.enabled`                    | Enable eBPF support for Sysdig instead of `sysdig-probe` kernel module | `false`                                     |
+    | `ebpf.settings.mountEtcVolume`    | Needed to detect which kernel version are running in Google COS        | `true`                                      |
+    | `sysdig.accessKey`                | Your Sysdig Monitor Access Key                                         | `Nil` You must provide your own key         |
+    | `sysdig.settings`                 | Settings for agent's configuration file                                | ` `                                         |
+    | `secure.enabled`                  | Enable Sysdig Secure                                                   | `true`                                      |
+    | `auditLog.enabled`                | Enable K8s audit log support for Sysdig Secure                         | `false`                                     |
+    | `auditLog.auditServerUrl`         | The URL where Sysdig Agent listens for K8s audit log events            | `0.0.0.0`                                   |
+    | `auditLog.auditServerPort`        | Port where Sysdig Agent listens for K8s audit log events               | `7765`                                      |
+    | `auditLog.dynamicBackend.enabled` | Deploy the Audit Sink where Sysdig listens for K8s audit log events    | `false`                                     |
+    | `customAppChecks`                 | The custom app checks deployed with your agent                         | `{}`                                        |
+    | `tolerations`                     | The tolerations for scheduling                                         | `node-role.kubernetes.io/master:NoSchedule` |
+    | `scc.create`                      | Create OpenShift's Security Context Constraint                         | `false`                                     |
+    For example, if you want to deploy a DaemonSet with eBPF and with Sysdig Secure
+    enabled:
+    ```yaml
+    apiVersion: sysdig.com/v1
+    kind: SysdigAgent
+    metadata:
+      name: agent-with-ebpf-and-secure
+    spec:
+      ebpf:
+        enabled: true
+      daemonset:
+        annotations:
+          productID: SysdigSecureDevopsPlatform
+          productName: Sysdig Secure DevOps Platform
+          productVersion: REPLACE_VERSION
+      scc:
+        create: true
+      sysdig:
+        accessKey: XXX
+    ```
+    Please, notice that `sysdig.accessKey` is **mandatory**. Once you have provided
+    the accessKey, you can apply this file with `kubectl apply -f`
+    ## Getting your Access Key
+    To retrieve the key and use it in the agent:
+    1. Log in to Sysdig Monitor or Sysdig Secure (maybe as administrator) and
+       select **Settings**.
+    2. Choose Agent Installation.
+    3. Use the Copy button to copy the access key at the top of the page.
+    If you need more help, you can read more about this process in the [Agent Installation: Overview and Key](
+    https://sysdigdocs.atlassian.net/wiki/spaces/Platform/pages/213352719/Agent+Installation+Overview+and+Key)
+    documentation page.
+    ## Verify Metrics in Sysdig Monitor UI
+    Once you have deployed the Sysdig Agent, it's time to verify that everything is
+    working as expected. So, we are going to log in Sysdig Monitor to do the check.
+    1. Access Sysdig Monitor:
+       **SaaS**: https://app.sysdigcloud.com
+       Log in with your Sysdig user name and password.
+    2. Select the **Explore** tab to see if metrics are displayed.
+    3. To verify that kube state metrics and cluster name are working correctly:
+       Select the **Explore tab** and create a grouping by `kubernetes.cluster.name` and `kubernetes.pod.name`.
+    4. Select an individual container or pod to see details.
+    Don't rush about getting Kubernetes metadata. Pods, deployments ... appear a
+    minute or two later than the nodes/containers themselves; if pod names do not
+    appear immediately, wait and retry the Explore view.
+    You can read more about verification in the [Verify Metrics in Sysdig Monitor UI section](https://sysdigdocs.atlassian.net/wiki/spaces/Platform/pages/256475257/GKE+Installation+Steps#GKEInstallationSteps-VerifyMetricsinSysdigMonitorUI)
+    in the documentation pages.
+  displayName: Sysdig Agent Operator
+  icon:
+  - base64data: PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgMjE3IDIwOCI+PGRlZnM+PHN0eWxlPi5jbHMtMSwuY2xzLTQsLmNscy01e2ZpbGw6bm9uZTt9LmNscy0ye2ZpbGw6I2ZmZjt9LmNscy0ze2ZpbGw6IzAwYjRjODt9LmNscy00LC5jbHMtNXtzdHJva2U6IzBlMGYyNjtzdHJva2UtbWl0ZXJsaW1pdDoxMDt9LmNscy00e3N0cm9rZS13aWR0aDo1cHg7fS5jbHMtNXtzdHJva2Utd2lkdGg6MS41OHB4O30uY2xzLTZ7Y2xpcC1wYXRoOnVybCgjY2xpcC1wYXRoKTt9PC9zdHlsZT48Y2xpcFBhdGggaWQ9ImNsaXAtcGF0aCI+PHBhdGggY2xhc3M9ImNscy0xIiBkPSJNMTY5LjUyLDE2My4yNWwtMTEuNTgsMTEuNTktMzQtMzQsMy40Ny0zLjQ5LTE3Ljc3LTE3Ljc3TDg2Ljg1LDE0Mi40LDU4LjMzLDExMy44OGMtMjgtMjgtMTEuNjYtNzMuNDctMTEuNjYtNzMuNDdaIi8+PC9jbGlwUGF0aD48L2RlZnM+PHRpdGxlPkFydGJvYXJkIDE8L3RpdGxlPjxwb2x5Z29uIGNsYXNzPSJjbHMtMiIgcG9pbnRzPSIxNDYuODkgMTE4LjkgMTIzLjk1IDE0MC44NSAxNTcuOTQgMTc0Ljg0IDE4MS4xIDE1MS42NyAxNDYuODkgMTE4LjkiLz48cGF0aCBjbGFzcz0iY2xzLTIiIGQ9Ik0xNDMuNjIsMTIxLjE2bC0xNy43Ny0xNy43NywyMi44Mi0yMi44MUwxMjAuMTUsNTIuMDZjLTI4LTI4LTczLjQ4LTExLjY1LTczLjQ4LTExLjY1UzMwLjMzLDg1Ljg5LDU4LjMzLDExMy44OEw4Ni44NSwxNDIuNGwyMi44LTIyLjgxLDE3Ljc3LDE3Ljc3WiIvPjxwYXRoIGNsYXNzPSJjbHMtMiIgZD0iTTY0LjMsNThjLTEuODgsMTEuMy0yLjQ2LDI5LjE4LDkuMTIsNDAuNzZsMTMuNDMsMTMuNDMiLz48cGF0aCBjbGFzcz0iY2xzLTMiIGQ9Ik0xNjkuNTIsMTYzLjI1bC0xMS41OCwxMS41OS0zNC0zNCwzLjQ3LTMuNDktMTcuNzctMTcuNzdMODYuODUsMTQyLjQsNTguMzMsMTEzLjg4Yy0yOC0yOC0xMS42Ni03My40Ny0xMS42Ni03My40N1oiLz48cGF0aCBjbGFzcz0iY2xzLTQiIGQ9Ik0xNDMuNjIsMTIxLjE2bC0xNy43Ny0xNy43NywyMi44Mi0yMi44MUwxMjAuMTUsNTIuMDZjLTI4LTI4LTczLjQ4LTExLjY1LTczLjQ4LTExLjY1UzMwLjMzLDg1Ljg5LDU4LjMzLDExMy44OEw4Ni44NSwxNDIuNGwyMi44LTIyLjgxLDE3Ljc3LDE3Ljc3WiIvPjxyZWN0IGNsYXNzPSJjbHMtNSIgeD0iMTM2LjE0IiB5PSIxMjIuMjMiIHdpZHRoPSIzMi43NiIgaGVpZ2h0PSI0OC4wNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzYzLjggMTQxLjgzKSByb3RhdGUoMTM1KSIvPjxyZWN0IGNsYXNzPSJjbHMtNCIgeD0iMTM2LjE0IiB5PSIxMjIuMjMiIHdpZHRoPSIzMi43NiIgaGVpZ2h0PSI0OC4wNiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMzYzLjggMTQxLjgzKSByb3RhdGUoMTM1KSIvPjxnIGNsYXNzPSJjbHMtNiI+PHBhdGggY2xhc3M9ImNscy00IiBkPSJNNzIuNzQsMzcuODQsNjcuNjMsNTAuMDVhNTMuNTksNTMuNTksMCwwLDAtNCwyNi40MmMuODYsNy45MywzLjU3LDE2LDkuODQsMjIuMzJsMTMuNDMsMTMuNDMiLz48L2c+PC9zdmc+
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - sysdig.com
+          resources:
+          - sysdigagents
+          - sysdigagents/status
+          - sysdigagents/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          - services/finalizers
+          - endpoints
+          - persistentvolumeclaims
+          - events
+          - configmaps
+          - secrets
+          - serviceaccounts
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+          - escalate
+          - bind
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - policy
+          resources:
+          - podsecuritypolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - auditregistration.k8s.io
+          resources:
+          - auditsinks
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: sysdig-operator-controller-manager
+      deployments:
+      - name: sysdig-certified-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:8b4f814c112d7b91dc5e7904d4f3c684f3d77227344d2b553a84d4a1bc2829d3
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=sysdig-operator
+                image: registry.connect.redhat.com/sysdig/sysdig-operator@sha256:sha256:a95af2d139abd2180c52bb83588e997ffdf4831e88e826ba23fa7cbeda208119
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 200m
+                    memory: 1000Mi
+                  requests:
+                    cpu: 100m
+                    memory: 300Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: sysdig-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: sysdig-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - monitoring
+  - security
+  - alerting
+  - metrics
+  - troubleshooting
+  - run-time
+  - syscall
+  links:
+  - name: Sysdig
+    url: https://sysdig.com
+  - name: Documentation
+    url: https://sysdigdocs.atlassian.net/wiki/spaces/Platform/overview
+  - name: Helm Chart
+    url: https://hub.helm.sh/charts/stable/sysdig
+  - name: Sysdig Operator
+    url: https://github.com/sysdiglabs/sysdig-operator
+  - name: Configuration Options
+    url: https://github.com/helm/charts/tree/master/stable/sysdig#configuration
+  maintainers:
+  - email: nestor.salceda@sysdig.com
+    name: Néstor Salceda
+  - email: ashwin.chandrasekar@sysdig.com
+    name: Ashwin Chandrasekar
+  maturity: alpha
+  provider:
+    name: Sysdig
+    url: https://sysdig.com
+  version: 1.15.24
+  relatedImages:
+  - name: sysdig-operator-sha256:a95af2d139abd2180c52bb83588e997ffdf4831e88e826ba23fa7cbeda208119-annotation
+    image: registry.connect.redhat.com/sysdig/sysdig-operator@sha256:sha256:a95af2d139abd2180c52bb83588e997ffdf4831e88e826ba23fa7cbeda208119
+  - name: manager
+    image: registry.connect.redhat.com/sysdig/sysdig-operator@sha256:sha256:a95af2d139abd2180c52bb83588e997ffdf4831e88e826ba23fa7cbeda208119
+  - name: kube-rbac-proxy
+    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:8b4f814c112d7b91dc5e7904d4f3c684f3d77227344d2b553a84d4a1bc2829d3

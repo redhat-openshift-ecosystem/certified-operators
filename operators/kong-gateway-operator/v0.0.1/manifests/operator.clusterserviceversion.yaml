@@ -6,60 +6,59 @@ metadata:
       [
         {
           "apiVersion": "gateway-operator.konghq.com/v1alpha1",
-          "kind": "GatewayConfiguration",
+          "kind": "ControlPlane",
           "metadata": {
-            "name": "kong"
+            "name": "controlplane-example"
           },
           "spec": {
-            "controlPlaneDeploymentOptions": {
-              "env": [
-                {
-                  "name": "CONTROLLER_PUBLISH_SERVICE",
-                  "value": "kong-system/kong-proxy"
-                }
-              ]
-            },
-            "dataPlaneDeploymentOptions": {
-              "containerImage": "kong",
-              "version": "2.8.1"
-            }
+            "dataplane": "dataplane-example",
+            "gatewayClass": "kong"
           }
         },
         {
           "apiVersion": "gateway-operator.konghq.com/v1alpha1",
           "kind": "DataPlane",
           "metadata": {
-            "name": "kong"
+            "name": "dataplane-example"
           },
           "spec": {
             "env": [
               {
-                "name": " KONG_PROXY_LISTEN",
-                "value": "0.0.0.0:8000, 0.0.0.0:8443 ssl http2"
+                "name": "KONG_LOG_LEVEL",
+                "value": "debug"
               }
             ]
           }
         },
         {
           "apiVersion": "gateway-operator.konghq.com/v1alpha1",
-          "kind": "ControlPlane",
+          "kind": "GatewayConfiguration",
           "metadata": {
-            "name": "kong"
+            "name": "kong",
+            "namespace": "default"
           },
           "spec": {
-            "containerImage": "kong/kubernetes-ingress-controller",
-            "version": "2.5.0",
-            "gatewayClass": "kong"
+            "controlPlaneDeploymentOptions": {
+              "env": [
+                {
+                  "name": "CONTROLLER_LOG_LEVEL",
+                  "value": "debug"
+                }
+              ]
+            },
+            "dataPlaneDeploymentOptions": {
+              "containerImage": "kong",
+              "version": "2.8"
+            }
           }
         }
       ]
-
     capabilities: Basic Install
     categories: Networking
     description: Kong Operator for Kubernetes
-    operators.operatorframework.io/builder: operator-sdk-v1.22.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/Kong/gateway-operator
+    operators.operatorframework.io/builder: operator-sdk-v1.23.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
   name: kong-gateway-operator.v0.0.1
   namespace: placeholder
 spec:
@@ -76,7 +75,8 @@ spec:
       kind: DataPlane
       name: dataplanes.gateway-operator.konghq.com
       version: v1alpha1
-    - description: GatewayConfiguration is the Schema for the gatewayconfigurations API
+    - description: GatewayConfiguration is the Schema for the gatewayconfigurations
+        API
       displayName: Gateway Configuration
       kind: GatewayConfiguration
       name: gatewayconfigurations.gateway-operator.konghq.com
@@ -90,6 +90,23 @@ spec:
     spec:
       clusterPermissions:
       - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - create
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
         - apiGroups:
           - apps
           resources:
@@ -105,6 +122,180 @@ spec:
           - apps
           resources:
           - deployments/status
+          verbs:
+          - get
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - kongclusterplugins
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - kongclusterplugins/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - kongconsumers
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - kongconsumers/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - kongingresses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - kongingresses/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - kongplugins
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - kongplugins/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - tcpingresses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - tcpingresses/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - udpingresses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - configuration.konghq.com
+          resources:
+          - udpingresses/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - endpoints
+          verbs:
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - endpoints/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          verbs:
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts/status
           verbs:
           - get
         - apiGroups:
@@ -124,6 +315,24 @@ spec:
           - services/status
           verbs:
           - get
+          - patch
+          - update
+        - apiGroups:
+          - extensions
+          resources:
+          - ingresses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - extensions
+          resources:
+          - ingresses/status
+          verbs:
+          - get
+          - patch
+          - update
         - apiGroups:
           - gateway-operator.konghq.com
           resources:
@@ -193,6 +402,13 @@ spec:
         - apiGroups:
           - gateway.networking.k8s.io
           resources:
+          - gatewayclasses/status
+          verbs:
+          - get
+          - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
           - gateways
           verbs:
           - get
@@ -214,6 +430,221 @@ spec:
           - get
           - patch
           - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - httproutes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - httproutes/status
+          verbs:
+          - get
+          - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - referencepolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - referencepolicies/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - referencepolicies/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - tcproutes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - tcproutes/status
+          verbs:
+          - get
+          - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - tlsroutes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - tlsroutes/status
+          verbs:
+          - get
+          - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - udproutes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - udproutes/status
+          verbs:
+          - get
+          - update
+        - apiGroups:
+          - networking.internal.knative.dev
+          resources:
+          - ingresses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.internal.knative.dev
+          resources:
+          - ingresses/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - gatewayclasses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - gatewayclasses/status
+          verbs:
+          - get
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - gateways
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - gateways/status
+          verbs:
+          - get
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - httproutes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - httproutes/status
+          verbs:
+          - get
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingressclasses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - networkpolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings/status
+          verbs:
+          - get
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles/status
+          verbs:
+          - get
         - apiGroups:
           - authentication.k8s.io
           resources:
@@ -246,6 +677,47 @@ spec:
             spec:
               containers:
               - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                command:
+                - /manager
+                env:
+                - name: RELATED_IMAGE_KONG
+                  value: registry.connect.redhat.com/kong/kong:2.8.1
+                - name: RELATED_IMAGE_KONG_CONTROLLER
+                  value: registry.connect.redhat.com/kong/kong-ingress-controller:2.5.0-redhat
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: ghcr.io/kong/gateway-operator@sha256:ccdc654fa852562365bea530ea6f7f9340cc7015c22c31023f517bef422869d3
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 256Mi
+                  requests:
+                    cpu: 10m
+                    memory: 128Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: webhook-certificates
+                  readOnly: true
+              - args:
                 - --secure-listen-address=0.0.0.0:8443
                 - --upstream=http://127.0.0.1:8080/
                 - --logtostderr=true
@@ -263,43 +735,21 @@ spec:
                   requests:
                     cpu: 5m
                     memory: 64Mi
-              - args:
-                - --health-probe-bind-address=:8081
-                - --metrics-bind-address=127.0.0.1:8080
-                command:
-                - /manager
-                env:
-                - name: POD_NAMESPACE
-                  valueFrom:
-                    fieldRef:
-                      fieldPath: metadata.namespace
-                image: ghcr.io/kong/gateway-operator@sha256:9a03e5ba82e875e06b23d1a7b26eab37c26b3ae7c13f5d451a6881a2122ee5bd
-                livenessProbe:
-                  httpGet:
-                    path: /healthz
-                    port: 8081
-                  initialDelaySeconds: 15
-                  periodSeconds: 20
-                name: manager
-                readinessProbe:
-                  httpGet:
-                    path: /readyz
-                    port: 8081
-                  initialDelaySeconds: 5
-                  periodSeconds: 10
-                resources:
-                  limits:
-                    cpu: 500m
-                    memory: 128Mi
-                  requests:
-                    cpu: 10m
-                    memory: 64Mi
-                securityContext:
-                  allowPrivilegeEscalation: false
               securityContext:
                 runAsNonRoot: true
               serviceAccountName: gateway-operator-controller-manager
               terminationGracePeriodSeconds: 10
+              volumes:
+              - name: webhook-certificates
+                secret:
+                  items:
+                  - key: ca
+                    path: ca.crt
+                  - key: cert
+                    path: tls.crt
+                  - key: key
+                    path: tls.key
+                  secretName: gateway-operator-webhook-certs
       permissions:
       - rules:
         - apiGroups:
@@ -354,15 +804,41 @@ spec:
   links:
   - name: Github repository for the operator
     url: https://github.com/kong/gateway-operator
-  relatedImages:
-  - name: manager
-    image: ghcr.io/kong/gateway-operator@sha256:9a03e5ba82e875e06b23d1a7b26eab37c26b3ae7c13f5d451a6881a2122ee5bd
-  maturity: alpha
   maintainers:
   - email: support@konghq.com
     name: Kong Inc.
+  maturity: alpha
   provider:
     name: Kong Inc.
     url: https://konghq.com
+  relatedImages:
+  - image: registry.connect.redhat.com/kong/kong:2.8.1
+    name: kong
+  - image: registry.connect.redhat.com/kong/kong-ingress-controller:2.5.0-redhat
+    name: kong-controller
+  - name: manager
+    image: ghcr.io/kong/gateway-operator@sha256:ccdc654fa852562365bea530ea6f7f9340cc7015c22c31023f517bef422869d3
   version: 0.0.1
-  minKubeVersion: 1.20.0
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    - v1beta1
+    containerPort: 443
+    deploymentName: gateway-operator-controller-manager
+    generateName: gateway-operator-validation.konghq.com
+    rules:
+    - apiGroups:
+      - gateway-operator.konghq.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - dataplanes
+      scope: Namespaced
+    sideEffects: None
+    targetPort: 9443
+    timeoutSeconds: 5
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate

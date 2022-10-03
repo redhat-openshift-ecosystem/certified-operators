@@ -1,0 +1,626 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "infrastructure.asset.orchestrator.com/v1",
+          "kind": "Generatekey",
+          "metadata": {
+            "name": "modelbuilder-token"
+          },
+          "spec": {}
+        },
+        {
+          "apiVersion": "infrastructure.asset.orchestrator.com/v1",
+          "kind": "Mb-broker-service",
+          "metadata": {
+            "name": "mb-broker-service-sample"
+          },
+          "spec": {
+            "env_type": "prod",
+            "cloud_type": "IBM",
+            "external_db": {
+              "enabled": false
+            },
+            "postgres": {
+              "enable_pg_tls": true,
+              "storage_class": "",
+              "storage_size": "20G",
+              "backup_type": "incremental",
+              "backup_frequency": "@daily"
+            }
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Developer Tools
+    certified: "false"
+    containerImage: registry.connect.redhat.com/ibm/iao-operator@sha256:5cc395f22d86641e175339deb134af6c74de92b81470a65a5c736c8005d645fd
+    createdAt: "2021-08-19T12:00:00Z"
+    support: Refer Readme - https://github.com/rhm-samples/infrastructure-asset-orchestrator/issues
+    operators.operatorframework.io/builder: operator-sdk-v1.12.0+git
+    operators.operatorframework.io/project_layout: ansible.sdk.operatorframework.io/v1
+    olm.skipRange: "<1.0.2"
+  name: infrastructure-asset-orchestrator.v1.0.2
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Deploy Generate key CR
+      displayName: GenerateKey
+      kind: Generatekey
+      name: generatekeys.infrastructure.asset.orchestrator.com
+      resources:
+      - kind: Route
+        name: ''
+        version: route.openshift.io/v1
+      version: v1
+    - description: Deploy MB broker deployment
+      displayName: MBBrokerService
+      kind: Mb-broker-service
+      name: mb-broker-services.infrastructure.asset.orchestrator.com
+      resources:
+      - kind: Route
+        name: ''
+        version: route.openshift.io/v1
+      version: v1
+      specDescriptors:
+        - description: 'Choose cloud platform for operator installation'
+          displayName: Cloud Platform
+          path: cloud_type
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:select:IBM
+            - urn:alm:descriptor:com.tectonic.ui:select:AWS
+        - description: 'If using external DB set value to true. Set to false otherwise.'
+          displayName: External DB
+          path: external_db.enabled
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - description: 'Set storage class'
+          displayName: Postgres Storage Class
+          path: postgres.storage_class
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:fieldDependency:cloud_type:IBM
+            - urn:alm:descriptor:com.tectonic.ui:select:ibmc-block-bronze
+            - urn:alm:descriptor:com.tectonic.ui:select:ibmc-block-silver
+            - urn:alm:descriptor:com.tectonic.ui:select:ibmc-block-gold
+            - urn:alm:descriptor:com.tectonic.ui:select:ibmc-block-custom
+        - description: 'Set storage class'
+          displayName: Postgres Storage Class
+          path: postgres.storage_class
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:fieldDependency:cloud_type:AWS
+            - urn:alm:descriptor:com.tectonic.ui:select:gp2
+        - description: 'Set storage size'
+          displayName: Postgres Storage Size
+          path: postgres.storage_size
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:fieldDependency:external_db.enabled:false
+            - urn:alm:descriptor:com.tectonic.ui:text
+        - description: 'Enable TLS for Postgres'
+          displayName: Postgres TLS
+          path: postgres.enable_pg_tls
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:fieldDependency:external_db.enabled:false
+            - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - description: 'Set postgres database backup type'
+          displayName: Postgres Database Backup Type
+          path: postgres.backup_type
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:fieldDependency:external_db.enabled:false
+            - urn:alm:descriptor:com.tectonic.ui:select:incremental
+            - urn:alm:descriptor:com.tectonic.ui:select:full
+        - description: 'Set postgres database backup frequency'
+          displayName: Postgres Database Backup Frequency
+          path: postgres.backup_frequency
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:fieldDependency:external_db.enabled:false
+            - urn:alm:descriptor:com.tectonic.ui:text
+        - description: 'For production purposes leave "prod" as default. For testing purposes, choose "lite"'
+          displayName: Installation type
+          path: env_type
+          x-descriptors:
+            - urn:alm:descriptor:com.tectonic.ui:select:lite
+            - urn:alm:descriptor:com.tectonic.ui:select:prod
+  description: Infrastructure Asset Orchestrator provides users access to cloud resources
+    and services. Leverages the dynamic nature of the cloud platforms to provide significant
+    cost savings and efficiencies. Using the Infrastructure Asset Orchestrator user
+    can provision, configure, utilize and deprovision variety of services on the IBM
+    Cloud Catalog.
+  displayName: Infrastructure Asset Orchestrator
+  icon:
+  - base64data: "iVBORw0KGgoAAAANSUhEUgAAAQAAAAEUCAYAAADENejrAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyRpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDYuMC1jMDA2IDc5LmRhYmFjYmIsIDIwMjEvMDQvMTQtMDA6Mzk6NDQgICAgICAgICI+IDxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+IDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PSIiIHhtbG5zOnhtcD0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wLyIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bXA6Q3JlYXRvclRvb2w9IkFkb2JlIFBob3Rvc2hvcCAyMi40IChXaW5kb3dzKSIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo3MEVDMkRERkU0NTkxMUVCODhCQkQ2N0UwNDg3MDU0RSIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo3MEVDMkRFMEU0NTkxMUVCODhCQkQ2N0UwNDg3MDU0RSI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjcwRUMyRERERTQ1OTExRUI4OEJCRDY3RTA0ODcwNTRFIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjcwRUMyRERFRTQ1OTExRUI4OEJCRDY3RTA0ODcwNTRFIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+qn66gQAAFspJREFUeNrsnU1sXNd1x8+QQ1IiRYoSqS/LkYf+qARYTclCcQu7MIYFmoXRItIyq5ALI8tIu3QRiERWWYlaBllosutOLGp00UU1LZCkKJyKqFvEDlxorECOJUsiTVkfFEWq5zzdkUf8mnkz7953z73/H/BA+YvmPM75v3Pu7707RCB6vp4dL+EsxEkBpyDqwh/nLxf4KPNR4ePcnvMLSzgzCAAQduEP85fzfJzd8I+k+C9yCMzgLCEAQJjFf9YU//AO/1qNj2kOgirOGAIAhFH4ZdPuj6f4z6omCGo4gwgAoLPwS6bwT3fwbWb5mMP6AAIA6Jrzpd3/UZN2v1Wk+GWRsIKziwAAfhf/aXPVL1n49jIWzGJ9AAEA/Cv8Rq1nmwpBGyIAgDft/lZazzbQhggAkHPxt6L1bFMjaEMEAHBa+GVKr/VsUyVoQwQAsFr4Jepc69kG2hABACzM+VlqPRfrA9CGCACQQfHb1HouxgJoQwQAaKPwXWo921QI2hABAFpu9/PQei7GAmhDBADYofh90Hq2qRG0IQIAvFD4ZfJP67lYH4A2RABEXfgl8l/r2QbaEAEQ5ZyvSeu5WB+ANkQARFH8mrWei7EA2hABEGThh6T1bFMhaEMEQEDtfohaz8VYAG2IAFBd/DFoPdvUCNoQAaCs8MsUn9ZzsT4AbYgA8LrwSwStZxtoQwSAl3M+tJ7b9QFoQwSAF8UPrZfvWABtiADIpfCh9fyhQtCGCACH7T60np9jAbQhAsBq8UPr+U+NoA0RABkXfpmg9TSuD0AbIgA6KvwSQetpB9oQAdDWnA+tF9b6ALQhAqCl4ofWC3ssgDZEAGxZ+NB68VAhaEMEQEO7D60X51gQtTYsoPih9UC82rAQceGXCVoPbF4fiEobFiIs/BJB64GdiUYbFiIqfGg9kHZ9IHhtWIik+KH1QCdjQbDasBB44UPrgayoUIDasCvg4pfCv4riBxkxxcc1Y40QAAq4aNo3ALLsAoJaEwh+DcDovkuY/0GH6wDS/i9gDUBvEMwQDABIR80U/nyoLzCq+wCMCrxg5jkAtmPJjJDB3wsQ5Z2AZiyQ23/LeK+DDcybq34thhcb9bMAHARTpiPAWAAWTOFXY3rReBjomzsEz6MGom335UafuRhfPB4H/iYISvTMFmAsiIc5U/zR7gmAANh6fQDaMGyqFKjWQwBkFwQzBG0YGjUKXOshALJfH4A2DGPOj0LrIQDsjQXQhjqJSushAOwGwRRBG2ohSq2HAHAwFnx5e+3KgdFubCXmIWtrT+nevfXKyxc+msbZQABkyr/+3fGy6QDG+/oK9GqplwYHu3BiPOGLm0/oxudPkhAgs7/fX//TJ2j9EQAdF36JttlHcIgDYGysl/p6cSrzgq/49NkfVunBg/Wt/nGyvx8HARb/EACpC7/lfQSPvtRDhw91U3c3TqkrVh4/pevXV2lxaa3Zv5rs78chUMFZQwC0Wvyp9xGU4n/lWA+NjnTjBFqe87+4uZa0/KbdbxUZC2Y5CKo4iwiA7Qq/430EZSyQjgDrA9kjV/vr3O6vrDzt5NtUTEewhAAAje1+ph8PNjraTa98qwdjQQbIfC+Fv3xvPatvmdwcxCEwgwBA8Vv7eDAp/sOHitwRFHGi22z3ZWVf2n1L1OiZLagiAOIr/DI5+ngwaMP0bNB6tqlShNqwEGnhlyinjweDNmxOE61nm6i0YSGywvfm48GgDTeTQuvZJhptWIio+L37eDBow2/m/Da1nouxIGhtWIig8L3/eLCYtWFGWs82FQpUGxYCLvzMtZ5tYtKGFrSei7EgOG0YcgBcphwW+bIYC0LWhg60nm2kE5hDAOgIAWn7Ve7vF6I2dKz1bKwHSPEHtY9gFIuAHATStqnc3y8EbZiz1uuUmin8IPcRjMkCqN7fT6M29EjrtT3zU+D3BEQnoc1YoHJ/Py3a0GOt1yrz5qpfC70eor0LhYNgipTu7+ezNlSi9bZjwRR+NZY6iP1ZANUfC+aTNlSo9Ta2+7Mhre4jANIFQYmUfixY3towAK03Z4o/yr0BEACb1wegDVsEWg8BEGoQzBC04bZA6yEAYlkfgDZsAFoPARDrWBC1NoTWQwAgCCLVhtB6CADw4lgQhTaE1osD7FSZApkdfzgyWNuzq3vpO6/vGz441Kvq5799e40WF9d31Ibatd61Ww9ooba89PjJOtp9dADZwYVfpg0biB7c20dvvT5MA336dvTZShtq1nq3lh/T1Wtf0dL91ca/La3/9M/v3EMYIADaLvySafmntvt3Tn5rkP7kyAD1FPU9uivrA4e4I5DC16j17q+s0f/+4V5y5d+B5GYfDgKs/iMAUhX/DLV4P4AU/0RpiMYO9uPEOUIK/5M/3qfVJy0FV7LRJ4dABWcOAdCs8NveQFTGgje5I9C2PqCJG3cfJe2+XP3bYMEEQRVnEgGwVbufyTMB0glIR6BxLPC53f/PT5fo1lcrWXy7ihkLaggAFL6VDUSl+I8fGUg6AtA+0uL/D7f7v+d2P2OSuwM5BGYQAPEW/xRZvsFHLMFbb+zDWNAGsrh3tbbc6pzfLjUzFswjAOIp/DI5+lzAxvUBrdrQNdtoPdvIukBU2rAQYeGXqInWs41mbehizm9B69kmGm1YiKz4Zdbz4jFfaMPNpNR6tolCGxYiKXzvPhewcSyIXRt2qPVsE7Q2LARe+FLwKrb6ilEbZqz1bFOhALVhd8DFL+3+ZVKyvZcsdn168wGtrz9NuoKQkRb/vz9bpt/8ftHXq/5WyGLx1Kn+vpXfPnz8HwgAz+FfVM0U/wktP7MUv6x+1249oOE9vUHaAlnc+7ff3aUv+XUq5B/4+BkHwCOMAHo6gTIp3egzJG2Yk9bLiqpZBwhuA9FoLAAHQX0jD3U7+mjWhp5ovXapmbm/EmpdxKYB1W70qVEbeqb10jLLx1zo9wJEeScgB8G4CYKyxrHAd23oudZrxrxp92sx1ELUzwKY5wDOa1wf8FEbKtN6W7X707E9JoyHgZ6NBSo3+vTlaUOLT+u5YMnM+VFuIIrHgb8JgpIZC05r+9nzfNrQ0dN6tqiYdj/arcIQAJuDQNYFoA2bAK2HAAg9CKANt5nzofUQADGtD0AbGqD1EACxBkHU2hBaDwHgHfsOlpPWfPFWdclhEExRRNoQWi8dI6deKt358HNVQaP2JvPdA6W/5C+/4a83H92vOVnM+e3Dxwun+vt+yX9c0dYNpHnaUOnTes9fKh9/z4X/ff591RwV/nD/S4M/5j9eevj5vZ+hA3DTAUgBXjF/mWzawN2As7QPVRtC66Uu/hc2m+EOoIAAcB8AjW+AWQ6CmsMgkJ9DvTaE1ktd+FuuCyEA8g2Aegt4kUNgxuXPo1kbShAonvOdaj1p92mHz5DQFgAh7j+V/II4IK7x4aw9N7eSjpkuRBVKi1+03oTj4peiv0YZf4AMOoBsO4Ct2sNpx2OBWm2oAOdajwu/TC1+hgRGAP8CoM6cWR+ANtSJFLxzrUcpF3oxAvhL0r5xcEw5HAukPZ0w7Spoj/r+/GOuil/mfD5m+I9XSaHlQQfQHGhDHVQoZ62XFowAOgKg8Q0GbegfVfJE6yEAwg6AeosJbejPnO+V1gs9APDplNCGvgCthw4glw5gq/YT2tAdXms9dAAZcPyduWE+tMy88uaQbuBC/YlDB93AAh+TEjymDY6l3Z/k133GVfGL1uPjsrlwjGs6WSPvnxpXGwDmZF/lEJhRdM6hDe0ArZeu8Mt8XDMdi+o1gGTW5hC4xoeWX4L8zJc4BK6akcNFCCzxMWPWB+YDK34JuDGXO/AarSeFr2rBlYu+xEe9W7HWPRdzeG3yYi5zCCSz9ie/Oquh5ZUO5gqHgLyBnWhD0xafCUQbVkmp1suh8J1uU5+nBUhmbQ6CC7JGoOT3I+OAdAPORhlpk6VdlgIy7bO2OV9u3510Vfym3b9grvrain+qoVuh0APghVmbQ2BKye8J2rA1oPVaL/xxPq7k0ekVPSqqSxwCP5IrHY8FVQW/t2SU4RBIRhlHY4F0ANM8Flz0uL0NSus5aPdz3XXatxuBklmbg+AStOGOQeCjNpSfA1qv9eKvdyu5dr6+3gmYzELQhk2DQNrrvLUhtF66wm/Uermvffl8KzC0YYtjQY7aUAIIWq+1wnei9bSuATSdtaENmwaB/D9cacMqQeulmfO9/fRpTQ8DJbM2tGHTILCpDSVkoPVaL/4pcqz1Qg6AF2btvUe+8z1FY0EI2hBar/XCz03rpcXJk0t8xS6ThSf3nqx8RV9/+RE9fnhb0/sjGWUUPW0Irdcq3Xw9/fbhCtlZ2a/e+cWHkwiALXi0fJ3u3/2Y1lZVfWS175uU1tv9qsPCL5HWbdMODBAdGXwWApYuHDYCIIgNQXYNHaP9xyZpYOSEulHGQ20IrZeGPX1Ebx4ienmvzeLHGkDTVqarhwb2n6CR0nepb88RLT+2b9pQAgJarxV6u4le3U/0xsizPyulePSnv5a2q3TjJ29XQwiC7p5+2nvkL2j14W1avvlfWsaCvLWh3II9C63X4px/kNv9w4Oq6+TdD96T814rmnnwCgdBstjDQVALIQh6do8m3cCDpf+j+3c+pqfrKj70UsaB0xwEzjYpNW2+yzk/0004nbK//9mcr/iKz4XfuM4y2TgCJK0YB8EMH8HsVNs//BqNjn03WSdQNBY414aOil/nJpy7e7jVHyV6ZVht8XPhD/OxaZ2la6s3nwmCYN58sj4wdOjPk4XCXu4MlCBJLU8bymhQUl74ZT6ukif3v6dq96XoTxwg2tOr+aq/7TpLcac3H4dA1YwFCyEEQbFvLw2//FfatKHMatINONeGGRR+Y7upC/taz0XhN11n6WrhzSfdwIWQxgJoQ/tzPrRe7u1+S7dPd6V583EIhPO56NCGtoofWi/f4k+1zlJM+eaTTuAHZiyohhAE0IaZFT60Xr6FX6Y2bp/uavfNx0Fw2dxDEAR1bbjnwJ8m3YESZBxw+rThNu2+yqf1Eq0nC3yKi1+0Hh9t74rUyZADbejPWJCLNoTWy33O73idpSuLNx9BG/qAdGNOtCG0Xu7Fn9k6SzHLNx+0oRdIG25FG0Lr5V74ma+zdFl480Eb+kFm2hBaL+fGpadAL/1ZsqdD5ussXTbffNCGXqwPJNqww6s+tF5OjLzWT2/8zSjtK+22cu6Llt98iTZ8/OmNf+z99EYQQaBYG3Yy3pX0/ILC0HoDo710+OQe2rXX7r69LnYFHn/8+tHx9aF+6vvddSo8XAkiCJQ+bRg2ATyt19PfTUe48AeP9Dn5/znbFvzJwX20tn+IempfUM9nX1BhdS2I95xow91Dx+jelx8li4UgB0TryYyveGVf5nxp9/e/2p/82RVOPxfgabGbuBugJ0dHqffj61S8uRjM+oBoQwkDhZuUKp7HuN1/eejZlV8xcrWXq75c/V2TyweDrO/uo0cTb1D33XvU9/Fn1LX8IIj3o1JtqJMAtJ7M94dPDvK8n9+dp7l+MtDa/kF68PbJZCSQRcJQxgLRhmIK6usDIENE6ym+g6/e7h84PpC0/LlftHw4IauvHOax4EASArJGEMpYINpw1+Ax+vr2R7Ty9R9RvJ0gBS9z/t5dql+GFL0Uv8s53/sAqK8PrJw4RqtHRxNb0H13OYwxVac29GvOh9YLPwCerw8M9tPDt05Q8dYitGHsQOvFFwB1oA0jBloPAVAfC6ANI2v3ofUQAJvGAmjD8IHWQwA0A9owQKD1EABpCV0b3qn9SxzFL3O+XPkV45vWiyIA6usDoWrDaNjdo/ZH91XrRRMAz9cHAtWGwE9813rRBUCdULUh8GfO16D1og2A+lgQojYE+aJJ60UdAM/HgkC1IXCLRq2HAGggVG0I7Lf7WrUeAmALQtSGwA7atR4CYIf1gRC1IciGULQeAqDZ+gC0IWggNK2HAGgRaEPM+SFqPQRAyrEA2jA+QtZ6CIB2xgJowyiIQeshADoA2jDcdj8WrYcAyABow3CITeshADJcH4A21EusWg8BkPX6ALShKmLXemnpwiloDdGGD945iRPhOa+V96P4EQD2xgLgN5j1EQAAAAQAAAABAABAAAAAEAAAAAQAAAABAAACAACAAAAAIAAAAAgAAAACAACAAAAAIAAAAAgAAAACAACAAAAAIAAAAAgAAAACAACAAAAAIAAAAAgAAAACAACAAAAAIAAAAAgAAAACAACAAAAAIAAAAAgAAAACAACAAAAAIAAAAAgAAAACAACAAAAAIAAAAAgAAAACAACAAAAAIAAAAC8GQI2PBZwK4Jga9XTVcBpyQ2q+1nXjJ2/X+JjgvzjHxxLOixdUAn5t8h6b5WOC+ooIgHzO/7l//9t/nuCj9nwE4BCY4y9jfMzhHOXL4q3qdFIgRNXAXtq8vK47H34+wwcuNu5JapwL/3mNFxv/KYdAkg5Hf/rrX/LXC3yUcc5yCwFp0Sb3HSxP8dfzfJSUt5vnuOir+M3mQtVc9Re2WgPYBAfBAh+T/MczZo0A5BcEFdMNzGptN7nwJ1D8uSC1e4YLf3Kr4t82ABqCYL7hzYeWLb8QWOJjxoxo85raTS58jJT5BG+yzsKFv+P7pdjsO5mxYIbHgooZC07j/OYWBEmi81ggo9klT8eCqrnqwyzlw7xp91vq3IutflexBfLm4yAomyAYx7nOLQikyMY4CM6a9YFhT9pNKfx5/IZyYcEUfqpRK/WNQBwEVWhDb4Kgbm4qPrSbKP7czn9d61XT/sdt3wkIbejV+kBe2hBaL182ab20FDv5v0MbehUELrUhtF6+VGkbreesA9gQBNCG/gRBhexpQ2i9fJHa2lHr5RIADUEAbejPWDBD2WpDaL185/yWtJ7TEWCHsSBkbTihZdzZoA07uepMQOvlRiqtl5aC7Z8+NG3IAZecs+PvzFmbtT/51dlCDO/skfdPXck6SN/83sFQTk9bWi/XEWCbgglSG3KR2py1QXuEsC7RkdbzLgAagiA4bcghsMRH1rM2aG9MOXPnFx9OKn8dHWu93NcAWlgfCE4bcggkb0AeC+T1+HqLbojI++kiF/5MAJ3LuaxW9r3sADYEQZDakIOgyscY4S5JFyQjmPLiTy4cWWo9FQHQEARBakMOAR9u0Q2V5IYnLvxpPrRePKxpPa9HgB3GguC0oawP8JdpHgsuEu6SzKpoznHRaw9Vq1pPVQewIQhkb0IZCSYpoE1KOQgW+JDXNE24S7Jdnt2EpLv4k86FC/+ML8XvVQA0BAG0IahTNYUvV36t7wWnWk99ADQEAbRhvMgVMtF6iuf8552LS62nbg2ghfUBaMO45nxoPXQAm4IA2jB8khEJWg8BsFMQQBuGB7Rejqh96ITHghLloA3rDwPZgseCkhkRgmfk/VPjXPSZXinf/eC9p45fhldaL5oAaAiCMjl82tB2AAA1AeDkaT3bFLX/wkUbSuvFQeDTDrkgXJJ23+eV/WDXAJoEATYpBbbxXutF1wFsCAFsUgpsUCUlWi/qAGgIgmRlmYPgtAmCEt7DoA1qpvCDvWmrK+TfHjYpBZ3M+aRQ66ED2HoswGcbglZRrfUQANsHgfxC8dmGYDuC0HoIgOZBIL9gaEPwQrsf0so+1gBaCwJoQxCc1kMHkH59ANowPqoUqNZDALQXBNCGcVCjwLUeRoDOggDaMOA5nyLQeugAshkLoA3DISqthwDILgjkDQNtqJcotR6whGhDPhZxJvzm3Q/eW+TjLM4EsBECuGfA/wDA7ygF/y/AADzTO0sSSa8AAAAAAElFTkSuQmCC"
+    mediatype: "image/png"
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - pods
+          - pods/exec
+          - pods/log
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - infrastructure.asset.orchestrator.com
+          resources:
+          - mb-broker-services
+          - mb-broker-services/status
+          - mb-broker-services/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - infrastructure.asset.orchestrator.com
+          resources:
+          - generatekeys
+          - generatekeys/status
+          - generatekeys/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumes
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          - cronjobs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          - clusterrolebindings
+          - roles
+          - rolebindings
+          verbs:
+          - get
+          - create
+          - delete
+          - bind
+          - escalate
+          - patch
+          - watch
+          - list
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - roles
+          verbs:
+          - create
+          - delete
+          - get
+          - bind
+          - escalate
+          - watch
+          - list
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - pods
+          - pods/exec
+          - pods/log
+          - services
+          - services/finalizers
+          - endpoints
+          - persistentvolumeclaims
+          - persistentvolumes
+          - nodes
+          - events
+          - configmaps
+          - serviceaccounts
+          - namespaces
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          - extensions
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          - prometheuses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          - cronjobs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - operators.coreos.com
+          resources:
+          - operatorgroups
+          - subscriptions
+          - clusterserviceversions
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - networkpolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          - coordination.k8s.io
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - config.openshift.io
+          resources:
+          - clusterversions
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+        - apiGroups:
+          - packages.operators.coreos.com
+          resources:
+          - packagemanifests
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - postgres-operator.crunchydata.com
+          resources:
+          - postgresclusters
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - postgres-operator.crunchydata.com
+          resources:
+          - postgresclusters/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - postgres-operator.crunchydata.com
+          resources:
+          - postgresclusters/status
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        serviceAccountName: orchestrator-operator
+      permissions:
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - anyuid
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - pods
+          - pods/exec
+          - pods/log
+          - services
+          - services/finalizers
+          - endpoints
+          - persistentvolumeclaims
+          - persistentvolumes
+          - events
+          - configmaps
+          - namespaces
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        serviceAccountName: orchestrator-service-account
+      deployments:
+      - name: infrastructure-asset-orchestrator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: infrastructure-asset-orchestrator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                name: infrastructure-asset-orchestrator
+            spec:
+              containers:
+              - args:
+                - --health-probe-bind-address=:6789
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=infrastructure-asset-orchestrator
+                env:
+                - name: ANSIBLE_GATHERING
+                  value: explicit
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: RELATED_IMAGE_ORCHESTRATOR
+                  value: registry.connect.redhat.com/ibm/iao-orchestrator-service@sha256:145928929fd0c2b7d9ed5fb374d7cc0e6b48269847e810c5472580a1538ad44c
+                - name: RELATED_IMAGE_MB_BROKER
+                  value: registry.connect.redhat.com/ibm/iao-mb-broker-service@sha256:6531b4196c51246958027453c2d9c7dbcdb4a1f55c826d1da238d256cdbc8a10
+                - name: RELATED_IMAGE_MB_UTIL
+                  value: registry.connect.redhat.com/ibm/iao-util@sha256:0ec55c7f25c24f786978e045e8a67facb965a08dd519d06c82de05dd15e0f4a1
+                - name: RELEATED_IMAGE_POSTGRES
+                  value: registry.redhat.io/rhel8/postgresql-12@sha256:82d171ab0ce78a0157408662155b53d4f637947a303bfecb684f6132f5f468be
+                image: registry.connect.redhat.com/ibm/iao-operator@sha256:5cc395f22d86641e175339deb134af6c74de92b81470a65a5c736c8005d645fd
+                imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 6789
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: infrastructure-asset-orchestrator
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 6789
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:609c19d1718947ee814b829334c37e1d720acf5fb642b0712b8ab1b14d57f53f
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources: {}
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: orchestrator-operator
+              terminationGracePeriodSeconds: 10
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  keywords:
+  - cloud-service
+  - mbbroker-service
+  links:
+  - name: Infrastructure Asset Orchestrator
+    url: https://infrastructure-asset-orchestrator.domain
+  maintainers:
+  - email: edge@us.ibm.com
+    name: IBM-Edge
+  maturity: alpha
+  provider:
+    name: IBM Edge
+  version: 1.0.2

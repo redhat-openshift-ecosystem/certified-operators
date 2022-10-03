@@ -1,0 +1,359 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "tm.solution-soft.com/v1alpha1",
+          "kind": "TimeMachine",
+          "metadata": {
+            "name": "timemachine-sample"
+          },
+          "spec": {
+            "cluster_provider": "ibm",
+            "aws": {
+              "shared_volume_name": ""
+            },
+            "ibm": {
+              "persistentvolume": {
+                "storageclass": "ibmc-file-silver-gid"
+              }
+            },
+            "tm_lichost": "52.152.148.40",
+            "tm_licpass": "qwaszx",
+            "tm_licport": "57777",
+            "imagePullSecrets": []
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Developer Tools
+    description: Time Machine Operator enables time travel of OpenShift pods, without the need to change the system clock on any of the cluster nodes
+    containerImage: registry.connect.redhat.com/rhel-timemachine-container/timemachine-operator@sha256:9a81cb77dde3b1fa67ca57aad7a0ab151640defc7f7c4a3dcdde5777088817ee
+    createdAt: 2022-09-30T11:55:42Z
+    support: SolutionSoft Systems, Inc. - support@solution-soft.com
+    operators.operatorframework.io/builder: operator-sdk-v1.10.1-ocp
+    operators.operatorframework.io/project_layout: ansible.sdk.operatorframework.io/v1
+    olm.skipRange: ">=0.0.4 <1.0.15"
+  name: timemachine-operator.v1.0.15
+  namespace: placeholder
+spec:
+  version: 1.0.15
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Deploy Time Machine
+      displayName: Time Machine
+      kind: TimeMachine
+      name: timemachines.tm.solution-soft.com
+      resources:
+        - kind: Service
+          version: v1
+        - kind: Pod
+          version: v1
+        - kind: Route
+          name: ''
+          version: route.openshift.io/v1
+      specDescriptors:
+      - description: OCP cluster provider
+        displayName: OCP cluster provider
+        path: cluster_provider
+        x-descriptors:
+          - urn:alm:descriptor:com.tectonic.ui:select:ibm
+          - urn:alm:descriptor:com.tectonic.ui:select:aws
+      - description: AWS parameters
+        displayName: AWS
+        path: aws
+        x-descriptors:
+          - >-
+            urn:alm:descriptor:com.tectonic.ui:fieldDependency:cluster_provider:aws
+      - description: EFS Operator Shared Volume Name
+        displayName: Shared Volume Name
+        path: aws.shared_volume_name
+        x-descriptors:
+          - >-
+            urn:alm:descriptor:com.tectonic.ui:fieldDependency:cluster_provider:aws
+          - 'urn:alm:descriptor:com.tectonic.ui:text'
+      - description: IBM parameters
+        displayName: IBM
+        path: ibm
+        x-descriptors:
+          - >-
+            urn:alm:descriptor:com.tectonic.ui:fieldDependency:cluster_provider:ibm
+      - description: IBM Cloud Storage class
+        displayName: IBM Cloud Storage class
+        path: ibm.persistentvolume.storageclass
+        x-descriptors:
+          - >-
+            urn:alm:descriptor:com.tectonic.ui:fieldDependency:cluster_provider:ibm
+          - 'urn:alm:descriptor:com.tectonic.ui:select:ibmc-file-silver-gid'
+      - description: TMFLS host
+        displayName: TM_LICHOST
+        path: tm_lichost
+        x-descriptors:
+          - 'urn:alm:descriptor:com.tectonic.ui:text'
+      - description: TMFLS Security Key
+        displayName: TM_LICPASS
+        path: tm_licpass
+        x-descriptors:
+          - 'urn:alm:descriptor:com.tectonic.ui:text'
+      - description: TMFLS Port
+        displayName: TM_LICPORT
+        path: tm_licport
+        x-descriptors:
+          - 'urn:alm:descriptor:com.tectonic.ui:text'
+      version: v1alpha1
+  description: "Time Machine operator enables time travel of OpenShift pods/deployments.
+
+
+To time travel a pod where your application is, you just need to install the Time Machine operator and create a Time Machine custom resource in the same namespace,
+without the need of changing the container images of the application you’re using, or adding containers to the pod with your application.
+
+
+Time travelling is done on the namespace level where all the (configured) target pods/deployments see the same virtual time."
+  displayName: Time Machine Operator
+  icon:
+  - base64data: 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
+    mediatype: "image/png"
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tm.solution-soft.com
+          resources:
+          - timemachines
+          - timemachines/status
+          - timemachines/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims
+          - persistentvolumes
+          - nodes
+          - events
+          - secrets
+          - secrets/finalizers
+          - pods
+          - pods/finalizers
+          - serviceaccounts
+          - services
+          - configmaps
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - '*'
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - '*'
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - anyuid
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - secrets/finalizers
+          - pods
+          - pods/finalizers
+          - pods/exec
+          - pods/log
+          - services
+          - services/finalizers
+          - endpoints
+          - persistentvolumeclaims
+          - persistentvolumes
+          - persistentvolumeclaims/finalizers
+          - persistentvolumes/finalizers
+          - nodes
+          - events
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        serviceAccountName: timemachine-operator
+      deployments:
+      - name: timemachine-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: timemachine-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: timemachine-operator
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:0c304c11986790f446604319dfc29db494b15f5f9fa13f2c436688ec29c92dbe
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:6789
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=timemachine-operator
+                env:
+                - name: ANSIBLE_GATHERING
+                  value: explicit
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: timemachine-operator
+                - name: RELATED_IMAGE_TIMEMACHINE
+                  value: registry.connect.redhat.com/rhel-timemachine-container/virtual-clock-testing-tool@sha256:9a2c3baf6d4a57c2beb79024e8800bee34745598d07a2cdac44666aafa3439c4
+                image: registry.connect.redhat.com/rhel-timemachine-container/timemachine-operator@sha256:9a81cb77dde3b1fa67ca57aad7a0ab151640defc7f7c4a3dcdde5777088817ee
+                imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 6789
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 6789
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: timemachine-operator
+              terminationGracePeriodSeconds: 10
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  keywords:
+  - time shift
+  - time travel
+  - virtual clocks
+  - time machine
+  - virtual time
+  - solution-soft
+  links:
+  - name: Timemachine Operator
+    url: https://catalog.redhat.com/software/operators/detail/5e98727a6c5dcb34dfbb19e3
+  maintainers:
+  - email: dtrajkovic@solution-soft.com
+    name: Dragan Trajkovic
+  maturity: alpha
+  provider:
+    name: Solution-Soft
+    url: www.solution-soft.com

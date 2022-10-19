@@ -1,0 +1,941 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: vfunction-server-operator.v2.6.897
+  namespace: placeholder
+  annotations:
+    olm.skipRange: '<2.6.897'
+    capabilities: Seamless Upgrades
+    categories: "Developer Tools, AI/Machine Learning"
+    description: |-
+      vFunction is a cutting-edge code analysis, machine learning, and automation to boost your Java modernization projects.
+    certified: "Red Hat certified"
+    containerImage: registry.connect.redhat.com/vfunction/vfunction-server-operator@sha256:3f346a105d7223f3115b85200bfd2e9afee9eccb9f8f1539dbf4cc5bd79b1c5c
+    support: vFunction
+    createdAt: 2022-10-18T21:00:56Z
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "vfunction.com/v1",
+          "kind": "VfunctionServer",
+          "metadata": {
+            "name": "vfunction-server",
+            "namespace": "vfunction",
+            "labels": {
+                "name": "vfunction",
+                "app.kubernetes.io/name": "vfunction",
+                "app.kubernetes.io/instance": "vfunction-server",
+                "app.kubernetes.io/managed-by": "operator"
+            }
+          },
+          "spec": {
+            "admin": {
+              "email": "admin@mycompany.com",
+              "name": "Admin",
+              "password": "Password1!"
+            },
+            "host": "http://my.domain.com",
+            "org_name": "MyCompany",
+            "upgrade": "Never",
+            "measurements": {
+              "auto_scaling": "No",
+              "min_number_of_services": "2",
+              "max_number_of_services": "10",
+              "S3": {
+                "bucket": "",
+                "key": "",
+                "secret": "",
+                "region": ""
+              }
+            },
+            "smtp": {
+              "identity": "",
+              "password": "",
+              "url": "",
+              "user": ""
+            },
+            "authentication": {
+              "authority": "",
+              "client_id": "",
+              "jwks_url": "",
+              "issuer": "",
+              "ca_root_crt": ""
+            },
+            "tls": {
+              "use_letsencrypt": "No",
+              "crt": "",
+              "key": ""
+            },
+            "backup": {
+              "mysql": {
+                "S3": {
+                  "bucket": "",
+                  "key": "",
+                  "secret": "",
+                  "region": ""
+                }
+              }
+            }
+          }
+        }
+      ]
+  labels:
+    name: vfunction-server-operator
+    app.kubernetes.io/name: vfunction
+    app.kubernetes.io/instance: vfunction-operator
+    app.kubernetes.io/managed-by: operator
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: Represents an instance of vFunction running on your cluster.
+        displayName: vFunction
+        kind: VfunctionServer
+        name: vfunctionservers.vfunction.com
+        version: v1
+        resources:
+          - kind: Service
+            name: ""
+            version: v1
+          - kind: Deployment
+            name: ""
+            version: v1
+        specDescriptors:
+          - description: "The FQDN for accessing the vFunction dashboard. Use a domain name and not an IP address.\nWriting \"https://\" will mandate TLS while writing \"http://\" will expose the server through http."
+            displayName: Server FQDN
+            path: host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Administrator account datails
+            displayName: Administrator Settings
+            path: admin
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: Email address of the administrator
+            displayName: Administrator Email
+            path: admin.email
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Name of the administrator
+            displayName: Administrator Name
+            path: admin.name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Password of the administrator user
+            displayName: Administrator Password
+            path: admin.password
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: Name of your organization
+            displayName: Organization Name
+            path: org_name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: The policy for upgrading the operand
+            displayName: Upgrade Mode
+            path: upgrade
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:select:Daily
+              - urn:alm:descriptor:com.tectonic.ui:select:Always
+              - urn:alm:descriptor:com.tectonic.ui:select:Never
+              - urn:alm:descriptor:com.tectonic.ui:select:Maintenance
+          - path: mysql
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - path: nginx
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - description: Storage details
+            displayName: Storage Settings (Optional)
+            path: storage
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: Indicates whether to use a specific StorageClass for all PVCs
+            displayName: Use specific StorageClass for all PVCs
+            path: storage.storage_class
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Indicates whether to use a specific PV for mysql PVC
+            displayName: Use specific PV for mysql PVC
+            path: storage.mysql_persistent_volume
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Indicates whether to use a specific PV for storage PVC
+            displayName: Use specific PV for storage PVC
+            path: storage.storage_persistent_volume
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Indicates whether to use a specific PV for lets encrypt PVC
+            displayName: Use specific PV for lets encrypt PVC
+            path: storage.lets_encrypt_persistent_volume
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Security details
+            displayName: Security Settings (Optional)
+            path: security
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: Indicates whether to use a custom ImagePullSecret for all deployments
+            displayName: Use custom ImagePullSecret for all deployments
+            path: security.image_pull_policy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Measurement details
+            displayName: Measurment Settings
+            path: measurements
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: Indicates whether the measurement services auto scalling is active.
+            displayName: Measurment Services Auto Scaling
+            path: measurements.auto_scaling
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Minimum number of measurement service pods
+            displayName: Minimum Number of Measurment Services
+            path: measurements.min_number_of_services
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Maximum number of measurement service pods
+            displayName: Maximum Number of Measurment Services
+            path: measurements.max_number_of_services
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Measurements S3 (Optional)
+            displayName: Measurements S3 settings
+            path: measurements.S3
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: S3 bucket
+            displayName: S3 bucket
+            path: measurements.S3.bucket
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: S3 key
+            displayName: S3 key
+            path: measurements.S3.key
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: S3 secret
+            displayName: S3 secret
+            path: measurements.S3.secret
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: S3 region
+            displayName: S3 region
+            path: measurements.S3.region
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: SMTP server details (Optional)
+            displayName: SMTP Settings
+            path: smtp
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: User for an SMTP server (Optional)
+            displayName: SMTP User
+            path: smtp.user
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Password for an SMTP server (Optional)
+            displayName: SMTP Password
+            path: smtp.password
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: Identity for an SMTP server (Optional)
+            displayName: SMTP Identity
+            path: smtp.identity
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: URL of an SMTP server (Optional)
+            displayName: SMTP URL
+            path: smtp.url
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Authentication details (Optional)
+            displayName: Authentication Settings
+            path: authentication
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: Authority for authentication (Optional)
+            displayName: Authentication Authority
+            path: authentication.authority
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Client ID for authentication (Optional)
+            displayName: Authentication Client ID
+            path: authentication.client_id
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: JWKS URL for authentication (Optional)
+            displayName: Authentication JWKS URL
+            path: authentication.jwks_url
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Issuer for authentication (Optional)
+            displayName: Authentication Issuer
+            path: authentication.issuer
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: CA root certificate for authentication (Optional)
+            displayName: Authentication CA Root Certificate
+            path: authentication.ca_root_crt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: TLS key and certificate (Optional. Enabled when domain name starts with "https")
+            displayName: TLS Setting
+            path: tls
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: Obtain certificates using Let's Encrypt
+            displayName: Enable Let's Encrypt
+            path: tls.use_letsencrypt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Certificate for TLS connection
+            displayName: TLS crt
+            path: tls.crt
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Key for TLS connection
+            displayName: TLS key
+            path: tls.key
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: Backup details (Optional)
+            displayName: Backup settings
+            path: backup
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: Mysql backup
+            displayName: Mysql backup settings
+            path: backup.mysql
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: Mysql S3 backup
+            displayName: Mysql S3 backup settings
+            path: backup.mysql.S3
+            x-descriptors:
+              - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:'
+          - description: S3 bucket
+            displayName: S3 bucket
+            path: backup.mysql.S3.bucket
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: S3 key
+            displayName: S3 key
+            path: backup.mysql.S3.key
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: S3 secret
+            displayName: S3 secret
+            path: backup.mysql.S3.secret
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: S3 region
+            displayName: S3 region
+            path: backup.mysql.S3.region
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - path: retry_upgrade
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - path: version
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+          - path: build
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+        statusDescriptors:
+          - description: Indicates the state of the operand
+            displayName: Operand State
+            path: state
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Indicates if the installation was successful
+            displayName: Successfully Installed
+            path: installed
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Current application version
+            displayName: Current Version
+            path: currentVersion
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Current mysql image
+            displayName: vFunction Mysql Image
+            path: mysqlImage
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Current storage image
+            displayName: vFunction Storage Image
+            path: storageImage
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Current nginx image
+            displayName: vFunction Nginx Image
+            path: nginxImage
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Current vfapi IDP image
+            displayName: vFunction Vfapi IDP Image
+            path: vfapiIdpImage
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Current vfapi measurements image
+            displayName: vFunction Vfapi Measurements Image
+            path: vfapiMeasurementsImage
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Current vfapi organizations image
+            displayName: vFunction Vfapi Organizations Image
+            path: vfapiOrganizationsImage
+            x-descriptors:
+              - urn:alm:descriptor:text
+          - description: Current vfapi users image
+            displayName: vFunction Vfapi Users Image
+            path: vfapiUsersImage
+            x-descriptors:
+              - urn:alm:descriptor:text
+  displayName: vFunction Operator
+  description: |2-
+
+    ## Introduction
+
+    [vFunction](https://www.vfunction.com/) is a cloud-native modernization platform that combines dynamic and static code analysis, machine learning, and automation to automatically identify and extract services from existing applications. vFunction is the only platform purpose-built for modernization of Java applications.
+
+    The vFunction modernization process starts by learning the running monolithic application, and surfacing the interdependencies within it. Using AI, the platform analyzes and identifies services that can be separated from the application. This decomposition can present a range of micro, mini, or even macro services, depending on your application environment, each being an independently deployable and scalable application component.
+
+    vFunction automates the extraction of these services, enabling you to modernize your monolith, quickly and easily.
+
+    ## The vFunction platform
+
+    The platform consists of 3 basic components; the server, the controller package, and a tools package. The server runs as an operand on an OpenShift environment. The controller package is installed on the machine that runs the monolithic application which can be either a Linux or a Windows machine, and the tools are run on a development machine, with access to the code of the monolithic application.
+
+    The controller package consists of three elements: the vFunction agent, that collects data during the dynamic analysis phase; the vFunction Viper application, that performs static analysis on the binaries of the application; and the vFunction controller that handles all the communication between the agent, Viper, and the vFunction server.
+
+    The vFunction agent is a mix of a Java and native agent, and needs to run on the JVM that is currently running your application. [Refer to the vFunction OOB Support Matrix document](https://drive.google.com/file/d/1ccq8LFab1FrYAimDUxwgjiCOdk4QuVzs/view) for a list of supported application servers and JVMs.
+
+    This operator installs a vFunction server instance to be connected later with one or more vFunction controllers installed on your application machine(s).
+
+    ## Before You Start
+
+    The vFunction operator requires a Red Hat OpenShift Kubernetes Application Platform 4.x.
+
+    The cluster recommended configuration (which is the same as the minimal one) should consist of:
+
+    - *1 master node*
+
+    - *1 worker node*
+
+    - *Storage capacity enough for dynamically provision 2 PVs of 50G each*
+
+    - *A default StorageClass configured*
+
+    vFunction doesn’t provide any encryption mechanism for data stored on any attached storage. If required, encryption can be achieved by the client by using its own external means on the storage itself.
+
+    vFunction supports backup of all critical data as part of the application. Nevertheless, for complete backup of entire data it is recommended that the client apply its own storage based backup mechanism.
+
+    ## Install Prerequisites
+
+    ###Cluster:
+    The operator was certified and tested on OCP 4.6 and 4.7.
+    If you encounter any issue with other OCP versions or cloud providers please contact info@vfunction.com.
+
+    ###Storage:
+    The operator creates two new PersistentVolumeClaims (PVCs) during installation time. For their creation, it relies on the default StorageClass to dynamically provision two PersistentVolumes (PVs). The system must have a default StorageClass in place.
+
+    Both PersistentVolumes are accessed with ReadWriteOnce mode.
+
+    ###Project:
+    The operator should be installed in a new and dedicated project (namespace). If you intend to install more than one vFunction operands in the same cluster, please use different projects for each one. Installation of more than one operand on the same cluster will allow scaling by load balancing multiple applications to different vFunction servers.
+
+    ## Installation instructions
+
+    1. Prepare the YAML file to use in the installation:
+
+        a. Copy the following YAML template into a text editor:
+
+        ```yaml
+            apiVersion: vfunction.com/v1
+            kind: VfunctionServer
+            metadata:
+              name: vfunction
+              namespace: vfunction
+              labels:
+                name: vfunction
+                app.kubernetes.io/name: vfunction
+                app.kubernetes.io/instance: vfunction-server
+                app.kubernetes.io/managed-by: operator
+            spec:
+              host: "http://my.domain.com"
+              org_name: "MyCompany"
+              upgrade: "Never"
+              admin:
+                email: "admin@mycompany.com"
+                name: "Admin"
+                password: "Password1!"
+              measurements:
+                auto_scaling: "No"
+                min_number_of_services: "2"
+                max_number_of_services: "10"
+                S3:
+                  bucket: ""
+                  key: ""
+                  secret: ""
+              smtp:
+                password: ""
+                url: ""
+                identity: ""
+                user: ""
+              authentication:
+                authority: ""
+                client_id: ""
+                jwks_url: ""
+                issuer: ""
+                ca_root_crt: |
+                  -----BEGIN CERTIFICATE-----
+                  ...
+                  -----END CERTIFICATE-----
+              tls:
+                use_letsencrypt: "No"
+                crt: |
+                  -----BEGIN CERTIFICATE-----
+                  ...
+                  -----END CERTIFICATE-----
+                key: |
+                  -----BEGIN PRIVATE KEY-----
+                  ...
+                  -----END PRIVATE KEY-----
+              backup:
+                mysql:
+                  S3:
+                    bucket: ""
+                    key: ""
+                    secret: ""
+        ```
+        b. Customize the template fields by replacing with your information:
+
+        - **host**: Enter the FQDN for accessing the vFunction dashboard.
+                    Make sure that you use a domain name and not an IP address. Writing "https://" will mandate TLS while writing "http://" will expose the server through HTTP.
+        - **org_name**: Enter your organization name.
+        - **upgrade**: Choose auto-upgrade mode
+            - **Daily**: The operator will check for a new version every day at 3 AM and will install it automatically.
+            - **Always**: The operator will check for a new version every 10 minutes and will install it automatically.
+            - **Never**: The automatic upgrading mechanism is off (default).
+            - **Maintenance**: Put the operator in a maintenance mode.
+        - **admin.email**: Enter the email address of your administrator.
+        - **admin.name**: Enter the name of your administrator.
+        - **admin.password**: Enter the password you want to use for the vFunction administrator.
+                              The password should be at least 8 characters long, and consist of at least one lowercase letter, at least one uppercase letter, at least one number, and at least one special character.
+        - **measurements.auto_scaling**: Indicates if the measurement services auto scalling is active.
+        - **measurements.min\_num\_of\_services**: Minimum Number of measurement service pods.
+        - **measurements.max\_num\_of\_services**: Maximum Number of measurement service pods.
+        - **measurements.S3**: Save all measurements data to S3, instead of local PV (optional).
+            - **measurements.S3.bucket**: Measurements S3 bucket name.
+            - **measurements.S3.key**: Measurements S3 key.
+            - **measurements.S3.secret**: Measurements S3 secret.
+            - **measurements.S3.region**: Measurements S3 region.
+        - **smtp.user**: Enter the email address for a designated user for the SMTP server (optional).
+        - **smtp.password**: Enter this user’s password (optional).
+        - **smtp.identity**: Enter this user’s password (optional).
+        - **smtp.url**: Enter the SMTP server URL (optional).
+        - **authentication.authority**: Authority for authentication (Optional).
+        - **authentication.client_id**: Client ID for authentication (Optional).
+        - **authentication.jwks_url**: JWKS URL for authentication (Optional).
+        - **authentication.issuer**: Issuer for authentication (Optional).
+        - **authentication.ca\_root\_crt**: CA root certificate for authentication (Optional).
+        - **tls.crt**: If your host FQDN starts with “https”, paste in the certifications you have for using the TLS connection.
+        - **tls.key**: If your host FQDN starts with “https”, enter the key you have for using the TLS connection.
+        - **backup.mysql.S3**: Backup MySQL to S3 (optional).
+            - **backup.mysql.S3.bucket**: MySQL backup S3 bucket name.
+            - **backup.mysql.S3.key**: MySQL backup S3 key.
+            - **backup.mysql.S3.secret**: MySQL backup S3 secret.
+            - **backup.mysql.S3.region**: MySQL backup S3 region.
+
+    1. In the Installed Operators window choose and click on vFunction Operator and then Create Instance.
+    1. In the Create vFunctionServer window, paste the YAML file that you created in step 1.
+    1. Click Create.
+    1. You can now click on your new created vFunction operand in order to see its details and installation progress.
+
+    ## Verifying the installation
+
+    Check that the operand installed successfully:
+
+    1. Check that the "Operand State" property shows “Working”.
+    1. Check that the "Successfully Installed" property shows "Yes".
+
+    If "Operand State" shows "Failed", it indicates the operand wasn’t installed correctly. Check the events and logs for all pods (operator and image containers) for any issues. In the event that you cannot troubleshoot, contact vFunction support.
+
+    ## After installation
+
+    The vFunction site is now accessible via the newly created vFunction application custom address, for example, my.domain.com. There are two ways you can access the vFunction dashboard.
+
+    ### Access using the router canonical hostname
+
+    1. Update your DNS provider by creating a canonical name (CNAME) record.
+    This record should point to your host address, and to the ”vfunction” subdomain of the  OpenShift canonical router hostname as the alias.
+    For example, ***my.domain.com.   CNAME   vfunction.apps.ocp4.my-openshift.com.***
+    2. Find your cluster Router Canonical Hostname address in the newly created vfunction-route-xxx under your vFunction OpenShift project -> **Networking** -> **Routes** -> **vfunction-route-xxx** route -> **Router Canonical Hostname** field.
+    You can now access the dashboard using your defined "host" spec property (as above).
+
+    ### Access using the nginx service location
+
+    You may use this access method if your OpenShift is installed on a provider that supports exposing LoadBalancer-type services.
+    1. Update your DNS provider by creating a canonical name (CNAME) record.
+    This record should point to your host address and to the vfunction-nginx-xxx service location.
+    For example, ***my.domain.com.   CNAME   a05951ed7cdf-1394239323.us-east-1.elb.amazonaws.com.***
+    1. Point your custom domain to the vfunction-nginx-xxx service's external IP location, which you can find in the OpenShift project > **Networking** -> **Services** -> **vfunction-nginx-xxx** service > **Service Address** > **Location** field.
+
+    ## Upgrade and Rollback
+
+    The vFunction operator includes a built-in auto-upgrade mechanism.
+
+    You can choose one of 4 upgrading modes:
+    - **Daily**: The operator will check for a new version every day at 3 AM and will install it automatically.
+    - **Always**: The operator will check for a new version every 10 minutes and will install it automatically.
+    - **Never**: The automatic upgrading mechanism is off (default).
+    - **Maintenance**: Put the operator in a maintenance mode.
+
+    For an on-demand upgrade,  you can change anytime the upgrading mode from “Never” to “Always”, wait for the operand to be upgraded, and change again to “Never”.
+
+    During the upgrade, the "Operand State" property will change to “Upgrading...” and back again to “Working” after a successful upgrade.
+
+    In case of a failure upgrading the operand, an automatic rollback to the last working version will occur. The failed version will be marked as defective and the operator will not try to upgrade to it again.
+
+    Choosing the "Maintenance" option will tell the operator to take down all pods, so you can safely fix storage issues, return volumes from snapshots, etc.
+    After finishing the maintenance, return the upgrade mode to your original desired policy.
+  icon:
+    - base64data: "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"
+      mediatype: "image/jpeg"
+  minKubeVersion: 1.13.0
+  install:
+    spec:
+      metadata:
+        annotations:
+          productID: 'com.vfunction.operator.2.6.897'
+          productName: 'vFunction Server Operator'
+          productVersion: '2.6.897'
+        labels:
+          name: vfunction-server-operator
+          app.kubernetes.io/name: vfunction
+          app.kubernetes.io/instance: vfunction-operator
+          app.kubernetes.io/managed-by: operator
+      deployments:
+        - name: vfunction-server-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                name: vfunction-server-operator
+            strategy: {}
+            metadata:
+              annotations:
+                productID: 'com.vfunction.operator.2.6.897'
+                productName: 'vFunction Server Operator'
+                productVersion: '2.6.897'
+              labels:
+                name: vfunction-server-operator
+                app.kubernetes.io/name: vfunction
+                app.kubernetes.io/instance: vfunction-operator
+                app.kubernetes.io/managed-by: operator
+            template:
+              metadata:
+                annotations:
+                  productID: 'com.vfunction.operator.2.6.897'
+                  productName: 'vFunction Server Operator'
+                  productVersion: '2.6.897'
+                labels:
+                  name: vfunction-server-operator
+                  app.kubernetes.io/name: vfunction
+                  app.kubernetes.io/instance: vfunction-operator
+                  app.kubernetes.io/managed-by: operator
+              spec:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: beta.kubernetes.io/arch
+                              operator: In
+                              values:
+                                - amd64
+                containers:
+                  - name: vfunction-server-operator
+                    env:
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: vfunction-server-operator
+                      - name: OPERATORHUB
+                        value: "true"
+                      - name: RELATED_IMAGE_VFUNCTION_MYSQL_ORIGINAL_IMAGE
+                        value: registry.connect.redhat.com/vfunction/vfunction-mysql@sha256:dc9d83489306945205eceead338f63636fec3cac208f1b8edc679180422cbe29
+                      - name: RELATED_IMAGE_VFUNCTION_NGINX_ORIGINAL_IMAGE
+                        value: registry.connect.redhat.com/vfunction/vfunction-nginx@sha256:913f07b4713d339c0bbdce87c480e35e56847f53c155cea7f5df56a07b39c5c5
+                      - name: RELATED_IMAGE_VFUNCTION_STORAGE_ORIGINAL_IMAGE
+                        value: registry.connect.redhat.com/vfunction/vfunction-storage@sha256:829eaf9282f5f92effbed9c37d2e241210b20cd9f6f3d50e149b96c57dd3f9d6
+                      - name: RELATED_IMAGE_VFUNCTION_VFAPI_IDP_ORIGINAL_IMAGE
+                        value: registry.connect.redhat.com/vfunction/vfunction-vfapi-idp@sha256:6e6be6a7f6a260d17cce0a744257d5780a616be4ca4589db6ad4641b1ea79410
+                      - name: RELATED_IMAGE_VFUNCTION_VFAPI_MEASUREMENTS_ORIGINAL_IMAGE
+                        value: registry.connect.redhat.com/vfunction/vfunction-vfapi-measurements@sha256:f876f30bdd4b96946a74419b453170b38d6d877a36359e3ac8160e2261a4d38a
+                      - name: RELATED_IMAGE_VFUNCTION_VFAPI_ORGANIZATIONS_ORIGINAL_IMAGE
+                        value: registry.connect.redhat.com/vfunction/vfunction-vfapi-organizations@sha256:5346b4f23923f5f02492f088f91e01e8a85ce2722e9f8afa45642f2c6bdcfb8e
+                      - name: RELATED_IMAGE_VFUNCTION_VFAPI_USERS_ORIGINAL_IMAGE
+                        value: registry.connect.redhat.com/vfunction/vfunction-vfapi-users@sha256:191bedeb9120858bead76fdda1212ada88512a5c596a07741000241e13a8f5a1
+                    image: registry.connect.redhat.com/vfunction/vfunction-server-operator@sha256:3f346a105d7223f3115b85200bfd2e9afee9eccb9f8f1539dbf4cc5bd79b1c5c
+                    imagePullPolicy: Always
+                    livenessProbe:
+                      exec:
+                        command:
+                          - ls
+                      initialDelaySeconds: 4
+                      periodSeconds: 5
+                    readinessProbe:
+                      exec:
+                        command:
+                          - cat
+                          - /etc/hosts
+                      initialDelaySeconds: 4
+                      periodSeconds: 5
+                    resources:
+                      requests:
+                        memory: "250Mi"
+                        cpu: "125m"
+                      limits:
+                        memory: "1000Mi"
+                        cpu: "1"
+                    securityContext:
+                      capabilities:
+                        drop:
+                          - ALL
+                serviceAccountName: vfunction-server-operator
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - services
+                - secrets
+                - configmaps
+                - persistentvolumeclaims
+              verbs:
+                - list
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - list
+                - watch
+            - apiGroups:
+                - vfunction.com
+              resources:
+                - vfunctionservers
+              verbs:
+                - list
+                - watch
+            - apiGroups:
+                - autoscaling
+              resources:
+                - horizontalpodautoscalers
+              verbs:
+                - list
+                - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - list
+                - watch
+          serviceAccountName: vfunction-server-operator
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - pods/log
+                - pods/attach
+                - pods/proxy
+                - pods/exec
+                - podtemplates
+                - services
+                - services/finalizers
+                - services/proxy
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+                - resourcequotas
+                - serviceaccounts
+                - limitranges
+                - bindings
+                - replicationcontrollers
+              verbs:
+                - "*"
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+              verbs:
+                - "*"
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - "*"
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - get
+                - create
+            - apiGroups:
+                - apps
+              resourceNames:
+                - vfunction-server-operator
+              resources:
+                - deployments/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - apps
+              resources:
+                - replicasets
+                - deployments
+              verbs:
+                - get
+            - apiGroups:
+                - autoscaling
+              resources:
+                - horizontalpodautoscalers
+              verbs:
+                - "*"
+            - apiGroups:
+                - vfunction.com
+              resources:
+                - "*"
+              verbs:
+                - "*"
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - "*"
+              verbs:
+                - "*"
+          serviceAccountName: vfunction-server-operator
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - pods/log
+                - pods/attach
+                - pods/proxy
+                - pods/exec
+                - podtemplates
+                - services
+                - services/finalizers
+                - services/proxy
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+                - replicationcontrollers
+              verbs:
+                - "*"
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+              verbs:
+                - "*"
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - get
+                - create
+            - apiGroups:
+                - apps
+              resourceNames:
+                - vfunction-server-operator
+              resources:
+                - deployments/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - security.openshift.io
+              resourceNames:
+                - anyuid
+              resources:
+                - securitycontextconstraints
+              verbs:
+                - use
+          serviceAccountName: vfunction-server-operator-storage
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: false
+      type: AllNamespaces
+  keywords:
+    - vfunction
+    - analyzing
+    - services
+  maintainers:
+    - name: Raviv Halivni
+      email: raviv@vfunction.com
+  maturity: alpha
+  provider:
+    name: vFunction
+  links:
+    - name: vFunction
+      url: https://vfunction.com
+    - name: Terms
+      url: https://www.vfunction.com/eula/
+  version: 2.6.897
+  labels:
+    name: vfunction-server-operator
+    app.kubernetes.io/name: vfunction
+    app.kubernetes.io/instance: vfunction-operator
+    app.kubernetes.io/managed-by: operator
+  relatedImages:
+    - name: vfunction-server-operator
+      image: registry.connect.redhat.com/vfunction/vfunction-server-operator@sha256:3f346a105d7223f3115b85200bfd2e9afee9eccb9f8f1539dbf4cc5bd79b1c5c
+    - name: vfunction-mysql
+      image: registry.connect.redhat.com/vfunction/vfunction-mysql@sha256:dc9d83489306945205eceead338f63636fec3cac208f1b8edc679180422cbe29
+    - name: vfunction-nginx
+      image: registry.connect.redhat.com/vfunction/vfunction-nginx@sha256:913f07b4713d339c0bbdce87c480e35e56847f53c155cea7f5df56a07b39c5c5
+    - name: vfunction-storage
+      image: registry.connect.redhat.com/vfunction/vfunction-storage@sha256:829eaf9282f5f92effbed9c37d2e241210b20cd9f6f3d50e149b96c57dd3f9d6
+    - name: vfunction-vfapi-idp
+      image: registry.connect.redhat.com/vfunction/vfunction-vfapi-idp@sha256:6e6be6a7f6a260d17cce0a744257d5780a616be4ca4589db6ad4641b1ea79410
+    - name: vfunction-vfapi-measurements
+      image: registry.connect.redhat.com/vfunction/vfunction-vfapi-measurements@sha256:f876f30bdd4b96946a74419b453170b38d6d877a36359e3ac8160e2261a4d38a
+    - name: vfunction-vfapi-organizations
+      image: registry.connect.redhat.com/vfunction/vfunction-vfapi-organizations@sha256:5346b4f23923f5f02492f088f91e01e8a85ce2722e9f8afa45642f2c6bdcfb8e
+    - name: vfunction-vfapi-users
+      image: registry.connect.redhat.com/vfunction/vfunction-vfapi-users@sha256:191bedeb9120858bead76fdda1212ada88512a5c596a07741000241e13a8f5a1

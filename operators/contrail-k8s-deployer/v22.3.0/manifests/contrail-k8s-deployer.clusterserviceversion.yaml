@@ -1,0 +1,1562 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "configplane.juniper.net/v1alpha1",
+          "kind": "ApiServer",
+          "metadata": {
+            "name": "contrail-k8s-apiserver",
+            "namespace": "contrail-system"
+          },
+          "spec": {
+            "common": {
+              "containers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-apiserver@sha256:87f2f13e09271c8a213796a8af439cef96985e752a3f20eb6a338abba025e9aa",
+                  "name": "contrail-k8s-apiserver"
+                }
+              ],
+              "serviceAccountName": "contrail-system-serviceaccount"
+            }
+          }
+        },
+        {
+          "apiVersion": "datastore.juniper.net/v1alpha1",
+          "kind": "Etcd",
+          "metadata": {
+            "name": "contrail-etcd",
+            "namespace": "contrail-system"
+          },
+          "spec": {
+            "common": {
+              "containers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-etcd@sha256:e967ca284dd429cb0d71ab4f51295af8e4aec2be25704575ecbee2df98ba51a7",
+                  "name": "contrail-etcd"
+                }
+              ],
+              "initContainers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-cert-init@sha256:6a3f5cc276bf015b0f914396334a792db3a1f76a131b0e58ae33c84567352a8b",
+                  "name": "contrail-cert-init"
+                },
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-cert-init@sha256:6a3f5cc276bf015b0f914396334a792db3a1f76a131b0e58ae33c84567352a8b",
+                  "name": "set-etcd-dir-owner"
+                }
+              ],
+              "serviceAccountName": "contrail-system-serviceaccount"
+            },
+            "serviceSpec": {
+              "snapshotInterval": "720m"
+            }
+          }
+        },
+        {
+          "apiVersion": "configplane.juniper.net/v1alpha1",
+          "kind": "Controller",
+          "metadata": {
+            "name": "contrail-k8s-controller",
+            "namespace": "contrail-system"
+          },
+          "spec": {
+            "common": {
+              "containers": [
+                {
+                  "env": [
+                    {
+                      "name": "LOG_CONFIG_FILE",
+                      "value": "/etc/config/cm/config.yaml"
+                    },
+                    {
+                      "name": "XDG_CACHE_HOME",
+                      "value": "/tmp"
+                    }
+                  ],
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-controller@sha256:c20bf8a205648dc379488f7009a8d2a8e025233229b213d57663cc703d963345",
+                  "name": "contrail-k8s-controller",
+                  "volumeMounts": [
+                    {
+                      "mountPath": "/etc/config/cm",
+                      "name": "config"
+                    }
+                  ]
+                }
+              ],
+              "serviceAccountName": "contrail-system-serviceaccount",
+              "volumes": [
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "config.yaml",
+                        "path": "config.yaml"
+                      }
+                    ],
+                    "name": "contrail-k8s-controller-cm"
+                  },
+                  "name": "config"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "apiVersion": "configplane.juniper.net/v1alpha1",
+          "kind": "Kubemanager",
+          "metadata": {
+            "name": "contrail-k8s-kubemanager",
+            "namespace": "contrail"
+          },
+          "spec": {
+            "common": {
+              "containers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-kubemanager@sha256:17ed9440c659cee48b603cd097d5ea5a5886f030fe349076d5d08b2433de0c5e",
+                  "name": "contrail-k8s-kubemanager"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "apiVersion": "controlplane.juniper.net/v1alpha1",
+          "kind": "Control",
+          "metadata": {
+            "name": "contrail-control",
+            "namespace": "contrail"
+          },
+          "spec": {
+            "common": {
+              "containers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-control@sha256:3e7218a55964d21d4c6e88bcfd673f11146e6adf0750ba9bc197387e70162a15",
+                  "name": "contrail-control"
+                },
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-telemetry-exporter@sha256:30589fa3da89a7088a2b85976c50e51ab7de41314e11f233a5bcf3b846005b05",
+                  "name": "contrail-control-telemetry-exporter"
+                }
+              ],
+              "initContainers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-init@sha256:452705d9ca318bd6c423de2211e6154ef71c7a2db8f45f84e26e0be35b1722d2",
+                  "name": "contrail-init"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "apiVersion": "dataplane.juniper.net/v1alpha1",
+          "kind": "Vrouter",
+          "metadata": {
+            "name": "contrail-vrouter-masters",
+            "namespace": "contrail"
+          },
+          "spec": {
+            "agent": {
+              "default": {
+                "httpServerPort": 18085
+              }
+            },
+            "common": {
+              "containers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-vrouter-agent@sha256:161436d2c55e7e28e83803ee17939c39f14d0c5517862360e54e7500aa0ce97a",
+                  "name": "contrail-vrouter-agent"
+                },
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-init@sha256:452705d9ca318bd6c423de2211e6154ef71c7a2db8f45f84e26e0be35b1722d2",
+                  "name": "contrail-watcher"
+                },
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-telemetry-exporter@sha256:30589fa3da89a7088a2b85976c50e51ab7de41314e11f233a5bcf3b846005b05",
+                  "name": "contrail-vrouter-telemetry-exporter"
+                }
+              ],
+              "initContainers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-init@sha256:452705d9ca318bd6c423de2211e6154ef71c7a2db8f45f84e26e0be35b1722d2",
+                  "name": "contrail-init"
+                },
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-cni-init@sha256:dca3aea4d377154ecd5b2abab03f2285c7fcc7f306b815a3fc1cd161562c37a4",
+                  "name": "contrail-cni-init"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "apiVersion": "dataplane.juniper.net/v1alpha1",
+          "kind": "Vrouter",
+          "metadata": {
+            "name": "contrail-vrouter-nodes",
+            "namespace": "contrail"
+          },
+          "spec": {
+            "agent": {
+              "default": {
+                "httpServerPort": 18085
+              }
+            },
+            "common": {
+              "affinity": {
+                "nodeAffinity": {
+                  "requiredDuringSchedulingIgnoredDuringExecution": {
+                    "nodeSelectorTerms": [
+                      {
+                        "matchExpressions": [
+                          {
+                            "key": "node-role.kubernetes.io/master",
+                            "operator": "NotIn",
+                            "values": [
+                              ""
+                            ]
+                          },
+                          {
+                            "key": "node-role.kubernetes.io/control-plane",
+                            "operator": "NotIn",
+                            "values": [
+                              ""
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "containers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-vrouter-agent@sha256:161436d2c55e7e28e83803ee17939c39f14d0c5517862360e54e7500aa0ce97a",
+                  "name": "contrail-vrouter-agent"
+                },
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-init@sha256:452705d9ca318bd6c423de2211e6154ef71c7a2db8f45f84e26e0be35b1722d2",
+                  "name": "contrail-watcher"
+                },
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-telemetry-exporter@sha256:30589fa3da89a7088a2b85976c50e51ab7de41314e11f233a5bcf3b846005b05",
+                  "name": "contrail-vrouter-telemetry-exporter"
+                }
+              ],
+              "initContainers": [
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-init@sha256:452705d9ca318bd6c423de2211e6154ef71c7a2db8f45f84e26e0be35b1722d2",
+                  "name": "contrail-init"
+                },
+                {
+                  "image": "enterprise-hub.juniper.net/contrail-container-prod/contrail-cni-init@sha256:dca3aea4d377154ecd5b2abab03f2285c7fcc7f306b815a3fc1cd161562c37a4",
+                  "name": "contrail-cni-init"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Networking, Security
+    containerImage: enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-deployer@sha256:1bb4e9a55f8dae7326dd88057e8acebd76610f04693aeba097ba15fa8b4933f4
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
+    operators.operatorframework.io/builder: operator-sdk-v1.16.0-ocp
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
+  name: contrail-k8s-deployer.v22.3.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - displayName: API Server
+      description: |
+        The contrail-k8s-apiserver is an aggregated API server for all Contrail
+        resources (VirtualNetwork, VirtualMachineInterface, RoutingInstance etc.).
+      kind: ApiServer
+      name: apiservers.configplane.juniper.net
+      version: v1alpha1
+    - displayName: API Server Status
+      description: |
+        Conditions represent the observations of API Server''s current state.
+      kind: ApiServerStatus
+      name: apiserverstatuses.configplane.juniper.net
+      version: v1alpha1
+    - displayName: Controller
+      description: |
+        The contrail-k8s-controller pod implements the business logic for the Contrail resources.
+      kind: Controller
+      name: controllers.configplane.juniper.net
+      version: v1alpha1
+    - displayName: Controller Status
+      description: |
+        Conditions represent the observations of Controller''s current state.
+      kind: ControllerStatus
+      name: controllerstatuses.configplane.juniper.net
+      version: v1alpha1
+    - displayName: Kubemanager
+      description: |
+        The contrail-k8s-kubemanager is the interface between Kubernetes core
+        resources (Service, Namespace, Pod, Network Policy, Network Attachment
+        Definition) and the extended Contrail resources (VirtualNetwork,
+        RoutingInstance etc.).
+      kind: Kubemanager
+      name: kubemanagers.configplane.juniper.net
+      version: v1alpha1
+    - displayName: Kubemanager Status
+      description: |
+        Conditions represent the observations of Kubemanager''s current state.
+      kind: KubemanagerStatus
+      name: kubemanagerstatuses.configplane.juniper.net
+      version: v1alpha1
+    - displayName: Control
+      description: |
+        contrail-control is Contrail's BGP and XMPP server.
+      kind: Control
+      name: controls.controlplane.juniper.net
+      version: v1alpha1
+    - displayName: Control Status
+      description: |
+        Conditions represent the observations of Control''s current state.
+      kind: ControlStatus
+      name: controlstatuses.controlplane.juniper.net
+      version: v1alpha1
+    - displayName: Vrouter
+      description: |
+        Vrouter provides configuration for the Contrail vrouter agent as well
+        as kernel and DPDK settings.
+      kind: Vrouter
+      name: vrouters.dataplane.juniper.net
+      version: v1alpha1
+    - displayName: Vrouter Status
+      description: |
+        Conditions represent the observations of Vrouter''s current state.
+      kind: VrouterStatus
+      name: vrouterstatuses.dataplane.juniper.net
+      version: v1alpha1
+    - displayName: Etcd
+      description: |
+        Etcd is the Schema for the etcds API
+      kind: Etcd
+      name: etcds.datastore.juniper.net
+      version: v1alpha1
+    - displayName: Etcd Status
+      description: |
+        Conditions represent the observations of Etcd''s current state.
+      kind: EtcdStatus
+      name: etcdstatuses.datastore.juniper.net
+      version: v1alpha1
+    - displayName: Network Attachment Definition
+      description: |
+        NetworkAttachmentDefinition is a CRD schema to express the intent for
+        attaching pods to one or more logical or physical networks.
+      kind: NetworkAttachmentDefinition
+      name: network-attachment-definitions.k8s.cni.cncf.io
+      version: v1
+    - displayName: Certificate Request
+      description: |
+        The CertificateRequest is used to request X.509 certificates from an Issuer.
+      kind: CertificateRequest
+      name: certificaterequests.cert-manager.io
+      version: v1
+    - displayName: Certificate
+      description: |
+        A Certificate references an Issuer or ClusterIssuer that determine what
+        will be honoring the certificate request.
+      kind: Certificate
+      name: certificates.cert-manager.io
+      version: v1
+    - displayName: Challenge
+      description: |
+        Used by the ACME issuer to manage the
+        lifecycle of an ACME 'challenge' that must be completed in order
+        to complete an 'authorization' for a single DNS name/identifier.
+      kind: Challenge
+      name: challenges.acme.cert-manager.io
+      version: v1
+    - displayName: ClusterIssuer
+      description: |
+        Kubernetes resources that represent certificate
+        authorities (CAs) that are able to generate signed certificates.
+      kind: ClusterIssuer
+      name: clusterissuers.cert-manager.io
+      version: v1
+    - displayName: Issuer
+      description: |
+        Kubernetes resources that represent certificate
+        authorities (CAs) that are able to generate signed certificates.
+      kind: Issuer
+      name: issuers.cert-manager.io
+      version: v1
+    - displayName: Order
+      description: |
+        Order resources are used by the ACME issuer to manage the lifecycle
+        of an ACME 'order' for a signed TLS certificate.
+      kind: Order
+      name: orders.acme.cert-manager.io
+      version: v1
+  description: |-
+    Cloud-Native Contrail Networking (CN2) is an SDN solution that automates
+    the creation and management of virtualized networks to connect, isolate,
+    and secure cloud workloads and services seamlessly across private and
+    public clouds.
+
+    CN2 brings this rich SDN feature set natively to Kubernetes as a networking
+    platform and container network interface (CNI) plug-in.
+
+    Integrated with OpenShift, Cloud Native Contrail Networking
+    takes advantage of the benefits that Kubernetes offers, from simplified
+    DevOps to turnkey scalability, all built on a highly available platform.
+    These benefits include leveraging standard Kubernetes tools and practices
+    to manage Contrail throughout its life cycle:
+
+      - Install CN2 in the OpenShift cluster with assisted installer
+      - Manage CN2 using standard Kubernetes and third-party tools.
+      - Scale CN2 by scaling the Kubernetes control plane.
+      - Configure CN2 by using custom resource definitions (CRDs).
+      - Upgrade Contrail software by applying updated manifests.
+
+    More than a CNI plug-in, Contrail Networking is a networking platform that
+    provides dynamic end-to-end virtual networking and security for cloud-native
+    containerized and virtual machine (VM) workloads, across multi-cluster
+    compute and storage environments, all from a central point of control. It
+    supports hard multi-tenancy for single or multi-cluster environments shared
+    across many tenants, teams, applications, or engineering phases, scaling
+    to thousands of nodes.
+
+    The contrail-k8s-deployer installs and provides lifecycle management for
+    the Cloud Native Contrail Networking components.
+  displayName: contrail-k8s-deployer
+  icon:
+  - base64data: |
+      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
+    mediatype: image/png
+  relatedImages:
+    - name: contrail-k8s-apiserver
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-apiserver@sha256:87f2f13e09271c8a213796a8af439cef96985e752a3f20eb6a338abba025e9aa
+    - name: contrail-etcd
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-etcd@sha256:e967ca284dd429cb0d71ab4f51295af8e4aec2be25704575ecbee2df98ba51a7
+    - name: contrail-cert-init
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-cert-init@sha256:6a3f5cc276bf015b0f914396334a792db3a1f76a131b0e58ae33c84567352a8b
+    - name: contrail-k8s-controller
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-controller@sha256:c20bf8a205648dc379488f7009a8d2a8e025233229b213d57663cc703d963345
+    - name: contrail-k8s-kubemanager
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-kubemanager@sha256:17ed9440c659cee48b603cd097d5ea5a5886f030fe349076d5d08b2433de0c5e
+    - name: contrail-control
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-control@sha256:3e7218a55964d21d4c6e88bcfd673f11146e6adf0750ba9bc197387e70162a15
+    - name: contrail-vrouter-agent
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-vrouter-agent@sha256:161436d2c55e7e28e83803ee17939c39f14d0c5517862360e54e7500aa0ce97a
+    - name: contrail-telemetry-exporter
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-telemetry-exporter@sha256:30589fa3da89a7088a2b85976c50e51ab7de41314e11f233a5bcf3b846005b05
+    - name: contrail-init
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-init@sha256:452705d9ca318bd6c423de2211e6154ef71c7a2db8f45f84e26e0be35b1722d2
+    - name: contrail-cni-init
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-cni-init@sha256:dca3aea4d377154ecd5b2abab03f2285c7fcc7f306b815a3fc1cd161562c37a4
+    - name: contrail-k8s-deployer
+      image: enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-deployer@sha256:1bb4e9a55f8dae7326dd88057e8acebd76610f04693aeba097ba15fa8b4933f4
+    - name: cert-manager-cainjector
+      image: enterprise-hub.juniper.net/contrail-container-prod/cert-manager-cainjector@sha256:f83cd256229b7bf8a40a34ba8c7108981cdfeaa6f57864c483245c73e65f797a
+    - name: cert-manager-webhook
+      image: enterprise-hub.juniper.net/contrail-container-prod/cert-manager-webhook@sha256:60d3cba0c267ab02da8f00ef12c233c9c2c6d8fa04437982cb9c53d46513947d
+    - name: cert-manager-controller
+      image: enterprise-hub.juniper.net/contrail-container-prod/cert-manager-controller@sha256:20509de4b399f1c066db9560ae833b0e994a2cef4f472af0ad82c4d314045dbf
+
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - cert-manager.io
+          resourceNames:
+          - issuers.cert-manager.io/*
+          - clusterissuers.cert-manager.io/*
+          resources:
+          - signers
+          verbs:
+          - approve
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates
+          - certificates/status
+          - certificaterequests
+          - certificaterequests/status
+          verbs:
+          - update
+          - patch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates
+          - certificaterequests
+          - clusterissuers
+          - issuers
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates/finalizers
+          - certificaterequests/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - orders
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - delete
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - certificates.k8s.io
+          resources:
+          - certificatesigningrequests
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - certificates.k8s.io
+          resources:
+          - certificatesigningrequests/status
+          verbs:
+          - update
+          - patch
+        - apiGroups:
+          - certificates.k8s.io
+          resourceNames:
+          - issuers.cert-manager.io/*
+          - clusterissuers.cert-manager.io/*
+          resources:
+          - signers
+          verbs:
+          - sign
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - challenges
+          - challenges/status
+          verbs:
+          - update
+          - patch
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - challenges
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - issuers
+          - clusterissuers
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+          - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - httproutes
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+          - update
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes/custom-host
+          verbs:
+          - create
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - challenges/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - clusterissuers
+          - clusterissuers/status
+          verbs:
+          - update
+          - patch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - clusterissuers
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates
+          - certificaterequests
+          verbs:
+          - create
+          - update
+          - delete
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates
+          - certificaterequests
+          - issuers
+          - clusterissuers
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - gateways
+          - httproutes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - gateways/finalizers
+          - httproutes/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - issuers
+          - issuers/status
+          verbs:
+          - update
+          - patch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - issuers
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - orders
+          - orders/status
+          verbs:
+          - update
+          - patch
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - orders
+          - challenges
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - clusterissuers
+          - issuers
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - challenges
+          verbs:
+          - create
+          - delete
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - orders/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        serviceAccountName: cert-manager
+      - rules:
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - get
+          - create
+          - update
+          - patch
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - validatingwebhookconfigurations
+          - mutatingwebhookconfigurations
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - apiregistration.k8s.io
+          resources:
+          - apiservices
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        serviceAccountName: cert-manager-cainjector
+      - rules:
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        serviceAccountName: cert-manager-webhook
+      - rules:
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        serviceAccountName: contrail-deploy-serviceaccount
+      deployments:
+      - name: contrail-k8s-deployer
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: contrail-k8s-deployer
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                app: contrail-k8s-deployer
+                control-plane: controller-manager
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: node-role.kubernetes.io/master
+                        operator: Exists
+                    - matchExpressions:
+                      - key: node-role.kubernetes.io/control-plane
+                        operator: Exists
+              containers:
+              - command:
+                - /manager
+                - --metrics-addr
+                - 127.0.0.1:8081
+                - --managed-etcd
+                image: enterprise-hub.juniper.net/contrail-container-prod/contrail-k8s-deployer@sha256:1bb4e9a55f8dae7326dd88057e8acebd76610f04693aeba097ba15fa8b4933f4
+                name: manager
+                resources: {}
+              hostNetwork: true
+              imagePullSecrets:
+                - name: registrypullsecret
+              serviceAccountName: contrail-deploy-serviceaccount
+              tolerations:
+              - effect: NoSchedule
+                operator: Exists
+              - effect: NoExecute
+                operator: Exists
+      - name: cert-manager-cainjector
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/component: cainjector
+              app.kubernetes.io/instance: cert-manager
+              app.kubernetes.io/name: cainjector
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                app: cainjector
+                app.kubernetes.io/component: cainjector
+                app.kubernetes.io/instance: cert-manager
+                app.kubernetes.io/name: cainjector
+                app.kubernetes.io/version: v1.8.0
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: node-role.kubernetes.io/master
+                        operator: Exists
+                    - matchExpressions:
+                      - key: node-role.kubernetes.io/control-plane
+                        operator: Exists
+              containers:
+              - args:
+                - --v=2
+                - --leader-election-namespace=kube-system
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: enterprise-hub.juniper.net/contrail-container-prod/cert-manager-cainjector@sha256:f83cd256229b7bf8a40a34ba8c7108981cdfeaa6f57864c483245c73e65f797a
+                imagePullPolicy: IfNotPresent
+                name: cert-manager-cainjector
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+              hostNetwork: true
+              imagePullSecrets:
+                - name: registrypullsecret
+              nodeSelector:
+                kubernetes.io/os: linux
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: cert-manager-cainjector
+              tolerations:
+              - effect: NoSchedule
+                operator: Exists
+              - effect: NoExecute
+                operator: Exists
+      - name: cert-manager-webhook
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/component: webhook
+              app.kubernetes.io/instance: cert-manager
+              app.kubernetes.io/name: webhook
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                app: webhook
+                app.kubernetes.io/component: webhook
+                app.kubernetes.io/instance: cert-manager
+                app.kubernetes.io/name: webhook
+                app.kubernetes.io/version: v1.8.0
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: node-role.kubernetes.io/master
+                        operator: Exists
+                    - matchExpressions:
+                      - key: node-role.kubernetes.io/control-plane
+                        operator: Exists
+              containers:
+              - args:
+                - --v=2
+                - --secure-port=10260
+                - --healthz-port=16080
+                - --dynamic-serving-ca-secret-namespace=$(POD_NAMESPACE)
+                - --dynamic-serving-ca-secret-name=cert-manager-webhook-ca
+                - --dynamic-serving-dns-names=cert-manager-webhook,cert-manager-webhook.cert-manager,cert-manager-webhook.cert-manager.svc
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: enterprise-hub.juniper.net/contrail-container-prod/cert-manager-webhook@sha256:60d3cba0c267ab02da8f00ef12c233c9c2c6d8fa04437982cb9c53d46513947d
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  failureThreshold: 3
+                  httpGet:
+                    path: /livez
+                    port: 16080
+                    scheme: HTTP
+                  initialDelaySeconds: 60
+                  periodSeconds: 10
+                  successThreshold: 1
+                  timeoutSeconds: 1
+                name: cert-manager-webhook
+                ports:
+                - containerPort: 10260
+                  name: https
+                  protocol: TCP
+                readinessProbe:
+                  failureThreshold: 3
+                  httpGet:
+                    path: /healthz
+                    port: 16080
+                    scheme: HTTP
+                  initialDelaySeconds: 5
+                  periodSeconds: 5
+                  successThreshold: 1
+                  timeoutSeconds: 1
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+              hostNetwork: true
+              imagePullSecrets:
+                - name: registrypullsecret
+              nodeSelector:
+                kubernetes.io/os: linux
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: cert-manager-webhook
+              tolerations:
+              - effect: NoSchedule
+                operator: Exists
+              - effect: NoExecute
+                operator: Exists
+      - name: cert-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/component: controller
+              app.kubernetes.io/instance: cert-manager
+              app.kubernetes.io/name: cert-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                prometheus.io/path: /metrics
+                prometheus.io/port: "9402"
+                prometheus.io/scrape: "true"
+              labels:
+                app: cert-manager
+                app.kubernetes.io/component: controller
+                app.kubernetes.io/instance: cert-manager
+                app.kubernetes.io/name: cert-manager
+                app.kubernetes.io/version: v1.8.0
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: node-role.kubernetes.io/master
+                        operator: Exists
+                    - matchExpressions:
+                      - key: node-role.kubernetes.io/control-plane
+                        operator: Exists
+              containers:
+              - args:
+                - --v=2
+                - --cluster-resource-namespace=$(POD_NAMESPACE)
+                - --leader-election-namespace=kube-system
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: enterprise-hub.juniper.net/contrail-container-prod/cert-manager-controller@sha256:20509de4b399f1c066db9560ae833b0e994a2cef4f472af0ad82c4d314045dbf
+                imagePullPolicy: IfNotPresent
+                name: cert-manager
+                ports:
+                - containerPort: 9402
+                  name: http-metrics
+                  protocol: TCP
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+              hostNetwork: true
+              imagePullSecrets:
+                - name: registrypullsecret
+              nodeSelector:
+                kubernetes.io/os: linux
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: cert-manager
+              tolerations:
+              - effect: NoSchedule
+                operator: Exists
+              - effect: NoExecute
+                operator: Exists
+      permissions:
+      - rules:
+        - apiGroups:
+          - coordination.k8s.io
+          resourceNames:
+          - cert-manager-controller
+          resources:
+          - leases
+          verbs:
+          - get
+          - update
+          - patch
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+        serviceAccountName: cert-manager
+      - rules:
+        - apiGroups:
+          - coordination.k8s.io
+          resourceNames:
+          - cert-manager-cainjector-leader-election
+          - cert-manager-cainjector-leader-election-core
+          resources:
+          - leases
+          verbs:
+          - get
+          - update
+          - patch
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+        serviceAccountName: cert-manager-cainjector
+      - rules:
+        - apiGroups:
+          - ""
+          resourceNames:
+          - cert-manager-webhook-ca
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - create
+        serviceAccountName: cert-manager-webhook
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - cn2
+  - cloud native contrail networking
+  - contrail-k8s-deployer
+  - SDN
+  - CNI
+  - networking
+  - virtual networking
+  - ebpf
+  links:
+  - name: Cloud Native Contrail Networking
+    url: https://www.juniper.net/documentation/product/us/en/cloud-native-contrail-networking/
+  - name: Cloud Native Contrail Networking 22.3 Release Notes
+    url: https://www.juniper.net/documentation/us/en/software/cn-cloud-native22/release-notes/22.3/cn-cloud-native-release-notes-22.3/index.html
+  maintainers:
+  - email: CN2-Support@juniper.net
+    name: Cloud Native Contrail Networking
+  maturity: stable
+  provider:
+    name: Juniper Networks
+    url: https://www.juniper.net/documentation/product/us/en/cloud-native-contrail-networking/
+  version: 22.3.0
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: cert-manager-webhook
+    failurePolicy: Fail
+    generateName: vwebhook.cert-manager.io
+    matchPolicy: Equivalent
+    rules:
+    - apiGroups:
+      - cert-manager.io
+      - acme.cert-manager.io
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - '*/*'
+    sideEffects: None
+    targetPort: https
+    timeoutSeconds: 10
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: cert-manager-webhook
+    failurePolicy: Fail
+    generateName: mwebhook.cert-manager.io
+    matchPolicy: Equivalent
+    rules:
+    - apiGroups:
+      - cert-manager.io
+      - acme.cert-manager.io
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - '*/*'
+    sideEffects: None
+    targetPort: https
+    timeoutSeconds: 10
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate

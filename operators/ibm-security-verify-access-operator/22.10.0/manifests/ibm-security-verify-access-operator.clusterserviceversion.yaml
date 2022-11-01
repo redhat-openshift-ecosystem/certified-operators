@@ -3,17 +3,251 @@ kind: ClusterServiceVersion
 metadata:
   annotations:
     alm-examples: |-
-      [
-        {
-          "apiVersion": "ibm.com/v1",
-          "kind": "IBMSecurityVerifyAccess",
-          "metadata": {
-            "name": "isva-sample"
-          },
-          "spec": {
-            "image": "docker.io/ibmcom/verify-access-operator@sha256:31bae02c9327bdc13b84fb208e35c40e600958921b80f3723903ea836b30cd6a",
-            "instance": "default"
-          }
+    [
+      {
+      apiVersion: ibm.com/v1
+      kind: Template
+      labels:
+      template: verify-access-config
+      metadata:
+      creationTimestamp: null
+      name: verify-access-config
+      annotations:
+        openshift.io/display-name: IBM Security Verify Access Config
+        iconClass: icon-sso
+        description: IBM Security Verify Access Config Service
+        openshift.io/long-description: This template deploys the config service required for an IBM
+          Security Verify Access environment.
+        openshift.io/documentation-url: https://ibm.biz/verifyaccesscontainers
+        openshift.io/provider-display-name: IBM Security Verify Access
+        openshift.io/support-url: https://ibm.biz/iamcommunity
+        tags: ibm, verifyaccess
+      message: |-
+      Application Name: ${APP_NAME}
+      The following service has been created in your project:
+        - ${CONFIG_SERVICE}
+      Config Service Admin User: admin
+      Config Service Admin Password: ${ADMIN_PW}
+      Config Reader Username: ${CONFIG_ID}
+      Config Reader Password: ${CONFIG_PW}
+      (This user must be created in the LMI)
+      objects:
+      - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: ${APP_NAME}-config
+        labels:
+          app: ${APP_NAME}
+          name: ${APP_NAME}-config
+      spec:
+        storageClassName: managed-nfs-storage
+        accessModes:
+        - ReadWriteMany
+        resources:
+          requests:
+            storage: 50Mi
+      - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: ${APP_NAME}-config-logs
+        labels:
+          app: ${APP_NAME}
+          name: ${APP_NAME}-config
+      spec:
+        storageClassName: managed-nfs-storage
+        accessModes:
+        - ReadWriteMany
+        resources:
+          requests:
+            storage: 150Mi
+      - apiVersion: v1
+      kind: Secret
+      metadata:
+        annotations:
+          template.openshift.io/expose-lmi_admin_password: '{.data[''lmi-admin-password'']}'
+        name: ${APP_NAME}-lmi
+        labels:
+          app: ${APP_NAME}
+      stringData:
+        lmi-admin-password: ${ADMIN_PW}
+      - apiVersion: v1
+      kind: Secret
+      metadata:
+        annotations:
+          template.openshift.io/expose-config_service_url: '{.data[''config-service-url'']}'
+          template.openshift.io/expose-config_read_username: '{.data[''config-read-username'']}'
+          template.openshift.io/expose-config_read_password: '{.data[''config-read-password'']}'
+        name: ${APP_NAME}-config
+        labels:
+          app: ${APP_NAME}
+      stringData:
+        config-service-url: https://${APP_NAME}:9443/shared_volume
+        config-read-username: ${CONFIG_ID}
+        config-read-password: ${CONFIG_PW}
+      - apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        annotations:
+          deployment.kubernetes.io/revision: "1"
+        creationTimestamp: null
+        generation: 1
+        labels:
+          app: ${APP_NAME}
+          name: ${APP_NAME}-config
+        name: ${APP_NAME}-config
+      spec:
+        progressDeadlineSeconds: 600
+        replicas: 1
+        revisionHistoryLimit: 10
+        selector:
+          matchLabels:
+            name: ${APP_NAME}-config
+        triggers:
+          - type: ConfigChange
+        template:
+          metadata:
+            creationTimestamp: null
+            labels:
+              app: ${APP_NAME}
+              name: ${APP_NAME}-config
+          spec:
+            serviceAccountName: ${CONFIG_SERVICE_ACCOUNT}
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 6000
+            containers:
+            - env:
+              - name: CONTAINER_TIMEZONE
+                value: ${TIMEZONE}
+              - name: ADMIN_PWD
+                valueFrom:
+                  secretKeyRef:
+                    key: lmi-admin-password
+                    name: ${APP_NAME}-lmi
+              image: "docker.io/ibmcom/verify-access-operator@sha256:31bae02c9327bdc13b84fb208e35c40e600958921b80f3723903ea836b30cd6a",
+              imagePullPolicy: IfNotPresent
+              name: ${APP_NAME}-config
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+              livenessProbe:
+                exec:
+                  command:
+                  - /sbin/health_check.shdockercompose_isamruntime_1
+                  - livenessProbe
+                periodSeconds: 10
+                timeoutSeconds: 2
+                failureThreshold: 6
+              readinessProbe:
+                httpGet:
+                  scheme: HTTPS
+                  port: 9443
+                  path: /core/login
+                periodSeconds: 10
+                timeoutSeconds: 2
+                failureThreshold: 2
+              startupProbe:
+                exec:
+                  command:
+                  - /sbin/health_check.sh
+                failureThreshold: 30
+                periodSeconds: 10
+                timeoutSeconds: 2
+              volumeMounts:
+              - mountPath: /var/shared
+                name: ${APP_NAME}-config
+              - mountPath: /var/application.logs
+                name: ${APP_NAME}-config-logs
+            dnsPolicy: ClusterFirst
+            imagePullSecrets:
+            - name: ${PULL_SECRET}
+            restartPolicy: Always
+            schedulerName: default-scheduler
+            terminationGracePeriodSeconds: 30
+            volumes:
+            - name: ${APP_NAME}-config
+              persistentVolumeClaim:
+                claimName: ${APP_NAME}-config
+            - name: ${APP_NAME}-config-logs
+              persistentVolumeClaim:
+                claimName: ${APP_NAME}-config-logs
+      - apiVersion: v1
+      kind: Service
+      metadata:
+        creationTimestamp: null
+        name: ${APP_NAME}
+        labels:
+          app: ${APP_NAME}
+          name: ${APP_NAME}-config
+      spec:
+        ports:
+        - name: lmi
+          port: 9443
+          protocol: TCP
+          targetPort: 9443
+        selector:
+          name: ${APP_NAME}-config
+        sessionAffinity: None
+        type: ClusterIP
+      status:
+        loadBalancer: {}
+      - apiVersion: v1
+      kind: Route
+      metadata:
+        creationTimestamp: null
+        name: ${APP_NAME}-${ISVA_VERSION}
+        labels:
+          app: ${APP_NAME}
+      spec:
+        port:
+          targetPort: lmi
+        tls:
+          insecureEdgeTerminationPolicy: Redirect
+          termination: passthrough
+        to:
+          kind: Service
+          name: ${APP_NAME}
+          weight: 100
+        wildcardPolicy: None 
+      parameters:
+      - displayName: Application Name
+        description: This is the name for the application which is used to create unique object names in the cluster.
+        name: APP_NAME
+        value: verifyaccessconfig
+      - displayName: Verify Access Image Version
+        description: The tag that will be used to pull the ibmcom/verify-access images.
+        name: ISVA_VERSION
+        value: 10.0.4.0
+      - displayName: Config Service Name
+        description: The name for the config service.  Also used as the hostname for connections within the cluster.
+        name: CONFIG_SERVICE
+        value: verifyaccessconfig
+      - displayName: LMI Admin Password
+        description: This will be the password for the config service admin user (for both Web and REST access)
+        name: ADMIN_PW
+        value: object00
+      - displayName: Config Read Username
+        description: The username which will be used to pull configuration from the config service.
+          If not using cfgsvc or admin, this user must be created using the LMI.
+        name: CONFIG_ID
+        value: cfgsvc
+      - displayName: Config Read password
+        description: The password that will be used to authenticate as the Config Read user.
+        name: CONFIG_PW
+        value: object00
+      - displayName: Image Pull Secret
+        description: This is an (existing) docker login secret for pulling the Access Manager image.
+          Only required if hosting images on a private repository
+        name: PULL_SECRET
+        value: dockerlogin
+      - displayName: Timezone
+        description: The timezone for message logging (e.g. Europe/London)
+        name: TIMEZONE
+        value: Australia/Brisbane
+      - displayName: Config Service Account
+        description: This is the (existing) Service Account for running the config pod.  It must allow runAsNonRoot, SETUID, SETGID.
+        name: CONFIG_SERVICE_ACCOUNT
+        value: verifyaccess-configsa
         }
       ]
     capabilities: Seamless Upgrades

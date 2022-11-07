@@ -1,0 +1,506 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
+  name: astradsautosupports.astrads.netapp.io
+spec:
+  group: astrads.netapp.io
+  names:
+    categories:
+    - ads
+    - all
+    kind: AstraDSAutoSupport
+    listKind: AstraDSAutoSupportList
+    plural: astradsautosupports
+    shortNames:
+    - adsas
+    singular: astradsautosupport
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Sequence number of the AutoSupport
+      jsonPath: .status.sequenceNumber
+      name: Sequence
+      type: string
+    - description: AutoSupport component associated with the event
+      jsonPath: .spec.component.name
+      name: Component
+      type: string
+    - description: Call home event for the AutoSupport
+      jsonPath: .spec.component.event
+      name: Event
+      type: string
+    - description: Trigger type of the AutoSupport
+      jsonPath: .spec.trigger
+      name: Trigger
+      type: string
+    - description: Priority of the AutoSupport
+      jsonPath: .spec.priority
+      name: Priority
+      type: string
+    - description: Size of the AutoSupport bundle collected
+      jsonPath: .status.size
+      name: Size
+      type: string
+    - description: Current state of the AutoSupport
+      jsonPath: .status.state
+      name: State
+      type: string
+    - description: Flag to indicate if the AutoSupport is to be uploaded or is a local
+        collection
+      jsonPath: .spec.localCollection
+      name: Local Collection
+      priority: 1
+      type: boolean
+    - description: Location of the AutoSupport bundle in the local system
+      jsonPath: .status.localPath
+      name: Local Path
+      priority: 1
+      type: string
+    deprecated: true
+    deprecationWarning: v1alpha1 is deprecated, use v1beta1 instead
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AstraDSAutoSupport is the Schema for the astradsautosupports
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AutoSupportSpec defines the desired state of AutoSupport
+            properties:
+              cluster:
+                description: Name of the ADS Cluster.
+                type: string
+              component:
+                description: Component is the AutoSupport component against which
+                  the callhome event is to be invoked
+                properties:
+                  event:
+                    description: Event is the Callhome event to be invoked for the
+                      component
+                    type: string
+                  name:
+                    description: Name is the AutoSupport component associated with
+                      the callhome event
+                    enum:
+                    - storage
+                    - controlplane
+                    - vasaprovider
+                    type: string
+                required:
+                - event
+                - name
+                type: object
+              duration:
+                description: Duration determines the duration in hours from the StartTime
+                  for the AutoSupport
+                format: int64
+                minimum: 1
+                multipleOf: 1
+                type: integer
+              forceUpload:
+                default: false
+                description: ForceUpload is a flag to force a one-off AutoSupport
+                  bundle transfer to the backend. Overrides autoUpload flag in the
+                  cluster wide AutoSupport configuration and localCollection flag
+                  in this AutoSupport specification
+                type: boolean
+              localCollection:
+                default: false
+                description: LocalCollection is a flag to prevent transfer of AutoSupport
+                  bundle to the backend. When set to true, the collected AutoSupport
+                  bundle is not uploaded. When set to false, the collected AutoSupport
+                  bundle is uploaded. For a one-off upload of the Support bundle,
+                  this flag can be overridden by the ForceUpload flag
+                type: boolean
+              nodeName:
+                description: Name of the ADS Node for Storage AutoSupport.
+                type: string
+              priority:
+                default: notice
+                description: 'Priority is the priority set on the AutoSupport bundle
+                  to be sent to the backend. Priority is appended to the subject header
+                  of the AutoSupport bundle (default: `notice`)'
+                enum:
+                - notice
+                - debug
+                - warning
+                - error
+                - emergency
+                - alert
+                - info
+                type: string
+              retry:
+                default: false
+                description: Retry forces the controller to retry the operation before
+                  the AutoSupport transitioned to an error state. When set to true,
+                  the operation is retried (with exponential backoff) till the operation
+                  is successful. When set to false, the AutoSupport transitions to
+                  an error state on any error
+                type: boolean
+              startTime:
+                description: StartTime is the starting time from when the AutoSupport
+                  is supposed to collect the data.
+                format: date-time
+                type: string
+              trigger:
+                default: manual
+                description: Trigger is the trigger type of the AutoSupport instance.
+                  <br> (___default:___ `manual`)
+                enum:
+                - firetapEvent
+                - coreEvent
+                - k8sEvent
+                - periodic
+                - manual
+                - userTrigger
+                type: string
+              userMessage:
+                description: UserMessage is the additional message to include in the
+                  AutoSupport subject header
+                type: string
+            required:
+            - cluster
+            - component
+            type: object
+          status:
+            description: AutoSupportStatus defines the observed state of AutoSupport
+            properties:
+              cluster:
+                description: Cluster is the current cluster that this object is associated
+                  with
+                type: string
+              conditions:
+                description: Condition is the latest observation of the AutoSupport
+                  state
+                items:
+                  description: AutoSupportCondition defines the condition information
+                    for an AutoSupport
+                  properties:
+                    lastHeartbeatTime:
+                      description: LastHeartbeatTime is the timestamp of when the
+                        AutoSupport condition was last probed
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: LastTransitionTime is the timestamp for when the
+                        AutoSupport last transitioned from one status to another
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message is the Human-readable message indicating
+                        details about last transition
+                      type: string
+                    reason:
+                      description: Reason is the (brief) reason for the condition's
+                        last transition
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of AutoSupport condition
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              localPath:
+                description: LocalPath is the location of the AutoSupport bundle in
+                  the local system
+                type: string
+              sequenceNumber:
+                description: SequenceNumber is the Id of the AutoSupport
+                format: int64
+                type: integer
+              size:
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size is the total size of the AutoSupport bundle
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              state:
+                description: State is the current state of collecting an AutoSupport
+                  bundle
+                enum:
+                - initializing
+                - collecting
+                - collected
+                - compressed
+                - uploadReady
+                - uploading
+                - uploaded
+                - error
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: Sequence number of the AutoSupport
+      jsonPath: .status.sequenceNumber
+      name: Sequence
+      type: string
+    - description: AutoSupport component associated with the event
+      jsonPath: .spec.component.name
+      name: Component
+      type: string
+    - description: Call home event for the AutoSupport
+      jsonPath: .spec.component.event
+      name: Event
+      type: string
+    - description: Trigger type of the AutoSupport
+      jsonPath: .spec.trigger
+      name: Trigger
+      type: string
+    - description: Priority of the AutoSupport
+      jsonPath: .spec.priority
+      name: Priority
+      type: string
+    - description: Size of the AutoSupport bundle collected
+      jsonPath: .status.size
+      name: Size
+      type: string
+    - description: Current state of the AutoSupport
+      jsonPath: .status.state
+      name: State
+      type: string
+    - description: Flag to indicate if the AutoSupport is to be uploaded or is a local
+        collection
+      jsonPath: .spec.localCollection
+      name: Local Collection
+      priority: 1
+      type: boolean
+    - description: Location of the AutoSupport bundle in the local system
+      jsonPath: .status.localPath
+      name: Local Path
+      priority: 1
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: AstraDSAutoSupport is the Schema for the astradsautosupports
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AutoSupportSpec defines the desired state of AutoSupport
+            properties:
+              autoCase:
+                default: false
+                description: Create cases automatically for this ASUP.
+                type: boolean
+              caseNumber:
+                description: Case Number associated with the ASUP.
+                format: int64
+                type: integer
+              cluster:
+                description: Name of the ADS Cluster.
+                type: string
+              component:
+                description: Component is the AutoSupport component against which
+                  the callhome event is to be invoked
+                properties:
+                  event:
+                    description: Event is the Callhome event to be invoked for the
+                      component
+                    type: string
+                  name:
+                    description: Name is the AutoSupport component associated with
+                      the callhome event
+                    enum:
+                    - storage
+                    - controlplane
+                    - vasaprovider
+                    type: string
+                required:
+                - event
+                - name
+                type: object
+              duration:
+                description: Duration determines the duration in hours from the StartTime
+                  for the AutoSupport
+                format: int64
+                minimum: 1
+                multipleOf: 1
+                type: integer
+              forceUpload:
+                default: false
+                description: ForceUpload is a flag to force a one-off AutoSupport
+                  bundle transfer to the backend. Overrides autoUpload flag in the
+                  cluster wide AutoSupport configuration and localCollection flag
+                  in this AutoSupport specification
+                type: boolean
+              localCollection:
+                default: false
+                description: LocalCollection is a flag to prevent transfer of AutoSupport
+                  bundle to the backend. When set to true, the collected AutoSupport
+                  bundle is not uploaded. When set to false, the collected AutoSupport
+                  bundle is uploaded. For a one-off upload of the Support bundle,
+                  this flag can be overridden by the ForceUpload flag
+                type: boolean
+              nodeName:
+                description: Name of the ADS Node for Storage AutoSupport.
+                type: string
+              priority:
+                default: notice
+                description: 'Priority is the priority set on the AutoSupport bundle
+                  to be sent to the backend. Priority is appended to the subject header
+                  of the AutoSupport bundle (default: `notice`)'
+                enum:
+                - notice
+                - debug
+                - warning
+                - error
+                - emergency
+                - alert
+                - info
+                type: string
+              retry:
+                default: false
+                description: Retry forces the controller to retry the operation before
+                  the AutoSupport transitioned to an error state. When set to true,
+                  the operation is retried (with exponential backoff) till the operation
+                  is successful. When set to false, the AutoSupport transitions to
+                  an error state on any error
+                type: boolean
+              startTime:
+                description: StartTime is the starting time from when the AutoSupport
+                  is supposed to collect the data.
+                format: date-time
+                type: string
+              trigger:
+                default: manual
+                description: Trigger is the trigger type of the AutoSupport instance.
+                  <br> (___default:___ `manual`)
+                enum:
+                - firetapEvent
+                - coreEvent
+                - k8sEvent
+                - periodic
+                - manual
+                - userTrigger
+                type: string
+              userMessage:
+                description: UserMessage is the additional message to include in the
+                  AutoSupport subject header
+                type: string
+            required:
+            - autoCase
+            - cluster
+            - component
+            type: object
+          status:
+            description: AutoSupportStatus defines the observed state of AutoSupport
+            properties:
+              caseNumber:
+                description: Case Number of Asup.
+                format: int64
+                type: integer
+              cluster:
+                type: string
+              conditions:
+                description: Condition is the latest observation of the AutoSupport
+                  state
+                items:
+                  description: AutoSupportCondition defines the condition information
+                    for an AutoSupport
+                  properties:
+                    lastHeartbeatTime:
+                      description: LastHeartbeatTime is the timestamp of when the
+                        AutoSupport condition was last probed
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: LastTransitionTime is the timestamp for when the
+                        AutoSupport last transitioned from one status to another
+                      format: date-time
+                      type: string
+                    message:
+                      description: Message is the Human-readable message indicating
+                        details about last transition
+                      type: string
+                    reason:
+                      description: Reason is the (brief) reason for the condition's
+                        last transition
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of AutoSupport condition
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              localPath:
+                description: LocalPath is the location of the AutoSupport bundle in
+                  the local system
+                type: string
+              sequenceNumber:
+                description: SequenceNumber is the Id of the AutoSupport
+                format: int64
+                type: integer
+              size:
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size is the total size of the AutoSupport bundle
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              state:
+                description: State is the current state of collecting an AutoSupport
+                  bundle
+                enum:
+                - initializing
+                - collecting
+                - collected
+                - compressed
+                - uploadReady
+                - uploading
+                - uploaded
+                - error
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

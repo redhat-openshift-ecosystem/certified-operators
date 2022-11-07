@@ -1,0 +1,412 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "operator.antrea.vmware.com/v1",
+          "kind": "AntreaInstall",
+          "metadata": {
+            "name": "antrea-install",
+            "namespace": "antrea-operator"
+          },
+          "spec": {
+            "antreaAgentConfig": "# FeatureGates is a map of feature names to bools that enable or disable experimental features.\nfeatureGates:\n# Enable AntreaProxy which provides ServiceLB for in-cluster Services in antrea-agent.\n# It should be enabled on Windows, otherwise NetworkPolicy will not take effect on\n# Service traffic.\n#  AntreaProxy: true\n\n# Enable EndpointSlice support in AntreaProxy. Don't enable this feature unless that EndpointSlice\n# API version v1beta1 is supported and set as enabled in Kubernetes. If AntreaProxy is not enabled,\n# this flag will not take effect.\n#  EndpointSlice: false\n\n# Enable traceflow which provides packet tracing feature to diagnose network issue.\n#  Traceflow: true\n\n# Enable NodePortLocal feature to make the Pods reachable externally through NodePort\n#  NodePortLocal: true\n\n# Enable Antrea ClusterNetworkPolicy feature to complement K8s NetworkPolicy for cluster admins\n# to define security policies which apply to the entire cluster, and Antrea NetworkPolicy\n# feature that supports priorities, rule actions and externalEntities in the future.\n#  AntreaPolicy: true\n\n# Enable flowexporter which exports polled conntrack connections as IPFIX flow records from each\n# agent to a configured collector.\n#  FlowExporter: false\n\n# Enable collecting and exposing NetworkPolicy statistics.\n#  NetworkPolicyStats: true\n\n# Enable controlling SNAT IPs of Pod egress traffic.\n#  Egress: true\n\n# Enable AntreaIPAM, which can allocate IP addresses from IPPools. AntreaIPAM is required by the\n# bridging mode and allocates IPs to Pods in bridging mode. It is also required to use Antrea for\n# IPAM when configuring secondary network interfaces with Multus.\n#  AntreaIPAM: false\n\n# Enable multicast traffic. This feature is supported only with noEncap mode.\n#  Multicast: false\n\n# Enable Antrea Multi-cluster Gateway to support cross-cluster traffic.\n# This feature is supported only with encap mode.\n#  Multicluster: false\n\n# Enable support for provisioning secondary network interfaces for Pods (using\n# Pod annotations). At the moment, Antrea can only create secondary network\n# interfaces using SR-IOV VFs on baremetal Nodes.\n#  SecondaryNetwork: false\n\n# Enable managing external IPs of Services of LoadBalancer type.\n#  ServiceExternalIP: false\n\n# Enable mirroring or redirecting the traffic Pods send or receive.\n#  TrafficControl: false\n\n# Enable certificated-based authentication for IPsec.\n#  IPsecCertAuth: false\n\n# Name of the OpenVSwitch bridge antrea-agent will create and use.\n# Make sure it doesn't conflict with your existing OpenVSwitch bridges.\novsBridge: \"br-int\"\n\n# Datapath type to use for the OpenVSwitch bridge created by Antrea. Supported values are:\n# - system\n# - netdev\n# 'system' is the default value and corresponds to the kernel datapath. Use 'netdev' to run\n# OVS in userspace mode. Userspace mode requires the tun device driver to be available.\n#ovsDatapathType: system\n\n# Name of the interface antrea-agent will create and use for host \u003c--\u003e pod communication.\n# Make sure it doesn't conflict with your existing interfaces.\nhostGateway: \"antrea-gw0\"\n\n# Determines how traffic is encapsulated. It has the following options:\n# encap(default):    Inter-node Pod traffic is always encapsulated and Pod to external network\n#                    traffic is SNAT'd.\n# noEncap:           Inter-node Pod traffic is not encapsulated; Pod to external network traffic is\n#                    SNAT'd if noSNAT is not set to true. Underlying network must be capable of\n#                    supporting Pod traffic across IP subnets.\n# hybrid:            noEncap if source and destination Nodes are on the same subnet, otherwise encap.\n# networkPolicyOnly: Antrea enforces NetworkPolicy only, and utilizes CNI chaining and delegates Pod\n#                    IPAM and connectivity to the primary CNI.\n#\ntrafficEncapMode: \"encap\"\n\n# Whether or not to SNAT (using the Node IP) the egress traffic from a Pod to the external network.\n# This option is for the noEncap traffic mode only, and the default value is false. In the noEncap\n# mode, if the cluster's Pod CIDR is reachable from the external network, then the Pod traffic to\n# the external network needs not be SNAT'd. In the networkPolicyOnly mode, antrea-agent never\n# performs SNAT and this option will be ignored; for other modes it must be set to false.\nnoSNAT: false\n\n# Tunnel protocols used for encapsulating traffic across Nodes. If WireGuard is enabled in trafficEncryptionMode,\n# this option will not take effect. Supported values:\n# - geneve (default)\n# - vxlan\n# - gre\n# - stt\n# Note that \"gre\" is not supported for IPv6 clusters (IPv6-only or dual-stack clusters).\ntunnelType: \"geneve\"\n\n# Determines how tunnel traffic is encrypted. Currently encryption only works with encap mode.\n# It has the following options:\n# - none (default):  Inter-node Pod traffic will not be encrypted.\n# - ipsec:           Enable IPsec (ESP) encryption for Pod traffic across Nodes. Antrea uses\n#                    Preshared Key (PSK) for IKE authentication. When IPsec tunnel is enabled,\n#                    the PSK value must be passed to Antrea Agent through an environment\n#                    variable: ANTREA_IPSEC_PSK.\n# - wireGuard:       Enable WireGuard for tunnel traffic encryption.\ntrafficEncryptionMode: \"none\"\n\n# Enable bridging mode of Pod network on Nodes, in which the Node's transport interface is connected\n# to the OVS bridge, and cross-Node/VLAN traffic of AntreaIPAM Pods (Pods whose IP addresses are\n# allocated by AntreaIPAM from IPPools) is sent to the underlay network, and forwarded/routed by the\n# underlay network.\n# This option requires the `AntreaIPAM` feature gate to be enabled. At this moment, it supports only\n# IPv4 and Linux Nodes, and can be enabled only when `ovsDatapathType` is `system`,\n# `trafficEncapMode` is `noEncap`, and `noSNAT` is true.\nenableBridgingMode: false\n\n# Disable TX checksum offloading for container network interfaces. It's supposed to be set to true when the\n# datapath doesn't support TX checksum offloading, which causes packets to be dropped due to bad checksum.\n# It affects Pods running on Linux Nodes only.\ndisableTXChecksumOffload: false\n\n# Default MTU to use for the host gateway interface and the network interface of each Pod.\n# If omitted, antrea-agent will discover the MTU of the Node's primary interface and\n# also adjust MTU to accommodate for tunnel encapsulation overhead (if applicable).\ndefaultMTU: 0\n\n# wireGuard specifies WireGuard related configurations.\nwireGuard:\n  # The port for WireGuard to receive traffic.\n  port: 51820\n\negress:\n  # exceptCIDRs is the CIDR ranges to which outbound Pod traffic will not be SNAT'd by Egresses.\n  exceptCIDRs:\n\n# ClusterIP CIDR range for Services. It's required when AntreaProxy is not enabled, and should be\n# set to the same value as the one specified by --service-cluster-ip-range for kube-apiserver. When\n# AntreaProxy is enabled, this parameter is not needed and will be ignored if provided.\nserviceCIDR: \"\"\n\n# ClusterIP CIDR range for IPv6 Services. It's required when using kube-proxy to provide IPv6 Service in a Dual-Stack\n# cluster or an IPv6 only cluster. The value should be the same as the configuration for kube-apiserver specified by\n# --service-cluster-ip-range. When AntreaProxy is enabled, this parameter is not needed.\n# No default value for this field.\nserviceCIDRv6: \"\"\n\n# The port for the antrea-agent APIServer to serve on.\n# Note that if it's set to another value, the `containerPort` of the `api` port of the\n# `antrea-agent` container must be set to the same value.\napiPort: 10350\n\n# Enable metrics exposure via Prometheus. Initializes Prometheus metrics listener.\nenablePrometheusMetrics: true\n\n# Provide the IPFIX collector address as a string with format \u003cHOST\u003e:[\u003cPORT\u003e][:\u003cPROTO\u003e].\n# HOST can either be the DNS name or the IP of the Flow Collector. For example,\n# \"flow-aggregator.flow-aggregator.svc\" can be provided as DNS name to connect\n# to the Antrea Flow Aggregator service. If IP, it can be either IPv4 or IPv6.\n# However, IPv6 address should be wrapped with [].\n# If PORT is empty, we default to 4739, the standard IPFIX port.\n# If no PROTO is given, we consider \"tls\" as default. We support \"tls\", \"tcp\" and\n# \"udp\" protocols. \"tls\" is used for securing communication between flow exporter and\n# flow aggregator.\nflowCollectorAddr: \"flow-aggregator.flow-aggregator.svc:4739:tls\"\n\n# Provide flow poll interval as a duration string. This determines how often the\n# flow exporter dumps connections from the conntrack module. Flow poll interval\n# should be greater than or equal to 1s (one second).\n# Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\nflowPollInterval: \"5s\"\n\n# Provide the active flow export timeout, which is the timeout after which a flow\n# record is sent to the collector for active flows. Thus, for flows with a continuous\n# stream of packets, a flow record will be exported to the collector once the elapsed\n# time since the last export event is equal to the value of this timeout.\n# Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\nactiveFlowExportTimeout: \"5s\"\n\n# Provide the idle flow export timeout, which is the timeout after which a flow\n# record is sent to the collector for idle flows. A flow is considered idle if no\n# packet matching this flow has been observed since the last export event.\n# Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\nidleFlowExportTimeout: \"15s\"\n\nnodePortLocal:\n# Enable NodePortLocal, a feature used to make Pods reachable using port forwarding on the host. To\n# enable this feature, you need to set \"enable\" to true, and ensure that the NodePortLocal feature\n# gate is also enabled (which is the default).\n  enable: false\n# Provide the port range used by NodePortLocal. When the NodePortLocal feature is enabled, a port\n# from that range will be assigned whenever a Pod's container defines a specific port to be exposed\n# (each container can define a list of ports as pod.spec.containers[].ports), and all Node traffic\n# directed to that port will be forwarded to the Pod.\n  portRange: \"61000-62000\"\n\n# Provide the address of Kubernetes apiserver, to override any value provided in kubeconfig or InClusterConfig.\n# Defaults to \"\". It must be a host string, a host:port pair, or a URL to the base of the apiserver.\nkubeAPIServerOverride: \"\"\n\n# Provide the address of DNS server, to override the kube-dns service. It's used to resolve hostname in FQDN policy.\n# Defaults to \"\". It must be a host string or a host:port pair of the DNS server (e.g. 10.96.0.10, 10.96.0.10:53,\n# [fd00:10:96::a]:53).\ndnsServerOverride: \"\"\n\n# Comma-separated list of Cipher Suites. If omitted, the default Go Cipher Suites will be used.\n# https://golang.org/pkg/crypto/tls/#pkg-constants\n# Note that TLS1.3 Cipher Suites cannot be added to the list. But the apiserver will always\n# prefer TLS1.3 Cipher Suites whenever possible.\ntlsCipherSuites: \"\"\n\n# TLS min version from: VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.\ntlsMinVersion: \"\"\n\n# The name of the interface on Node which is used for tunneling or routing the traffic across Nodes.\n# If there are multiple IP addresses configured on the interface, the first one is used. The IP\n# address used for tunneling or routing traffic to remote Nodes is decided in the following order of\n# preference (from highest to lowest):\n# 1. transportInterface\n# 2. transportInterfaceCIDRs\n# 3. The Node IP\ntransportInterface: \"\"\n\nmulticast:\n# The names of the interfaces on Nodes that are used to forward multicast traffic.\n# Defaults to transport interface if not set.\n  multicastInterfaces:\n\n# The interval at which the antrea-agent sends IGMP queries to Pods.\n# Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\n  igmpQueryInterval: \"125s\"\n\n# The network CIDRs of the interface on Node which is used for tunneling or routing the traffic across\n# Nodes. If there are multiple interfaces configured the same network CIDR, the first one is used. The\n# IP address used for tunneling or routing traffic to remote Nodes is decided in the following order of\n# preference (from highest to lowest):\n# 1. transportInterface\n# 2. transportInterfaceCIDRs\n# 3. The Node IP\ntransportInterfaceCIDRs:\n\n# Option antreaProxy contains AntreaProxy related configuration options.\nantreaProxy:\n  # ProxyAll tells antrea-agent to proxy all Service traffic, including NodePort, LoadBalancer, and ClusterIP traffic,\n  # regardless of where they come from. Therefore, running kube-proxy is no longer required. This requires the AntreaProxy\n  # feature to be enabled.\n  # Note that this option is experimental. If kube-proxy is removed, option kubeAPIServerOverride must be used to access\n  # apiserver directly.\n  proxyAll: false\n  # A string array of values which specifies the host IPv4/IPv6 addresses for NodePort. Values can be valid IP blocks.\n  # (e.g. 1.2.3.0/24, 1.2.3.4/32). An empty string slice is meant to select all host IPv4/IPv6 addresses.\n  # Note that the option is only valid when proxyAll is true.\n  nodePortAddresses:\n  # An array of string values to specify a list of Services which should be ignored by AntreaProxy (traffic to these\n  # Services will not be load-balanced). Values can be a valid ClusterIP (e.g. 10.11.1.2) or a Service name\n  # with Namespace (e.g. kube-system/kube-dns)\n  skipServices:\n  # When ProxyLoadBalancerIPs is set to false, AntreaProxy no longer load-balances traffic destined to the\n  # External IPs of LoadBalancer Services. This is useful when the external LoadBalancer provides additional\n  # capabilities (e.g. TLS termination) and it is desirable for Pod-to-ExternalIP traffic to be sent to the\n  # external LoadBalancer instead of being load-balanced to an Endpoint directly by AntreaProxy.\n  # Note that setting ProxyLoadBalancerIPs to false usually only makes sense when ProxyAll is set to true and\n  # kube-proxy is removed from the cluser, otherwise kube-proxy will still load-balance this traffic.\n  proxyLoadBalancerIPs: true\n\n# IPsec tunnel related configurations.\nipsec:\n  # The authentication mode of IPsec tunnel. It has the following options:\n  # - psk (default): Use pre-shared key (PSK) for IKE authentication.\n  # - cert:          Use CA-signed certificates for IKE authentication. This option requires the `IPsecCertAuth`\n  #                  feature gate to be enabled.\n  authenticationMode: \"psk\"\n\nmulticluster:\n# Enable Antrea Multi-cluster Gateway to support cross-cluster traffic.\n# This feature is supported only with encap mode.\n  enable: false\n# The Namespace where Antrea Multi-cluster Controller is running.\n# The default is antrea-agent's Namespace.\n  namespace: \"\"\n",
+            "antreaCNIConfig": "{\n    \"cniVersion\":\"0.3.0\",\n    \"name\": \"antrea\",\n    \"plugins\": [\n        {\n            \"type\": \"antrea\",\n            \"ipam\": {\n                \"type\": \"host-local\"\n            }\n        }\n        ,\n        {\n            \"type\": \"portmap\",\n            \"capabilities\": {\"portMappings\": true}\n        }\n        ,\n        {\n            \"type\": \"bandwidth\",\n            \"capabilities\": {\"bandwidth\": true}\n        }\n    ]\n}\n",
+            "antreaControllerConfig": "# FeatureGates is a map of feature names to bools that enable or disable experimental features.\nfeatureGates:\n# Enable traceflow which provides packet tracing feature to diagnose network issue.\n#  Traceflow: true\n\n# Enable Antrea ClusterNetworkPolicy feature to complement K8s NetworkPolicy for cluster admins\n# to define security policies which apply to the entire cluster, and Antrea NetworkPolicy\n# feature that supports priorities, rule actions and externalEntities in the future.\n#  AntreaPolicy: true\n\n# Enable collecting and exposing NetworkPolicy statistics.\n#  NetworkPolicyStats: true\n\n# Enable multicast traffic. This feature is supported only with noEncap mode.\n#  Multicast: false\n\n# Enable controlling SNAT IPs of Pod egress traffic.\n#  Egress: true\n\n# Run Kubernetes NodeIPAMController with Antrea.\n#  NodeIPAM: false\n\n# Enable AntreaIPAM, which can allocate IP addresses from IPPools. AntreaIPAM is required by the\n# bridging mode and allocates IPs to Pods in bridging mode. It is also required to use Antrea for\n# IPAM when configuring secondary network interfaces with Multus.\n#  AntreaIPAM: false\n\n# Enable managing external IPs of Services of LoadBalancer type.\n#  ServiceExternalIP: false\n\n# Enable certificated-based authentication for IPsec.\n#  IPsecCertAuth: false\n\n# The port for the antrea-controller APIServer to serve on.\n# Note that if it's set to another value, the `containerPort` of the `api` port of the\n# `antrea-controller` container must be set to the same value.\napiPort: 10349\n\n# Enable metrics exposure via Prometheus. Initializes Prometheus metrics listener.\nenablePrometheusMetrics: true\n\n# Indicates whether to use auto-generated self-signed TLS certificate.\n# If false, a Secret named \"antrea-controller-tls\" must be provided with the following keys:\n#   ca.crt: \u003cCA certificate\u003e\n#   tls.crt: \u003cTLS certificate\u003e\n#   tls.key: \u003cTLS private key\u003e\nselfSignedCert: true\n\n# Comma-separated list of Cipher Suites. If omitted, the default Go Cipher Suites will be used.\n# https://golang.org/pkg/crypto/tls/#pkg-constants\n# Note that TLS1.3 Cipher Suites cannot be added to the list. But the apiserver will always\n# prefer TLS1.3 Cipher Suites whenever possible.\ntlsCipherSuites: \"\"\n\n# TLS min version from: VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.\ntlsMinVersion: \"\"\n\nnodeIPAM:\n  # Enable the integrated Node IPAM controller within the Antrea controller.\n  enableNodeIPAM: false\n  # CIDR ranges for Pods in cluster. String array containing single CIDR range, or multiple ranges.\n  # The CIDRs could be either IPv4 or IPv6. At most one CIDR may be specified for each IP family.\n  # Value ignored when enableNodeIPAM is false.\n  clusterCIDRs:\n  # CIDR ranges for Services in cluster. It is not necessary to specify it when there is no overlap with clusterCIDRs.\n  # Value ignored when enableNodeIPAM is false.\n  serviceCIDR: \"\"\n  serviceCIDRv6: \"\"\n  # Mask size for IPv4 Node CIDR in IPv4 or dual-stack cluster. Value ignored when enableNodeIPAM is false\n  # or when IPv4 Pod CIDR is not configured. Valid range is 16 to 30.\n  nodeCIDRMaskSizeIPv4: 24\n  # Mask size for IPv6 Node CIDR in IPv6 or dual-stack cluster. Value ignored when enableNodeIPAM is false\n  # or when IPv6 Pod CIDR is not configured. Valid range is 64 to 126.\n  nodeCIDRMaskSizeIPv6: 64\n\nipsecCSRSigner:\n  # Determines the auto-approve policy of Antrea CSR signer for IPsec certificates management.\n  # If enabled, Antrea will auto-approve the CertificateSingingRequest (CSR) if its subject and x509 extensions\n  # are permitted, and the requestor can be validated. If K8s `BoundServiceAccountTokenVolume` feature is enabled,\n  # the Pod identity will also be validated to provide maximum security.\n  # If set to false, Antrea will not auto-approve CertificateSingingRequests and they need to be approved\n  # manually by `kubectl certificate approve`.\n  autoApprove: true\n  # Indicates whether to use auto-generated self-signed CA certificate.\n  # If false, a Secret named \"antrea-ipsec-ca\" must be provided with the following keys:\n  #   tls.crt: \u003cCA certificate\u003e\n  #   tls.key: \u003cCA private key\u003e\n  selfSignedCA: true\n",
+            "antreaImage": "antrea/antrea-ubi:v1.7.1"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    description: An operator which installs Antrea network CNI plugin on the Kubernetes
+      cluster.
+    operators.operatorframework.io/builder: operator-sdk-v1.19.0+git
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
+  name: antrea-operator-for-kubernetes.v1.7.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: AntreaInstall is the Schema for the antreainstalls API
+      displayName: Antrea Install
+      kind: AntreaInstall
+      name: antreainstalls.operator.antrea.vmware.com
+      resources:
+      - kind: Deployment
+        name: A Kubernetes Deployment for the Operator
+        version: v1
+      - kind: Network
+        name: Openshift's cluster network
+        version: v1
+      - kind: ClusterOperator
+        name: antrea cluster operator
+        version: v1
+      - kind: AntreaInstall
+        name: this operator's CR
+        version: v1
+      specDescriptors:
+      - description: AntreaAgentConfig holds the configurations for antrea-agent.
+        displayName: Antrea Agent Config
+        path: antreaAgentConfig
+      - description: AntreaCNIConfig holds the configuration of CNI.
+        displayName: Antrea CNIConfig
+        path: antreaCNIConfig
+      - description: AntreaControllerConfig holds the configurations for antrea-controller.
+        displayName: Antrea Controller Config
+        path: antreaControllerConfig
+      - description: AntreaImage is the Docker image name used by antrea-agent and
+          antrea-controller.
+        displayName: Antrea Image
+        path: antreaImage
+      - description: AntreaPlatform is the platform on which antrea will be deployed.
+        displayName: Antrea Platform
+        path: antreaPlatform
+      statusDescriptors:
+      - description: Conditions describes the state of Antrea installation.
+        displayName: Conditions
+        path: conditions
+      version: v1
+  description: An operator which installs Antrea network CNI plugin on the Kubernetes
+    cluster.
+  displayName: Antrea Operator
+  icon:
+  - base64data: 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
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - nonResourceURLs:
+          - /addressgroups
+          - /agentinfo
+          - /appliedtogroups
+          - /networkpolicies
+          - /ovsflows
+          - /ovstracing
+          - /podinterfaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - namespaces
+          - pods
+          - serviceaccounts
+          - services
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - mutatingwebhookconfigurations
+          - validatingwebhookconfigurations
+          verbs:
+          - create
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apiregistration.k8s.io
+          resources:
+          - apiservices
+          verbs:
+          - create
+          - delete
+          - get
+          - update
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - deployments
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        - apiGroups:
+          - config.openshift.io
+          resources:
+          - clusteroperators
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - config.openshift.io
+          resources:
+          - clusteroperators/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - config.openshift.io
+          resources:
+          - networks
+          - networks/finalizers
+          verbs:
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - controlplane.antrea.io
+          resources:
+          - addressgroups
+          - appliedtogroups
+          - networkpolicies
+          verbs:
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - crd.antrea.io
+          resources:
+          - antreaagentinfos
+          - antreacontrollerinfos
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+        - apiGroups:
+          - crd.antrea.io
+          resources:
+          - clusternetworkpolicies
+          verbs:
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - crd.antrea.io
+          resources:
+          - traceflows
+          - traceflows/status
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - networkpolicies
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - operator.antrea.vmware.com
+          resources:
+          - antreainstalls
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - operator.antrea.vmware.com
+          resources:
+          - antreainstalls/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - operator.openshift.io
+          resources:
+          - networks
+          verbs:
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          - rolebindings
+          - roles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - hostnetwork
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - system.antrea.io
+          resources:
+          - agentinfos
+          - supportbundles
+          - supportbundles/download
+          verbs:
+          - delete
+          - get
+          - list
+          - post
+          - watch
+        serviceAccountName: antrea-operator
+      deployments:
+      - name: antrea-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: antrea-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                name: antrea-operator
+            spec:
+              containers:
+              - args:
+                - --enable-leader-election
+                command:
+                - antrea-operator
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: antrea-operator
+                image: antrea/antrea-operator@sha256:3897cc471c47b5fd38b862770cd54e1e676cc57c3af9c9329ef07f9a620bee58
+                imagePullPolicy: IfNotPresent
+                name: antrea-operator
+                resources: {}
+              hostNetwork: true
+              serviceAccountName: antrea-operator
+              tolerations:
+              - effect: NoSchedule
+                key: node-role.kubernetes.io/master
+              - effect: NoSchedule
+                key: node.kubernetes.io/not-ready
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps/status
+          verbs:
+          - get
+          - update
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: antrea-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: true
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - networking
+  - security
+  links:
+  - name: Antrea Operator For Kubernetes
+    url: https://github.com/vmware/antrea-operator-for-kubernetes
+  maintainers:
+  - email: projectantrea-maintainers@googlegroups.com
+    name: Project Antrea Maintainers
+  maturity: alpha
+  minKubeVersion: 1.20.0
+  provider:
+    name: antrea.io
+  version: 1.7.1

@@ -5,76 +5,56 @@ metadata:
     alm-examples: |-
       [
         {
-          "apiVersion": "kcos.loadcore.keysight.com/v1alpha1",
           "kind": "Sso",
+          "apiVersion": "kcos.loadcore.keysight.com/v1alpha1",
           "metadata": {
-            "name": "sso-sample"
+            "name": "kcos-sso",
+            "namespace": "kcos-sso"
           },
           "spec": {
+            "auth": {
+              "enabled": true
+            },
+            "clusterDomain": "cluster.local",
             "kcos-keycloak": {
               "auth": {
-                "baseURL": "https://keycloak.kcos-sso.svc:8443",
-                "clientID": "kcos-democlient",
-                "demoClientEnabled": false,
+                "baseURL": "https://keycloak.kcos-sso.svc.cluster.local:8443",
                 "enabled": true,
-                "realm": "keysight",
-                "sessionCookie": "KeycloakSession"
+                "sessionCookie": "AT"
               },
               "authproxy": {
-                "exceptionsJson": "[]",
-                "image": "docker-virtual-kcos.artifactorylbj.it.keysight.com/kcos-auth-proxy:0.15.13-feature-openshift-v10_20221103.093124.380d3b18",
+                "image": "prod.harbor.keysight.digital/loadcore/kcos-auth-proxy@sha256:8c63290295438c6b3c68e695a543628506e2b14ec724e086278d0c01d9921b22",
                 "initContainer": {
-                  "image": "docker-virtual-kcos.artifactorylbj.it.keysight.com/busybox-curl:1.0.0",
-                  "imagePullPolicy": "IfNotPresent"
-                },
-                "pullPolicy": "IfNotPresent",
-                "replicas": 1
+                  "image": "registry.access.redhat.com/rhel8/toolbox@sha256:a753c24cb8b03066d494f010ad654d23fb0559f14d7121542298da3e0d48340d"
+                }
               },
-              "imagePullSecrets": [],
               "persistence": {
-                "storageClass": null
+                "storageClass": "managed-loadcore-storage"
               },
               "realm": {
-                "accessTokenLifespan": 300,
-                "accessTokenLifespanForImplicitFlow": 900,
-                "accountTheme": "kcos-dark-theme",
+                "accessTokenLifespan": 266400,
+                "accessTokenLifespanForImplicitFlow": 266400,
                 "admin": {
-                  "password": "transportation understanding manufacturing relationship"
+                  "password": "admin"
                 },
-                "adminTheme": "kcos-dark-theme",
-                "displayName": "Keysight Device",
-                "emailTheme": "keycloak",
-                "id": "keysight",
-                "loginTheme": "kcos-dark-theme",
                 "offlineSessionIdleTimeout": 2592000,
                 "offlineSessionMaxLifespan": 5184000,
-                "passwordPolicy": null,
-                "registrationAllowed": false,
-                "ssoSessionIdleTimeout": 1800,
-                "ssoSessionMaxLifespan": 36000
+                "registrationAllowed": true,
+                "ssoSessionIdleTimeout": 266400,
+                "ssoSessionMaxLifespan": 266400
               }
             },
-            "keycloak-operator": {
-              "imagePullSecrets": [],
-              "keycloak": {
-                "initContainer": {
-                  "relatedImage": "docker-virtual-kcos.artifactorylbj.it.keysight.com/kcos-keycloak-init-container:0.15.13-feature-openshift-v10_20221103.093124.380d3b18"
-                },
-                "postgresql": {
-                  "relatedImage": "docker-virtual-kcos.artifactorylbj.it.keysight.com/kcos-keycloak-postgresql:0.15.13-feature-openshift-v10_20221103.093124.380d3b18"
-                },
-                "relatedImage": "docker-virtual-kcos.artifactorylbj.it.keysight.com/kcos-keycloak:0.15.13-feature-openshift-v10_20221103.093124.380d3b18"
-              },
-              "keycloakOperator": {
-                "image": "docker-virtual-kcos.artifactorylbj.it.keysight.com/kcos-keycloak-operator:17.0.0-ks0.4.11-feature-openshift-v5_20221031.130702.6e0b7ab0",
-                "imagePullPolicy": "IfNotPresent"
+            "subcharts": {
+              "enable": {
+                "kcos-keycloak": true,
+                "keycloak-operator": false
               }
             }
           }
         }
       ]
     capabilities: Basic Install
-    operators.operatorframework.io/builder: operator-sdk-v1.25.0
+    operators.operatorframework.io/builder: operator-sdk-v1.25.1
     operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
   name: keysight-kcos-sso.v0.0.90
   namespace: placeholder
@@ -129,38 +109,16 @@ spec:
             - apiGroups:
                 - ""
               resources:
-                - pods
-                - services
-                - services/finalizers
-                - endpoints
-                - persistentvolumeclaims
-                - events
                 - configmaps
-                - secrets
-                - serviceaccounts
+                - services
               verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
+                - '*'
             - apiGroups:
                 - apps
               resources:
                 - deployments
-                - daemonsets
-                - replicasets
-                - statefulsets
               verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
+                - '*'
             - apiGroups:
                 - batch
               resources:
@@ -250,7 +208,7 @@ spec:
                       - --upstream=http://127.0.0.1:8080/
                       - --logtostderr=true
                       - --v=0
-                    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:887a0e45e3677335b984cea0c15047532d2756d0a9384650937c13dafd6b3f77
+                    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:f7993b7a5458679621f6686bdc4ab818659e051ef6cdf6a8e107f627adf5f178
                     name: kube-rbac-proxy
                     ports:
                       - containerPort: 8443
@@ -273,7 +231,7 @@ spec:
                       - --metrics-bind-address=127.0.0.1:8080
                       - --leader-elect
                       - --leader-election-id=keysight-kcos-sso
-                    image: prod.harbor.keysight.digital/loadcore/keysight-kcos-sso@sha256:c280ce09f07459e7ddeedada2f76f111c5749dbb9f8ecdf234dd441d2d50227e
+                    image: prod.harbor.keysight.digital/loadcore/keysight-kcos-sso@sha256:2032a2a126d016d97e9ebe0426ca2add2c94c8f3a7660f997b10585c98ee8fba
                     livenessProbe:
                       httpGet:
                         path: /healthz

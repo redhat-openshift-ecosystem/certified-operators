@@ -1,0 +1,343 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "kind": "Ingress",
+          "apiVersion": "kcos.loadcore.keysight.com/v1alpha1",
+          "metadata": {
+            "name": "kcos-ingress",
+            "namespace": "kcos-framework"
+          },
+          "spec": {
+            "admissionWebhooks": {
+              "patch": {
+                "image": {
+                  "repository": "docker.io/jettech/kube-webhook-certgen"
+                }
+              }
+            },
+            "configMapMerger": {
+              "image": "prod.harbor.keysight.digital/loadcore/shell-operator-ubi@sha256:46d61d24f4b981537f96afa7d5dd7d142177f193698f2a651c431af2e22a8c38"
+            },
+            "ingress-nginx": {
+              "controller": {
+                "config": {
+                  "global-auth-signin": "https://$host/eula/static/",
+                  "global-auth-url": "http://kcos-framework-v1-kcos-eula.kcos-framework.svc.cluster.local/v1/check"
+                },
+                "daemonset": {
+                  "useHostPort": false
+                },
+                "hostNetwork": false,
+                "image": {
+                  "registry": "prod.harbor.keysight.digital/loadcore"
+                },
+                "ingressClassResource": {
+                  "default": true
+                },
+                "nodeSelector": "",
+                "service": {
+                  "nodePorts": {
+                    "http": 80,
+                    "https": 443
+                  },
+                  "type": "ClusterIP"
+                }
+              },
+              "defaultBackend": {
+                "image": {
+                  "repository": "k8s.gcr.io/defaultbackend-amd64"
+                }
+              }
+            },
+            "jobDelWebhook": {
+              "image": "prod.harbor.keysight.digital/loadcore/wap-ose-cli@sha256:a57a7bab66994d7eaf498223cb21549cc57c2bf5a0fbd4d81e08442e94e99ec1"
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.25.2
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: keysight-kcos-ingress.v0.0.90
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: Ingress
+        name: ingresses.kcos.loadcore.keysight.com
+        version: v1alpha1
+  description: Keysight KCOS Ingress Operator
+  displayName: Keysight KCOS Ingress Operator
+  icon:
+    - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+DQo8c3ZnIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmVyc2lvbj0iMS4xIiB3aWR0aD0iMTQwLjY3OTYzIiBoZWlnaHQ9IjEwOS42MTAzMiIgaWQ9InN2ZzQxMjIiPg0KICA8ZGVmcyBpZD0iZGVmczQxMjQiLz4NCiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTEyOS42NjAxOSwtNDc3LjU1NykiIGlkPSJsYXllcjEiPg0KICAgIDxwYXRoIGQ9Im0gMjY0LjM4ODUxLDUzNC4wNTQxNSBjIC0xLjAyNCwtMC4xNTc4MyAtMy4xODIxLC0xLjIzMzIgLTQuNzI3MjcsLTcuMTIwMjcgLTIuNDczNzQsLTkuNDIxNTEgLTMuNjQwODgsLTE3LjUwMzM4IC03LjgzMjI5LC0xNy41MDMzOCAtNC4xOTUwOSwwIC02LjA5NjI3LDguMDgxODcgLTguNTcwMDEsMTcuNTAzMzggLTEuNDY0NDMsNS41NzE0MyAtMy4wMDU5Myw3LjEyMDI3IC01LjQ3OTY4LDcuMTIwMjcgLTIuMzE5NTgsMCAtNC43MjM1OSwtMS4xMzQxIC04LjI2MTcxLC0xNS42OTc2MyBDIDIyNi40MjcyMiw1MDUuNjIwOCAyMjQuMzIwNSw0ODIuNTU3IDIxMy45NDg0LDQ4Mi41NTcgYyAtMTAuMzc5NDUsMCAtMTMuNDM2NzYsMzAuMDYyOTUgLTE0Ljc3MjcyLDM1Ljg1ODI1IC0xLjY0NDI2LDcuMTQyMjggLTUuNzI1NTgsMTUuNjQyNTcgLTEwLjg2MDI0LDE1LjY0MjU3IC01LjEzNDY3LDAgLTcuNzkxOTIsLTUuOTEyNzYgLTkuMzI5NzYsLTEyLjI1ODYxIC0yLjM1MjYzLC05LjcxNTEzIC01LjAyODIzLC0yMy43Nzk0OSAtMTEuODU0ODgsLTIzLjc3OTQ5IC02LjgzMDMxLDAgLTkuMDQ3MTMsMTEuNjQ1NjggLTEyLjA1NjczLDI0LjM2NjczIC0xLjc3MjczLDcuNDk4MzEgLTQuNjAyNDksMTEuNjcxMzcgLTkuNTc1NjcsMTEuNjcxMzcgbCAtMTAuODM4MjEsMCAwLDAuMDQ3NyBjIDEuNDE2NzEsMC40MjIwOCA0LjI0MjgsMi43NjM2OSA0Ljk3MzE4LDcuMzAwMSAxLjcxNzY3LDEwLjcwNjEgMy4wMzE2MSwxNy4zMzA4OSA2Ljc2NzkyLDE3LjMzMDg5IDMuNzM2MywwIDUuMDk0MjksLTUuNzEwOSA3LjI1OTc0LC0xNC42MTEyNCAxLjY5MTk3LC02Ljk3MzQ1IDQuMzM0NTUsLTEwLjAxNjA5IDcuNDkwOTUsLTEwLjAxNjA5IDQuNjM5MTksMCA2LjgyMjk5LDUuNjE1NDggOS4zNTkxMiwxNi4zNDcyNSA1LjA0MjksMjEuMzc5MTcgNi4xMTgyOSwzMS43MTA4OSAxNC4yNDQyLDMxLjcxMDg5IDguMDYzNTIsMCA5LjMyMjQyLC0xMC4zNTM3NSAxNC43NDMzNSwtMzEuNzEwODkgMi4zNTk5OCwtOS4yODkzNyA2Ljc2MDU5LC0xNi4zNTA5MSAxMS44OTUyNywtMTYuMzUwOTEgNS4xMzQ2NiwwIDguODAxMjIsNi44NDEzMyAxMC42NjkzOCwxMi4yOTUzIDQuMDQ0NiwxMS44MjU1MSA1LjkwOTA5LDE2LjI3NzUzIDEwLjM2NDc1LDE2LjI3NzUzIDQuNDUyMDIsMCA2Ljk2OTc5LC01LjM0Mzg4IDEwLjg5Njk1LC0xOC4yNDg0NCAyLjQ3Mzc0LC04LjEyMjI1IDIuODM3MSwtMTAuMzI0MzkgMTAuMTE1MTksLTEwLjMyNDM5IGwgMTAuOTQ4MzIsMCAwLC0wLjA1MTQgeiIgaWQ9InBhdGg0MCIgc3R5bGU9ImZpbGw6I2U5MDAyOTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIvPg0KICA8L2c+DQo8L3N2Zz4=
+      mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+              verbs:
+                - get
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+            - apiGroups:
+                - kcos.loadcore.keysight.com
+              resources:
+                - ingresses
+                - ingresses/status
+                - ingresses/finalizers
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterrolebindings
+                - clusterroles
+              verbs:
+                - '*'
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingressclasses
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - serviceaccounts
+                - services
+              verbs:
+                - '*'
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - rolebindings
+                - roles
+              verbs:
+                - '*'
+            - apiGroups:
+                - apps
+              resources:
+                - daemonsets
+                - deployments
+              verbs:
+                - '*'
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - '*'
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - '*'
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterrolebindings
+                - clusterroles
+              verbs:
+                - '*'
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - roles
+              verbs:
+                - '*'
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: keysight-kcos-ingress-controller-manager
+      deployments:
+        - label:
+            app.kubernetes.io/component: manager
+            app.kubernetes.io/created-by: keysight-kcos-ingress
+            app.kubernetes.io/instance: controller-manager
+            app.kubernetes.io/managed-by: kustomize
+            app.kubernetes.io/name: deployment
+            app.kubernetes.io/part-of: keysight-kcos-ingress
+            control-plane: controller-manager
+          name: keysight-kcos-ingress-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  control-plane: controller-manager
+              spec:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: kubernetes.io/arch
+                              operator: In
+                              values:
+                                - amd64
+                                - arm64
+                                - ppc64le
+                                - s390x
+                            - key: kubernetes.io/os
+                              operator: In
+                              values:
+                                - linux
+                containers:
+                  - args:
+                      - --secure-listen-address=0.0.0.0:8443
+                      - --upstream=http://127.0.0.1:8080/
+                      - --logtostderr=true
+                      - --v=0
+                    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:f7993b7a5458679621f6686bdc4ab818659e051ef6cdf6a8e107f627adf5f178
+                    name: kube-rbac-proxy
+                    ports:
+                      - containerPort: 8443
+                        name: https
+                        protocol: TCP
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 5m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=127.0.0.1:8080
+                      - --leader-elect
+                      - --leader-election-id=keysight-kcos-ingress
+                    image: prod.harbor.keysight.digital/loadcore/keysight-kcos-ingress@sha256:7f3371d8d4269f7a990d5080182cb467fd8f9a6bd7fb0d37e2a279b82cd6e9b4
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 1Gi
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: keysight-kcos-ingress-controller-manager
+                terminationGracePeriodSeconds: 10
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: keysight-kcos-ingress-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - loadcore
+    - keysight
+  links:
+    - name: Keysight Kcos Ingress
+      url: https://keysight-kcos-ingress.domain
+  maintainers:
+    - email: vlad.butusina@keysight.com
+      name: Vlad Butusina
+  maturity: alpha
+  provider:
+    name: Keysight
+    url: keysight.com
+  version: 0.0.90

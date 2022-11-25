@@ -1,0 +1,612 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    categories: Database
+    containerImage: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "app.redislabs.com/v1",
+          "kind": "RedisEnterpriseCluster",
+          "metadata": {
+            "name": "rec"
+          },
+          "spec": {
+            "nodes": 3,
+            "persistentSpec": {
+              "enabled": true
+            },
+            "uiServiceType": "ClusterIP",
+            "username": "demo@redislabs.com",
+            "redisEnterpriseNodeResources": {
+              "limits": {
+                "cpu": "4000m",
+                "memory": "4Gi"
+              },
+              "requests": {
+                "cpu": "4000m",
+                "memory": "4Gi"
+              }
+            },
+            "bootstrapperImageSpec": {
+                "repository": "registry.connect.redhat.com/redislabs/redis-enterprise-operator"
+            },
+            "redisEnterpriseServicesRiggerImageSpec": {
+                "repository": "registry.connect.redhat.com/redislabs/services-manager"
+            },
+            "redisEnterpriseImageSpec": {
+              "imagePullPolicy": "IfNotPresent",
+              "repository": "registry.connect.redhat.com/redislabs/redis-enterprise"
+            }
+          }
+        },
+        {
+          "apiVersion": "app.redislabs.com/v1alpha1",
+          "kind": "RedisEnterpriseDatabase",
+          "metadata": {
+            "name": "redb"
+          },
+          "spec": {
+            "redisEnterpriseCluster": {
+              "name": "rec"
+            }
+          }
+        }
+      ]
+    capabilities: Deep Insights
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
+  name: redis-enterprise-operator.v6.2.18-3
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - group: app.redislabs.com
+      version: v1alpha1
+      kind: RedisEnterpriseDatabase
+      name: redisenterprisedatabases.app.redislabs.com
+      displayName: RedisEnterpriseDatabase
+      description: Deploy a Redis Enterprise Database on an Operator managed  Redis Enteprise Cluster
+      deploymentName: REDB
+    - group: app.redislabs.com
+      version: v1
+      kind: RedisEnterpriseCluster
+      name: redisenterpriseclusters.app.redislabs.com
+      displayName: RedisEnterpriseCluster
+      description: Deploy a Redis Enterprise Cluster
+      deploymentName: REC
+      containerPort: 8443
+      resources:
+      - kind: Service
+        name: ''
+        version: v1
+      - kind: StatefulSet
+        name: ''
+        version: v1beta2
+      - kind: ReplicaSet
+        name: ''
+        version: v1
+      - kind: ConfigMap
+        name: ''
+        version: v1
+      - kind: Secret
+        name: ''
+        version: v1
+      - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Pod
+        name: ''
+        version: v1
+      specDescriptors:
+      - description: Number of cluster nodes to deploy.
+        displayName: Cluster Nodes
+        path: nodes
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:podCount'
+      - description: Enable cluster persistence.
+        displayName: Persistence
+        path: persistentSpec.enabled
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch'
+      - description: Storage class name.
+        displayName: Storage class
+        path: persistentSpec.storageClassName
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:label'
+      - description: Cluster UI username.
+        displayName: Username
+        path: username
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:label'
+      - description: Number of cluster nodes to deploy.
+        displayName: Cluster Nodes
+        path: nodes
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:podCount'
+      - description: Redis Entrprise Node resource requirements.
+        displayName: Resource Requirements
+        path: redisEnterpriseNodeResources
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:resourceRequirements'
+      statusDescriptors:
+      - description: The status of the Redis Enterprise Cluster.
+        displayName: Cluster Status
+        path: state
+        x-descriptors:
+        - 'urn:alm:descriptor:text'
+  displayName: Redis Enterprise Operator
+  keywords:
+  - redislabs
+  - redis
+  - database
+  - nosql
+  - cache
+  install:
+    spec:
+      deployments:
+      - name: redis-enterprise-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: redis-enterprise-operator
+          template:
+            metadata:
+              labels:
+                name: redis-enterprise-operator
+                app: redis-enterprise
+            spec:
+              containers:
+              - name: redis-enterprise-operator
+                image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec
+                securityContext:
+                  runAsUser: 1001
+                imagePullPolicy: Always
+                command:
+                - redis-enterprise-operator
+                envFrom:
+                - configMapRef:
+                    name: operator-environment-config
+                    optional: true
+                ports:
+                - containerPort: 8080
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: redis-enterprise-operator
+                - name: DEPLOY_RHEL
+                  value: "true"
+                - name: DEFAULT_K8S_CONTROLLER_IMAGE_DIGEST
+                  value: sha256:1c20d9f1dc847db43aea55832caef6e497c1971d2dbcec4e8421092e469907e9
+                - name: DEFAULT_BOOTSTRAPPER_IMAGE_DIGEST
+                  value: sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec
+                - name: DEFAULT_RS_IMAGE_DIGEST
+                  value: sha256:396b19cde93ddd272b1e28b9fe52041c06ad06c89da8bbaf6840b9af11260518
+                resources:
+                  limits:
+                    cpu: 4000m
+                    memory: 512Mi
+                  requests:
+                    cpu: 500m
+                    memory: 256Mi
+                livenessProbe:
+                  failureThreshold: 3
+                  successThreshold: 1
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  httpGet:
+                    path: /healthz
+                    port: 8080
+                    scheme: HTTP
+              - name: admission
+                image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec
+                command:
+                - /usr/local/bin/admission
+                imagePullPolicy: Always
+                envFrom:
+                - configMapRef:
+                    name: operator-environment-config
+                    optional: true
+                ports:
+                - containerPort: 8443
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: ADMISSION_SERVICE_NAME
+                  value: redis-enterprise-operator-service
+                - name: IS_OLM
+                  value: "true"
+                resources:
+                  limits:
+                    cpu: 1000m
+                    memory: 512Mi
+                  requests:
+                    cpu: 250m
+                    memory: 256Mi
+                readinessProbe:
+                  failureThreshold: 3
+                  successThreshold: 1
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  httpGet:
+                    path: /healthz
+                    port: 8443
+                    scheme: HTTPS
+                livenessProbe:
+                  failureThreshold: 3
+                  successThreshold: 1
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  initialDelaySeconds: 15
+                  httpGet:
+                    path: /liveness
+                    port: 8443
+                    scheme: HTTPS
+              serviceAccountName: redis-enterprise-operator
+      permissions:
+      - rules:
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          - ""
+          resources:
+          - roles
+          - serviceaccounts
+          - rolebindings
+          verbs:
+          - bind
+          - escalate
+          - impersonate
+          - userextras
+          - create
+          - get
+          - list
+          - watch
+          - update
+          - patch
+          - delete
+          - deletecollection
+        - apiGroups:
+          - app.redislabs.com
+          resources:
+          - redisenterpriseclusters
+          - redisenterpriseclusters/status
+          - redisenterpriseclusters/finalizers
+          - redisenterprisedatabases
+          - redisenterprisedatabases/status
+          - redisenterprisedatabases/finalizers
+          - redisenterpriseremoteclusters
+          - redisenterpriseremoteclusters/status
+          - redisenterpriseremoteclusters/finalizers
+          - redisenterpriseactiveactivepeerings
+          - redisenterpriseactiveactivepeerings/status
+          - redisenterpriseactiveactivepeerings/finalizers
+          verbs:
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - create
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - update
+          - get
+          - read
+          - list
+          - listallnamespaces
+          - watch
+          - watchlist
+          - watchlistallnamespaces
+          - create
+          - patch
+          - replace
+          - delete
+          - deletecollection
+        - apiGroups:
+          - ""
+          resources:
+          - endpoints
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - statefulsets
+          - replicasets
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - policy
+          resources:
+          - poddisruptionbudgets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - get
+          - update
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims
+          verbs:
+          - create
+          - delete
+          - get
+          - update
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+          - watch
+          - list
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          verbs:
+          - get
+          - watch
+          - list
+          - update
+          - patch
+          - create
+          - delete
+        - apiGroups:
+          - policy
+          resourceNames:
+          - redis-enterprise-psp
+          resources:
+          - podsecuritypolicies
+          verbs:
+          - use
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - create
+          - patch
+          - replace
+          - delete
+          - deletecollection
+          - read
+          - list
+          - listallnamespaces
+          - watch
+          - watchlist
+          - watchlistallnamespaces
+          - patchstatus
+          - readstatus
+          - replacestatus
+          - update
+        - apiGroups:
+          - networking.istio.io
+          resources:
+          - gateways
+          - virtualservices
+          verbs:
+          - get
+          - watch
+          - list
+          - update
+          - patch
+          - create
+          - delete
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          - routes/custom-host
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - redis-enterprise-scc
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: redis-enterprise-operator
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - redis-enterprise-scc
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: rec
+    strategy: deployment
+  webhookdefinitions:
+  - generateName: redb.admission.redislabs
+    type: ValidatingAdmissionWebhook
+    deploymentName: "redis-enterprise-operator"
+    containerPort: 8443
+    sideEffects: "None"
+    failurePolicy: "Fail"
+    admissionReviewVersions:
+    - "v1beta1"
+    rules:
+    - operations:
+      - "*"
+      apiGroups:
+      - "app.redislabs.com"
+      apiVersions:
+      - "v1alpha1"
+      resources:
+      - "redisenterprisedatabases"
+    webhookPath: "/admission"
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  maturity: mature
+  provider:
+    name: Redis
+  version: 6.2.18-3
+  skips:
+  - redis-enterprise-operator.v5.4.14-7
+  - redis-enterprise-operator.v6.0.6-6
+  - redis-enterprise-operator.v6.0.6-11
+  - redis-enterprise-operator.v6.0.6-23
+  - redis-enterprise-operator.v6.0.6-24
+  - redis-enterprise-operator.v6.0.8-1
+  - redis-enterprise-operator.v6.0.8-20
+  - redis-enterprise-operator.v6.0.12-5
+  - redis-enterprise-operator.v6.0.20-4
+  - redis-enterprise-operator.v6.0.20-12
+  - redis-enterprise-operator.v6.0.20-12a
+  - redis-enterprise-operator.v6.2.4-1
+  - redis-enterprise-operator.v6.2.8-2
+  - redis-enterprise-operator.v6.2.8-11
+  - redis-enterprise-operator.v6.2.8-15
+  - redis-enterprise-operator.v6.2.10-4
+  - redis-enterprise-operator.v6.2.10-34
+  - redis-enterprise-operator.v6.2.10-45
+  - redis-enterprise-operator.v6.2.12-1
+  links:
+  - name: Getting Started with Kubernetes and OpenShift
+    url: 'https://docs.redislabs.com/latest/platforms/openshift/'
+  - name: Deployment files on github
+    url: 'https://github.com/RedisLabs/redis-enterprise-k8s-docs'
+  - name: Redis Kubernetes Architecture
+    url: 'https://docs.redislabs.com/latest/platforms/kubernetes/kubernetes-architecture/'
+  - name: Redis Enterprise Kubernetes Operator-based Architecture
+    url: 'https://docs.redislabs.com/latest/platforms/kubernetes/kubernetes-with-operator/'
+  icon:
+  - base64data: >-
+      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
+    mediatype: image/png
+  maintainers:
+  - email: support@redislabs.com
+    name: 'Redis, Inc'
+  description: |-
+    Redis Enterprise Software is enterprise grade, distributed, in-memory NoSQL database server, fully compatible with open source Redis by Redis.
+    Redis Enterprise Software extends open source Redis and delivers stable high performance, zero-downtime linear scaling and high availability, with significant operational savings.
+    Redis Enterprise provides a flexible and cost-effective data platform so developers can focus on rapid, high-quality development for sophisticated use cases that meet the needs of a modern digital enterprise. With Redis Enterprise, you can:
+    * Enjoy high performance and record-setting low latencies with minimal operational overhead
+    * Develop highly scalable microservices-based and Kubernetes-orchestrated applications
+    * Use versatile data structures for a variety of use cases, such as high-speed transactions, user session management, real-time analytics, caching and many more
+    * Leverage enterprise-grade operational controls for high availability, security and seamless scale
+    * Automate operational best practices for deploying and managing the Redis Enterprise data platform with built-in Kubernetes Operator support
+    * Deploy, manage and move applications to and from any cloud for seamless portability
+
+    ### Core capabilities
+    * **Speed application development and time to market** - Unburden developers from the complexity of infrastructure operations and empower them to manage data with maximum flexibility. This helps them build modern applications quickly, make changes rapidly and support a variety of different data structures, models, relationships and use cases.
+    * **Ensure business continuity with always-on data service** - Maintain service uptime and ensure failsafe high availability, instant failover and automatic recovery to protect your applications against unplanned downtime, outages and data loss.
+    * **Design for performance and unmatched user experience** - Deliver the highest level of responsiveness and interactive customer experiences with best-in-class exceptional linear scaling high performance through a shared-nothing architecture and in-memory processing.
+    * **Simplify operations with automated lifecycle management and layered orchestration** - Automate database provisioning, management and maintenance, and abstract away the complexities of high availability, seamless scale and zero-downtime upgrades with built-in support for Kubernetes and Operators.
+    * **Enjoy multi-level robust security** - Provide granular control to meet self-imposed and regulatory compliance regulations and standards with built-in finegrained security controls and data encryption.
+    * **Gain platform independence with flexible deployment options** - Ensure portability with multiple deployment options across any cloud of choice for multicloud and hybrid deployments and on-premises.
+    * **Ensure success** - Leverage 24x7 enterprise-grade support backed by expertise in managing and scaling hundreds of thousands of Redis databases for thousands of enterprise customers worldwide.
+    * **Future proof investments** - Use the most popular database amongst developers, built on open source innovation and entrenched firmly in the application landscape with over 1B downloads on Docker. Redis preserves your investment for years with easy extensibility and versatility through its Modules and support for over 50 different programming languages
+
+    #### Prerequisites
+    A minimum of 3 nodes which support the following requirements:
+    * RAM - At least 3GB with 4GB recommended
+    * Persistent Storage - At least 10GB of free space with 20GB recommended.
+    * A kubernetes version of 1.9 or higher
+
+    #### Recommendations/known issues
+    *  Changing the name of the Redis Enterprise Cluster in the spec from the
+      default requires running commands to grant permissions to the pods:
+
+      Operator service account:
+        > *oc adm policy add-scc-to-user redis-enterprise-scc system:serviceaccount:my-project:redis-enterprise-operator*<br>
+
+        Redis Enterprise Cluster service account:
+        > *oc adm policy add-scc-to-user redis-enterprise-scc system:serviceaccount:my-project:<name of Redis Enterprise Cluster>*
+
+        Replace my-project with the actual name of the project/namespace. Replace <name of Redis Enterprise Cluster> with the name of the Redis Enterprise Cluster.
+
+    * When creating a Redis Enterprise Cluster without specifying in its spec a `persistentSpec` with explicit `storageClassName`,
+    the default Storage Class of the Kubernetes cluster will be used to dynamically provision storage for the Redis Enterprise Cluster's nodes.
+    However, if the Kubernetes cluster doesn't have a default Storage Class configured
+    and no specific Storage Class was specified in the Redis Enterprise Cluster Spec, the installation of the cluster could fail.
+    To avoid such scenario in cases where a specific Storage Class isn't specified, make sure the Kubernetes Cluster has a default Storage Cluster configured.
+    This can be done by running a `kubectl get storageclass` command and see if one of the Storage Classes' names contains a `(default)` mark.
+  relatedImages:
+  - name: redis-enterprise-operator
+    image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec
+  - name: admission-image
+    image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec
+  - name: bootstrapper-image
+    image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec
+  - name: k8s-controller-image
+    image: registry.connect.redhat.com/redislabs/services-manager@sha256:1c20d9f1dc847db43aea55832caef6e497c1971d2dbcec4e8421092e469907e9
+  - name: rs-image
+    image: registry.connect.redhat.com/redislabs/redis-enterprise@sha256:396b19cde93ddd272b1e28b9fe52041c06ad06c89da8bbaf6840b9af11260518
+  - name: redis-enterprise-operator-afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec-annotation
+    image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec
+  - name: admission
+    image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:afd2c3dd1e432c410af77202e9ce262fa69f4734357480c292db73f4608ec4ec

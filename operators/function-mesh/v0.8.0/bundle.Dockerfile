@@ -19,7 +19,7 @@ COPY bundle/manifests /manifests/
 COPY bundle/metadata /metadata/
 COPY bundle/tests/scorecard /tests/scorecard/
 # Certified Openshift required labels
-LABEL com.redhat.openshift.versions="v4.8-v4.10"
+LABEL com.redhat.openshift.versions="v4.8-v4.9"
 LABEL com.redhat.delivery.operator.bundle=true
 LABEL com.redhat.delivery.backport=true
 LABEL operators.operatorframework.io.bundle.channel.default.v1="alpha"

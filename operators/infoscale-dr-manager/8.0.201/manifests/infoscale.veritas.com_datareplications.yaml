@@ -1,0 +1,391 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: infoscale-vtas/infoscale-dr-webhook-cert
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: datareplications.infoscale.veritas.com
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: infoscale-dr-webhook-service
+          namespace: infoscale-vtas
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: infoscale.veritas.com
+  names:
+    kind: DataReplication
+    listKind: DataReplicationList
+    plural: datareplications
+    shortNames:
+    - datarep
+    singular: datareplication
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.currentPrimary
+      name: Proposed Primary
+      type: string
+    - jsonPath: .status.currentPrimary
+      name: Current Primary
+      type: string
+    - jsonPath: .spec.selector.namespace
+      name: Namespace
+      type: string
+    - jsonPath: .spec.selector.labels
+      name: Labels
+      type: string
+    - jsonPath: .status.summaryOfReplication
+      name: Replication Summary
+      priority: 1
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: DataReplication is the Schema for the storagereplications API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired properties of storage replication
+            properties:
+              cloudVendor:
+                default: Local
+                description: Cloud Vendor (e.g Azure/Aws) on remote VVR site. Default
+                  will be Local.
+                enum:
+                - Local
+                - Azure
+                - Aws
+                type: string
+              currentPrimary:
+                description: Current primary site name
+                type: string
+              force:
+                description: In case of takeover operation, set force to true along
+                  with the updated CurrentPrimary value. In case of migrate operation,
+                  force should be kept false and only CurrentPrimary needs to be changed.
+                type: boolean
+              lbEnabled:
+                default: false
+                description: In case of load balancer based n/w traffic management,
+                  set LbEnabled to true. else the default value should be always kept
+                  false.
+                type: boolean
+              localHostAddress:
+                description: Resolvable hostname or IP address of the local VVR site
+                type: string
+              localNIC:
+                description: Network adapter for virtual IP
+                type: string
+              localNICMap:
+                additionalProperties:
+                  type: string
+                description: Map of hostname and corresponsing network adapter for
+                  virtual IP
+                type: object
+              localNetMask:
+                description: Netmask for virtual ip
+                type: string
+              refreshStatus:
+                description: Set this to true to refresh replication status
+                type: boolean
+              remoteClusterDetails:
+                description: Details about remote clusters involved in the storage
+                  replication
+                items:
+                  properties:
+                    bandwidthLimit:
+                      description: Defines the maximum network bandwidth (in bits
+                        per second) that can be used during replication. If unspecified,
+                        then available network bandwidth will be used.
+                      type: string
+                    clusterName:
+                      description: Remote cluster name which is part of storage replication
+                      type: string
+                    force:
+                      description: Set force to true if operations like start replication,
+                        stop replication needs to be performed forcefully. Default
+                        value is false.
+                      type: boolean
+                    latencyProtection:
+                      description: Indicates whether latency protection is to be enabled
+                        for the RLINK.
+                      enum:
+                      - fail
+                      - override
+                      - disable
+                      type: string
+                    logProtection:
+                      description: Indicates whether log protection (SRL protection)
+                        is to be enabled for the RLINK.
+                      enum:
+                      - autodcm
+                      - dcm
+                      - fail
+                      - disable
+                      - override
+                      type: string
+                    networkTransportProtocol:
+                      description: Indicates the network transport protocol that is
+                        used by RLINKs for communicating between hosts. Supported
+                        values are TCP and UDP, default is TCP.
+                      enum:
+                      - TCP
+                      - UDP
+                      type: string
+                    remoteCloudVendor:
+                      default: Local
+                      description: Cloud Vendor (e.g Azure/Aws) on remote VVR site.
+                        Default will be Local.
+                      enum:
+                      - Local
+                      - Azure
+                      - Aws
+                      type: string
+                    remoteHostAddress:
+                      description: Resolvable hostname or IP address of the remote
+                        VVR site
+                      type: string
+                    remoteLbEnabled:
+                      default: false
+                      description: In case of load balancer based n/w traffic management,
+                        set RemoteLbEnabled to true. else the default value should
+                        be always kept false.
+                      type: boolean
+                    remoteNIC:
+                      description: Network adapter for virtual IP
+                      type: string
+                    remoteNICMap:
+                      additionalProperties:
+                        type: string
+                      description: Map of hostname and corresponsing network adapter
+                        for virtual IP
+                      type: object
+                    remoteNetMask:
+                      description: Netmask for virtual ip
+                      type: string
+                    remoteRouteTableResourceIds:
+                      description: Applicable for Cloud-Vendor based environments,
+                        If "remoteHostAddress" value is an Overlay N/w IP, then specify
+                        all applicable Route table resource ids.
+                      items:
+                        type: string
+                      type: array
+                    replicationState:
+                      description: Replication state like start, stop, pasue, resume
+                        and migrate. Default state will be start.
+                      enum:
+                      - start
+                      - stop
+                      - pause
+                      - resume
+                      - resync
+                      type: string
+                    replicationType:
+                      description: Replication type i.e. sync or async to be used.
+                        If unspecified, defaults to async.
+                      enum:
+                      - async
+                      - sync
+                      type: string
+                  required:
+                  - clusterName
+                  - remoteHostAddress
+                  type: object
+                type: array
+              routeTableResourceIds:
+                description: Applicable for Cloud-Vendor based environments, If "localHostAddress"
+                  value is an Overlay N/w IP, then specify all applicable Route table
+                  resource ids.
+                items:
+                  type: string
+                type: array
+              selector:
+                description: Specify namespace and optionally labels to decide what
+                  all persistent volumes need to be part of storage replication
+                properties:
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: List of labels which can select persistent volumes
+                      to be replicated in more granular way.
+                    type: object
+                  namespace:
+                    description: Name of namespace which is to be considered for storage
+                      replication
+                    type: string
+                required:
+                - namespace
+                type: object
+            required:
+            - currentPrimary
+            - localHostAddress
+            - remoteClusterDetails
+            - selector
+            type: object
+          status:
+            description: Status defines the current status of storage replication
+            properties:
+              currentPrimary:
+                description: Current primary site name
+                type: string
+              encrypted:
+                description: Specifies if encryption is enabled or not for rlink
+                type: boolean
+              errorDetails:
+                description: Error details
+                properties:
+                  errorCode:
+                    description: ErrorCode represents the error code in case the request
+                      fails.
+                    type: string
+                  errorMessage:
+                    description: Error messages corresponding to the failure.
+                    type: string
+                type: object
+              internalStatus:
+                description: Internal status of data replication, it is used by drplan
+                  CR
+                type: string
+              lastRefreshed:
+                description: Timestamp of last replication status update
+                type: string
+              phase:
+                description: Current phase of data replication
+                type: string
+              primaryStatus:
+                description: Status of Primary site
+                properties:
+                  dgName:
+                    description: Diskgroup name to which RVG belongs
+                    type: string
+                  logownerresName:
+                    description: VCS resource created for RVG logowner
+                    type: string
+                  primaryHost:
+                    description: Primary Host name
+                    type: string
+                  rvgName:
+                    description: Replicated Volume Group (RVG) name internally used
+                      by InfoScale
+                    type: string
+                  rvgSgName:
+                    description: VCS service group name created for RVG
+                    type: string
+                  rvgState:
+                    description: Replicated Volume Group (RVG) state reported by InfoScale
+                    type: string
+                  sgName:
+                    description: VCS service group name created for HA of VIP
+                    type: string
+                  srlName:
+                    description: Storage Replicator Log (SRL) volume name created
+                      by InfoScale
+                    type: string
+                  srlSize:
+                    description: Storage Replicator Log (SRL) volume size
+                    type: string
+                type: object
+              replicationConfigErrors:
+                description: Config errors observed in VVR replication
+                type: string
+              secondaryStatus:
+                description: Status of Secondary site(s)
+                items:
+                  properties:
+                    bandwidthLimit:
+                      description: Bandwidth limit
+                      type: string
+                    dataStatus:
+                      description: Data status
+                      type: string
+                    force:
+                      description: Indicates if some operation needs to be performed
+                        forcefully
+                      type: boolean
+                    latencyProtection:
+                      description: Latency protection setting
+                      type: string
+                    logProtection:
+                      description: SRL protection setting
+                      type: string
+                    loggingTo:
+                      description: Logging to SRL or DCM
+                      type: string
+                    logownerresName:
+                      description: VCS resource created for RVG logowner
+                      type: string
+                    networkTransportProtocol:
+                      description: Indicates the network transport protocol that is
+                        used by RLINKs for communicating between hosts.
+                      type: string
+                    replicationMode:
+                      description: Replication mode
+                      type: string
+                    replicationState:
+                      description: Replication state like start, stop, pasue, resume
+                        and migrate.
+                      type: string
+                    replicationStatus:
+                      description: Replication status
+                      type: string
+                    rvgName:
+                      description: Replicated Volume Group (RVG) name internally used
+                        by InfoScale
+                      type: string
+                    rvgSgName:
+                      description: VCS service group name created for RVG
+                      type: string
+                    secondaryHost:
+                      description: Secondary Host name
+                      type: string
+                    sgName:
+                      description: VCS service group name created for HA of VIP
+                      type: string
+                    srlName:
+                      description: Storage Replicator Log (SRL) volume name created
+                        by InfoScale
+                      type: string
+                    timestampInfo:
+                      description: Timestamp info related to replication
+                      type: string
+                  type: object
+                type: array
+              summaryOfReplication:
+                description: Datareplication summary
+                type: string
+              volumesTotalSizeBytes:
+                description: Total volume size in bytes
+                type: string
+              volumesUnderReplication:
+                description: VxVM volumes which are part of replication
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

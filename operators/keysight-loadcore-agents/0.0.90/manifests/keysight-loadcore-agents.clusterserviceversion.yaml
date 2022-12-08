@@ -1,0 +1,329 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "app.loadcore.keysight.com/v1alpha1",
+          "kind": "Agents",
+          "metadata": {
+            "name": "loadcore-agents-sample",
+            "namespace": "keysight-loadcore-agents"
+          },
+          "spec": {
+            "agents": [
+              {
+                "name": "agent1",
+                "args": {
+                  "adminInterface": "eth0",
+                  "testInterfaces": [
+                    "net1"
+                  ],
+                  "middlewareAddr": "nats-core.keysight-wap.svc.cluster.local:4222"
+                },
+                "replicas": 2,
+                "exposeIngress": true,
+                "pullSecrets": [
+                  {
+                    "name": "regcred"
+                  }
+                ],
+                "image": "prod.harbor.keysight.digital/loadcore/loadcore-agent@sha256:8caf922e114c15566f773b52d328b8213d990b8f283b4e34b1a62bd447cfe5c1",
+                "networks": [
+                  "keysight-loadcore-agents/loadcore-agent-network"
+                ]
+              },
+              {
+                "name": "agent2",
+                "args": {
+                  "adminInterface": "eth0",
+                  "testInterfaces": [
+                    "net1"
+                  ],
+                  "middlewareAddr": "nats-core.keysight-wap.svc.cluster.local:4222"
+                },
+                "exposeIngress": true,
+                "pullSecrets": [
+                  {
+                    "name": "regcred"
+                  }
+                ],
+                "image": "prod.harbor.keysight.digital/loadcore/loadcore-agent@sha256:8caf922e114c15566f773b52d328b8213d990b8f283b4e34b1a62bd447cfe5c1",
+                "networks": [
+                  "keysight-loadcore-agents/loadcore-agent-network"
+                ]
+              }
+            ],
+            "networks": [
+              {
+                "name": "loadcore-agent-network",
+                "config": "{ \"cniVersion\": \"0.3.1\", \"type\": \"ipvlan\", \"master\": \"ens192\", \"mode\": \"l2\", \"ipam\": { \"type\": \"whereabouts\", \"range\": \"192.168.1.0/24\", \"routes\": [ { \"dst\": \"0.0.0.0/0\" } ] } }"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.25.2
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+  name: keysight-loadcore-agents.v0.0.90
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: Agents
+        name: agents.app.loadcore.keysight.com
+        version: v1alpha1
+  description: Keysight LoadCore Agents Operator
+  displayName: Keysight LoadCore Agents Operator
+  icon:
+    - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+DQo8c3ZnIHhtbG5zOnN2Zz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgdmVyc2lvbj0iMS4xIiB3aWR0aD0iMTQwLjY3OTYzIiBoZWlnaHQ9IjEwOS42MTAzMiIgaWQ9InN2ZzQxMjIiPg0KICA8ZGVmcyBpZD0iZGVmczQxMjQiLz4NCiAgPGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTEyOS42NjAxOSwtNDc3LjU1NykiIGlkPSJsYXllcjEiPg0KICAgIDxwYXRoIGQ9Im0gMjY0LjM4ODUxLDUzNC4wNTQxNSBjIC0xLjAyNCwtMC4xNTc4MyAtMy4xODIxLC0xLjIzMzIgLTQuNzI3MjcsLTcuMTIwMjcgLTIuNDczNzQsLTkuNDIxNTEgLTMuNjQwODgsLTE3LjUwMzM4IC03LjgzMjI5LC0xNy41MDMzOCAtNC4xOTUwOSwwIC02LjA5NjI3LDguMDgxODcgLTguNTcwMDEsMTcuNTAzMzggLTEuNDY0NDMsNS41NzE0MyAtMy4wMDU5Myw3LjEyMDI3IC01LjQ3OTY4LDcuMTIwMjcgLTIuMzE5NTgsMCAtNC43MjM1OSwtMS4xMzQxIC04LjI2MTcxLC0xNS42OTc2MyBDIDIyNi40MjcyMiw1MDUuNjIwOCAyMjQuMzIwNSw0ODIuNTU3IDIxMy45NDg0LDQ4Mi41NTcgYyAtMTAuMzc5NDUsMCAtMTMuNDM2NzYsMzAuMDYyOTUgLTE0Ljc3MjcyLDM1Ljg1ODI1IC0xLjY0NDI2LDcuMTQyMjggLTUuNzI1NTgsMTUuNjQyNTcgLTEwLjg2MDI0LDE1LjY0MjU3IC01LjEzNDY3LDAgLTcuNzkxOTIsLTUuOTEyNzYgLTkuMzI5NzYsLTEyLjI1ODYxIC0yLjM1MjYzLC05LjcxNTEzIC01LjAyODIzLC0yMy43Nzk0OSAtMTEuODU0ODgsLTIzLjc3OTQ5IC02LjgzMDMxLDAgLTkuMDQ3MTMsMTEuNjQ1NjggLTEyLjA1NjczLDI0LjM2NjczIC0xLjc3MjczLDcuNDk4MzEgLTQuNjAyNDksMTEuNjcxMzcgLTkuNTc1NjcsMTEuNjcxMzcgbCAtMTAuODM4MjEsMCAwLDAuMDQ3NyBjIDEuNDE2NzEsMC40MjIwOCA0LjI0MjgsMi43NjM2OSA0Ljk3MzE4LDcuMzAwMSAxLjcxNzY3LDEwLjcwNjEgMy4wMzE2MSwxNy4zMzA4OSA2Ljc2NzkyLDE3LjMzMDg5IDMuNzM2MywwIDUuMDk0MjksLTUuNzEwOSA3LjI1OTc0LC0xNC42MTEyNCAxLjY5MTk3LC02Ljk3MzQ1IDQuMzM0NTUsLTEwLjAxNjA5IDcuNDkwOTUsLTEwLjAxNjA5IDQuNjM5MTksMCA2LjgyMjk5LDUuNjE1NDggOS4zNTkxMiwxNi4zNDcyNSA1LjA0MjksMjEuMzc5MTcgNi4xMTgyOSwzMS43MTA4OSAxNC4yNDQyLDMxLjcxMDg5IDguMDYzNTIsMCA5LjMyMjQyLC0xMC4zNTM3NSAxNC43NDMzNSwtMzEuNzEwODkgMi4zNTk5OCwtOS4yODkzNyA2Ljc2MDU5LC0xNi4zNTA5MSAxMS44OTUyNywtMTYuMzUwOTEgNS4xMzQ2NiwwIDguODAxMjIsNi44NDEzMyAxMC42NjkzOCwxMi4yOTUzIDQuMDQ0NiwxMS44MjU1MSA1LjkwOTA5LDE2LjI3NzUzIDEwLjM2NDc1LDE2LjI3NzUzIDQuNDUyMDIsMCA2Ljk2OTc5LC01LjM0Mzg4IDEwLjg5Njk1LC0xOC4yNDg0NCAyLjQ3Mzc0LC04LjEyMjI1IDIuODM3MSwtMTAuMzI0MzkgMTAuMTE1MTksLTEwLjMyNDM5IGwgMTAuOTQ4MzIsMCAwLC0wLjA1MTQgeiIgaWQ9InBhdGg0MCIgc3R5bGU9ImZpbGw6I2U5MDAyOTtmaWxsLW9wYWNpdHk6MTtmaWxsLXJ1bGU6bm9uemVybztzdHJva2U6bm9uZSIvPg0KICA8L2c+DQo8L3N2Zz4=
+      mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - app.loadcore.keysight.com
+              resources:
+                - agents
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - app.loadcore.keysight.com
+              resources:
+                - agents/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - app.loadcore.keysight.com
+              resources:
+                - agents/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - k8s.cni.cncf.io
+              resources:
+                - network-attachment-definitions
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: keysight-loadcore-agents-controller-manager
+      deployments:
+        - label:
+            control-plane: controller-manager
+          name: keysight-loadcore-agents-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  control-plane: controller-manager
+              spec:
+                containers:
+                  - args:
+                      - --secure-listen-address=0.0.0.0:8443
+                      - --upstream=http://127.0.0.1:8080/
+                      - --logtostderr=true
+                      - --v=0
+                    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:f7993b7a5458679621f6686bdc4ab818659e051ef6cdf6a8e107f627adf5f178
+                    name: kube-rbac-proxy
+                    ports:
+                      - containerPort: 8443
+                        name: https
+                        protocol: TCP
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 5m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=127.0.0.1:8080
+                      - --leader-elect
+                    command:
+                      - /manager
+                    image: prod.harbor.keysight.digital/loadcore/keysight-loadcore-agents@sha256:ac051f1b04eb5c116c7469278dc3e2fa6b32709f183816df4227f370019335d8
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: "1"
+                        memory: 128Mi
+                      requests:
+                        cpu: 100m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: keysight-loadcore-agents-controller-manager
+                terminationGracePeriodSeconds: 10
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: keysight-loadcore-agents-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: false
+      type: AllNamespaces
+  keywords:
+    - loadcore
+    - keysight
+  links:
+    - name: Keysight Loadcore Agents
+      url: https://keysight-loadcore-agents.domain
+  maintainers:
+    - email: vlad.butusina@keysight.com
+      name: Vlad Butusina
+  maturity: alpha
+  provider:
+    name: Keysight
+    url: keysight.com
+  version: 0.0.90

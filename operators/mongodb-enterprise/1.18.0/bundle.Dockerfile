@@ -19,3 +19,4 @@ LABEL operators.operatorframework.io.test.config.v1=tests/scorecard/
 COPY ./bundle/1.18.0//manifests /manifests/
 COPY ./bundle/1.18.0//metadata /metadata/
 COPY ./bundle/1.18.0//tests/scorecard /tests/scorecard/
+LABEL com.redhat.openshift.versions="v4.6"

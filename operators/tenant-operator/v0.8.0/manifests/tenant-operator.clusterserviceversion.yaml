@@ -2,15 +2,139 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: '[]'
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "tenantoperator.stakater.com/v1beta1",
+          "kind": "Tenant",
+          "metadata": {
+            "name": "bluesky"
+          },
+          "spec": {
+            "owners": {
+              "users": [
+                  "anna@aurora.org",
+                  "anthony@aurora.org"
+              ]
+            },
+            "editors": {
+              "users": [
+                  "john@aurora.org"
+              ],
+              "groups": [
+                  "alpha"
+              ]
+            },
+            "quota": "small",
+            "namespaces": [
+                "dev",
+                "build",
+                "prod"
+            ]
+          }
+        },
+        {
+          "apiVersion": "tenantoperator.stakater.com/v1alpha1",
+          "kind": "IntegrationConfig",
+          "metadata": {
+            "name": "tenant-operator-config",
+            "namespace": "multi-tenant-operator"
+          },
+          "spec": {
+            "openshift": {
+              "project": {
+                "labels": {
+                  "stakater.com/workload-monitoring": "true"
+                },
+                "annotations": {
+                  "openshift.io/node-selector": "node-role.kubernetes.io/worker="
+                }
+              },
+              "group": {
+                "labels": {
+                  "role": "customer-reader"
+                }
+              },
+              "sandbox": {
+                "labels": {
+                  "stakater.com/kind": "sandbox"
+                }
+              },
+              "clusterAdminGroups": [
+                  "cluster-admins"
+              ],
+              "privilegedNamespaces": [
+                  "default",
+                  "^openshift-*",
+                  "^kube-*"
+              ],
+              "privilegedServiceAccounts": [
+                  "^system:serviceaccount:openshift-*",
+                  "^system:serviceaccount:kube-*"
+              ],
+              "namespaceAccessPolicy": {
+                "deny": {
+                  "privilegedNamespaces": {
+                    "users": [
+                        "system:serviceaccount:openshift-argocd:argocd-application-controller",
+                        "adam@stakater.com"
+                    ],
+                    "groups": [
+                        "cluster-admins"
+                    ]
+                  }
+                }
+              }
+            },
+            "argocd": {
+              "namespace": "openshift-operators",
+              "namespaceResourceBlacklist": [
+                {
+                  "group": "",
+                  "kind": "ResourceQuota"
+                }
+              ],
+              "clusterResourceWhitelist": [
+                {
+                  "group": "tronador.stakater.com",
+                  "kind": "EnvironmentProvisioner"
+                }
+              ]
+            },
+            "rhsso": {
+              "enabled": true,
+              "endpoint": {
+                "url": "https://iam-keycloak-auth.apps.prod.abcdefghi.kubeapp.cloud/",
+                "secretReference": {
+                  "name": "auth-secrets",
+                  "namespace": "openshift-auth"
+                }
+              }
+            },
+            "vault": {
+              "enabled": true,
+              "endpoint": {
+                "url": "https://vault.apps.prod.abcdefghi.kubeapp.cloud/",
+                "secretReference": {
+                  "name": "vault-root-token",
+                  "namespace": "vault"
+                }
+              },
+              "sso": {
+                "clientName": "vault",
+                "accessorID": "<ACCESSOR_ID_TOKEN>"
+              }
+            }
+          }
+        }
+      ]
     capabilities: Seamless Upgrades
-    createdAt: "2023-01-03T12:38:40Z"
     description: OpenShift is designed to support a single tenant platform, hence making it difficult for cluster admins to host multi-tenancy in a single OpenShift cluster. If multi-tenancy is achieved by sharing a cluster, it can have many advantages, e.g. efficient resource utilization, less configuration effort and easier sharing of cluster-internal resources among different tenants. Stakater Multi-Tenancy Operator helps to solve the complexity issues of doing true multi-tenancy by providing simplified abstractions on top of the native primitives to provide organizations and platform providers the tooling, self-service capabilities and robust automation needed to do secure and efficient Multi-Tenancy in a single OpenShift cluster.
     operatorframework.io/suggested-namespace: multi-tenant-operator
     operators.operatorframework.io/builder: operator-sdk-v1.26.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    ol.skipRange: <0.7.13
-  name: tenant-operator.v0.7.13
+    olm.skipRange: <0.8.0
+  name: tenant-operator.v0.8.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -469,7 +593,7 @@ spec:
                         value: tenant-operator-controller-manager
                       - name: LEADER_ELECTION_ID
                         value: c54f40h1.stakater.com
-                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:6e0f44e18eb2adf96ff7667a0219e610cc2c6f72070fb9f1779db3df48b0dd0a
+                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:4dce9a65b779bd707b92fc2661fa39a701d1a778f9ca185f5465abdc3fe53cb0
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -575,7 +699,7 @@ spec:
                         value: "true"
                       - name: LEADER_ELECTION_ID
                         value: c50b40d1.stakater.com
-                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:6e0f44e18eb2adf96ff7667a0219e610cc2c6f72070fb9f1779db3df48b0dd0a
+                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:4dce9a65b779bd707b92fc2661fa39a701d1a778f9ca185f5465abdc3fe53cb0
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -634,7 +758,7 @@ spec:
                         value: "true"
                       - name: LEADER_ELECTION_ID
                         value: c43e30g1.stakater.com
-                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:6e0f44e18eb2adf96ff7667a0219e610cc2c6f72070fb9f1779db3df48b0dd0a
+                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:4dce9a65b779bd707b92fc2661fa39a701d1a778f9ca185f5465abdc3fe53cb0
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -724,7 +848,7 @@ spec:
                         value: "true"
                       - name: LEADER_ELECTION_ID
                         value: c59a40c1.stakater.com
-                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:6e0f44e18eb2adf96ff7667a0219e610cc2c6f72070fb9f1779db3df48b0dd0a
+                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:4dce9a65b779bd707b92fc2661fa39a701d1a778f9ca185f5465abdc3fe53cb0
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -814,7 +938,7 @@ spec:
                         value: "true"
                       - name: LEADER_ELECTION_ID
                         value: c51c40e1.stakater.com
-                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:6e0f44e18eb2adf96ff7667a0219e610cc2c6f72070fb9f1779db3df48b0dd0a
+                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:4dce9a65b779bd707b92fc2661fa39a701d1a778f9ca185f5465abdc3fe53cb0
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -904,7 +1028,7 @@ spec:
                         value: "true"
                       - name: LEADER_ELECTION_ID
                         value: c52d40f1.stakater.com
-                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:6e0f44e18eb2adf96ff7667a0219e610cc2c6f72070fb9f1779db3df48b0dd0a
+                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:4dce9a65b779bd707b92fc2661fa39a701d1a778f9ca185f5465abdc3fe53cb0
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -994,7 +1118,7 @@ spec:
                         value: "true"
                       - name: LEADER_ELECTION_ID
                         value: c53e40g1.stakater.com
-                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:6e0f44e18eb2adf96ff7667a0219e610cc2c6f72070fb9f1779db3df48b0dd0a
+                    image: registry.connect.redhat.com/stakater/tenant-operator@sha256:4dce9a65b779bd707b92fc2661fa39a701d1a778f9ca185f5465abdc3fe53cb0
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -1114,8 +1238,8 @@ spec:
     name: Stakater
     url: https://stakater.com
   relatedImages:
-    - image: registry.connect.redhat.com/stakater/tenant-operator@sha256:6e0f44e18eb2adf96ff7667a0219e610cc2c6f72070fb9f1779db3df48b0dd0a
+    - image: registry.connect.redhat.com/stakater/tenant-operator@sha256:4dce9a65b779bd707b92fc2661fa39a701d1a778f9ca185f5465abdc3fe53cb0
       name: manager
     - image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:f7993b7a5458679621f6686bdc4ab818659e051ef6cdf6a8e107f627adf5f178
       name: kube-rbac-proxy
-  version: 0.7.13
+  version: 0.8.0

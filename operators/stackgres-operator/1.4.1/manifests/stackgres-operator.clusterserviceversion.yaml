@@ -51,7 +51,7 @@ metadata:
       \      },\n      \"serviceAccount\": {\n        \"create\": true\n      }\n\
       \    }\n  }\n]"
     capabilities: Basic Install
-    createdAt: '2023-01-17T17:17:29Z'
+    createdAt: '2023-01-18T12:11:40Z'
     operators.operatorframework.io/builder: operator-sdk-v1.26.0
     operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
     marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/stackgres/pricing?utm_source=openshift_console
@@ -666,7 +666,7 @@ spec:
                         protocol: TCP
                     resources:
                       limits:
-                        cpu: 500m
+                        cpu: '1'
                         memory: 256Mi
                       requests:
                         cpu: 5m
@@ -683,7 +683,6 @@ spec:
                       - --leader-election-id=stackgres-operator
                       - --max-concurrent-reconciles=1
                       - --reconcile-period=1000000h
-                      - --zap-devel
                     image: quay.io/stackgres/helm-operator:1.4.1-openshift
                     livenessProbe:
                       httpGet:
@@ -700,7 +699,7 @@ spec:
                       periodSeconds: 10
                     resources:
                       limits:
-                        cpu: 500m
+                        cpu: '1'
                         memory: 256Mi
                       requests:
                         cpu: 10m
@@ -714,15 +713,21 @@ spec:
                   - command:
                       - sh
                       - -ec
-                      - "kubectl get ns stackgres || kubectl create ns stackgres\n\
-                        cat << EOF | kubectl apply -n stackgres -f -\napiVersion:\
-                        \ charts.stackgres.io/v1\nkind: StackGresOperator\nmetadata:\n\
-                        \  name: stackgres-operator\nspec: {}\nEOF\n"
+                      - "NAME=\"$(kubectl get clusterserviceversions.operators.coreos.com\
+                        \ -o name \\\n  | grep '^clusterserviceversions.operators.coreos.com/stackgres-operator'\
+                        \ \\\n  | head -n 1 | cut -d / -f 2)\"\ntest -n \"$NAME\"\n\
+                        UID=\"$(kubectl get clusterserviceversions.operators.coreos.com\
+                        \ \"$NAME\" --template '{{ .metadata.uid }}')\"\ntest -n \"\
+                        $UID\"\ncat << EOF | kubectl apply -f -\napiVersion: charts.stackgres.io/v1\n\
+                        kind: StackGresOperator\nmetadata:\n  name: stackgres-operator\n\
+                        spec:\n  unamespacedOwnerRefereces:\n  - apiVersion: operators.coreos.com/v1alpha1\n\
+                        \    kind: StackGresOperator\n    name: $NAME\n    uid: $UID\n\
+                        EOF\n"
                     image: ongres/kubectl:v1.25.5-build-6.19
                     name: default
                     resources:
                       limits:
-                        cpu: 500m
+                        cpu: '1'
                         memory: 256Mi
                       requests:
                         cpu: 10m

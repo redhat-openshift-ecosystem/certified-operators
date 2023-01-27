@@ -1,0 +1,285 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: zabbixproxymysqls.kubernetes.zabbix.com
+spec:
+  group: kubernetes.zabbix.com
+  names:
+    kind: ZabbixProxyMysql
+    listKind: ZabbixProxyMysqlList
+    plural: zabbixproxymysqls
+    singular: zabbixproxymysql
+    shortNames:
+    - zpm
+  scope: Namespaced
+  subresources:
+    status: {}
+  version: v1alpha1
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+  preserveUnknownFields: false
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        status:
+          description: Deployment status information
+          type: object
+          properties:
+            phase:
+              description: Status of deployment operation
+              type: string
+              enum:
+                - "Running"
+                - "Pending"
+                - "Failed"
+            reason:
+              description: Error description during deployment
+              type: string
+            conditions:
+              type: object
+        spec:
+          description: Configuration parameters for Zabbix component
+          type: object
+          properties:
+            version:
+              description: Version of Zabbix proxy
+              type: string
+              enum:
+                - "latest"
+            proxy_size:
+              description: The desired number of Zabbix proxies
+              type: integer
+              minimum: 1
+            java_gateway_size:
+              description: The desired number of Zabbix Java Gateways for the deployment
+              type: integer
+              minimum: 0
+            proxy_env:
+              description: Configuration parameters for Zabbix proxy installation
+              type: object
+              properties:
+                general:
+                  description: General configuration parameters
+                  type: object
+                  properties:
+                    zabbix_mysql_volumeclaim:
+                      description: MySQL server database volume claim
+                      type: string
+                      minLength: 1
+                    zabbix_mysqlsecret:
+                      description: MySQL credentials secret name
+                      type: string
+                      minLength: 1
+                  required:
+                  - zabbix_mysql_volumeclaim
+                  - zabbix_mysqlsecret
+                proxy:
+                  description: Configuration parameters for Zabbix proxy
+                  type: object
+                  properties:
+                    proxy_mode:
+                      description: Proxy operating mode
+                      type: string
+                      enum:
+                        - "0"
+                        - "1"
+                    server_host:
+                      description: IP address or DNS name of Zabbix server to get configuration data from and send data to
+                      type: string
+                      minLength: 1
+                    server_port:
+                      description: Port of Zabbix trapper on Zabbix server
+                      type: integer
+                    hostname:
+                      description: Unique, case sensitive Proxy name
+                      type: string
+                    enable_remote_commands:
+                      description: Whether remote commands from Zabbix server are allowed
+                      type: integer
+                      minimum: 0
+                      maximum: 1
+                    log_remote_commands:
+                      description: Enable logging of executed shell commands as warnings
+                      type: integer
+                      minimum: 0
+                      maximum: 1
+                    hostname_item:
+                      description: Item used for setting Hostname if it is undefined (this will be run on the proxy similarly as on an agent)
+                      type: string
+                    debug_level:
+                      description: Specifies debug level
+                      type: integer
+                      minimum: 0
+                      maximum: 5
+                    proxy_local_buffer:
+                     description: Proxy will keep data locally for N hours, even if the data have already been synced with the server
+                     type: integer
+                     minimum: 0
+                     maximum: 720
+                    proxy_offline_buffer:
+                     description: Proxy will keep data for N hours in case of no connectivity with Zabbix server
+                     type: integer
+                     minimum: 1
+                     maximum: 720
+                    proxy_heartbeat_frequency:
+                     description: Frequency of heartbeat messages in seconds
+                     type: integer
+                     minimum: 0
+                     maximum: 3600
+                    config_frequency:
+                     description: How often proxy retrieves configuration data from Zabbix server in seconds
+                     type: integer
+                     minimum: 1
+                     maximum: 604800
+                    data_sender_frequency:
+                     description: Proxy will send collected data to the server every N seconds. Note that active proxy will still poll Zabbix server every second for remote command tasks
+                     type: integer
+                     minimum: 1
+                     maximum: 3600
+                    start_pollers:
+                      description: Number of pre-forked instances of pollers
+                      type: integer
+                      minimum: 0
+                      maximum: 1000
+                    start_java_pollers:
+                      description: Number of pre-forked instances of Java pollers
+                      type: integer
+                      minimum: 0
+                      maximum: 1000
+                    start_lld_processors:
+                      description: Number of pre-forked instances of low-level discovery (LLD) workers
+                      type: integer
+                      minimum: 1
+                      maximum: 100
+                    start_ipmi_pollers:
+                      description: Number of pre-forked instances of IPMI pollers
+                      type: integer
+                      minimum: 0
+                      maximum: 1000
+                    start_preprocessors:
+                      description: Number of pre-forked instances of preprocessing workers
+                      type: integer
+                      minimum: 0
+                      maximum: 1000
+                    start_pollers_unreachable:
+                      description: Number of pre-forked instances of pollers for unreachable hosts (including IPMI and Java)
+                      type: integer
+                      minimum: 0
+                      maximum: 1000
+                    start_trappers:
+                      description: Number of pre-forked instances of trappers
+                      type: integer
+                      minimum: 0
+                      maximum: 1000
+                    start_pingers:
+                      description: Number of pre-forked instances of ICMP pingers
+                      type: integer
+                      minimum: 0
+                      maximum: 1000
+                    start_discoverers:
+                      description: Number of pre-forked instances of discoverers
+                      type: integer
+                      minimum: 0
+                      maximum: 250
+                    start_http_pollers:
+                      description: Number of pre-forked instances of HTTP pollers
+                      type: integer
+                      minimum: 0
+                      maximum: 1000
+                    start_vmware_collectors:
+                      description: Number of pre-forked vmware collector instances
+                      type: integer
+                      minimum: 0
+                      maximum: 250
+                    vmware_frequency:
+                      description: Delay in seconds between data gathering from a single VMware service
+                      type: integer
+                      minimum: 10
+                      maximum: 86400
+                    vmware_perf_frequency:
+                      description: Delay in seconds between performance counter statistics retrieval from a single VMware service
+                      type: integer
+                      minimum: 10
+                      maximum: 86400
+                    vmaware_cache_size:
+                      description: Shared memory size for storing VMware data
+                      type: string
+                      pattern: '^\d+[K|M|G|T]*$'
+                    vmware_timeout:
+                      description: The maximum number of seconds vmware collector will wait for a response from VMware service (vCenter or ESX hypervisor)
+                      type: integer
+                      minimum: 1
+                      maximum: 300
+                    housekeeping_frequency:
+                      description: How often Zabbix will perform housekeeping procedure (in hours)
+                      type: integer
+                      minimum: 0
+                      maximum: 24
+                    cache_size:
+                      description: Size of configuration cache, in bytes
+                      type: string
+                      pattern: '^\d+[K|M|G|T]*$'
+                    start_db_syncers:
+                      description: Number of pre-forked instances of DB Syncers
+                      type: integer
+                      minimum: 4
+                      maximum: 100
+                    history_cache_size:
+                      description: Size of history cache, in bytes
+                      type: string
+                      pattern: '^\d+[K|M|G|T]*$'
+                    history_index_cache_size:
+                      description: Size of history index cache, in bytes
+                      type: string
+                      pattern: '^\d+[K|M|G|T]*$'
+                    timeout:
+                      description: Specifies how long we wait for agent, SNMP device or external check (in seconds)
+                      type: integer
+                      minimum: 1
+                      maximum: 30
+                    trapper_timeout:
+                      description: Specifies how many seconds trapper may spend processing new data
+                      type: integer
+                      minimum: 1
+                      maximum: 300
+                    unreachable_period:
+                      description: After how many seconds of unreachability treat a host as unavailable
+                      type: integer
+                      minimum: 1
+                      maximum: 3600
+                    unavailable_delay:
+                      description: How often host is checked for availability during the unavailability period, in seconds
+                      type: integer
+                      minimum: 1
+                      maximum: 3600
+                    unreachable_delay:
+                      description: How often host is checked for availability during the unreachability period, in seconds
+                      type: integer
+                      minimum: 1
+                      maximum: 3600
+                    log_slow_queries:
+                      description: How long a database query may take before being logged (in milliseconds)
+                      type: integer
+                      minimum: 0
+                      maximum: 3600000
+                java_gateway:
+                  type: object
+                  properties:
+                    start_pollers:
+                      description: Number of Zabbix Java Gateway threads
+                      type: integer
+                      minimum: 1
+                      maximum: 1000
+                    timeout:
+                      description: Timeout for JMX network operations
+                      type: integer
+                      minimum: 1
+                      maximum: 30
+                    debug_level:
+                      description: Specifies debug level
+                      type: string
+          required:
+          - proxy_size

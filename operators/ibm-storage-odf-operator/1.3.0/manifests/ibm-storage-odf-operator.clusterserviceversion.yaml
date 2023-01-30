@@ -1,3 +1,4 @@
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
@@ -28,19 +29,19 @@ metadata:
           }
         }
       ]
-    capabilities: Basic Install
+    capabilities: Seamless Upgrades
     console.openshift.io/plugins: '["ibm-storage-odf-plugin"]'
-    operators.operatorframework.io/builder: operator-sdk-v1.4.0+git
+    operators.operatorframework.io/builder: operator-sdk-v1.25.0
     operators.operatorframework.io/operator-type: non-standalone
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    olm.skipRange: '>=0.0.1 <1.2.0'
-  name: ibm-storage-odf-operator.v1.2.0
+    olm.skipRange: '>=0.0.1 <1.3.0'
+  name: ibm-storage-odf-operator.v1.3.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - description: FlashSystemCluster is the Schema for the flashsystemclusters API
+      - description: FlashSystemCluster is the Schema for the FlashSystemClusters API
         displayName: Flash System Cluster
         kind: FlashSystemCluster
         name: flashsystemclusters.odf.ibm.com
@@ -54,6 +55,25 @@ spec:
     spec:
       clusterPermissions:
         - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims
+              verbs:
+                - get
+                - list
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumes
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
             - apiGroups:
                 - ""
               resources:
@@ -181,6 +201,7 @@ spec:
                 - list
                 - patch
                 - update
+                - watch
             - apiGroups:
                 - monitoring.coreos.com
               resources:
@@ -259,7 +280,9 @@ spec:
                 - create
           serviceAccountName: ibm-storage-odf-operator
       deployments:
-        - name: ibm-storage-odf-operator
+        - label:
+            odf: storage.ibm.com
+          name: ibm-storage-odf-operator
           spec:
             replicas: 1
             selector:
@@ -292,12 +315,12 @@ spec:
                       - /manager
                     env:
                       - name: EXPORTER_IMAGE
-                        value: docker.io/ibmcom/ibm-storage-odf-block-driver@sha256:9bfc9cf6c4f4dd57c0458ac87d12b2f92ae0ba398dbe5b3a355ef404a23f3254
+                        value: quay.io/ibmodffs/ibm-storage-odf-block-driver@sha256:21c94aff4997dcdede4aa676403806f502d1407c00cb07756272742848e537c9
                       - name: WATCH_NAMESPACE
                         valueFrom:
                           fieldRef:
                             fieldPath: metadata.annotations['olm.targetNamespaces']
-                    image: registry.connect.redhat.com/ibm/ibm-storage-odf-operator@sha256:249d548b6ef6f9347fcd4db3aa3e0dfee927a8e49911a27be2815f7dd897ddfd
+                    image: registry.connect.redhat.com/ibm/ibm-storage-odf-operator@sha256:22e769617f5d82dea7e0ebe9dae7dd8d202af780abff17f4b095c72e87632c84
                     imagePullPolicy: Always
                     livenessProbe:
                       httpGet:
@@ -332,7 +355,9 @@ spec:
                   - configMap:
                       name: flashsystem-csi-cr
                     name: manager-config
-        - name: ibm-odf-console
+        - label:
+            app: ibm-odf-console
+          name: ibm-odf-console
           spec:
             selector:
               matchLabels:
@@ -344,7 +369,7 @@ spec:
                   app: ibm-odf-console
               spec:
                 containers:
-                  - image: docker.io/ibmcom/ibm-storage-odf-plugin@sha256:61f1936da3a67d03f2152937767fd15324533da07ddd674b9a3899aa04c83e6b
+                  - image: quay.io/ibmodffs/ibm-storage-odf-plugin@sha256:cc509cfc295d05e4d9b842e3dbb8d5c99730457b79b1681e3736165a7c59b851
                     name: ibm-odf-console
                     ports:
                       - containerPort: 9003
@@ -416,4 +441,4 @@ spec:
   maturity: alpha
   provider:
     name: IBM
-  version: 1.2.0
+  version: 1.3.0

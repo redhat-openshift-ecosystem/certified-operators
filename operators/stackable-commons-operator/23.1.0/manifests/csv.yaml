@@ -1,0 +1,169 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: commons-operator.v23.1.0
+spec:
+  annotations:
+    support: stackable.tech
+    olm.properties: '[]'
+
+    # The following affect how the package is indexed at OperatorHub.io:
+    # https://operatorhub.io/?category=Database
+    # https://sdk.operatorframework.io/docs/advanced-topics/operator-capabilities/operator-capabilities/
+    categories: Storage
+    capabilities: Full Lifecycle
+    description: Stackable Commons Operator
+
+
+  description: Stackable Commons Operator
+  displayName: Stackable Commons Operator
+  keywords:
+    - commons
+  maintainers:
+    - email: info@stackable.tech
+      name: Stackable GmbH
+  maturity: stable
+  provider:
+    name: Stackable GmbH
+    url: https://stackable.tech
+  version: 23.1.0
+  minKubeVersion: 1.20.0
+
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: false
+      type: AllNamespaces
+
+  customresourcedefinitions:
+    owned:
+      # a list of CRDs that this operator owns
+      # name is the metadata.name of the CRD (which is of the form <plural>.<group>)
+      - name: s3buckets.s3.stackable.tech
+        # version is the spec.versions[].name value defined in the CRD
+        version: v1alpha1
+        # kind is the CamelCased singular value defined in spec.names.kind of the CRD.
+        kind: S3Bucket
+        # human-friendly display name of the CRD for rendering in graphical consoles (optional)
+        displayName: S3Bucket
+        # a short description of the CRDs purpose for rendering in graphical consoles (optional)
+        description: Represents an S3 bucket
+      - name: s3connections.s3.stackable.tech
+        # version is the spec.versions[].name value defined in the CRD
+        version: v1alpha1
+        # kind is the CamelCased singular value defined in spec.names.kind of the CRD.
+        kind: S3Connection
+        # human-friendly display name of the CRD for rendering in graphical consoles (optional)
+        displayName: S3Connection
+        # a short description of the CRDs purpose for rendering in graphical consoles (optional)
+        description: Represents an S3Connection
+      - name: authenticationclasses.authentication.stackable.tech
+        # version is the spec.versions[].name value defined in the CRD
+        version: v1alpha1
+        # kind is the CamelCased singular value defined in spec.names.kind of the CRD.
+        kind: AuthenticationClass
+        # human-friendly display name of the CRD for rendering in graphical consoles (optional)
+        displayName: AuthenticationClass
+        # a short description of the CRDs purpose for rendering in graphical consoles (optional)
+        description: Represents an AuthenticationClass
+
+
+  install:
+    # strategy indicates what type of deployment artifacts are used
+    strategy: deployment
+    # spec for the deployment strategy is a list of deployment specs and required permissions - similar to a pod template used in a deployment
+    spec:
+      permissions:
+        - serviceAccountName: commons-operator
+          rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - '*'
+      # permissions required at the cluster scope
+      clusterPermissions:
+        - serviceAccountName: commons-operator
+          rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - configmaps
+                - secrets
+                - nodes
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - get
+                - list
+                - watch
+                - patch
+            - apiGroups:
+                - events.k8s.io
+              resources:
+                - events
+              verbs:
+                - create
+            - apiGroups:
+                - s3.stackable.tech
+              resources:
+                - s3buckets
+                - s3connections
+              verbs:
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - authentication.stackable.tech
+              resources:
+                - authenticationclasses
+              verbs:
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods/eviction
+              verbs:
+                - create
+
+      deployments:
+        - name: commons-operator
+          spec:
+            replicas: 1
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: commons-operator
+                app.kubernetes.io/instance: commons-operator
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: commons-operator
+                  app.kubernetes.io/instance: commons-operator
+              spec:
+                serviceAccountName: commons-operator
+                securityContext: {}
+                containers:
+                  - name: commons-operator
+                    securityContext: {}
+                    image: "docker.stackable.tech/stackable/commons-operator:23.1.0"
+                    imagePullPolicy: IfNotPresent
+                    resources: {}

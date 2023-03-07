@@ -1,0 +1,490 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "charts.alloys.com/v1alpha1",
+          "kind": "Alloy",
+          "metadata": {
+            "name": "alloy"
+          },
+          "spec": {
+            "acmeEmail": "taher@cloudnyte.com",
+            "alloyDqm": {
+              "osduPartition": "EMPTY",
+              "osduProvider": "EMPTY",
+              "osduRegisterEndpoint": "EMPTY",
+              "osduSchemaEndpoint": "EMPTY",
+              "osduSearchEndpoint": "EMPTY",
+              "osduStorageEndpoint": "EMPTY"
+            },
+            "dnsFQDN": "alloy.cloudnyte.com",
+            "kafka": {
+              "maxMessageBytes": "_10000012",
+              "numPartitions": "4",
+              "provisioning": {
+                "numPartitions": "4"
+              }
+            },
+            "kafkaBootstrapServer": "alloy-kafka-cluster-kafka-bootstrap.alloy.svc.cluster.local:9092",
+            "keycloak": {
+              "auth": {
+                "existingSecret": "alloy-oidc"
+              },
+              "extraEnvVars": [
+                {
+                  "name": "KEYCLOAK_EXTRA_ARGS",
+                  "value": "-Dkeycloak.import=/config/alloy-realm.json"
+                },
+                {
+                  "name": "KC_PROXY",
+                  "value": "edge"
+                },
+                {
+                  "name": "KEYCLOAK_PROXY_ADDRESS_FORWARDING",
+                  "value": "true"
+                }
+              ],
+              "extraVolumeMounts": [
+                {
+                  "mountPath": "/config",
+                  "name": "config",
+                  "readOnly": true
+                }
+              ],
+              "extraVolumes": [
+                {
+                  "configMap": {
+                    "items": [
+                      {
+                        "key": "alloy-realm.json",
+                        "path": "alloy-realm.json"
+                      }
+                    ],
+                    "name": "alloy-realm-config"
+                  },
+                  "name": "config"
+                }
+              ],
+              "livenessProbe": {
+                "failureThreshold": 5,
+                "initialDelaySeconds": 360
+              },
+              "postgresql": {
+                "existingSecret": "alloy-oidc"
+              },
+              "readinessProbe": {
+                "failureThreshold": 5,
+                "initialDelaySeconds": 120
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "500m",
+                  "memory": "768Mi"
+                },
+                "requests": {
+                  "cpu": "500m",
+                  "memory": "768Mi"
+                }
+              },
+              "service": {
+                "type": "LoadBalancer"
+              }
+            },
+            "mongoDBConnectionString": "mongodb+srv://admin:VGVzOHRpbmc=@alloy-mongodb-svc.alloy.svc.cluster.local/admin?ssl=false",
+            "mongodb": {
+              "auth": {
+                "databases[0]": "alloy",
+                "existingSecret": "alloy-mongodb-secret",
+                "usernames[0]": "alloy"
+              },
+              "resources": {
+                "limits": {
+                  "cpu": "1",
+                  "memory": "1.5Gi"
+                },
+                "requests": {
+                  "cpu": "1",
+                  "memory": "1.5Gi"
+                }
+              }
+            },
+            "oidcAuthServerURL": "http://alloy-keycloak-service.alloy.svc.cluster.local:8080",
+            "postgres": {
+              "primary": {
+                "resources": {
+                  "limits": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  }
+                }
+              }
+            },
+            "redis": {
+              "auth": {
+                "enabled": false,
+                "password": "",
+                "sentinel": false
+              },
+              "configmap": "appendonly no",
+              "fullnameOverride": "redis",
+              "master": {
+                "resources": {
+                  "limits": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  }
+                }
+              },
+              "replica": {
+                "replicaCount": 1,
+                "resources": {
+                  "limits": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  },
+                  "requests": {
+                    "cpu": "250m",
+                    "memory": "256Mi"
+                  }
+                }
+              },
+              "usePassword": false
+            },
+            "redisConnectionString": "redis://alloy-redis.alloy.svc.cluster.local:6379",
+            "sslTermination": "true"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2023-03-07T10:23:52Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.26.0
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: alloy-op.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: Alloy
+      name: alloys.charts.alloys.com
+      version: v1alpha1
+  description: OSDU
+  displayName: Alloy
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - mongodbcommunity.mongodb.com
+          resources:
+          - MongoDBCommunity
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - redis.redis.opstreelabs.in
+          resources:
+          - redisclusters
+          - redis
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - kafka.strimzi.io
+          resources:
+          - Kafka
+          - kafkas
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - k8s.keycloak.org
+          resources:
+          - Keycloak
+          - KeycloakRealmImport
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - charts.alloys.com
+          resources:
+          - alloys
+          - alloys/status
+          - alloys/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          verbs:
+          - '*'
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - clusterissuers
+          verbs:
+          - '*'
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - persistentvolumeclaims
+          - secrets
+          - serviceaccounts
+          - services
+          verbs:
+          - '*'
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          - roles
+          verbs:
+          - '*'
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - '*'
+        - apiGroups:
+          - mongodbcommunity.mongodb.com
+          resources:
+          - mongodbcommunity
+          verbs:
+          - '*'
+        - apiGroups:
+          - charts.nginx.org
+          resources:
+          - nginxingresses
+          verbs:
+          - '*'
+        - apiGroups:
+          - redis.redis.opstreelabs.in
+          resources:
+          - redisclusters
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - statefulsets
+          - replicasets
+          verbs:
+          - '*'
+        - apiGroups:
+          - kafka.strimzi.io
+          resources:
+          - kafkas
+          verbs:
+          - '*'
+        - apiGroups:
+          - k8s.keycloak.org
+          resources:
+          - keycloakrealmimports
+          - keycloaks
+          - customresourcedefinitions
+          verbs:
+          - '*'
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: alloy-op-controller-manager
+      deployments:
+      - label:
+          control-plane: controller-manager
+        name: alloy-op-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy:v4.9
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=alloy-op
+                image: alloy.azurecr.io/alloy:1.0.58
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: alloy-op-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: alloy-op-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - alloy
+  links:
+  - name: Alloy Op
+    url: https://alloy-op.domain
+  maintainers:
+  - email: rakesh.sharma@questlabs.in
+    name: Rakesh
+  maturity: alpha
+  provider:
+    name: Questlabs
+  version: 0.0.1

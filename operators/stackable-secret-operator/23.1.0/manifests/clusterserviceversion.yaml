@@ -74,6 +74,13 @@ spec:
             - apiGroups:
                 - apps
               resources:
+                - deployments
+              verbs:
+                - get
+                - list
+            - apiGroups:
+                - apps
+              resources:
                 - daemonsets
               verbs:
                 - get
@@ -87,6 +94,28 @@ spec:
               resources:
                 - csidrivers
                 - storageclasses
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - delete
+                - patch
+            - apiGroups:
+                - secrets.stackable.tech
+              resources:
+                - secretclasses
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - delete
+                - patch
+            - apiGroups:
+                - security.openshift.io
+              resources:
+                - securitycontextconstraints
               verbs:
                 - get
                 - list
@@ -116,10 +145,10 @@ spec:
                 containers:
                   - name: secret-operator-deployer
                     securityContext: {}
-                    image: docker.stackable.tech/stackable/tools:0.2.0-stackable0.3.0 # TODO e.g. use tag or different image
+                    image: docker.stackable.tech/sandbox/tools:1.0.0-stackable23.4.0-rc1
                     imagePullPolicy: IfNotPresent
                     resources: {}
-                    command: ["bash", "-c", "echo 'Deploying secret-operator manifests' && kubectl apply -f /manifests/ && echo 'Successfully deployed secret-operator manifests' && sleep infinity"]
+                    command: ["bash", "-c", "echo 'Deploying secret-operator manifests' && export SECRET_OPERATOR_DEPLOYER_DEPLOYMENT_UID=$(kubectl get deployment secret-operator-deployer -o go-template='{{.metadata.uid}}') && export SECRET_OPERATOR_CLUSTERROLE_NAME=$(kubectl get clusterrole -l olm.owner=secret-operator.v23.1.0,olm.owner.kind=ClusterServiceVersion -o name | head -n 1 | grep -oP '/\\K.*') && export SECRET_OPERATOR_CLUSTERROLE_UID=$(kubectl get clusterrole $SECRET_OPERATOR_CLUSTERROLE_NAME -o go-template='{{.metadata.uid}}') && for file in /manifests/*.yaml; do echo Deploying $file && cat $file | envsubst | ./kubectl apply -f -; done && echo 'Successfully deployed secret-operator manifests' && sleep infinity"]
                     volumeMounts:
                       - name: manifests
                         mountPath: /manifests

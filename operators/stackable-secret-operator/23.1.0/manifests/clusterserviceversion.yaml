@@ -51,7 +51,8 @@ spec:
   relatedImages:
     - name: secret-operator
       image: docker.stackable.tech/stackable/secret-operator@sha256:66cade3f012a33f30b60601599cd4d5b3bbac5135498c1043eb34a9eb44ce9bf
-      # TODO Add deployer image
+    - name: tools
+      image: docker.stackable.tech/stackable/tools@sha256:f3f345a8870095ef152046efeeedf130a844aba54ea82ff7c8e974b53b4a2cd9
 
   install:
     # strategy indicates what type of deployment artifacts are used
@@ -145,7 +146,7 @@ spec:
                 containers:
                   - name: secret-operator-deployer
                     securityContext: {}
-                    image: docker.stackable.tech/sandbox/tools:1.0.0-stackable23.4.0-rc1
+                    image: docker.stackable.tech/stackable/tools:1.0.0-stackable23.1.0
                     imagePullPolicy: IfNotPresent
                     resources: {}
                     command: ["bash", "-c", "echo 'Deploying secret-operator manifests' && export SECRET_OPERATOR_DEPLOYER_DEPLOYMENT_UID=$(kubectl get deployment secret-operator-deployer -o go-template='{{.metadata.uid}}') && export SECRET_OPERATOR_CLUSTERROLE_NAME=$(kubectl get clusterrole -l olm.owner=secret-operator.v23.1.0,olm.owner.kind=ClusterServiceVersion -o name | head -n 1 | grep -oP '/\\K.*') && export SECRET_OPERATOR_CLUSTERROLE_UID=$(kubectl get clusterrole $SECRET_OPERATOR_CLUSTERROLE_NAME -o go-template='{{.metadata.uid}}') && for file in /manifests/*.yaml; do echo Deploying $file && cat $file | envsubst | ./kubectl apply -f -; done && echo 'Successfully deployed secret-operator manifests' && sleep infinity"]

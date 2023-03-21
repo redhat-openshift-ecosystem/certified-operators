@@ -1,0 +1,355 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: infoscale-vtas/iso-webhook-cert
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: infoscaleclusters.infoscale.veritas.com
+spec:
+  group: infoscale.veritas.com
+  names:
+    kind: InfoScaleCluster
+    listKind: InfoScaleClusterList
+    plural: infoscaleclusters
+    singular: infoscalecluster
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.annotations.infoscale\.veritas\.com/namespace
+      name: Namespace
+      type: string
+    - jsonPath: .status.version
+      name: Version
+      type: string
+    - jsonPath: .status.phase
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: InfoScaleCluster is the Schema for the infoscaleclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: InfoScaleClusterSpec defines the desired state of Kind InfoScaleCluster
+            properties:
+              clusterID:
+                description: Infoscale cluster id
+                maximum: 65535
+                minimum: 1
+                type: integer
+              clusterInfo:
+                description: Comprises the list of attributes from schedulable node
+                  of the cluster. It includes nodes which should be part of Infoscale
+                  Cluster, IP addresses per node as optional parameter and disks to
+                  be excluded from Infoscale storage
+                items:
+                  description: Node name and Network address information for all nodes
+                    in the cluster
+                  properties:
+                    excludeDevice:
+                      description: List of devices to be excluded, entire path of
+                        the device should be given e.g. /dev/sda
+                      items:
+                        pattern: (/dev/*)
+                        type: string
+                      type: array
+                    ip:
+                      description: List of IP addresses per node, these IP addresses
+                        are used by LLT for inter node data transfer.
+                      items:
+                        pattern: ^(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])$
+                        type: string
+                      type: array
+                    nodeName:
+                      description: Schedulable node of the cluster
+                      maxLength: 253
+                      type: string
+                  required:
+                  - nodeName
+                  type: object
+                type: array
+              customImageRegistry:
+                description: Optional field to specify registry that will be used
+                  for pulling images. Defaults to Infoscale published images of Redhat
+                  container catalog for OpenShift, this field can be used to specify
+                  internal registry or registry mirror in disconnected environment
+                type: string
+              enableScsi3pr:
+                default: "false"
+                description: Enable SCSI-3 Persistent Reservations (SCSI-3 PR) for
+                  the cluster
+                enum:
+                - "true"
+                - "false"
+                type: string
+              images:
+                description: Optional field to specify images used by various containers
+                  in the InfoScale Cluster stack
+                properties:
+                  csi:
+                    description: Images used for Infoscale CSI plugin and CSI sidecars
+                    properties:
+                      csiExternalAttacherContainer:
+                        description: CSI Attacher sidecar container
+                        type: string
+                      csiExternalProvisionerContainer:
+                        description: CSI Provisioner sidecar container
+                        type: string
+                      csiExternalResizerContainer:
+                        description: CSI External Resizer sidecar container
+                        type: string
+                      csiExternalSnapshotterCotainer:
+                        description: CSI External Snapshotter sidecar container
+                        type: string
+                      csiInfoscalePluginContainer:
+                        description: InfoScale CSI plugin container
+                        type: string
+                      csiNodeDriverRegistrarContainer:
+                        description: CSI Node Driver Registrar sidecar container
+                        type: string
+                      imagePullPolicy:
+                        description: Image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                    type: object
+                  fencing:
+                    description: Images used for infoscale fencing container
+                    properties:
+                      fencingExternalController:
+                        description: Fencing controller container
+                        type: string
+                      fencingExternalSwitcher:
+                        description: Fencing switcher container
+                        type: string
+                      imagePullPolicy:
+                        description: Image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      infoscaleFencingContainer:
+                        description: Infoscale Fencing controller
+                        type: string
+                    type: object
+                  infoscale:
+                    description: Image used for InfoScale container
+                    properties:
+                      imagePullPolicy:
+                        description: Image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      infoscaleStorageContainer:
+                        description: InfoScale storage container
+                        type: string
+                    type: object
+                type: object
+              version:
+                description: Infoscale Version
+                pattern: ^([0-9]\.){3}[0-9]{4}$|^([0-9]+\.){2}[0-9]+$
+                type: string
+            required:
+            - clusterInfo
+            - version
+            type: object
+          status:
+            description: InfoScaleClusterStatus defines the observed state of InfoScaleCluster
+            properties:
+              caCert:
+                description: CA Certificate data which can be registered with KMS
+                  provider
+                type: string
+              clusterName:
+                description: InfoScale Cluster Name
+                type: string
+              clusterNodes:
+                description: List of nodes in the cluster
+                items:
+                  description: ISClusterNodes defines the per node struct of node
+                    name and its IPs
+                  properties:
+                    errMessage:
+                      type: string
+                    excludeDevice:
+                      items:
+                        pattern: (/dev/*)
+                        type: string
+                      type: array
+                    nodeName:
+                      type: string
+                    role:
+                      type: string
+                  required:
+                  - nodeName
+                  - role
+                  type: object
+                type: array
+              clusterState:
+                description: Cluster state
+                type: string
+              diskInfo:
+                description: Storage available in cluster
+                items:
+                  description: ISDiskInfo shows disks available in cluster with its
+                    attributes
+                  properties:
+                    diskName:
+                      type: string
+                    lunSize:
+                      type: string
+                    mediaType:
+                      type: string
+                  type: object
+                type: array
+              diskgroups:
+                description: Diskgroup Summary
+                items:
+                  description: DiskgroupSummary struct for DiskgroupSummary
+                  properties:
+                    DiskList:
+                      description: Space separated list of disks in diskgroup (use
+                        ! as prefix for remove disk operation in case of PATCH)
+                      type: string
+                    FreeSize:
+                      description: Available/free size in diskgroup
+                      type: string
+                    Name:
+                      description: Diskgroup name
+                      type: string
+                    State:
+                      description: State of the diskgroup
+                      type: string
+                    TotalSize:
+                      description: Total size of diskgroup
+                      type: string
+                    Version:
+                      description: Disk group version
+                      format: int32
+                      type: integer
+                  type: object
+                type: array
+              enableScsi3pr:
+                description: Enable Scsi3pr for the cluster
+                type: string
+              images:
+                description: Information of images used by containers in InfoScaleCluster
+                  stack
+                properties:
+                  csi:
+                    description: Images used for Infoscale CSI plugin and CSI sidecars
+                    properties:
+                      csiExternalAttacherContainer:
+                        description: CSI Attacher sidecar container
+                        type: string
+                      csiExternalProvisionerContainer:
+                        description: CSI Provisioner sidecar container
+                        type: string
+                      csiExternalResizerContainer:
+                        description: CSI External Resizer sidecar container
+                        type: string
+                      csiExternalSnapshotterCotainer:
+                        description: CSI External Snapshotter sidecar container
+                        type: string
+                      csiInfoscalePluginContainer:
+                        description: InfoScale CSI plugin container
+                        type: string
+                      csiNodeDriverRegistrarContainer:
+                        description: CSI Node Driver Registrar sidecar container
+                        type: string
+                      imagePullPolicy:
+                        description: Image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                    type: object
+                  fencing:
+                    description: Images used for infoscale fencing container
+                    properties:
+                      fencingExternalController:
+                        description: Fencing controller container
+                        type: string
+                      fencingExternalSwitcher:
+                        description: Fencing switcher container
+                        type: string
+                      imagePullPolicy:
+                        description: Image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      infoscaleFencingContainer:
+                        description: Infoscale Fencing controller
+                        type: string
+                    type: object
+                  infoscale:
+                    description: Image used for InfoScale container
+                    properties:
+                      imagePullPolicy:
+                        description: Image pull policy
+                        enum:
+                        - IfNotPresent
+                        - Always
+                        - Never
+                        type: string
+                      infoscaleStorageContainer:
+                        description: InfoScale storage container
+                        type: string
+                    type: object
+                type: object
+              operationProgressStatus:
+                description: To give user information about the progress made by the
+                  operator
+                type: string
+              phase:
+                description: InfoScale Cluster Phase
+                type: string
+              version:
+                description: InfoScale version
+                type: string
+            required:
+            - clusterName
+            - clusterNodes
+            - clusterState
+            - images
+            - phase
+            - version
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

@@ -1,0 +1,539 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
+  name: astradsvolumes.astrads.netapp.io
+spec:
+  group: astrads.netapp.io
+  names:
+    categories:
+    - ads
+    - all
+    kind: AstraDSVolume
+    listKind: AstraDSVolumeList
+    plural: astradsvolumes
+    shortNames:
+    - adsvo
+    singular: astradsvolume
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The size of the volume (default unit in bytes)
+      jsonPath: .status.size
+      name: SIZE
+      type: string
+    - description: The IP that the volume can be mounted from
+      jsonPath: .status.exportAddress
+      name: IP
+      type: string
+    - description: The cluster that the volume exists in
+      jsonPath: .status.cluster
+      name: CLUSTER
+      type: string
+    - description: Export policy for the volume
+      jsonPath: .status.exportPolicy
+      name: EXPORTPOLICY
+      priority: 1
+      type: string
+    - description: Is the underlying firetap volume created
+      jsonPath: .status.created
+      name: CREATED
+      type: string
+    deprecated: true
+    deprecationWarning: v1alpha1 is deprecated, use v1beta1 instead
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AstraDSVolume is the Schema for the astradsvolumes API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AstraDSVolumeSpec defines the desired state of AstraDSVolume
+            properties:
+              cloneSnapshot:
+                description: CloneSnapshot defines a AstraDSVolumeSnapshot to clone
+                  from when creating this volume
+                type: string
+              cloneVolume:
+                description: CloneVolume defines a AstraDSVolume to clone from when
+                  creating this volume
+                type: string
+              cloudSnapshot:
+                type: string
+              cluster:
+                type: string
+              displayName:
+                description: DisplayName defines an additional name field for this
+                  volume that will be displayed in the ACC UI
+                type: string
+              exportPolicy:
+                description: Export policy is the name of the AstraDSExportPolicy
+                  object to associate with this volume
+                type: string
+              noSnapDir:
+                description: NoSnapDir defines a setting to disable the default .snap
+                  directory at the root of this volume that allows access of all completed
+                  snapshots <br> (___default:___ `false`)
+                type: boolean
+              permissions:
+                description: Permissions defines the unix permissions for this volume
+                  <br> (___Example:___ `0777`)
+                pattern: ^[0-7]{0,1}[0-7]{3}$
+                type: string
+              qosPolicy:
+                default: bronze
+                description: QosPolicy is the name of the AstraDSQosPolicy to associate
+                  with this volume <br> (___default:___ `bronze`)
+                type: string
+              restoreSnapshot:
+                type: string
+              size:
+                allOf:
+                - pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                - pattern: ^(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE])?$
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size is the size of the volume
+                type: string
+                x-kubernetes-int-or-string: true
+              snapshotPolicy:
+                type: string
+              snapshotReservePercent:
+                default: 5
+                description: SnapshotReservePercent defines the percent of the volume
+                  to reserve for snapshot storage <br> (___default:___ `5`)
+                format: int32
+                maximum: 90
+                minimum: 0
+                type: integer
+              state:
+                description: State sets the state of a volume. <br> (___Example:___
+                  `online` or `offline`)
+                pattern: ^(online|offline)$
+                type: string
+              type:
+                description: AstraDSVolumeType indicates the type of Volume(RW, DP)
+                pattern: ^(ReadWrite|DataProtection)$
+                type: string
+              volumePath:
+                description: VolumePath defines the NFS mount path for this volume
+                pattern: ^\/.*$
+                type: string
+            required:
+            - cluster
+            - size
+            - volumePath
+            type: object
+          status:
+            description: AstraDSVolumeStatus defines the observed state of AstraDSVolume
+            properties:
+              cloneSnapshot:
+                description: CloneSnapshot is the snapshot that was cloned to create
+                  this volume, if applicable
+                type: string
+              cloneVolume:
+                description: CloneVolume is the volume that was cloned to create this
+                  volume, if applicable
+                type: string
+              cluster:
+                description: Cluster defines the current cluster of the volume
+                type: string
+              conditions:
+                description: Condition are the latest observations of the AstraDSVolume
+                  state
+                items:
+                  description: AstraDSVolumeCondition contains the condition information
+                    for a AstraDSVolume
+                  properties:
+                    lastHeartbeatTime:
+                      description: Last time we got an update on a given condition.
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: Last time the condition transit from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Human readable message indicating details about
+                        last transition.
+                      type: string
+                    reason:
+                      description: (brief) reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of AstraDSVolume condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              created:
+                description: Created defines if this volume has been successfully
+                  created
+                type: boolean
+              displayName:
+                description: DisplayName defines the current displayName of the volume
+                type: string
+              exportAddress:
+                description: ExportAddress is the current IP used to access the volume
+                type: string
+              exportPolicy:
+                description: ExportPolicy is the current export policy for this volume
+                type: string
+              internalName:
+                description: InternalName defines the mapped internal name for this
+                  volume inside Firetap
+                type: string
+              mip:
+                description: MIP defines the management IP that this volume is currently
+                  on
+                type: string
+              noSnapDir:
+                description: NoSnapDir is current state of the NoSnapDir setting
+                type: boolean
+              nodeName:
+                description: NodenName is the current node the volume resides on
+                type: string
+              permissions:
+                description: Permissions are the current state of UNIX permissions
+                  for this volume
+                type: string
+              qosPolicy:
+                description: QosPolicy defines the current QosPolicy of a volume
+                type: string
+              requestedSize:
+                anyOf:
+                - type: integer
+                - type: string
+                description: RequestedSize keeps track of reconciling spec.Size since
+                  firetap can return a slightly different one
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              restoreCacheSize:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              restorePercent:
+                format: int64
+                type: integer
+              restoreSnapshot:
+                type: string
+              size:
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size defines the current size of the volume
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              snapshotPolicy:
+                type: string
+              snapshotReservePercent:
+                description: SnapshotReservePercent is the current reserve percent
+                  for snapshots on this volume
+                format: int32
+                type: integer
+              state:
+                description: State defines the current state of the volume
+                type: string
+              volumePath:
+                description: VolumePath is the current state of the volume path
+                type: string
+              volumeUUID:
+                description: VolumeUUID is the current UUID of this volume
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: The size of the volume (default unit in bytes)
+      jsonPath: .status.size
+      name: SIZE
+      type: string
+    - description: The IP that the volume can be mounted from
+      jsonPath: .status.exportAddress
+      name: IP
+      type: string
+    - description: The cluster that the volume exists in
+      jsonPath: .status.cluster
+      name: CLUSTER
+      type: string
+    - description: Export policy for the volume
+      jsonPath: .status.exportPolicy
+      name: EXPORTPOLICY
+      priority: 1
+      type: string
+    - description: Is the underlying firetap volume created
+      jsonPath: .status.created
+      name: CREATED
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: AstraDSVolume is the Schema for the astradsvolumes API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AstraDSVolumeSpec defines the desired state of AstraDSVolume
+            properties:
+              cloneSnapshot:
+                description: CloneSnapshot defines a AstraDSVolumeSnapshot to clone
+                  from when creating this volume
+                type: string
+              cloneVolume:
+                description: CloneVolume defines a AstraDSVolume to clone from when
+                  creating this volume
+                type: string
+              cloudSnapshot:
+                type: string
+              cluster:
+                type: string
+              displayName:
+                description: DisplayName defines an additional name field for this
+                  volume that will be displayed in the ACC UI
+                type: string
+              exportPolicy:
+                description: Export policy is the name of the AstraDSExportPolicy
+                  object to associate with this volume
+                type: string
+              metricsLabels:
+                description: Define the custom labels on volume. These labels will
+                  be then added to the "labels" in volume metrics.
+                properties:
+                  custom1:
+                    description: Label 1 for volume metric
+                    type: string
+                  custom2:
+                    description: Label 2 for volume metric
+                    type: string
+                type: object
+              noSnapDir:
+                description: NoSnapDir defines a setting to disable the default .snap
+                  directory at the root of this volume that allows access of all completed
+                  snapshots <br> (___default:___ `false`)
+                type: boolean
+              permissions:
+                description: Permissions defines the unix permissions for this volume
+                  <br> (___Example:___ `0777`)
+                pattern: ^[0-7]{0,1}[0-7]{3}$
+                type: string
+              qosPolicy:
+                default: bronze
+                description: QosPolicy is the name of the AstraDSQosPolicy to associate
+                  with this volume <br> (___default:___ `bronze`)
+                type: string
+              restoreSnapshot:
+                type: string
+              size:
+                allOf:
+                - pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                - pattern: ^(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE])?$
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size is the size of the volume
+                type: string
+                x-kubernetes-int-or-string: true
+              snapshotPolicy:
+                type: string
+              snapshotReservePercent:
+                default: 5
+                description: SnapshotReservePercent defines the percent of the volume
+                  to reserve for snapshot storage <br> (___default:___ `5`)
+                format: int32
+                maximum: 90
+                minimum: 0
+                type: integer
+              state:
+                description: State sets the state of a volume. <br> (___Example:___
+                  `online` or `offline`)
+                pattern: ^(online|offline)$
+                type: string
+              type:
+                description: AstraDSVolumeType indicates the type of Volume(RW, DP)
+                pattern: ^(ReadWrite|DataProtection)$
+                type: string
+              volumePath:
+                description: VolumePath defines the exposed NFS mount path for this
+                  volume
+                pattern: ^\/.*$|^$
+                type: string
+            required:
+            - cluster
+            - size
+            - volumePath
+            type: object
+          status:
+            description: AstraDSVolumeStatus defines the observed state of AstraDSVolume
+            properties:
+              cloneSnapshot:
+                description: CloneSnapshot is the snapshot that was cloned to create
+                  this volume, if applicable
+                type: string
+              cloneVolume:
+                description: CloneVolume is the volume that was cloned to create this
+                  volume, if applicable
+                type: string
+              cluster:
+                description: Cluster defines the current cluster of the volume
+                type: string
+              conditions:
+                description: Condition are the latest observations of the AstraDSVolume
+                  state
+                items:
+                  description: AstraDSVolumeCondition contains the condition information
+                    for a AstraDSVolume
+                  properties:
+                    lastHeartbeatTime:
+                      description: Last time we got an update on a given condition.
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: Last time the condition transit from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Human readable message indicating details about
+                        last transition.
+                      type: string
+                    reason:
+                      description: (brief) reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of AstraDSVolume condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              created:
+                default: false
+                description: Created defines if this volume has been successfully
+                  created
+                type: boolean
+              displayName:
+                description: DisplayName defines the current displayName of the volume
+                type: string
+              exportAddress:
+                description: ExportAddress is the current IP used to access the volume
+                type: string
+              exportPolicy:
+                description: ExportPolicy is the current export policy for this volume
+                type: string
+              internalName:
+                description: InternalName defines the mapped internal name for this
+                  volume inside Firetap
+                type: string
+              mip:
+                description: MIP defines the management IP that this volume is currently
+                  on
+                type: string
+              noSnapDir:
+                default: false
+                description: NoSnapDir is current state of the NoSnapDir setting
+                type: boolean
+              nodeName:
+                description: NodenName is the current node the volume resides on
+                type: string
+              permissions:
+                description: Permissions are the current state of UNIX permissions
+                  for this volume
+                type: string
+              qosPolicy:
+                description: QosPolicy defines the current QosPolicy of a volume
+                type: string
+              requestedSize:
+                anyOf:
+                - type: integer
+                - type: string
+                description: RequestedSize keeps track of reconciling spec.Size since
+                  firetap can return a slightly different one
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              restoreCacheSize:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              restorePercent:
+                format: int64
+                type: integer
+              restoreSnapshot:
+                type: string
+              size:
+                anyOf:
+                - type: integer
+                - type: string
+                description: Size defines the current size of the volume
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              snapshotPolicy:
+                type: string
+              snapshotReservePercent:
+                default: 0
+                description: SnapshotReservePercent is the current reserve percent
+                  for snapshots on this volume
+                format: int32
+                type: integer
+              state:
+                description: State defines the current state of the volume
+                type: string
+              volumePath:
+                default: ""
+                description: VolumePath is the current state of the volume path
+                type: string
+              volumeUUID:
+                description: VolumeUUID is the current UUID of this volume
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

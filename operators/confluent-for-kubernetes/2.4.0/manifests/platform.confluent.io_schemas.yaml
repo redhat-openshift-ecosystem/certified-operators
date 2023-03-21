@@ -1,0 +1,447 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: schemas.platform.confluent.io
+spec:
+  group: platform.confluent.io
+  names:
+    categories:
+    - all
+    - confluent-platform
+    - confluent
+    kind: Schema
+    listKind: SchemaList
+    plural: schemas
+    shortNames:
+    - schema
+    singular: schema
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.format
+      name: Format
+      type: string
+    - jsonPath: .status.id
+      name: ID
+      type: string
+    - jsonPath: .status.version
+      name: Version
+      type: string
+    - jsonPath: .status.phase
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .status.schemaRegistryEndpoint
+      name: SchemaRegistryEndpoint
+      priority: 1
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of the Schema.
+            properties:
+              data:
+                description: data defines the data required to create the schema.
+                properties:
+                  configRef:
+                    description: configRef is the name of the Kubernetes ConfigMap
+                      resource containing the schema.
+                    minLength: 1
+                    type: string
+                  format:
+                    description: format is the format type of the encoded schema.
+                      Valid options are `avro`, `json`, and `protobuf`.
+                    enum:
+                    - avro
+                    - json
+                    - protobuf
+                    minLength: 1
+                    type: string
+                required:
+                - configRef
+                - format
+                type: object
+              name:
+                description: name specifies the schema name. If not configured, the
+                  Schema CR name is used as the schema name.
+                maxLength: 255
+                minLength: 1
+                pattern: ^[:a-zA-Z0-9_.-]*$
+                type: string
+              schemaReferences:
+                description: schemaReferences defines the schema references in the
+                  schema data.
+                items:
+                  description: SchemaReference is the schema to be used as a reference
+                    for the new schema.
+                  properties:
+                    avro:
+                      description: avro is the data for the referenced Avro schema.
+                      properties:
+                        avro:
+                          description: name is the fully qualified name of the referenced
+                            Avro schema.
+                          minLength: 1
+                          type: string
+                      required:
+                      - avro
+                      type: object
+                    format:
+                      description: format is the format type of the referenced schema.
+                        Valid options are `avro`, `json`, and `protobuf`.
+                      enum:
+                      - avro
+                      - json
+                      - protobuf
+                      minLength: 1
+                      type: string
+                    json:
+                      description: json is the data for the referenced JSON schema.
+                      properties:
+                        url:
+                          description: url is the referenced JSON schema url.
+                          minLength: 1
+                          type: string
+                      required:
+                      - url
+                      type: object
+                    protobuf:
+                      description: protobuf is the data for the referenced Protobuf
+                        schema.
+                      properties:
+                        file:
+                          description: file is the file name of the referenced Protobuf
+                            schema.
+                          minLength: 1
+                          type: string
+                      required:
+                      - file
+                      type: object
+                    subject:
+                      description: subject is the subject name for the referenced
+                        schema through the configRef.
+                      minLength: 1
+                      type: string
+                    version:
+                      description: version is the version type of the referenced schema.
+                      format: int32
+                      type: integer
+                  required:
+                  - format
+                  - subject
+                  - version
+                  type: object
+                type: array
+              schemaRegistryClusterRef:
+                description: schemaRegistryClusterRef references the CFK-managed Schema
+                  Registry cluster.
+                properties:
+                  name:
+                    description: name specifies the name of the Confluent Platform
+                      component cluster.
+                    type: string
+                  namespace:
+                    description: namespace specifies the namespace where the Confluent
+                      Platform component cluster is running.
+                    type: string
+                required:
+                - name
+                type: object
+              schemaRegistryRest:
+                description: schemaRegistryRest specifies the Schema Registry REST
+                  API configuration.
+                properties:
+                  authentication:
+                    description: authentication specifies the REST API authentication
+                      mechanism.
+                    properties:
+                      basic:
+                        description: basic specifies the basic authentication settings
+                          for the REST API client.
+                        properties:
+                          debug:
+                            description: debug enables the basic authentication debug
+                              logs for JaaS configuration.
+                            type: boolean
+                          directoryPathInContainer:
+                            description: 'directoryPathInContainer allows to pass
+                              the basic credential through a directory path in the
+                              container. More info: https://docs.confluent.io/operator/current/co-authenticate.html#basic-authentication'
+                            minLength: 1
+                            type: string
+                          restrictedRoles:
+                            description: restrictedRoles specify the restricted roles
+                              on the server side only. Changes will be only reflected
+                              in Control Center. This configuration is ignored on
+                              the client side configuration.
+                            items:
+                              type: string
+                            minItems: 1
+                            type: array
+                          roles:
+                            description: roles specify the roles on the server side
+                              only. This configuration is ignored on the client side
+                              configuration.
+                            items:
+                              type: string
+                            type: array
+                          secretRef:
+                            description: 'secretRef defines secret reference to pass
+                              the required credentials. More info: https://docs.confluent.io/operator/current/co-authenticate.html#basic-authentication'
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        type: object
+                      bearer:
+                        description: bearer specifies the bearer authentication settings
+                          for the REST API client.
+                        properties:
+                          directoryPathInContainer:
+                            description: directoryPathInContainer specifies the directory
+                              path in the container where the credential is mounted.
+                            minLength: 1
+                            type: string
+                          secretRef:
+                            description: 'secretRef specifies the name of the secret
+                              that contains the credential. More info: https://docs.confluent.io/operator/current/co-authenticate.html#bearer-authentication'
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        type: object
+                      type:
+                        description: type specifies the REST API authentication type.
+                          Valid options are `basic`, `bearer`, and `mtls`.
+                        enum:
+                        - basic
+                        - bearer
+                        - mtls
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  endpoint:
+                    description: endpoint specifies where Confluent REST API is running.
+                    minLength: 1
+                    pattern: ^https?://.*
+                    type: string
+                  kafkaClusterID:
+                    description: kafkaClusterID specifies the id of Kafka cluster.
+                      It takes precedence over using the Kafka REST API to get the
+                      cluster id.
+                    minLength: 1
+                    type: string
+                  tls:
+                    description: tls specifies the custom TLS structure for the application
+                      resources, e.g. connector, topic, schema, of the Confluent Platform
+                      components.
+                    properties:
+                      directoryPathInContainer:
+                        description: directoryPathInContainer contains the directory
+                          path in the container where `keystore.jks`, `truststore.jks`,
+                          `jksPassword.txt` keys are mounted.
+                        minLength: 1
+                        type: string
+                      jksPassword:
+                        description: jksPassword specifies the secret name that contains
+                          the JKS password.
+                        properties:
+                          secretRef:
+                            description: 'secretRef references the name of the secret
+                              containing the JKS password. More info: https://docs.confluent.io/operator/current/co-network-encryption.html#configure-user-provided-tls-certificates'
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      secretRef:
+                        description: 'secretRef specifies the secret name that contains
+                          the certificates. More info about certificates key/value
+                          format: https://docs.confluent.io/operator/current/co-network-encryption.html#configure-user-provided-tls-certificates'
+                        maxLength: 30
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                    type: object
+                type: object
+            required:
+            - data
+            type: object
+          status:
+            description: status defines the observed state of the Schema.
+            properties:
+              conditions:
+                description: conditions are the latest available observed state of
+                  the schema.
+                items:
+                  description: Condition represent the latest available observations
+                    of the current state.
+                  properties:
+                    lastProbeTime:
+                      description: lastProbeTime shows the last time the condition
+                        was evaluated.
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: lastTransitionTime shows the last time the condition
+                        was transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: message shows a human-readable message with details
+                        about the transition.
+                      type: string
+                    reason:
+                      description: reason shows the reason for the last transition
+                        of the condition.
+                      type: string
+                    status:
+                      description: status shows the status of the condition, one of
+                        `True`, `False`, or `Unknown`.
+                      type: string
+                    type:
+                      description: type shows the condition type.
+                      type: string
+                  type: object
+                type: array
+              deletedVersions:
+                description: deletedVersions are the successfully hard deleted versions
+                  for the subject.
+                items:
+                  format: int32
+                  type: integer
+                type: array
+              format:
+                description: format is the format of the latest schema for the subject.
+                type: string
+              id:
+                description: id is the id of the latest schema for the subject.
+                format: int32
+                type: integer
+              schemaReferences:
+                description: schemaReferences are the schema references for the subject.
+                items:
+                  description: SchemaReference is the schema to be used as a reference
+                    for the new schema.
+                  properties:
+                    avro:
+                      description: avro is the data for the referenced Avro schema.
+                      properties:
+                        avro:
+                          description: name is the fully qualified name of the referenced
+                            Avro schema.
+                          minLength: 1
+                          type: string
+                      required:
+                      - avro
+                      type: object
+                    format:
+                      description: format is the format type of the referenced schema.
+                        Valid options are `avro`, `json`, and `protobuf`.
+                      enum:
+                      - avro
+                      - json
+                      - protobuf
+                      minLength: 1
+                      type: string
+                    json:
+                      description: json is the data for the referenced JSON schema.
+                      properties:
+                        url:
+                          description: url is the referenced JSON schema url.
+                          minLength: 1
+                          type: string
+                      required:
+                      - url
+                      type: object
+                    protobuf:
+                      description: protobuf is the data for the referenced Protobuf
+                        schema.
+                      properties:
+                        file:
+                          description: file is the file name of the referenced Protobuf
+                            schema.
+                          minLength: 1
+                          type: string
+                      required:
+                      - file
+                      type: object
+                    subject:
+                      description: subject is the subject name for the referenced
+                        schema through the configRef.
+                      minLength: 1
+                      type: string
+                    version:
+                      description: version is the version type of the referenced schema.
+                      format: int32
+                      type: integer
+                  required:
+                  - format
+                  - subject
+                  - version
+                  type: object
+                type: array
+              schemaRegistryAuthenticationType:
+                description: schemaRegistryAuthenticationType is the authentication
+                  method used.
+                type: string
+              schemaRegistryEndpoint:
+                description: schemaRegistryEndpoint is the Schema Registry REST endpoint.
+                type: string
+              schemaRegistryTLS:
+                description: schemaRegistryTLS shows whether the Schema Registry is
+                  using TLS.
+                type: boolean
+              softDeletedVersions:
+                description: softDeletedVersions are the successfully soft deleted
+                  versions for the subject.
+                items:
+                  format: int32
+                  type: integer
+                type: array
+              state:
+                description: state is the state of the Schema CR.
+                type: string
+              subject:
+                description: subject is the subject of the schema.
+                type: string
+              version:
+                description: version is the version of the latest schema for the subject.
+                format: int32
+                type: integer
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

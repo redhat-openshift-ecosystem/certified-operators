@@ -1,0 +1,604 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "rc.app.stacks/v1beta2",
+          "kind": "RuntimeComponent",
+          "metadata": {
+            "name": "runtimecomponent-sample"
+          },
+          "spec": {
+            "applicationImage": "registry.connect.redhat.com/ibm/open-liberty-samples@sha256:8ea2d3405ff2829d93c5dda4dab5d695ea8ead34e804aaf6e39ea84f53a15ee4",
+            "expose": true,
+            "replicas": 1,
+            "service": {
+              "port": 9080
+            }
+          }
+        },
+        {
+          "apiVersion": "rc.app.stacks/v1beta2",
+          "kind": "RuntimeOperation",
+          "metadata": {
+            "name": "runtimeoperation-sample"
+          },
+          "spec": {
+            "command": [
+              "./your_script.sh"
+            ],
+            "containerName": "app",
+            "podName": "Specify_Pod_Name_Here"
+          }
+        }
+      ]
+    capabilities: Auto Pilot
+    categories: Application Runtime
+    certified: "true"
+    containerImage: registry.connect.redhat.com/ibm/runtime-component-operator@sha256:d37b3f62575c9ad1ffcb22c89e2c3886275c326bf27aa49fb1808acba475853d
+    createdAt: "2022-03-25T14:00:00Z"
+    description: Deploys any runtime component with dynamic and auto-tuning configuration
+    operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    repository: https://github.com/application-stacks/runtime-component-operator
+    support: Community
+    olm.skipRange: "<0.8.1"
+  name: runtime-component.v0.8.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Represents the deployment of a runtime component
+      displayName: RuntimeComponent
+      kind: RuntimeComponent
+      name: runtimecomponents.rc.app.stacks
+      resources:
+      - kind: Deployment
+        name: ""
+        version: v1
+      - kind: HorizontalPodAutoscaler
+        name: ""
+        version: v1
+      - kind: Route
+        name: ""
+        version: v1
+      - kind: Secret
+        name: ""
+        version: v1
+      - kind: Service
+        name: ""
+        version: v1
+      - kind: ServiceAccount
+        name: ""
+        version: v1
+      - kind: StatefulSet
+        name: ""
+        version: v1
+      specDescriptors:
+      - description: Application image to deploy.
+        displayName: Application Image
+        path: applicationImage
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Required field for autoscaling. Upper limit for the number of pods that can be set by the autoscaler. Parameter .spec.resources.requests.cpu must also be specified.
+        displayName: Max Replicas
+        path: autoscaling.maxReplicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Probe to determine successful initialization. If specified, other probes are not executed until this completes successfully.
+        displayName: Startup Probe
+        path: probes.startup
+      - description: Name of the application. Defaults to the name of this custom resource.
+        displayName: Application Name
+        path: applicationName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Lower limit for the number of pods that can be set by the autoscaler.
+        displayName: Min Replicas
+        path: autoscaling.minReplicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Periodic probe of container service readiness. Container will be removed from service endpoints if the probe fails.
+        displayName: Readiness Probe
+        path: probes.readiness
+      - description: Version of the application.
+        displayName: Application Version
+        path: applicationVersion
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Target average CPU utilization, represented as a percentage of requested CPU, over all the pods.
+        displayName: Target CPU Utilization Percentage
+        path: autoscaling.targetCPUUtilizationPercentage
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Periodic probe of container liveness. Container will be restarted if the probe fails.
+        displayName: Liveness Probe
+        path: probes.liveness
+      - description: Policy for pulling container images. Defaults to IfNotPresent.
+        displayName: Pull Policy
+        path: pullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - description: Name of the Secret to use to pull images from the specified repository. It is not required if the cluster is configured with a global image pull secret.
+        displayName: Pull Secret
+        path: pullSecret
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - description: Name of the service account to use for deploying the application. A service account is automatically created if it's not specified.
+        displayName: Service Account Name
+        path: serviceAccountName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Create Knative resources and use Knative serving.
+        displayName: Create Knative Service
+        path: createKnativeService
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Expose the application externally via a Route, a Knative Route or an Ingress resource.
+        displayName: Expose
+        path: expose
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Number of pods to create. Not applicable when .spec.autoscaling or .spec.createKnativeService is specified.
+        displayName: Replicas
+        path: replicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podCount
+      - description: The port exposed by the container.
+        displayName: Service Port
+        path: service.port
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - displayName: Auto Scaling
+        path: autoscaling
+      - displayName: Service Type
+        path: service.type
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Resource requests and limits for the application container.
+        displayName: Resource Requirements
+        path: resources
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+      - description: Node proxies this port into your service.
+        displayName: Node Port
+        path: service.nodePort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - displayName: Probes
+        path: probes
+      - description: The name for the port exposed by the container.
+        displayName: Port Name
+        path: service.portName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - displayName: Deployment
+        path: deployment
+      - description: Annotations to be added to the service.
+        displayName: Service Annotations
+        path: service.annotations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The port that the operator assigns to containers inside pods. Defaults to the value of spec.service.port.
+        displayName: Target Port
+        path: service.targetPort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - displayName: StatefulSet
+        path: statefulSet
+      - displayName: Service
+        path: service
+      - description: A name of a secret that already contains TLS key, certificate and CA to be mounted in the pod.
+        displayName: Certificate Secret Reference
+        path: service.certificateSecretRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - displayName: Route
+        path: route
+      - description: An array consisting of service ports.
+        displayName: Ports
+        path: service.ports
+      - displayName: Monitoring
+        path: monitoring
+      - description: Expose the application as a bindable service. Defaults to false.
+        displayName: Bindable
+        path: service.bindable
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: An array of environment variables for the application container.
+        displayName: Environment Variables
+        path: env
+      - description: List of sources to populate environment variables in the application container.
+        displayName: Environment Variables from Sources
+        path: envFrom
+      - description: Represents a volume with data that is accessible to the application container.
+        displayName: Volumes
+        path: volumes
+      - description: Specifies the strategy to replace old deployment pods with new pods.
+        displayName: Deployment Update Strategy
+        path: deployment.updateStrategy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:updateStrategy
+      - description: Represents where to mount the volumes into the application container.
+        displayName: Volume Mounts
+        path: volumeMounts
+      - description: List of containers to run before other containers in a pod.
+        displayName: Init Containers
+        path: initContainers
+      - description: List of sidecar containers. These are additional containers to be added to the pods.
+        displayName: Sidecar Containers
+        path: sidecarContainers
+      - description: Specifies the strategy to replace old statefulSet pods with new pods.
+        displayName: StatefulSet Update Strategy
+        path: statefulSet.updateStrategy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - displayName: Affinity
+        path: affinity
+      - displayName: Storage
+        path: statefulSet.storage
+      - description: A convenient field to set the size of the persisted storage.
+        displayName: Storage Size
+        path: statefulSet.storage.size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The directory inside the container where this persisted storage will be bound to.
+        displayName: Storage Mount Path
+        path: statefulSet.storage.mountPath
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: A YAML object that represents a volumeClaimTemplate component of a StatefulSet.
+        displayName: Storage Volume Claim Template
+        path: statefulSet.storage.volumeClaimTemplate
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:PersistentVolumeClaim
+      - description: Labels to set on ServiceMonitor.
+        displayName: Monitoring Labels
+        path: monitoring.labels
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: A YAML snippet representing an array of Endpoint component from ServiceMonitor.
+        displayName: Monitoring Endpoints
+        path: monitoring.endpoints
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:endpointList
+      - description: Controls which nodes the pod are scheduled to run on, based on labels on the node.
+        displayName: Node Affinity
+        path: affinity.nodeAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:nodeAffinity
+      - description: Controls the nodes the pod are scheduled to run on, based on labels on the pods that are already running on the node.
+        displayName: Pod Affinity
+        path: affinity.podAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podAffinity
+      - description: Enables the ability to prevent running a pod on the same node as another pod.
+        displayName: Pod Anti Affinity
+        path: affinity.podAntiAffinity
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:podAntiAffinity
+      - description: A YAML object that contains a set of required labels and their values.
+        displayName: Node Affinity Labels
+        path: affinity.nodeAffinityLabels
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Annotations to be added to the Route.
+        displayName: Route Annotations
+        path: route.annotations
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Hostname to be used for the Route.
+        displayName: Route Host
+        path: route.host
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Path to be used for Route.
+        displayName: Route Path
+        path: route.path
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: A name of a secret that already contains TLS key, certificate and CA to be used in the route. Also can contain destination CA certificate.
+        displayName: Certificate Secret Reference
+        path: route.certificateSecretRef
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: TLS termination policy. Can be one of edge, reencrypt and passthrough.
+        displayName: Termination
+        path: route.termination
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: HTTP traffic policy with TLS enabled. Can be one of Allow, Redirect and None.
+        displayName: Insecure Edge Termination Policy
+        path: route.insecureEdgeTerminationPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      statusDescriptors:
+      - displayName: Service Binding
+        path: binding
+      - displayName: Status Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1beta2
+    - description: Day-2 operation to execute on an instance of runtime component
+      displayName: RuntimeOperation
+      kind: RuntimeOperation
+      name: runtimeoperations.rc.app.stacks
+      specDescriptors:
+      - description: Command to execute. Not executed within a shell.
+        displayName: Command
+        path: command
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - displayName: Container Name
+        path: containerName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of the Pod to perform runtime operation on. Pod must be from the same namespace as the RuntimeOperation instance.
+        displayName: Pod Name
+        path: podName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      version: v1beta2
+  description: |
+    This advanced Operator is capable of deploying any runtime component image with consistent, production-grade QoS. It enables enterprise architects to govern the way their applications get deployed & managed in the cluster, while dramatically reducing the learning curve for developers to deploy into Kubernetes - allowing them to focus on writing the code!
+    Here are some key features:
+
+    #### Application Lifecyle
+    You can deploy your runtime component container by either pointing to a container image, or an OpenShift ImageStream. When using an ImageStream the Operator will watch for any updates and will re-deploy the modified image.
+
+    #### Custom RBAC
+    This Operator is capable of using a custom ServiceAccount from the caller, allowing it to follow RBAC restrictions. By default it creates a ServiceAccount if one is not specified, which can also be bound with specific roles.
+
+    #### Environment Configuration
+    You can configure a variety of artifacts with your deployment, such as: labels, annotations, and environment variables from a ConfigMap, a Secret or a value.
+
+    #### Routing
+    Expose your application to external users via a single toggle to create a Route on OpenShift or an Ingress on other Kubernetes environments. Advanced configuration, such as TLS settings, are also easily enabled.
+
+    #### High Availability via Horizontal Pod Autoscaling
+    Run multiple instances of your application for high availability. Either specify a static number of replicas or easily configure horizontal auto scaling to create (and delete) instances based on resource consumption.
+
+    #### Persistence and advanced storage
+    Enable persistence for your application by specifying simple requirements: just tell us the size of the storage and where you would like it to be mounted and we will create and manage that storage for you.
+    This toggles a StatefulSet resource instead of a Deployment resource, so your container can recover transactions and state upon a pod restart.
+    We offer an advanced mode where you can specify a built-in PersistentVolumeClaim, allowing you to configure many details of the persistent volume, such as its storage class and access mode.
+
+    #### Service Binding
+    Your runtime components can expose services by a simple toggle. We take care of the heavy lifting such as creating kubernetes Secrets with information other services can use to bind. We also keep the bindable information synchronized, so your applications can dynamically reconnect to its required services without any intervention or interruption.
+
+    #### Exposing metrics to Prometheus
+    The Runtime Component Operator exposes the runtime container's metrics via the Prometheus Operator.
+    You can pick between a basic mode, where you simply specify the label that Prometheus is watching to scrape the metrics from the container, or you can specify the full `ServiceMonitor` spec embedded into the RuntimeComponent's `spec.monitoring` field to control configurations such as the poll interval and security credentials.
+
+    #### Easily mount logs and transaction directories
+    If you need to mount the logs and transaction data from your runtime component to an external volume such as NFS (or any storage supported in your cluster), simply add the following (to specify the volume size and the location to persist) to your RuntimeComponent CR:
+    ``` storage: size: 2Gi mountPath: "/logs" ```
+
+    #### Integration with OpenShift Serverless
+    Deploy your serverless runtime component using a single toggle.  The Operator will convert all of its generated resources into [Knative](https://knative.dev) resources, allowing your pod to automatically scale to 0 when it is idle.
+
+    #### Integration with OpenShift's Topology UI
+    We set the corresponding labels to support OpenShift's Developer Topology UI, which allows you to visualize your entire set of deployments and how they are connected.
+
+    See our [**documentation**](https://github.com/application-stacks/runtime-component-operator/tree/main/doc/) for more information.
+  displayName: Runtime Component
+  icon:
+  - base64data: iVBORw0KGgoAAAANSUhEUgAAAY8AAAGwCAYAAABRtumfAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAaGVYSWZNTQAqAAAACAAEAQYAAwAAAAEAAgAAARIAAwAAAAEAAQAAASgAAwAAAAEAAgAAh2kABAAAAAEAAAA+AAAAAAADoAEAAwAAAAEAAQAAoAIABAAAAAEAAAGPoAMABAAAAAEAAAGwAAAAAIncb1sAAALkaVRYdFhNTDpjb20uYWRvYmUueG1wAAAAAAA8eDp4bXBtZXRhIHhtbG5zOng9ImFkb2JlOm5zOm1ldGEvIiB4OnhtcHRrPSJYTVAgQ29yZSA1LjQuMCI+CiAgIDxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+CiAgICAgIDxyZGY6RGVzY3JpcHRpb24gcmRmOmFib3V0PSIiCiAgICAgICAgICAgIHhtbG5zOnRpZmY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vdGlmZi8xLjAvIgogICAgICAgICAgICB4bWxuczpleGlmPSJodHRwOi8vbnMuYWRvYmUuY29tL2V4aWYvMS4wLyI+CiAgICAgICAgIDx0aWZmOlBob3RvbWV0cmljSW50ZXJwcmV0YXRpb24+MjwvdGlmZjpQaG90b21ldHJpY0ludGVycHJldGF0aW9uPgogICAgICAgICA8dGlmZjpPcmllbnRhdGlvbj4xPC90aWZmOk9yaWVudGF0aW9uPgogICAgICAgICA8dGlmZjpDb21wcmVzc2lvbj4xPC90aWZmOkNvbXByZXNzaW9uPgogICAgICAgICA8dGlmZjpSZXNvbHV0aW9uVW5pdD4yPC90aWZmOlJlc29sdXRpb25Vbml0PgogICAgICAgICA8ZXhpZjpQaXhlbFlEaW1lbnNpb24+NDMyPC9leGlmOlBpeGVsWURpbWVuc2lvbj4KICAgICAgICAgPGV4aWY6Q29sb3JTcGFjZT4xPC9leGlmOkNvbG9yU3BhY2U+CiAgICAgICAgIDxleGlmOlBpeGVsWERpbWVuc2lvbj4zOTk8L2V4aWY6UGl4ZWxYRGltZW5zaW9uPgogICAgICA8L3JkZjpEZXNjcmlwdGlvbj4KICAgPC9yZGY6UkRGPgo8L3g6eG1wbWV0YT4KTuacxQAAIWJJREFUeAHt3XusLVdZAPCWXkof0AcgBAsFRUUTRAWBBiivAkqBFijQEiPgI4I8asD4hwYRjQgxon+YCARR4z/QIi0PLQ+hlIJGTBRUoAgJSIGWtgql9AGlcP0+7hnYPZxz7p2916yZWfNbyXfPvefsWY/f2nd/55uZfc5hh2kECBAgQIAAAQIECBAgQIAAAQIECBAgQIAAgfkLHD7/Jay1glz3y9Y60kEECBBoQyBfB1++7lL2rXvgzI97Rcz/t2e+BtMnQIDApgK3RAd/uE4nt1nnoAaO2d/AGiyBAAECowksNXmMBm5gAgQItCAgebSwi9ZAgACBygKSR2VwwxEgQKAFAcmjhV20BgIECFQWkDwqgxuOAAECLQhIHi3sojUQIECgsoDkURnccAQIEGhBQPJoYRetgQABApUFJI/K4IYjQIBACwKSRwu7aA0ECBCoLCB5VAY3HAECBFoQkDxa2EVrIECAQGUByaMyuOEIECDQgoDk0cIuWgMBAgQqCyz193m8MZyfHfHNyt6GI0CAwKYCR0YH+Yuc7rZpR5scv9Tk8bFAu/smcI4lQIDAiAJ3ibH/MeInI0b5jbBOW424+4YmQIDAmgJXx3EPibhizeM3Pkzy2JhQBwQIEBhF4IYYdbRT75LHKHtuUAIECBQRuKZIL2t0InmsgeYQAgQILF1A8lj6M8D6CRAgsIbAlO+2ytvR3hpxvzXW5RACBAi0IJB3Ur0v4llTW8yUk8cdAutREUdNDc18CBAgUFHg6THW5JKH01YVnwGGIkCAQCsCkkcrO2kdBAgQqCggeVTENhQBAgRaEZA8WtlJ6yBAgEBFAcmjIrahCBAg0IqA5NHKTloHAQIEKgpIHhWxDUWAAIFWBCSPVnbSOggQIFBRQPKoiG0oAgQItCIgebSyk9ZBgACBigKSR0VsQxEgQKAVAcmjlZ20DgIECFQUkDwqYhuKAAECrQhIHq3spHUQIECgooDkURHbUAQIEGhFYOrJY+rza+V5YB0ECBDoJTDlXwb1lVjJH0c8oNeKPJgAAQLjC1wVUzgtIn+p3QnjT8cMCBAgQGBOAr8Sk70iYv8GcdMeC/7XDfrNOb10j773/JLTQnvy+CIBAgQ2EnhDHP36iHyhbqpJHk1tp8UQIDBBgY/GnK6d4Lw2mpLksRGfgwkQIHBQgRvjEYcf9FEze4DkMbMNM10CBAhMQUDymMIumAMBAgRmJlDiVt2XxJpfPbN1my4BAgRKClwfnZ0akdc3FtFKVB4JphEgQGDJAvla+tNLAiiRPJbkZa0ECBAgEAKSh6cBAQIECPQWkDx6kzmAAAECBCQPzwECBAgQ6C0gefQmcwABAgQISB6eAwQIECDQW0Dy6E3mAAIECBCQPDwHCBAgQKC3gOTRm8wBBAgQICB5eA4QIECAQG8ByaM3mQMIECBAQPLwHCBAgACB3gKSR28yBxAgQICA5OE5QIBAywL5u8O/3fICx1pbid/nMdbcjUuAAIGDCeSvf23uV8AebNE1vq7yqKFsDAIECDQmIHk0tqGWQ4AAgRoCkkcNZWMQIECgMQHJo7ENtRwCBAjUEJA8aigbgwABAo0JSB6NbajlECBAoIaA5FFD2RgECBBoTEDyaGxDLYcAAQI1BCSPGsrGIECAQGMCkkdjG2o5BAgQqCEgedRQNgYBAgQaE5A8GttQyyEwY4H8IYbaTAQkj5lslGkSWICAH2A4o02WPGa0WaZKoHEBlceMNljymNFmmSqBxgVUHjPaYMljRptlqgQIEJiKgOQxlZ0wDwIECMxIQPKY0WaZKgECBKYiIHlMZSfMgwABAjMSkDxmtFmmSoAAgakISB5T2QnzIECAwIwEJI8ZbZapEiBAYCoCksdUdsI8CBAgMCMByWNGm2WqBAgQmIqA5DGVnTAPAgQIzEhA8pjRZpkqAQIEpiIgeUxlJ8yDAAECMxKQPGa0WaZKgACBqQhIHlPZCfMgQIDAjAQkjxltlqkSIEBgKgKSx1R2wjwIECAwI4ESyeO2M1qvqRIgQGAIgX1DdDrlPkss+FmxwHOnvEhzI0CAwMAC10b/fzPwGJPqvkTy+HKs6OWTWpXJECBAgMCgAiVOWw06QZ0TIECAwPQEJI/p7YkZESDQlsDNsZyvt7Wkww6TPFrbUeshQGBqAkfGhI6a2qQ2nY/ksamg4wkQILBAgRIXzDOr/sQC7SyZAAECnUCemrqs+8cSPpZIHq8IqF+PuGUJYNZIgACBHQT2x+fOirh4h681+akSyeNHQubYJnUsigABAocmcGM87ORDe2gbj3LNo419tAoCBAhUFZA8qnIbjAABAm0ISB5t7KNVECBAoKqA5FGV22AECBBoQ0DyaGMfrYIAAQJVBSSPqtwGI0CAQBsCkkcb+2gVBAgQqCogeVTlNhgBAgTaEJA82thHqyBAgEBVAcmjKrfBCBAg0IaA5NHGPloFAQIEqgpIHlW5DUaAAIE2BCSPNvbRKggQIFBVQPKoym0wAgQItCEgebSxj1ZBgACBqgKSR1VugxEgQKANAcmjjX20CgIECFQVkDyqchuMAAECbQhIHm3so1UQIECgqoDkUZXbYAQIEGhDQPJoYx+tggABAlUFJI+q3AYjQIBAGwKSRxv7aBUECBCoKiB5VOU2GAECBNoQkDza2EerIECAQFUByaMqt8EIECDQhoDk0cY+WgUBAgSqCkgeVbkNRoAAgTYEJI829tEqCBAgUFVA8qjKbTACBAi0ISB5tLGPVkGAAIGqApJHVW6DESBAoA0ByaONfbQKAgQIVBWQPKpyG4wAAQJtCEgebeyjVRAgQKCqgORRldtgBAgQaENA8mhjH62CAAECVQUkj6rcBiNAgEAbApJHG/toFQQIEKgqIHlU5TYYAQIE2hCQPNrYR6sgQIBAVQHJoyq3wQgQINCGgOTRxj5aBQECBKoKSB5VuQ1GgACBNgQkjzb20SoIECBQVUDyqMptMAIECLQhIHm0sY9WQYAAgaoCkkdVboMRIECgDQHJo419tAoCBAhUFZA8qnIbjAABAm0ISB5t7KNVECBAoKqA5FGV22AECBBoQ0DyaGMfrYIAAQJVBSSPqtwGI0CAQBsCkkcb+2gVBAgQqCogeVTlNhgBAgTaEJA82thHqyBAgEBVAcmjKrfBCBAg0IaA5NHGPloFAQIEqgpIHlW5DUaAAIE2BCSPNvbRKggQIFBVQPKoym0wAgQItCEgebSxj1ZBgACBqgKSR1VugxEgQKANAcmjjX20CgIECFQVkDyqchuMAAECbQhIHm3so1UQIECgqoDkUZXbYAQIEGhDQPJoYx+tggABAlUFJI+q3AYjQIBAGwKSRxv7aBUECBCoKiB5VOU2GAECBNoQkDza2EerIECAQFUByaMqt8EIECDQhoDk0cY+WgUBAgSqCkgeVbkNRoAAgTYE9rWxDKtYsMA3Y+3XRRweceLWx/igESAwpIDkMaSuvocS+Fp0fHTEJyL+NuKqiG9EPCziyRF3jshkko/RCBAYQEDyGABVl8UFsrq4KWJ/xLsizo94Z0R+brW9Of7xGxEnRZwe8cyIUyNuiDguIhOKRoBAAQHJowCiLgYRWK0uMlm8I+I/D3GkL8bjXr8VecgjI54SoSoJBI1ACQHJo4SiPkoIdNXFt6Ozd0fsVl2sM9YlcVDGalVyTvw7q5IbI+4Q4eaRQNAIHKqA5HGoUh43hMAm1cW68zlYVZL9HrNu544jsBQByWMpOz2Nda5WF3ntIq9R7HTtouZsL4nBMlarkrPj3w+PUJUEgkZgJwHJYycVnyspkLfR5nfyeWdUnop6e8R/RZRseZfV1RGf2rDT7VXJI6K/vE6S10t+YKtvVckWhA/LFpA8lr3/Q6y+RnVxp5j46RFPj3hMRCaovC336xF5Yf2CiKxo8u6sTdoH4uCMF0ecFJFjqkoCQSMgeXgOlBDoqouPR2fnRfx9ROnq4pTo80kRT4s4OSKTVF7ozta9nyNvx/3liLMijo/4cETO56IIVUkgaARKCUgepSSX1c/Nsdz8Lj/vjBrq2sX26iLfBHhsxG0jsh114MP3/Znv5Thh67OZcH4q4vcjcr5DVSU/GH13VUme6nKtJBC0tgUkj7b3t+TqplJd9F1TViUZQ1YlV0T/f7kV8eEw10pSQWtaQPJoens3WtxO1UWe/snv4Eu1rrp4RnR4WsShVhfrjq8qWVfOcQS2CUge20AW/s+5VhfrbtsYVUneApx3cD01wh1c6+6c40YXkDxG34JRJ7BaXeTdSd37LuZcXawLWqsquTQmmPGSiO3XSm6Iz+XpNe92DwRt2gKSx7T3Z4jZddXFx6Lz8yPGujNqiLWV7HOnqiQvxP9LxHkRJe7g2n6tpKtK8n0ld4nIW43zJgGNwOQEJI/JbUnxCXXVxbei56wu/m7r4xKri3Vxd6pK/iA6uykik+9bItJ20/eVrFYld4v+uju4Hhl/V5UEgjYdAcljOntRcibbq4u8RTUrjZLtlOjsYO+7KDnelPrKqiRbvs/klyLOisj3lZSsSq6M/t6wFfHhOz8u5cz4mNdKVCUpoo0qIHmMyl9s8LGqi9vHCrrn0G7vuyi2yIl2lFVJJo5smVDzfSVDViW/Gf13VUnepfbIiBsjMpEdEaERqCLQ/cevMphBigqsVhd5Dj5Pn6guihKv1dluVcmHo7c3RVwU8am1ev7eQdurkvzR8t0dXKqS7zn524ACkseAuIW7Vl0UBq3Q3WpV8uAYb6iq5IPRd4aqpMKmGuKAgOQx7WdCJoyrIr4UkT/sT3URCDNueWovY/u1kqGrkrxW8sCIe0XcPeI2ERqBjQQkj434Bj047655f0Se1867ekq1O0VHeRdP9tu9q9u1i1K6h95P7aokZ5a3AL8q4t4RR0RoBNYWkDzWphv8wPypsedGlEgceSH3jIinRdwj4paITBjZunP0B/7lz7EEalQlF8bi3h7x2Yh8HmgE1haQPNamG/zAz8QI+Z98k5bnwX82ovuZUfZ7E816x+5WlXwrpvDGiOdvMJXs49oIyWMDRIc69znl58CmiSPXlr8Z7ysReYoiKxltngJ57et2EddE5LvSN22ZPDQCGwn4TnQjvskffM7WDO8VH7t3K+evbM3bfP0MpUCYaMtEf2NEXth+T0T3M8dy3zQCkxCQPCaxDYNP4n9ihL/YihzsMRF58TTvwjk+IisT1z4CYcT2tRg7q4tPR2SyeEfEv0doBCYpIHlMclsGn9R7Y4SMF0TcM+IJEWdHqEoCoVJbrS7eHWN21UUmEY3A5AUkj8lv0fdNMC+m/l5EXs+4aOtjfFi7fS6OVJWszdfrwO3VRd759JFePRz8wfnNwBMj8rTkKw/+cI8gsJ6A5LGe25hHHRmDvzQib+H9s4j/jbgw4m0Rl0Rs2rZXJavXSvLFz7WSQxfuqotM+KvXLkpXF3kaMn88SUaehszx8tZfySMQtGEEJI9hXGv02r1P49gY7EURz47Idy5/IOK8iFJVyWuir4xsp0V010pOjL/nBV3XSgJhpWViyBfu/47IU1HviChdXdwr+uze6Hlq/H2nGyBuic9rBAYTkDwGo63acV7wzhfzbPkCn28KHKIqeV/0m/HCiJMjVq+VLLUqWa0uVq9dXB8+Jdtjo7OsLM6MyOoiE/cxEdlOOPDBnwTqCUge9axrjpTVSLauKnlO/D0rlaxKzo/IquQLEZu0y+PgpVYlNauLs8PZjQybPFMdO4iA5DEI66Q6zaqk+860q0r+ND73fxEXRJS6VrK9KumuleRplfwuPE+p5XfLc2xZXdy0NfGhq4s8LXhGhOpiC9yHaQpIHtPclyFntVqVnBsDPSdiiKrktdFvRrZHR+SLYp52ydNrmUSmfq1ktbrIai2vXXw0omT7oeisS7IPjb/vdO2i5Hj6IlBMQPIoRjnLjvJFfLeq5ML4WlYl7y+wsoujj4y8sJ/XSroXzClVJV11sT/mt1pd5E83LtkeF51lEs1rF8dF5B4cE5Gt24sD//IngQkLSB4T3pwRprZaleQLfd7B1XJV0lUXn4x1vjmiVnWRp6TydlqNwGwFJI/Zbt3gEx+jKrlHrCqrknMi8iJxftdf8lqJ6iJANQIlBCSPEorL6GO3quTSWP75EXkH1+c3pMjjX7cV2dWjIrprJXeMv2dC63utJKuLPOayiJxnVhf/EVGy/XB0lkkv74zKaxdfjVBdBILWroDk0e7eDrmy1ark0THQgyNeHfHliLxW8taIEtdKso+MvLB/qFXJanXxrjguT0e9M+LGiJItr108NeKMiDy1l/+XusTm2kVgaG0LSB5t72+t1a1WJS+MQZ8VkS+oH4w4L2LoquSYGCO/01ddBIJGoIaA5FFDeVljrFYledpptSrJiiQj77zatK1WJXnL61URpauLn4s+87RZVhd57eWICNVFIGgEJA/PgaEFsirIltXJCyJ+MSJfiC+NKFWVfDb6KtHuHZ101y4eEn937aKEqj6aFJA8mtzWyS6qVlXSB6CrLs6MgzLB5f8J1UUfQY9dpIDkschtn8yid6tKVq+VXF54tqqLwqC6W6aA5LHMfZ/iqlerkkfGBB8U8ScReQfXptdKfj76yDujnhShuggEjcCmApLHpoKOH0rgYFXJX8XAN+8yeB77qxFnR+S1i2sjvO8iEDQCpQQkj1KS+hlSYHtVckoMlj8X6xd2GfSC+PwjIvKXMmU74cAHf24J+NEongobC+R/So3A3AQyKeQPWNyt5de6xLHbY3yeAIENBCSPDfAcSoAAgaUKSB5L3XnrXrKA01ZL3v1Ca5c8CkHqhgABAksSkDyWtNvWSoAAgUICkkchSN0QIEBgSQKSx5J221oJECBQSEDyKASpGwIECCxJQPJY0m5bKwECBAoJSB6FIHVDgACBJQlIHkvabWslQIBAIQHJoxCkbqoLHFd9RAMSIPBdAcnjuxT+MjOBk2Y2X9Ml0JSA5NHUdloMAQIE6ghIHnWcjUKAAIGmBCSPprbTYggQIFBHQPKo42yUugJH1h3OaASWJyB5LG/Pl7Diuy5hkdZIYEwByWNMfWMPJbB/qI71S4DAAQHJwzOBAAECBHoLSB69yRxAgAABApKH5wABAgQI9BaQPHqTOYAAAQIEJA/PAQIECBDoLSB59CZzAAECBAhIHp4DBAgQINBbQPLoTeYAAgQIEJA8PAcILE/g8OUt2YpLC0gepUX1R4AAgQUISB4L2ORGl7jXd897fa1RDssiUFdA8qjrbbRyAh/fo6tP7PE1XyJAoICA5FEAURejCFyzx6hX7vE1XyJAoICA5FEAURcECBBYmoDksbQdt14CBAgUEJA8CiDqggABAksTkDyWtuPWS4AAgQICkkcBRF0QIEBgaQKSx9J2vJ313nePpfzMHl/zJQIECghIHgUQdTGKwJ32GPXEPb7mSwQIFBCQPAog6oIAAQJLE5A8lrbj1kuAAIECApJHAURdECBAYGkCksfSdtx6CRAgUEBA8iiAqAsCBAgsTUDyWNqOWy8BAgQKCEgeBRB1QYAAgaUJSB5L23HrJUCAQAEByaMAoi4IECCwNAHJY2k7br0ECBAoICB5FEDUBQECBJYmIHksbceXsd4blrFMqyQwnoDkMZ69kYcT+MpwXeuZAIEUkDw8DwgQIECgt4Dk0ZvMAQRmL3D47FdgAaMLSB6jb4EJECBAYH4Cksf89syMCRAgMLqA5DH6FpjAmgLXrXmcwwgQKCAgeRRA1MUoAl8cZVSDEiDwHQHJwxOBAAECBHoLSB69yRxAgAABApKH5wABAgQI9BaQPHqTOYAAAQIEJA/PAQIECBDoLSB59CZzAAECBAhIHp4DBAgQINBbQPLoTeYAAgQIEJA8PAcIECBAoLeA5NGbzAEECBAgIHl4DhBoU8CPXW9zXyezKsljMltxyBO5OR755xHfjvhqxP4IjUAK5HMhnxPfjHhlhEZgMAHJYzDawTrOF4gXRxwR8bSI10bkDwnM39v99QhtWQI3xXJvjLg8Ir+peHLEkRG/G6ERGExg32A963hTgawwDtbeGw/IeH7EPSNOj3hmxEMjvhZxXITTF4HQUMuKM/f2mIgPRrwp4qKIPj9l+BvxeI3ARgKSx0Z8gx78wJ69fy4e/5qtyEMfE/HUiDMiTojIKvPoCG1+AllZZLsm4sKIt0Z8IGLddr91D3QcgU5A8ugkpvfxzjGlH4349JpT26kqOSf6yqrk+ghVyZqwFQ5brS4ujfG66uKKAmM/JPq4pUA/uli4gOQx3SdAVgn/FvHYiA9vOM3tVclp0V9WJWdGqEo2xC10eOnqYqdpPS4+mae4NAIbC0geGxMO1sHtoue88PmWiLxu8baIPF3xnohN2/uig4wXRHTXSlQlm6r2O361ushTUOdF5At7ieqim0meqnx8xFMi8vRl3oWVN1poBDYWkDw2Jhy0g0waJ22N8Nz4mBfDj4/4UET3YvPZ+PsmbbeqJF9sToxwrWQT3Vsf21UXV8en8xuBvH6Rp6VKtvtEZ3njxNkRD4r4akQ+Z/K5pBEoJiB5FKMcvKN8Ec9TTNlOjXhAxKsirosYqio5OfpevYPLtZIA6dF2qi7+IY6/skcfB3vo9uoiK9bbRhy9dWD3nDlYP75OoJeA5NGLa1IPzls1s90+Yqiq5PLoO99HkpEtr5XkKZC8VqIqCYQd2mp1kZVFVhiqix2gfGreApLHvPevm33tquSFMXBXleS1kodFLLUq6aqL/E5/9dqF6iJAtHYFJI8293a1KnleLLG7VvJP8fe8VpKnTja9VrK9Knl09JlVyZMjWq9KuuriqlhrV13kG/ZKtvtEZ0+IeEaEaxclZfVVREDyKMI46U7yQml33jsrhPtHvDKi9LWSi6PPjBdFdFVJXrTN6zNzr0pqVhd5C/UTI46KyLvt8mO2bg8P/MufBEYWkDxG3oARhp9CVZIJrZvHCASHNGT+rLCcp+rikLg8aGkCksfSdvzW6x2jKrlHTOH0iLxWklVJ9zO48rrNmG21urgkJpKn9y6K+FJEqZZrfHyE6qKUqH5GE5A8RqOf5MBdNZB3cO10rSRfTD+z4cw/H8e/biuyq+5aSd7BdceImlXJanWRb8Z8W8SHIko21y5KauprMgKSx2S2YnIT2akq+aOYZVYKb4/IC8Ul3u1+cfSTkddKuqqku1aSL+53iChVlXwr+srrL0dHXBKhuggEjcA6ApLHOmrLPKarSvLF/LkRedrp+IjuDq4hqpJHRf/dHVzrViWZgDL5XBlxQYTqIhA0ApsKSB6bCi7z+O1VSb7bfYiq5P3Rb8a5EatVycPj35+M2K19Kr5w74g8tqsurtrtwWt83rWLNdAc0paA5NHWfo61mjwNlK1mVZJj7daeE1+4drcvrvn5H4vj8hbaPKX2wIjrIo6LyESqEVicgOSxuC0ffME7VSX5vpK8VpKnjEpdK8n+dmslEsf26iITZP7MqO59F3nKTiOwWAHJY7FbX23hXVWSd3ANda2k1GJ2qi4kiVK6+mlKQPJoajsnv5i9qpK8gysvaJe4g+tQIVariyfFQVlVqC4OVc/jFi0geSx6+0df/GpV8msxm7yDK68j/HPEmyJK3MEV3dyqqS5uxeEfBNYTkDzWc3NUeYGsSrpTRPl71u8f0V0r2aQq6aqLs6K/7mdGqS4CQyOwiYDksYmeY4cU2KQqUV0MuTP6JhACkoenwRwE9qpK/joWcFnE7SJ+POLZEXnt4siI/Fy2rqI58C9/EiCwsYDksTGhDkYQWK1KfifGz9t28/TUsSPMxZAEFikgeSxy25tb9F5vGGxusRZEYAoC+d2aRoAAAQIEeglIHr24PJgAAQIEUkDy8DwgQIAAgd4CkkdvMgcQIECAgOThOUCAAAECvQUkj95kDiBAgAABycNzgAABAgR6C0gevckcQIAAAQKSh+cAAQIECPQWkDx6kzmAAAECBCQPzwECBAgQ6C0gefQmcwABAgQISB6eAwQIECDQW0Dy6E3mAAIECBCQPDwHCBAgQKC3gOTRm8wBBAgQICB5eA4QIECAQG8ByaM3mQMIECBAQPLwHCBAgACB3gKSR28yBxAgMCOB/THXDK2wwL7C/emOAAECUxI4fEqTaWkuKo+WdtNaCBAgUElA8qgEbRgCBAi0JCB5tLSb1kKAAIFKApJHJWjDECBAoCUByaOl3bQWAgQIVBKQPCpBG4YAAQItCUgeLe2mtRAgQKCSgORRCdowBAgQaElA8mhpN62FAAEClQQkj0rQhiFAgEBLApJHS7tpLQQIEKgkIHlUgjYMAQIEWhKQPFraTWshQIBAJQHJoxK0YQgQINCSgOTR0m5aCwECBCoJSB6VoA1DgACBlgQkj5Z201oIECBQSUDyqARtGAIECLQkIHm0tJvWQoAAgUoCkkclaMMQIECgJQHJo6XdtBYCBAhUEthXaRzDECBAgEB5gY9Fl/eN2L9G11k8fGSN475ziOSxrpzjCBAgML7A82IKL1tzGplwvrjmsYdJHuvKOY4AAQLjC9wcU/jCGNNwzWMMdWMSIEBg5gKSx8w30PQJECAwhoDkMYa6MQkQIDBzAclj5hto+gQIEBhDQPIYQ92YBAgQmLmA5DHzDTR9AgQIjCEgeYyhbkwCBAjMXEDymPkGmj4BAgTGEJA8xlA3JgECBGYuIHnMfANNnwABAmMISB5jqBuTAAECMxeQPGa+gaZPgACBMQQkjzHUjUmAAIGZC0geM99A0ydAgMAYApLHGOrGJECAwMwFJI+Zb6DpEyBAYAwByWMMdWMSIEBg5gKSx8w30PQJECAwhoDkMYa6MQkQIDBzAclj5hto+gQIEBhDQPIYQ92YBAgsTaC519p9S9tB6yVAgEBlgY/EeJdF3HXNcd+75nGDHiZ5DMqrcwIECBx2dRic0ppDc6VUaxtkPQQIEJiigOQxxV0xJwIECExcQPKY+AaZHgECBKYoIHlMcVfMiQABAhMXkDwmvkGmR4AAgSkKSB5T3BVzIkCAwMQFJI+Jb5DpESBAYIoCkscUd8WcCBAgMHEByWPiG2R6BAgQmKKA5DHFXTEnAgQITFxA8pj4BpkeAQIEpiggeUxxV8yJAAECExeQPCa+QaZHgACBKQpIHlPcFXMiQIDAxAUkj4lvkOkRIEBgigKSxxR3xZwIECAwcQHJY+IbZHoECBCYooDkMcVdMScCBAhMXEDymPgGmR4BAgSmKCB5THFXzIkAAQITF5A8Jr5BpkeAAIEpCkgeU9wVcyJAgMDEBUokj30TX6PpESBAYGiBI4YeYGr9l3jh/61Y1Dcibpna4syHAAEClQSuj3HOrzSWYQgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIECAAAECBAgQIEBgNgL/D8pzsAXky5EoAAAAAElFTkSuQmCC
+    mediatype: image/png
+  install:
+    spec:
+      deployments:
+      - name: rco-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/instance: runtime-component-operator
+              app.kubernetes.io/managed-by: olm
+              app.kubernetes.io/name: runtime-component-operator
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/instance: runtime-component-operator
+                app.kubernetes.io/managed-by: olm
+                app.kubernetes.io/name: runtime-component-operator
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --enable-leader-election
+                command:
+                - /manager
+                env:
+                - name: OPERATOR_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                image: registry.connect.redhat.com/ibm/runtime-component-operator@sha256:d37b3f62575c9ad1ffcb22c89e2c3886275c326bf27aa49fb1808acba475853d
+                imagePullPolicy: Always
+                name: manager
+                resources:
+                  limits:
+                    cpu: 200m
+                    memory: 256Mi
+                  requests:
+                    cpu: 100m
+                    memory: 20Mi
+              serviceAccountName: rco-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps/status
+          verbs:
+          - get
+          - update
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - statefulsets
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments/finalizers
+          - statefulsets
+          verbs:
+          - update
+        - apiGroups:
+          - autoscaling
+          resources:
+          - horizontalpodautoscalers
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - secrets
+          - serviceaccounts
+          - services
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - pods/exec
+          verbs:
+          - '*'
+        - apiGroups:
+          - image.openshift.io
+          resources:
+          - imagestreams
+          - imagestreamtags
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - '*'
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - '*'
+        - apiGroups:
+          - rc.app.stacks
+          resources:
+          - runtimecomponents
+          - runtimecomponents/finalizers
+          - runtimecomponents/status
+          verbs:
+          - '*'
+        - apiGroups:
+          - rc.app.stacks
+          resources:
+          - runtimeoperations
+          - runtimeoperations/finalizers
+          - runtimeoperations/status
+          verbs:
+          - '*'
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          - routes/custom-host
+          verbs:
+          - '*'
+        - apiGroups:
+          - serving.knative.dev
+          resources:
+          - services
+          verbs:
+          - '*'
+        serviceAccountName: rco-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Runtime Component
+  - Application Runtime
+  - Application
+  - Node
+  - Swift
+  - MicroProfile
+  - Spring
+  - Java
+  - Runtime
+  - Open Source
+  - Application Stacks
+  - RCO
+  links:
+  - name: Documentation
+    url: https://github.com/application-stacks/runtime-component-operator/tree/main/doc
+  - name: Repository
+    url: https://github.com/application-stacks/runtime-component-operator
+  maintainers:
+  - email: arturdzm@ibm.com
+    name: Artur Dzmitryieu
+  - email: leojc@ca.ibm.com
+    name: Leo Christy Jesuraj
+  maturity: beta
+  provider:
+    name: Community
+  replaces: runtime-component.v0.8.0
+  version: 0.8.1

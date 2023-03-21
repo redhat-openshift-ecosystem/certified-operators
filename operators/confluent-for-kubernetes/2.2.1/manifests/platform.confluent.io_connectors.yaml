@@ -1,0 +1,348 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: connectors.platform.confluent.io
+spec:
+  group: platform.confluent.io
+  names:
+    categories:
+    - all
+    - confluent-platform
+    - confluent
+    kind: Connector
+    listKind: ConnectorList
+    plural: connectors
+    shortNames:
+    - ctr
+    - connector
+    singular: connector
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.state
+      name: Status
+      type: string
+    - jsonPath: .status.connectorState
+      name: ConnectorStatus
+      type: string
+    - jsonPath: .status.tasksReady
+      name: Tasks-Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - jsonPath: .status.connectRestEndpoint
+      name: ConnectEndpoint
+      priority: 1
+      type: string
+    - jsonPath: .status.failedTasksCount
+      name: Tasks-Failed
+      priority: 1
+      type: string
+    - jsonPath: .status.workerId
+      name: WorkerId
+      priority: 1
+      type: string
+    - jsonPath: .status.restartPolicy.type
+      name: RestartPolicy
+      priority: 1
+      type: string
+    - jsonPath: .status.kafkaClusterId
+      name: KafkaClusterId
+      priority: 1
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Connector is the Schema for the connectors API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ConnectorSpec defines the desired state of Connector
+            properties:
+              class:
+                description: ClassName defines the class name for a connector. Connect
+                  cluster displays the supported class names in its status
+                minLength: 1
+                type: string
+              configs:
+                additionalProperties:
+                  type: string
+                description: Configs defines all other configurations for the connector
+                type: object
+              connectClusterRef:
+                description: ConnectClusterRef defines the discovery section to refer
+                  to a CFK managed connect cluster
+                properties:
+                  name:
+                    description: Name defines name of the cluster
+                    type: string
+                  namespace:
+                    description: Namespace defines namespace where cluster is running
+                    type: string
+                required:
+                - name
+                type: object
+              connectRest:
+                description: ConnectRestRef defines Connect Rest API connection configuration
+                properties:
+                  authentication:
+                    description: Authentication defines the Rest API authentication
+                      mechanism
+                    properties:
+                      basic:
+                        description: Basic defines basic authentication for the rest
+                          client
+                        properties:
+                          secretRef:
+                            description: Name of the secret reference
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      bearer:
+                        description: BearerAuthentication defines bearer authentication
+                          for the rest client
+                        properties:
+                          secretRef:
+                            description: Name of the secret reference
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      type:
+                        enum:
+                        - basic
+                        - bearer
+                        - mtls
+                        type: string
+                    required:
+                    - type
+                    type: object
+                  endpoint:
+                    description: Endpoint defines where confluent Rest API is running
+                    minLength: 1
+                    pattern: ^https?://.*
+                    type: string
+                  tls:
+                    description: TLSDependencyConfig defines custom TLS structure
+                      for the child resources(connector, topic, schema, etc) of CP
+                      component
+                    properties:
+                      directoryPathInContainer:
+                        description: DirectoryPathInContainer contains the directory
+                          path in container where keystore/truststore.jks/jksPassword.txt
+                          keys are mounted.
+                        minLength: 1
+                        type: string
+                      jksPassword:
+                        description: JksPassword defines the secret name referenced
+                          for jks password
+                        properties:
+                          secretRef:
+                            description: SecretRef defines the secret name referenced
+                              for jks password More information about jks password
+                              key/value format can be found in Confluent Operator
+                              document
+                            maxLength: 30
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                            type: string
+                        required:
+                        - secretRef
+                        type: object
+                      secretRef:
+                        description: SecretRef defines the secret name referenced
+                          for certificates More information about certificates key/value
+                          format can be found in Confluent Operator document
+                        maxLength: 30
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                        type: string
+                    type: object
+                type: object
+              name:
+                description: Name defines the Connector name. If not configured uses
+                  the CR name as connector name
+                maxLength: 255
+                minLength: 1
+                pattern: ^[a-zA-Z0-9\._\-]*$
+                type: string
+              restartPolicy:
+                description: RestartPolicy defines the policy to restart failed tasks
+                  of connector
+                properties:
+                  maxRetry:
+                    description: MaxRetry defines the max retry times to restart when
+                      restartPolicy type is OnFailure, default value is 10
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  type:
+                    description: Type defines the restart policy type to restart connector
+                      tasks, default value is OnFailure, which means it will restart
+                      automatically when tasks failed if not reach max retry times
+                    enum:
+                    - OnFailure
+                    - Never
+                    type: string
+                required:
+                - type
+                type: object
+              taskMax:
+                description: TaskMax defines the max task for a connector, it must
+                  be greater than 0. The connector may create fewer tasks if it cannot
+                  achieve this level of parallelism
+                format: int32
+                minimum: 1
+                type: integer
+            required:
+            - class
+            - taskMax
+            type: object
+          status:
+            description: ConnectorStatus defines the observed state of Connector
+            properties:
+              conditions:
+                items:
+                  description: Conditions represents the latest available observations
+                    of a statefulset's current state.
+                  properties:
+                    lastProbeTime:
+                      description: LastProbeTime defines a last time the condition
+                        is evaluated.
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      description: LastTransitionTime defines a last time the condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: ' Message defines  a human readable message indicating
+                        details about the transition.'
+                      type: string
+                    reason:
+                      description: ' Reason defines reason for the condition''s last
+                        transition.'
+                      type: string
+                    status:
+                      description: Status defines a status of the condition, one of
+                        True, False, Unknown
+                      type: string
+                    type:
+                      description: Type defines type of condition
+                      type: string
+                  type: object
+                type: array
+              connectRestEndpoint:
+                description: ConnectRestEndpoint defines the rest endpoint of connect
+                  cluster
+                type: string
+              connectorState:
+                description: ConnectorState define the actual status of the connector
+                  instance
+                type: string
+              failedTasks:
+                additionalProperties:
+                  description: TaskStatus defines the connector task status
+                  properties:
+                    id:
+                      description: Id defines id of the task
+                      format: int32
+                      type: integer
+                    retryCount:
+                      description: RetryCount defines the current retried count of
+                        restarting the task when its state is failed
+                      format: int32
+                      type: integer
+                    workerId:
+                      description: WorkerId defines the workerId for the task
+                      type: string
+                  required:
+                  - id
+                  type: object
+                description: FailedTasksMap defines the map of connector tasks with
+                  state FAILED. Error message of failed tasks logged in operator logs
+                  as INFO, or can be get via making connect rest api calls
+                type: object
+              failedTasksCount:
+                description: FailedTasksCount defines the number of failed tasks
+                format: int32
+                type: integer
+              kafkaClusterId:
+                description: KafkaClusterId defines the kafka cluster Id the connector
+                  belongs to
+                type: string
+              restartPolicy:
+                description: RestartPolicy defines the policy to restart failed tasks
+                  of connector
+                properties:
+                  maxRetry:
+                    description: MaxRetry defines the max retry times to restart when
+                      restartPolicy type is OnFailure, default value is 10
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  type:
+                    description: Type defines the restart policy type to restart connector
+                      tasks, default value is OnFailure, which means it will restart
+                      automatically when tasks failed if not reach max retry times
+                    enum:
+                    - OnFailure
+                    - Never
+                    type: string
+                required:
+                - type
+                type: object
+              state:
+                description: State defines the CR state of the connector, it is not
+                  the connector state, which can be PROVISIONING, CREATED, ERROR,
+                  DELETE-REQUESTED, etc
+                type: string
+              tasksReady:
+                description: TaskReady defines the number of running tasks based on
+                  taskMax
+                type: string
+              trace:
+                description: ConnectorTrace defines the error trace message for the
+                  connector instance
+                type: string
+              workerId:
+                description: ConnectorWorkerId defines the workerId for the connector
+                  instance
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

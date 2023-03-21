@@ -1,0 +1,208 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "headspin.com/v1alpha1",
+          "kind": "HeadspinUnifiedcontroller",
+          "metadata": {
+            "name": "headspin-sample"
+          },
+          "spec": {
+            "keys-map": "headspin-keys",
+            "keys-map-red": "keys-red"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.10.0+git
+    operators.operatorframework.io/project_layout: ansible.sdk.operatorframework.io/v1
+  name: headspinunifiedcontroller.v1.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: HeadspinUnifiedcontroller
+      name: headspinunifiedcontrollers.headspin.com
+      version: v1alpha1
+  description: The Headspin unifiedcontroller operator for ubi 8.4
+  displayName: Headspin Unifiedcontroller
+  icon:
+  - base64data: iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAGFSURBVHgB7ZexTgJBEIb/WQ6EBA1YmZgYCo0aKxtaY6js5AVIeAJotZI30ARbib6AsbKUxI5GSxIbGqMlESJyB4y7l4inaHJe7m4l4Wv2Jne5+Wfm32IIEq5lUl3ESmAqyzCFACGgBUY9IqiSKDZb1KttZIbMNwxkECJKiEX9bWExjsJOrlA5jVG8LAR4B7ogLgkd1TtICWjGcPthsti0T+4+4vVqH2x24Ad/7gAll2Gs5uEXnkZAsQX4xfR44CciS1lE1/L2OZLeGD43MHi4tJ8DFxDdKmAue/gpRnrDFiT90bsuuBbhaQSqamdyJ8qkib0L6ZN5uMGbCWUSBXdk258a9tX8/t7tTfE8AvOuCvO+Oo7juVMYK7lxHFnchOXiP546oCp2Jlf0bw++xB9dCkSAavuEKPNlYhSBCfjN4aOwBPjJTMBMwEyAdgHUOVtnaORfjKANTaj1TC5GdAJdEOpiIN6O7Y019NxyOQVVRLrYaltEuww6D0lIW3a9ojbjtFzP3wHza3y8cpsN/gAAAABJRU5ErkJggg==
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - pods
+          - pods/exec
+          - pods/log
+          - services
+          - persistentvolumeclaims
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - networkpolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - headspin.com
+          resources:
+          - headspinunifiedcontrollers
+          - headspinunifiedcontrollers/status
+          - headspinunifiedcontrollers/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - anyuid
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: default
+      deployments:
+      - name: operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:8b4f814c112d7b91dc5e7904d4f3c684f3d77227344d2b553a84d4a1bc2829d3
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                resources: {}
+              - args:
+                - --metrics-addr=127.0.0.1:8080
+                - --enable-leader-election
+                - --leader-election-id=operator
+                env:
+                - name: ANSIBLE_GATHERING
+                  value: explicit
+                - name: RELATED_IMAGE_HEADSPIN
+                  value: registry.connect.redhat.com/headspin/hspusher@sha256:6f4aaaa8f67784d63790a65c9155b2cbbad7f8cc73034c0d7a70ce7ad638e81e
+                image: registry.connect.redhat.com/headspin/headspin-operator@sha256:40fc6a4c5c76dc3e99d557c5c590bc95294f9edd249bfa839551b22837e1511e
+                imagePullPolicy: IfNotPresent
+                name: manager
+                resources: {}
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: default
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Developer Tools
+  - AI/Machnine Learning
+  - Networking
+  - Monitoring
+  links:
+  - name: Operator
+    url: https://operator.domain
+  maintainers:
+  - email: glen@headspin.io
+    name: Glen Baker
+  - email: aaron@headspin.io
+    name: Aaron Gibson
+  maturity: alpha
+  provider:
+    name: Headspin
+    url: https://www.headspin.io
+  version: 1.0.0

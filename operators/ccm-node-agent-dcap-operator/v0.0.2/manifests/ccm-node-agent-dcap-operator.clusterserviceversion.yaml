@@ -1,0 +1,307 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "charts.operatorhub.io/v1",
+          "kind": "CcmNodeAgent",
+          "metadata": {
+            "name": "ccmnodeagent-sample"
+          },
+          "spec": {
+            "ccmJoinToken": {
+              "secretName": "ccm-join-token",
+              "token": ""
+            },
+            "fullnameOverride": "",
+            "image": {
+              "aesmd": {
+                "pullPolicy": "IfNotPresent",
+                "repository": "docker.io/fortanix/aesmd-dcap",
+                "tag": "latest"
+              },
+              "ccmNodeAgent": {
+                "pullPolicy": "IfNotPresent",
+                "repository": "docker.io/fortanix/ccm-node-agent-ubi7",
+                "tag": "latest"
+              },
+              "ccmNodeAgentInit": {
+                "pullPolicy": "IfNotPresent",
+                "repository": "busybox",
+                "tag": "latest"
+              },
+              "multiPlatformRegistration": {
+                "pullPolicy": "IfNotPresent",
+                "repository": "docker.io/fortanix/multi-platform-registration-ubi8",
+                "tag": "latest"
+              }
+            },
+            "log": {
+              "debug": false
+            },
+            "nameOverride": "",
+            "podAnnotations": {},
+            "ports": {
+              "containerPort": 9092,
+              "hostPort": 9092
+            },
+            "replicaCount": 1,
+            "resources": {
+              "limits": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              }
+            },
+            "serviceAccount": {
+              "annotations": {},
+              "create": true,
+              "name": ""
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.16.0-ocp
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: ccm-node-agent-dcap-operator.v0.0.2
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: CCM Node Agent software enables registration of the compute nodes
+        to Fortanix CCM when installed in the Openshift Cluster Nodes<U+200B>.
+      displayName: CCM Node Agent
+      kind: CcmNodeAgent
+      name: ccmnodeagents.charts.operatorhub.io
+      specDescriptors:
+      - description: Base64 encoded join token of a particular account in CCM
+        displayName: CCM Join Token
+        path: ccmJoinToken.token
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:password
+      version: v1
+  description: "CCM Node Agent software enables registration of the compute nodes
+    to Fortanix CCM when installed in the Openshift Cluster Nodes​. \nIt also assists
+    with application attestation and visibility for Fortanix CCM.\n\n## About this
+    Operator\nThis Operator is based on a Helm chart for CCM Node Agent. It enrolls
+    all the nodes in the openshift cluster to a particular CCM account. You have to
+    provide the base64 encode of join token of CCM account while creating CcmNodeAgent
+    resource.\n\n## Prerequisites\nAll the worker nodes in the cluster must have SGX
+    capabilities, in-kernel driver installed and fsgsbase support.\n\n## Installation\n
+    * Choose a namespace to install the Operator. \n Operator will be available in
+    all namespaces.\n* Select Approval Strategy: Available options are Automatic or
+    Manual. Automatic approval will automatically upgrade the running instance of
+    your Operator without human intervention when a new version is available. In case
+    of Manual approval, when a new version is available, OLM will create an update
+    request. You must manually approve the request to update the Operator to a new
+    version.\n* Generate your CCM Account Join Token: Please log in to https://ccm.fortanix.com,
+    and in the Management Console tab, click the + ENROLL NODE button. In the ENROLL
+    NODE screen, a Join Token will be generated in the text box for \"Get a join token
+    to register an SGX compute node\". This Join Token is used by the compute node
+    to authenticate itself.\n* Base64 encode the Join Token:\n```shell\necho -n <join-token>
+    | openssl base64 -A\n```\n* Create an instance of CcmNodeAgent by setting the
+    `spec.ccmJoinToken.Token` to the base64 encoded CCM account join token.\n* After
+    CcmNodeAgent resource is installed successfully you should be able to see all
+    the worker nodes of the cluster in your CCM account under Compute Node Tab.\n\n##
+    Getting Started\nNow to run your application inside SGX enclaves on your cluster
+    follow the [documentation](https://support.fortanix.com/hc/en-us/articles/360043527431-User-s-Guide-Add-and-Edit-an-Application).\n"
+  displayName: CCM Node Agent DCAP Operator
+  icon:
+  - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA3MjAgNDY4Ij48ZGVmcz48c3R5bGU+LmF7ZmlsbDojNDFjMWYwO30uYntmaWxsOiM1MTlkZDY7fS5je2ZpbGw6IzZmN2ZiYTt9LmR7ZmlsbDojN2I1ZWE3O30uZXtmaWxsOiM2ZTZlYjM7fS5me2ZpbGw6IzI2MjU1ZDt9PC9zdHlsZT48L2RlZnM+PHJlY3QgY2xhc3M9ImEiIHg9IjQxMi42MSIgeT0iMTU1LjA5IiB3aWR0aD0iMjIuOTQiIGhlaWdodD0iMjIuOTUiLz48cmVjdCBjbGFzcz0iYSIgeD0iNDEyLjYxIiB5PSIxMjAuNTkiIHdpZHRoPSIyMi45NCIgaGVpZ2h0PSIyMi45NSIvPjxyZWN0IGNsYXNzPSJhIiB4PSI0MTIuNjEiIHk9IjIyNC4wOSIgd2lkdGg9IjIyLjk0IiBoZWlnaHQ9IjU1LjUyIi8+PHJlY3QgY2xhc3M9ImIiIHg9IjM4MC41OCIgeT0iMTU1LjA5IiB3aWR0aD0iMjIuOTUiIGhlaWdodD0iMjIuOTUiLz48cmVjdCBjbGFzcz0iYyIgeD0iMzQ1LjQ1IiB5PSIyMjQuMDkiIHdpZHRoPSIyMi45NCIgaGVpZ2h0PSIyMi45NSIvPjxyZWN0IGNsYXNzPSJjIiB4PSIzNDUuNDUiIHk9IjEyMC41OSIgd2lkdGg9IjIyLjk1IiBoZWlnaHQ9IjIyLjk1Ii8+PHJlY3QgY2xhc3M9ImMiIHg9IjM0NS40NSIgeT0iMjU2LjU5IiB3aWR0aD0iMjIuOTQiIGhlaWdodD0iOTAuODIiLz48cmVjdCBjbGFzcz0iZCIgeD0iMjc4LjI4IiB5PSIxNTUuMDkiIHdpZHRoPSIyMi45NSIgaGVpZ2h0PSIyMi45NSIvPjxyZWN0IGNsYXNzPSJkIiB4PSIyNzguMjgiIHk9IjEyMC41OSIgd2lkdGg9IjIyLjk1IiBoZWlnaHQ9IjIyLjk1Ii8+PHJlY3QgY2xhc3M9ImUiIHg9IjMxMC4zMiIgeT0iMTU1LjA5IiB3aWR0aD0iMjIuOTQiIGhlaWdodD0iMjIuOTUiLz48cmVjdCBjbGFzcz0iZSIgeD0iMzEwLjMyIiB5PSIyMjMuNDkiIHdpZHRoPSIyMi45NCIgaGVpZ2h0PSI5NC4zIi8+PHJlY3QgY2xhc3M9ImMiIHg9IjM0NS40NSIgeT0iMTU1LjA5IiB3aWR0aD0iMjIuOTQiIGhlaWdodD0iMjIuOTUiLz48cmVjdCBjbGFzcz0iYiIgeD0iMzgwLjU4IiB5PSIyMjMuNDkiIHdpZHRoPSIyMi45NSIgaGVpZ2h0PSI5NC4zIi8+PHJlY3QgY2xhc3M9ImQiIHg9IjI3OC4yOCIgeT0iMjIzLjQ5IiB3aWR0aD0iMjIuOTUiIGhlaWdodD0iNTYuMTIiLz48cGF0aCBjbGFzcz0iZiIgZD0iTTI5OC40OSwxODYuN2wwLDUuMTdIMjg0LjkxdjYuNzloOS41MXY1LjIxaC05LjUxdjEwLjQ0aC02LjI0VjE4Ni43NGgxOS44MloiLz48cGF0aCBjbGFzcz0iZiIgZD0iTTMyMC4yMSwyMDMuNjZjMCw2LjQ1LTQuNTksMTAuODMtMTEuMzQsMTAuODNzLTExLjM4LTQuMzgtMTEuMzgtMTAuODMsNC41OS0xMC43OSwxMS4zOC0xMC43OVMzMjAuMjEsMTk3LjE4LDMyMC4yMSwyMDMuNjZabS0xNi42OS4xMWMwLDMuNDgsMi4xOCw1LjgyLDUuMzEsNS44MnM1LjI4LTIuMzgsNS4yOC01LjgyLTIuMTctNS44My01LjI4LTUuODNTMzAzLjUyLDIwMC4yOCwzMDMuNTIsMjAzLjc3WiIvPjxwYXRoIGNsYXNzPSJmIiBkPSJNMzM2LjQxLDE5Mi44NHY1LjM0Yy00LjM0LS4zOC03LDIuMjgtNyw1Ljg2djEwLjIxaC02LjA2VjE5M2g2LjA2djMuODNBNy42OSw3LjY5LDAsMCwxLDMzNi40MSwxOTIuODRaIi8+PHBhdGggY2xhc3M9ImYiIGQ9Ik0zNTMuOTIsMjEzLjExYTExLjQ4LDExLjQ4LDAsMCwxLTUuNTEsMS40NWMtMy43OSwwLTYuNjYtMi4xOC02LjY2LTYuNTV2LTkuODNoLTN2LTUuMzRoM3YtNC42Nmg2djQuNjZoNS43NXY1LjM4aC01Ljc1VjIwN2MwLDEuNzYuNzUsMi40OCwyLDIuNDVhNy4wOSw3LjA5LDAsMCwwLDIuODMtLjc5WiIvPjxwYXRoIGNsYXNzPSJmIiBkPSJNMzY5LjA2LDIxNC4yOFYyMTEuOGE4LjE4LDguMTgsMCwwLDEtNi42NiwyLjc2Yy00LjUxLDAtNy4yNy0yLjc2LTcuMjctNi42MnMyLjg2LTYuMzUsOC4wNy02LjM4SDM2OXYtLjM4YzAtMi4yNC0xLjQ5LTMuNTUtNC40Mi0zLjU1YTEzLjIsMTMuMiwwLDAsMC02LjMsMS44NmwtMS45LTQuMTdhMTkuNjcsMTkuNjcsMCwwLDEsOS41OC0yLjQ1YzUuNjksMCw4LjkzLDIuODMsOSw3LjYybDAsMTMuODJoLTUuOTNaTTM2OSwyMDd2LTEuOWgtNC43NmMtMi4zMSwwLTMuNDguNzMtMy40OCwyLjQyczEuMjcsMi42OSwzLjMxLDIuNjlDMzY2LjY0LDIxMC4yMSwzNjguNjQsMjA4LjgzLDM2OSwyMDdaIi8+PHBhdGggY2xhc3M9ImYiIGQ9Ik0zOTkuODcsMjAxdjEzLjMxaC02LjA2VjIwMi43M2MwLTIuNjktMS41OS00LjM0LTQuMTctNC4zNC0zLDAtNC44NiwyLjMxLTQuODYsNS40NHYxMC40NWgtNi4wN3YtMjEuMmg2LjA3djMuNjljMS40OC0yLjY2LDQtMy45LDcuMzQtMy45M0MzOTYuODEsMTkyLjg0LDM5OS44NywxOTYsMzk5Ljg3LDIwMVoiLz48cGF0aCBjbGFzcz0iZiIgZD0iTTQxMC4yNSwxOTMuMDh2MjEuMmgtNi4wN3YtMjEuMlptLS4wNy02YTMsMywwLDEsMS0zLTNBMi44OSwyLjg5LDAsMCwxLDQxMC4xOCwxODcuMDVaIi8+PHBhdGggY2xhc3M9ImYiIGQ9Ik00MTkuNzMsMTkzLjA4bDMuOSw2LjQxLDQuMTMtNi40MWg2LjYybC02LjcyLDEwLjMxLDcuMiwxMC44NmgtN2wtNC4yNC02LjkzLTQuNjksN2gtNi42OWw3LjM1LTEwLjgyLTYuODMtMTAuMzhaIi8+PHBhdGggY2xhc3M9ImYiIGQ9Ik00NDEuNzIsMTk1LjQyYTIuOTUsMi45NSwwLDEsMS0yLjkzLTNBMi45MSwyLjkxLDAsMCwxLDQ0MS43MiwxOTUuNDJabS0uNTUsMGEyLjM3LDIuMzcsMCwwLDAtMi40MS0yLjM4LDIuNCwyLjQsMCwwLDAtMi40MSwyLjQyLDIuMzYsMi4zNiwwLDAsMCwyLjM4LDIuMzhBMi40MywyLjQzLDAsMCwwLDQ0MS4xNywxOTUuNDJabS0xLjcyLjM4LjY1LDFoLS42MmwtLjUxLS44NmgtLjc2di44NmgtLjU1di0yLjloMS4yYy43NiwwLDEuMTguMzUsMS4xOCwxQS45Mi45MiwwLDAsMSw0MzkuNDUsMTk1LjhabS0xLjI0LS4zNGguNjVjLjQyLDAsLjY2LS4yMS42Ni0uNTlzLS4yNC0uNTUtLjY2LS41NWgtLjY1WiIvPjwvc3ZnPg==
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - charts.operatorhub.io
+          resources:
+          - ccmnodeagents
+          - ccmnodeagents/status
+          - ccmnodeagents/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - serviceaccounts
+          verbs:
+          - '*'
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: ccm-node-agent-dcap-operator-controller-manager
+      deployments:
+      - name: ccm-node-agent-dcap-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:62575404000cb77fa8d2284c87b31e39e667a55b0fb47821263b23b3d1135a7e
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=ccm-node-agent-dcap-operator
+                image: docker.io/fortanix/ccm-node-agent-dcap-operator@sha256:4fd28bea26aee461eb9c1800cdf5f041b64ae3ea6652203f8ad9feb680aaefee
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: ccm-node-agent-dcap-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: ccm-node-agent-dcap-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Dockerfile
+  - Helm
+  - CCM
+  - Confidential Compute
+  links:
+  - name: CCM Node Agent DCAP Operator
+    url: https://support.fortanix.com/hc/en-us/categories/360003107511-Confidential-Computing-Manager
+  maintainers:
+  - email: info@fortanix.com
+    name: Fortanix Inc.
+  maturity: alpha
+  minKubeVersion: 1.18.0
+  provider:
+    name: Fortanix Inc.
+    url: https://fortanix.com
+  version: 0.0.2

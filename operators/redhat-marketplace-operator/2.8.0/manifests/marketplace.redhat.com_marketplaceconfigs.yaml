@@ -1,0 +1,283 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  labels:
+    redhat.marketplace.com/name: redhat-marketplace-operator
+  name: marketplaceconfigs.marketplace.redhat.com
+spec:
+  group: marketplace.redhat.com
+  names:
+    kind: MarketplaceConfig
+    listKind: MarketplaceConfigList
+    plural: marketplaceconfigs
+    singular: marketplaceconfig
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type == "Installing")].status
+      name: INSTALLING
+      type: string
+    - jsonPath: .status.conditions[?(@.type == "Installing")].reason
+      name: STEP
+      type: string
+    - jsonPath: .status.conditions[?(@.type == "Registered")].status
+      name: REGISTERED
+      type: string
+    - jsonPath: .status.conditions[?(@.type == "Registered")].message
+      name: REGISTERED_MSG
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: MarketplaceConfig is configuration manager for our Red Hat Marketplace
+          controllers By installing this product you accept the license terms https://ibm.biz/BdfaAY.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MarketplaceConfigSpec defines the desired state of MarketplaceConfig
+            properties:
+              clusterName:
+                description: ClusterName is the name that will be assigned to your
+                  cluster in the Red Hat Marketplace UI. If you have set the name
+                  in the UI first, this name will be ignored.
+                type: string
+              clusterUUID:
+                description: ClusterUUID is the Red Hat Marketplace cluster identifier
+                type: string
+              deploySecretName:
+                description: DeploySecretName is the secret name that contains the
+                  deployment information
+                type: string
+              enableMetering:
+                description: EnableMetering enables the Marketplace Metering components
+                type: boolean
+              features:
+                description: The features that can be enabled or disabled
+                properties:
+                  deployment:
+                    description: Deployment represents the enablement of the razee
+                      deployment, defaults to true when not set
+                    type: boolean
+                  meterDefinitionCatalogServer:
+                    description: EnableMeterDefinitionCatalogServer represents the
+                      enablement of the meterdefinition catalog server, defaults to
+                      true when not set
+                    type: boolean
+                  registration:
+                    description: Registration represents the enablement of the registration
+                      watchkeeper deployment, defaults to true when not set
+                    type: boolean
+                type: object
+              installIBMCatalogSource:
+                description: InstallIBMCatalogSource is the flag that indicates if
+                  the IBM Catalog Source is installed
+                type: boolean
+              isDisconnected:
+                description: IsDisconnected represents the installation of operator
+                  in disconnected mode
+                type: boolean
+              namespaceLabelSelector:
+                description: NamespaceLabelSelector is a LabelSelector that overrides
+                  the default LabelSelector used to build the OperatorGroup Namespace
+                  list
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+              rhmAccountID:
+                description: RhmAccountID is the Red Hat Marketplace Account identifier
+                type: string
+            required:
+            - clusterUUID
+            - rhmAccountID
+            type: object
+          status:
+            description: MarketplaceConfigStatus defines the observed state of MarketplaceConfig
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of an object's stateonfig
+                items:
+                  description: "Condition represents an observation of an object's
+                    state. Conditions are an extension mechanism intended to be used
+                    when the details of an observation are not a priori known or would
+                    not apply to all instances of a given Kind. \n Conditions should
+                    be added to explicitly convey properties that users and components
+                    care about rather than requiring those properties to be inferred
+                    from other observations. Once defined, the meaning of a Condition
+                    can not be changed arbitrarily - it becomes part of the API, and
+                    has the same backwards- and forwards-compatibility concerns of
+                    any other part of the API."
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      description: ConditionReason is intended to be a one-word, CamelCase
+                        representation of the category of cause of the current status.
+                        It is intended to be used in concise output, such as one-line
+                        kubectl get output, and in summarizing occurrences of causes.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: "ConditionType is the type of the condition and
+                        is typically a CamelCased word or short phrase. \n Condition
+                        types should indicate state in the \"abnormal-true\" polarity.
+                        For example, if the condition indicates when a policy is invalid,
+                        the \"is valid\" case is probably the norm, so the condition
+                        should be called \"Invalid\"."
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              meterBaseSubConditions:
+                description: MeterBaseSubConditions represent the latest available
+                  observations of the meterbase object's state
+                items:
+                  description: "Condition represents an observation of an object's
+                    state. Conditions are an extension mechanism intended to be used
+                    when the details of an observation are not a priori known or would
+                    not apply to all instances of a given Kind. \n Conditions should
+                    be added to explicitly convey properties that users and components
+                    care about rather than requiring those properties to be inferred
+                    from other observations. Once defined, the meaning of a Condition
+                    can not be changed arbitrarily - it becomes part of the API, and
+                    has the same backwards- and forwards-compatibility concerns of
+                    any other part of the API."
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      description: ConditionReason is intended to be a one-word, CamelCase
+                        representation of the category of cause of the current status.
+                        It is intended to be used in concise output, such as one-line
+                        kubectl get output, and in summarizing occurrences of causes.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: "ConditionType is the type of the condition and
+                        is typically a CamelCased word or short phrase. \n Condition
+                        types should indicate state in the \"abnormal-true\" polarity.
+                        For example, if the condition indicates when a policy is invalid,
+                        the \"is valid\" case is probably the norm, so the condition
+                        should be called \"Invalid\"."
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              razeeSubConditions:
+                description: RazeeSubConditions represent the latest available observations
+                  of the razee object's state
+                items:
+                  description: "Condition represents an observation of an object's
+                    state. Conditions are an extension mechanism intended to be used
+                    when the details of an observation are not a priori known or would
+                    not apply to all instances of a given Kind. \n Conditions should
+                    be added to explicitly convey properties that users and components
+                    care about rather than requiring those properties to be inferred
+                    from other observations. Once defined, the meaning of a Condition
+                    can not be changed arbitrarily - it becomes part of the API, and
+                    has the same backwards- and forwards-compatibility concerns of
+                    any other part of the API."
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      description: ConditionReason is intended to be a one-word, CamelCase
+                        representation of the category of cause of the current status.
+                        It is intended to be used in concise output, such as one-line
+                        kubectl get output, and in summarizing occurrences of causes.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: "ConditionType is the type of the condition and
+                        is typically a CamelCased word or short phrase. \n Condition
+                        types should indicate state in the \"abnormal-true\" polarity.
+                        For example, if the condition indicates when a policy is invalid,
+                        the \"is valid\" case is probably the norm, so the condition
+                        should be called \"Invalid\"."
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

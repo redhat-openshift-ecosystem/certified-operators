@@ -1,0 +1,473 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "vdo.vmware.com/v1alpha1",
+          "kind": "VDOConfig",
+          "metadata": {
+            "name": "vdoconfig-sample",
+            "namespace": "vmware-system-vdo"
+          },
+          "spec": {
+            "cloudProvider": {
+              "vsphereCloudConfig": "vspherecloudconfig-sample"
+            }
+          }
+        },
+        {
+          "apiVersion": "vdo.vmware.com/v1alpha1",
+          "kind": "VsphereCloudConfig",
+          "metadata": {
+            "name": "vspherecloudconfig-sample",
+            "namespace": "vmware-system-vdo"
+          },
+          "spec": {
+            "credentials": "10.186.1.25-creds",
+            "datacenters": [],
+            "insecure": true,
+            "vcIp": "10.186.1.25"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.10.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    categories: Integration & Delivery
+    containerImage: projects.registry.vmware.com/vsphere_kubernetes_driver_operator/vdo@sha256:d89d95ff753569a866af9c7f4d8f1029dd3d5bdb88af0fb1ee2a8e324020a383
+    createdAt: ""
+    description: Kubernetes operator to manage lifecycle of vSphere CSI/CPI drivers.
+    repository: https://github.com/vmware-tanzu/vsphere-kubernetes-drivers-operator
+    support: VMware
+  name: vsphere-kubernetes-drivers-operator.v0.1.5
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: VDOConfig
+        name: vdoconfigs.vdo.vmware.com
+        displayName: VDOConfig
+        description: VDOConfig is the Schema for the vdoconfigs API
+        version: v1alpha1
+        resources:
+          - kind: Deployment
+            version: v1
+            name: "vdo-controller-manager"
+        specDescriptors:
+          - description: 'Configuration for vSphere CPI driver'
+            displayName: 'Cloud Provider'
+            path: cloudProvider
+          - description: 'Configuration for vSphere CSI driver '
+            displayName: 'Storage Provider'
+            path: storageProvider
+        statusDescriptors:
+          - description: 'Informs the validity of the configuration to connect to vcenter'
+            displayName: 'config'
+            path: config
+      - kind: VsphereCloudConfig
+        name: vspherecloudconfigs.vdo.vmware.com
+        displayName: VsphereCloudConfig
+        description: VsphereCloudConfig is the Schema for the vspherecloudconfigs API
+        version: v1alpha1
+        resources:
+          - kind: Deployment
+            version: v1
+            name: "vdo-controller-manager"
+        specDescriptors:
+          - description: 'Credentials to connect to vcenter'
+            displayName: 'Credentials'
+            path: credentials
+          - description: 'List of Datacenters to be configured for vSphere drivers'
+            displayName: 'Datacenters'
+            path: datacenters
+          - description: 'Flag to establish an insecure connection to vcenter'
+            displayName: 'Insecure'
+            path: insecure
+          - description: 'Ip address of vcenter'
+            displayName: 'VC IP'
+            path: vcIp
+        statusDescriptors:
+          - description: 'Informs the status of vSphere Cloud Provider'
+            displayName: 'Cloud Provider'
+            path: cpi
+          - description: 'Informs the status of vSphere Storage Provider'
+            displayName: 'Storage Provider'
+            path: csi
+  description: 'Vsphere Kubernetes Drivers Operator helps to install/manage vsphere drivers required to run kubernetes workload on vSphere.'
+  displayName: vsphere-kubernetes-drivers-operator
+  icon:
+    - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAgNDAwIj48cGF0aCBkPSJNMzMxLjkyMiwwSDIyNC4wNDRsLTE2LDE2SDMzMS45MjJBNTIuMTM3LDUyLjEzNywwLDAsMSwzODQsNjguMDc4VjMzMS45MjJBNTIuMTM3LDUyLjEzNywwLDAsMSwzMzEuOTIyLDM4NEgyMjcuMzM5bC0xNiwxNkgzMzEuOTIyQTY4LjE1Niw2OC4xNTYsMCwwLDAsNDAwLDMzMS45MjJWNjguMDc4QTY4LjE1Niw2OC4xNTYsMCwwLDAsMzMxLjkyMiwwWiIgZmlsbD0iIzc4YmUyMCIvPjxwYXRoIGQ9Ik0xOTEuOTM3LDM4NEg2OC4wNzhBNTIuMTM3LDUyLjEzNywwLDAsMSwxNiwzMzEuOTIyVjY4LjA3OEE1Mi4xMzcsNTIuMTM3LDAsMCwxLDY4LjA3OCwxNkgxNzIuNjQzbDE2LTE2SDY4LjA3OEE2OC4xNTYsNjguMTU2LDAsMCwwLDAsNjguMDc4VjMzMS45MjJBNjguMTU2LDY4LjE1NiwwLDAsMCw2OC4wNzgsNDAwSDE3NS45MzdaIiBmaWxsPSIjMDBjMWQ1Ii8+PHBhdGggZD0iTTMyMC43NjMsMzUyLjY0NEgxNDcuNTQ5YTMxLjQ3NiwzMS40NzYsMCwwLDEtMzEuNDQxLTMxLjQ0VjE0My42NzNhMzEuNDc2LDMxLjQ3NiwwLDAsMSwzMS40NDEtMzEuNDQxSDMyMC43NjNhMzEuNDc2LDMxLjQ3NiwwLDAsMSwzMS40NCwzMS40NDFWMzIxLjJBMzEuNDc2LDMxLjQ3NiwwLDAsMSwzMjAuNzYzLDM1Mi42NDRaTTE0Ny41NDksMTI4LjIzMmExNS40NTksMTUuNDU5LDAsMCwwLTE1LjQ0MSwxNS40NDFWMzIxLjJhMTUuNDU4LDE1LjQ1OCwwLDAsMCwxNS40NDEsMTUuNDRIMzIwLjc2M0ExNS40NTcsMTUuNDU3LDAsMCwwLDMzNi4yLDMyMS4yVjE0My42NzNhMTUuNDU4LDE1LjQ1OCwwLDAsMC0xNS40NC0xNS40NDFabS00Ni45MzMsMTQzLjAxSDc4LjI4NEExNS40NTgsMTUuNDU4LDAsMCwxLDYyLjg0NCwyNTUuOFY3OC4yN2ExNS40NTcsMTUuNDU3LDAsMCwxLDE1LjQ0LTE1LjQ0SDI1MS41YTE1LjQ1NywxNS40NTcsMCwwLDEsMTUuNDQsMTUuNDRWOTYuMzI0aDE2Vjc4LjI3QTMxLjQ3NiwzMS40NzYsMCwwLDAsMjUxLjUsNDYuODNINzguMjg0YTMxLjQ3NiwzMS40NzYsMCwwLDAtMzEuNDQsMzEuNDRWMjU1LjhhMzEuNDc2LDMxLjQ3NiwwLDAsMCwzMS40NCwzMS40NDFoMjIuMzMyWiIgZmlsbD0iIzAwOTFkYSIvPjwvc3ZnPg==
+      mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - nodes
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - serviceaccounts
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - services
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+            - apiGroups:
+                - apps
+              resources:
+                - daemonsets
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterrolebindings
+              verbs:
+                - '*'
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterroles
+              verbs:
+                - '*'
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - rolebindings
+              verbs:
+                - '*'
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - roles
+              verbs:
+                - '*'
+            - apiGroups:
+                - '*'
+              resources:
+                - namespaces
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - csidrivers
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+                - delete
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - csinodes
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+                - delete
+            - apiGroups:
+                - vdo.vmware.com
+              resources:
+                - vdoconfigs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - vdo.vmware.com
+              resources:
+                - vdoconfigs/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - vdo.vmware.com
+              resources:
+                - vdoconfigs/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - vdo.vmware.com
+              resources:
+                - vspherecloudconfigs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - vdo.vmware.com
+              resources:
+                - vspherecloudconfigs/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - vdo.vmware.com
+              resources:
+                - vspherecloudconfigs/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: vdo-controller-manager
+      deployments:
+        - name: vdo-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager
+            strategy:
+              rollingUpdate:
+                maxSurge: 0
+                maxUnavailable: 1
+              type: RollingUpdate
+            template:
+              metadata:
+                labels:
+                  control-plane: controller-manager
+              spec:
+                containers:
+                  - args:
+                      - --secure-listen-address=0.0.0.0:8443
+                      - --upstream=http://127.0.0.1:8089/
+                      - --logtostderr=true
+                      - --v=10
+                    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:c517c5e91c22279414fc56c777e44641602f01440938cca0bee02a6929fe558e
+                    name: kube-rbac-proxy
+                    ports:
+                      - containerPort: 8443
+                        name: https
+                    resources: {}
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=127.0.0.1:8089
+                      - --leader-elect
+                    command:
+                      - /manager
+                    image: projects.registry.vmware.com/vsphere_kubernetes_driver_operator/vdo@sha256:d89d95ff753569a866af9c7f4d8f1029dd3d5bdb88af0fb1ee2a8e324020a383
+                    imagePullPolicy: IfNotPresent
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 200m
+                        memory: 200Mi
+                      requests:
+                        cpu: 100m
+                        memory: 20Mi
+                    env:
+                    - name: VDO_NAMESPACE
+                      valueFrom:
+                        fieldRef:
+                          fieldPath: metadata.namespace
+                    - name: MATRIX_CONFIG_CONTENT
+                      valueFrom:
+                        configMapKeyRef:
+                          key: versionConfigContent
+                          name: compat-matrix-config
+                          optional: true
+                    - name: MATRIX_CONFIG_URL
+                      valueFrom:
+                        configMapKeyRef:
+                          key: versionConfigURL
+                          name: compat-matrix-config
+                          optional: true
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                    volumeMounts:
+                      - mountPath: /etc/kubernetes
+                        name: vsphere-config-volume
+                hostNetwork: true
+                nodeSelector:
+                  node-role.kubernetes.io/master: ""
+                serviceAccountName: vdo-controller-manager
+                terminationGracePeriodSeconds: 10
+                tolerations:
+                  - effect: NoSchedule
+                    key: node-role.kubernetes.io/master
+                    operator: Exists
+                  - effect: NoSchedule
+                    key: kubeadmNode
+                    operator: Equal
+                    value: master
+                  - effect: NoSchedule
+                    key: node.cloudprovider.kubernetes.io/uninitialized
+                    operator: Equal
+                    value: "true"
+                volumes:
+                  - hostPath:
+                      path: /etc/kubernetes
+                      type: DirectoryOrCreate
+                    name: vsphere-config-volume
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: vdo-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - vsphere-kubernetes-drivers-operator
+    - vSphere
+    - CPI
+    - CSI
+    - OpenShift
+    - k8s
+  links:
+    - name: vsphere-kubernetes-drivers-operator
+      url: https://github.com/vmware-tanzu/vsphere-kubernetes-drivers-operator
+  maintainers:
+    - email: vdo@vmware.com
+      name: VDO Maintainers
+  maturity: alpha
+  minKubeVersion: "1.21.7"
+  provider:
+    name: VMware
+  version: 0.1.5

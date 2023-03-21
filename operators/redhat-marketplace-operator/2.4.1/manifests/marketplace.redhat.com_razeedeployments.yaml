@@ -1,0 +1,284 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.2
+  creationTimestamp: null
+  labels:
+    redhat.marketplace.com/name: redhat-marketplace-operator
+  name: razeedeployments.marketplace.redhat.com
+spec:
+  group: marketplace.redhat.com
+  names:
+    kind: RazeeDeployment
+    listKind: RazeeDeploymentList
+    plural: razeedeployments
+    singular: razeedeployment
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.installConditions[?(@.type == "Installing")].status
+      name: INSTALLING
+      type: string
+    - jsonPath: .status.installConditions[?(@.type == "Installing")].reason
+      name: STEP
+      type: string
+    - jsonPath: .status.nodesFromRazeeDeploymentsCount
+      name: APPS
+      type: integer
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: RazeeDeployment is the resources that deploys Razee for the Red Hat Marketplace. This is an internal resource not meant to be modified directly.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RazeeDeploymentSpec defines the desired state of RazeeDeployment
+            properties:
+              childUrl:
+                description: Location of your IBM Cloud Object Storage resources Used internally by the Operator
+                type: string
+              clusterDisplayName:
+                description: The ClusterDisplayName is a unique name of for a cluster specified by the admin during registration
+                type: string
+              clusterUUID:
+                description: ClusterUUID is the cluster identifier, used for installing razee.
+                type: string
+              deployConfig:
+                description: Configuration values provided from redhat marketplace These are used internally by the Operator
+                properties:
+                  bucketName:
+                    description: BucketName is the name of the bucket in Cloud Object Storage and correlates to your accountID
+                    type: string
+                  childRRS3FileName:
+                    description: The file name of the child RemoteResourecS3
+                    type: string
+                  fileSourceUrl:
+                    description: 'FileSourceURL DEPRECATED: The url of the filesource arg that gets passed into the razeedeploy-job'
+                    type: string
+                  ibmCosReaderKey:
+                    description: Api key used to access the bucket IBM COS
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                  ibmCosUrl:
+                    description: Base url for the instance of IBM COS
+                    type: string
+                  razeeDashOrgKey:
+                    description: Key used to identify a particular razee instance
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be a valid secret key.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                  razeeDashUrl:
+                    description: Url used by the razee install to post data
+                    type: string
+                type: object
+              deploySecretName:
+                description: DeploySecretName is the name of our secret where Razee variables are stored.
+                type: string
+              enabled:
+                description: Enabled is the flag that controls if the controller does work. Setting enabled to true will create a Razee namespace and deploy it's componenets. Set to false to bypass Razee installation
+                type: boolean
+              features:
+                description: The features that can be enabled or disabled
+                properties:
+                  deployment:
+                    description: Deployment represents the enablement of the razee deployment, defaults to true when not set
+                    type: boolean
+                  registration:
+                    description: Registration represents the enablement of the registration watchkeeper deployment, defaults to true when not set
+                    type: boolean
+                type: object
+              legacyUninstallHasRun:
+                description: Flag used by the RazeeDeployment Controller to decide whether to run legacy uninstall job Used internally by the Operator
+                type: boolean
+              targetNamespace:
+                description: TargetNamespace is configurable target of the razee namespace This is to support legancy installs. Please do not edit.
+                type: string
+            required:
+            - clusterUUID
+            - enabled
+            type: object
+          status:
+            description: RazeeDeploymentStatus defines the observed state of RazeeDeployment
+            properties:
+              conditions:
+                description: 'JobConditions DEPRECATED: represent the latest available observations of an object''s stateonfig'
+                properties:
+                  lastProbeTime:
+                    description: Last time the condition was checked.
+                    format: date-time
+                    type: string
+                  lastTransitionTime:
+                    description: Last time the condition transit from one status to another.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Human readable message indicating details about last transition.
+                    type: string
+                  reason:
+                    description: (brief) reason for the condition's last transition.
+                    type: string
+                  status:
+                    description: Status of the condition, one of True, False, Unknown.
+                    type: string
+                  type:
+                    description: Type of job condition, Complete or Failed.
+                    type: string
+                required:
+                - status
+                - type
+                type: object
+              installConditions:
+                description: RazeeConditions represent the latest available observations of an object's stateonfig
+                items:
+                  description: "Condition represents an observation of an object's state. Conditions are an extension mechanism intended to be used when the details of an observation are not a priori known or would not apply to all instances of a given Kind. \n Conditions should be added to explicitly convey properties that users and components care about rather than requiring those properties to be inferred from other observations. Once defined, the meaning of a Condition can not be changed arbitrarily - it becomes part of the API, and has the same backwards- and forwards-compatibility concerns of any other part of the API."
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      description: ConditionReason is intended to be a one-word, CamelCase representation of the category of cause of the current status. It is intended to be used in concise output, such as one-line kubectl get output, and in summarizing occurrences of causes.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: "ConditionType is the type of the condition and is typically a CamelCased word or short phrase. \n Condition types should indicate state in the \"abnormal-true\" polarity. For example, if the condition indicates when a policy is invalid, the \"is valid\" case is probably the norm, so the condition should be called \"Invalid\"."
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              jobState:
+                description: 'JobState DEPRECATED: is the status of the Razee Install Job'
+                properties:
+                  active:
+                    description: The number of actively running pods.
+                    format: int32
+                    type: integer
+                  completionTime:
+                    description: Represents time when the job was completed. It is not guaranteed to be set in happens-before order across separate operations. It is represented in RFC3339 form and is in UTC.
+                    format: date-time
+                    type: string
+                  conditions:
+                    description: 'The latest available observations of an object''s current state. More info: https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/'
+                    items:
+                      description: JobCondition describes current state of a job.
+                      properties:
+                        lastProbeTime:
+                          description: Last time the condition was checked.
+                          format: date-time
+                          type: string
+                        lastTransitionTime:
+                          description: Last time the condition transit from one status to another.
+                          format: date-time
+                          type: string
+                        message:
+                          description: Human readable message indicating details about last transition.
+                          type: string
+                        reason:
+                          description: (brief) reason for the condition's last transition.
+                          type: string
+                        status:
+                          description: Status of the condition, one of True, False, Unknown.
+                          type: string
+                        type:
+                          description: Type of job condition, Complete or Failed.
+                          type: string
+                      required:
+                      - status
+                      - type
+                      type: object
+                    type: array
+                  failed:
+                    description: The number of pods which reached phase Failed.
+                    format: int32
+                    type: integer
+                  startTime:
+                    description: Represents time when the job was acknowledged by the job controller. It is not guaranteed to be set in happens-before order across separate operations. It is represented in RFC3339 form and is in UTC.
+                    format: date-time
+                    type: string
+                  succeeded:
+                    description: The number of pods which reached phase Succeeded.
+                    format: int32
+                    type: integer
+                type: object
+              localSecretVarsPopulated:
+                description: 'LocalSecretVarsPopulated DEPRECATED: informs if the correct local variables are correct set.'
+                type: boolean
+              missingValuesFromSecret:
+                description: MissingValuesFromSecret validates the secret provided has all the correct fields
+                items:
+                  type: string
+                type: array
+              nodesFromRazeeDeployments:
+                description: NodesFromRazeeDeployments contains the pods names created by the rhm-watch-keeper and rhm-remote-resources3-controller deployments
+                items:
+                  type: string
+                type: array
+              nodesFromRazeeDeploymentsCount:
+                description: NodesFromRazeeDeploymentsCount contains the pods names created by the rhm-watch-keeper and rhm-remote-resources3-controller deployments
+                type: integer
+              razee_job_install:
+                description: RazeeJobInstall contains information regarding the install job so it can be removed
+                properties:
+                  razee_install_url:
+                    description: RazeeInstallURL is the url used to install the Razee resources
+                    type: string
+                  razee_namespace:
+                    description: RazeeNamespace is the namespace targeted for the Razee install
+                    type: string
+                required:
+                - razee_install_url
+                - razee_namespace
+                type: object
+              razeePrerequisitesCreated:
+                description: RazeePrerequestesCreated is the list of configmaps and secrets required to be installed
+                items:
+                  type: string
+                type: array
+              redHatMarketplaceSecretFound:
+                description: 'RedHatMarketplaceSecretFound DEPRECATED: is the status of finding the secret in the cluster'
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

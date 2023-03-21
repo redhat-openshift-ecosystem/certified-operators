@@ -1,0 +1,550 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+          {
+              "apiVersion": "helm-operator.sumologic.com/v1alpha1",
+              "kind": "SumologicCollection",
+              "metadata": {
+                  "name": "collection"
+              },
+              "spec": {
+                  "sumologic": {
+                      "accessId": "",
+                      "accessKey": "",
+                      "endpoint": "",
+                      "clusterName": "kubernetes",
+                      "scc": {
+                          "create": true
+                      }
+                  },
+                  "fluentd": {
+                      "logs": {
+                          "containers": {
+                              "multiline": {
+                                  "enabled": false
+                              }
+                          }
+                      }
+                  },
+                  "fluent-bit": {
+                      "securityContext": {
+                          "privileged": true
+                      },
+                      "config": {
+                          "service": "[SERVICE]\n    Flush        1\n    Daemon       Off\n    Log_Level    info\n    Parsers_File parsers.conf\n    Parsers_File custom_parsers.conf\n    HTTP_Server  On\n    HTTP_Listen  0.0.0.0\n    HTTP_Port    2020\n",
+                          "inputs": "[INPUT]\n    Name                tail\n    Path                /var/log/containers/*.log\n    Parser              crio\n    Tag                 containers.*\n    Refresh_Interval    1\n    Rotate_Wait         60\n    Mem_Buf_Limit       5MB\n    Skip_Long_Lines     On\n    DB                  /tail-db/tail-containers-state-sumo.db\n    DB.Sync             Normal\n[INPUT]\n    Name            systemd\n    Tag             host.*\n    DB              /tail-db/systemd-state-sumo.db\n    Systemd_Filter  _SYSTEMD_UNIT=addon-config.service\n    Systemd_Filter  _SYSTEMD_UNIT=addon-run.service\n    Systemd_Filter  _SYSTEMD_UNIT=cfn-etcd-environment.service\n    Systemd_Filter  _SYSTEMD_UNIT=cfn-signal.service\n    Systemd_Filter  _SYSTEMD_UNIT=clean-ca-certificates.service\n    Systemd_Filter  _SYSTEMD_UNIT=containerd.service\n    Systemd_Filter  _SYSTEMD_UNIT=coreos-metadata.service\n    Systemd_Filter  _SYSTEMD_UNIT=coreos-setup-environment.service\n    Systemd_Filter  _SYSTEMD_UNIT=coreos-tmpfiles.service\n    Systemd_Filter  _SYSTEMD_UNIT=dbus.service\n    Systemd_Filter  _SYSTEMD_UNIT=docker.service\n    Systemd_Filter  _SYSTEMD_UNIT=efs.service\n    Systemd_Filter  _SYSTEMD_UNIT=etcd-member.service\n    Systemd_Filter  _SYSTEMD_UNIT=etcd.service\n    Systemd_Filter  _SYSTEMD_UNIT=etcd2.service\n    Systemd_Filter  _SYSTEMD_UNIT=etcd3.service\n    Systemd_Filter  _SYSTEMD_UNIT=etcdadm-check.service\n    Systemd_Filter  _SYSTEMD_UNIT=etcdadm-reconfigure.service\n    Systemd_Filter  _SYSTEMD_UNIT=etcdadm-save.service\n    Systemd_Filter  _SYSTEMD_UNIT=etcdadm-update-status.service\n    Systemd_Filter  _SYSTEMD_UNIT=flanneld.service\n    Systemd_Filter  _SYSTEMD_UNIT=format-etcd2-volume.service\n    Systemd_Filter  _SYSTEMD_UNIT=kube-node-taint-and-uncordon.service\n    Systemd_Filter  _SYSTEMD_UNIT=kubelet.service\n    Systemd_Filter  _SYSTEMD_UNIT=ldconfig.service\n    Systemd_Filter  _SYSTEMD_UNIT=locksmithd.service\n    Systemd_Filter  _SYSTEMD_UNIT=logrotate.service\n    Systemd_Filter  _SYSTEMD_UNIT=lvm2-monitor.service\n    Systemd_Filter  _SYSTEMD_UNIT=mdmon.service\n    Systemd_Filter  _SYSTEMD_UNIT=nfs-idmapd.service\n    Systemd_Filter  _SYSTEMD_UNIT=nfs-mountd.service\n    Systemd_Filter  _SYSTEMD_UNIT=nfs-server.service\n    Systemd_Filter  _SYSTEMD_UNIT=nfs-utils.service\n    Systemd_Filter  _SYSTEMD_UNIT=node-problem-detector.service\n    Systemd_Filter  _SYSTEMD_UNIT=ntp.service\n    Systemd_Filter  _SYSTEMD_UNIT=oem-cloudinit.service\n    Systemd_Filter  _SYSTEMD_UNIT=rkt-gc.service\n    Systemd_Filter  _SYSTEMD_UNIT=rkt-metadata.service\n    Systemd_Filter  _SYSTEMD_UNIT=rpc-idmapd.service\n    Systemd_Filter  _SYSTEMD_UNIT=rpc-mountd.service\n    Systemd_Filter  _SYSTEMD_UNIT=rpc-statd.service\n    Systemd_Filter  _SYSTEMD_UNIT=rpcbind.service\n    Systemd_Filter  _SYSTEMD_UNIT=set-aws-environment.service\n    Systemd_Filter  _SYSTEMD_UNIT=system-cloudinit.service\n    Systemd_Filter  _SYSTEMD_UNIT=systemd-timesyncd.service\n    Systemd_Filter  _SYSTEMD_UNIT=update-ca-certificates.service\n    Systemd_Filter  _SYSTEMD_UNIT=user-cloudinit.service\n    Systemd_Filter  _SYSTEMD_UNIT=var-lib-etcd2.service\n    Max_Entries     1000\n    Read_From_Tail  true\n",
+                          "outputs": "[OUTPUT]\n    Name          forward\n    Match         *\n    Host          ${FLUENTD_LOGS_SVC}.${NAMESPACE}.svc.cluster.local.\n    Port          24321\n    Retry_Limit   False\n    tls           off\n    tls.verify    on\n    tls.debug     1\n    # Disable keepalive for better load balancing\n    net.keepalive off\n",
+                          "customParsers": "[PARSER]\n    Name        multi_line\n    Format      regex\n    Regex       (?<log>^{\"log\":\"\\d{4}-\\d{1,2}-\\d{1,2}.\\d{2}:\\d{2}:\\d{2}.*)\n[PARSER]\n    Name         crio\n    Format       regex\n    Regex        ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$\n    Time_Key     time\n    Time_Format  %Y-%m-%dT%H:%M:%S.%L%z\n[PARSER]\n    Name         containerd\n    Format       regex\n    Regex        ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<log>.*)$\n    Time_Key     time\n    Time_Format  %Y-%m-%dT%H:%M:%S.%LZ\n"
+                      }
+                  },
+                  "kube-prometheus-stack": {
+                      "prometheusOperator": {
+                          "denyNamespaces": [
+                              "openshift-apiserver",
+                              "openshift-apiserver-operator",
+                              "openshift-authentication",
+                              "openshift-authentication-operator",
+                              "openshift-cloud-credential-operator",
+                              "openshift-cluster-machine-approver",
+                              "openshift-cluster-samples-operator",
+                              "openshift-cluster-storage-operator",
+                              "openshift-cluster-version",
+                              "openshift-config-operator",
+                              "openshift-console-operator",
+                              "openshift-controller-manager",
+                              "openshift-controller-manager-operator",
+                              "openshift-dns,openshift-dns-operator",
+                              "openshift-etcd-operator",
+                              "openshift-image-registry",
+                              "openshift-ingress",
+                              "openshift-ingress-operator",
+                              "openshift-insights",
+                              "openshift-kube-apiserver",
+                              "openshift-kube-apiserver-operator",
+                              "openshift-kube-controller-manager",
+                              "openshift-kube-controller-manager-operator",
+                              "openshift-kube-scheduler",
+                              "openshift-kube-scheduler-operator",
+                              "openshift-kube-storage-version-migrator",
+                              "openshift-kube-storage-version-migrator-operator",
+                              "openshift-machine-api",
+                              "openshift-machine-config-operator",
+                              "openshift-marketplace",
+                              "openshift-monitoring",
+                              "openshift-multus",
+                              "openshift-oauth-apiserver",
+                              "openshift-operator-lifecycle-manager",
+                              "openshift-sdn",
+                              "openshift-service-ca-operator",
+                              "openshift-user-workload-monitoring"
+                          ]
+                      },
+                      "prometheus-node-exporter": {
+                          "service": {
+                              "port": 9200,
+                              "targetPort": 9200
+                          }
+                      }
+                  }
+              }
+          }
+      ]
+    capabilities: Basic Install
+    categories: Logging & Tracing,Monitoring
+    containerImage: registry.connect.redhat.com/sumologic/sumologic-kubernetes-collection-helm-operator@sha256:fb215100b4d18dc4c4816e2594422b4a163cba2e195413bb396bb3062d96fda3
+    createdAt: "2022-09-20T10:19:02Z"
+    repository: https://github.com/SumoLogic/sumologic-kubernetes-collection-helm-operator.git
+    support: Sumo Logic
+    operators.operatorframework.io/builder: operator-sdk-v1.6.1+git
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: sumologic-kubernetes-collection-helm-operator.v2.17.0-0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: SumologicCollection
+        displayName: SumologicCollection
+        description: Configuration for Sumo Logic Kubernetes Collection
+        name: sumologiccollections.helm-operator.sumologic.com
+        version: v1alpha1
+        specDescriptors:
+          - description: Sumo access ID
+            displayName: Access ID
+            path: sumologic.accessId
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Sumo access key
+            displayName: Access key
+            path: sumologic.accessKey
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Identifier for the Kubernetes cluster
+            displayName: Cluster name
+            path: sumologic.clusterName
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+  description: Helm Operator for the Sumo Logic Kubernetes Collection Helm Chart v2.17.0-0
+  displayName: Sumo Logic Kubernetes Collection Helm Operator
+  icon:
+    - base64data: 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
+      mediatype: "image/jpeg"
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - apps
+              resources:
+                - configmaps
+                - deployments
+                - daemonsets
+                - endpoints
+                - events
+                - namespaces
+                - nodes
+                - pods
+                - replicasets
+                - services
+                - statefulsets
+              verbs:
+                - '*'
+            - apiGroups:
+                - events.k8s.io
+              resources:
+                - configmaps
+                - daemonsets
+                - deployments
+                - endpoints
+                - events
+                - namespaces
+                - nodes
+                - pods
+                - replicasets
+                - services
+                - statefulsets
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+                - cronjobs
+              verbs:
+                - '*'
+            - apiGroups:
+                - helm-operator.sumologic.com
+              resources:
+                - sumologiccollections
+                - sumologiccollections/status
+                - sumologiccollections/finalizers
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - deployments
+                - daemonsets
+                - endpoints
+                - events
+                - limitranges
+                - lists
+                - namespaces
+                - nodes
+                - nodes/metrics
+                - nodes/stats
+                - persistentvolumeclaims
+                - persistentvolumes
+                - persistentvolumeclaims/finalizers
+                - persistentvolumes/finalizers
+                - pods
+                - pods/finalizers
+                - pods/exec
+                - pods/log
+                - resourcequotas
+                - replicasets
+                - replicationcontrollers
+                - serviceaccounts
+                - secrets
+                - secrets/finalizers
+                - services
+                - secrets/finalizers
+                - statefulsets
+              verbs:
+                - '*'
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - '*'
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - networkpolicies
+              verbs:
+                - list
+                - watch
+            - apiGroups:
+                - security.openshift.io
+              resources:
+                - securitycontextconstraints
+              verbs:
+                - '*'
+            - apiGroups:
+                - apiextensions.k8s.io
+              resources:
+                - customresourcedefinitions
+              verbs:
+                - '*'
+            - apiGroups:
+                - policy
+              resources:
+                - poddisruptionbudgets
+                - podsecuritypolicies
+              verbs:
+                - '*'
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterrolebindings
+                - clusterroles
+                - roles
+                - rolebindings
+              verbs:
+                - '*'
+            - apiGroups:
+                - extensions
+              resources:
+                - configmaps
+                - daemonsets
+                - deployments
+                - endpoints
+                - events
+                - ingresses
+                - namespaces
+                - nodes
+                - pods
+                - replicasets
+                - replicationcontrollers
+                - services
+                - statefulsets
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - extensions
+              resources:
+                - podsecuritypolicies
+              verbs:
+                - use
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - alertmanagerconfigs
+                - alertmanagers
+                - alertmanagers/finalizers
+                - podmonitors
+                - probes
+                - prometheuses
+                - prometheuses/finalizers
+                - prometheusrules
+                - servicemonitors
+                - thanosrulers
+                - thanosrulers/finalizers
+              verbs:
+                - '*'
+            - apiGroups:
+                - admissionregistration.k8s.io
+              resources:
+                - mutatingwebhookconfigurations
+                - validatingwebhookconfigurations
+              verbs:
+                - '*'
+            - apiGroups:
+                - autoscaling
+              resources:
+                - horizontalpodautoscalers
+              verbs:
+                - list
+                - watch
+            - apiGroups:
+                - certificates.k8s.io
+              resources:
+                - certificatesigningrequests
+              verbs:
+                - '*'
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - storageclasses
+                - volumeattachments
+              verbs:
+                - list
+                - watch
+            - nonResourceURLs:
+                - /metrics/cadvisor
+                - /metrics
+              verbs:
+                - get
+            - nonResourceURLs:
+                - /healthz/*
+              verbs:
+                - get
+            - apiGroups:
+                - apiregistration.k8s.io
+              resources:
+                - apiservices
+              verbs:
+                - get
+            - apiGroups:
+                - machineconfiguration.openshift.io
+              resources:
+                - machineconfigs
+              verbs:
+                - '*'
+            - apiGroups:
+                - tailing-sidecar.sumologic.com
+              resources:
+                - tailingsidecars
+                - tailingsidecars/status
+              verbs:
+                - '*'
+            - apiGroups:
+                - scheduling.k8s.io
+              resources:
+                - priorityclasses
+              verbs:
+                - '*'
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+            - apiGroups:
+                - opentelemetry.io
+              resources:
+                - instrumentations
+              verbs:
+                - '*'
+          serviceAccountName: sumologic-helm-operator
+      deployments:
+        - label:
+            control-plane: sumologic-kubernetes-collection-helm-operator
+          name: sumologic-helm-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: sumologic-kubernetes-collection-helm-operator
+            strategy: {}
+            template:
+              metadata:
+                labels:
+                  control-plane: sumologic-kubernetes-collection-helm-operator
+              spec:
+                containers:
+                  - args:
+                      - --secure-listen-address=0.0.0.0:8443
+                      - --upstream=http://127.0.0.1:8080/
+                      - --logtostderr=true
+                      - --v=10
+                    image: registry.connect.redhat.com/sumologic/kube-rbac-proxy@sha256:c1ea7aa4873a78d8d506e4dab8c281c6c72a65d1374312cd76b27ed881b043b5
+                    name: kube-rbac-proxy
+                    ports:
+                      - containerPort: 8443
+                        name: https
+                    resources: {}
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=127.0.0.1:8080
+                      - --leader-elect
+                      - --leader-election-id=sumologic-kubernetes-collection-helm-operator
+                    env:
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: sumologic-kubernetes-collection-helm-operator
+                      - name: RELATED_IMAGE_KUBERNETES_SETUP
+                        value: registry.connect.redhat.com/sumologic/kubernetes-setup@sha256:96de6f9352cabbddf7f0cb537108b41183e827be27d100ba6566bbb0d1c0f01d
+                      - name: RELATED_IMAGE_NODE_EXPORTER
+                        value: registry.connect.redhat.com/sumologic/node-exporter@sha256:7acec4473ddf508514dca1d08335cfd071e345d7eca660793d59e09ef9f0491f
+                      - name: RELATED_IMAGE_KUBE_STATE_METRICS
+                        value: registry.connect.redhat.com/sumologic/kube-state-metrics@sha256:094ad2a0136b7ded390763dd9c63acf282903d49d07385a806160e2cdad89345
+                      - name: RELATED_IMAGE_PROMETHEUS_OPERATOR
+                        value: registry.connect.redhat.com/sumologic/prometheus-operator@sha256:79769d200a6d5b977fed1c05e1021ad83b89b817b30ab24131cf9d262f4b86fc
+                      - name: RELATED_IMAGE_PROMETHEUS_CONFIG_RELOADER
+                        value: registry.connect.redhat.com/sumologic/prometheus-config-reloader@sha256:bbc4ae3f769172545cd0ee7862066e6dab75045370f099e4bdacc344fe7c46a7
+                      - name: RELATED_IMAGE_PROMETHEUS
+                        value: registry.connect.redhat.com/sumologic/prometheus@sha256:f9fa9040c8e134a1e6be81dd6e14f1d1dee3e0651e4039cf9580e8e9cfbf8455
+                      - name: RELATED_IMAGE_THANOS
+                        value: registry.connect.redhat.com/sumologic/thanos@sha256:9772a1f329596cc4f0934b044f63b2c4f6e93952a44f1c68cc09f1a61f7f309a
+                      - name: RELATED_IMAGE_METRICS_SERVER
+                        value: registry.connect.redhat.com/sumologic/metrics-server@sha256:4a60b5f706e4ae2b79c91a90dd4d23d8fd87408beed9f0a14a29d639bbcb8a35
+                      - name: RELATED_IMAGE_KUBE_RBAC_PROXY
+                        value: registry.connect.redhat.com/sumologic/kube-rbac-proxy@sha256:c1ea7aa4873a78d8d506e4dab8c281c6c72a65d1374312cd76b27ed881b043b5
+                      - name: RELATED_IMAGE_TAILING_SIDECAR_OPERATOR
+                        value: registry.connect.redhat.com/sumologic/tailing-sidecar-operator@sha256:8b22b5035e7512fff17b05b37076f1bdbc3102cfbfc676e66ef7f3682dff5b98
+                      - name: RELATED_IMAGE_TAILING_SIDECAR
+                        value: registry.connect.redhat.com/sumologic/tailing-sidecar@sha256:34c7e3d6a15dcbb72ce498744baa5e6b4663af4838a6f6429458e2d73ecb4d09
+                      - name: RELATED_IMAGE_TELEGRAF_OPERATOR
+                        value: registry.connect.redhat.com/sumologic/telegraf-operator@sha256:e27d7a4d7c9947685641df6e238fbae5a48993530bd5c2c4bf6d7385c262715e
+                      - name: RELATED_IMAGE_TELEGRAF
+                        value: registry.connect.redhat.com/sumologic/telegraf@sha256:ca396dad12a289aea9136da713020d31b179e9f49aae61c48332d61086d1d059
+                      - name: RELATED_IMAGE_KUBERNETES_FLUENTD
+                        value: registry.connect.redhat.com/sumologic/kubernetes-fluentd@sha256:fdc41e366fa24046eb023ab76ca3bb571cdde5b35ea75ccdd9b9435091266562
+                      - name: RELATED_IMAGE_FLUENT_BIT
+                        value: registry.connect.redhat.com/sumologic/fluent-bit@sha256:4e76cb20c8808ac149db6ba532ab3f42047e5a5e8d178a7294f9881d0bbf3f43
+                      - name: RELATED_IMAGE_SUMOLOGIC_OTEL_COLLECTOR
+                        value: registry.connect.redhat.com/sumologic/sumologic-otel-collector@sha256:9e37f8f6244f82a4caa138d77f89a946f781e76c74326b771727843cd9f113a1
+                      - name: RELATED_IMAGE_OPENTELEMETRY_OPERATOR
+                        value: registry.connect.redhat.com/sumologic/opentelemetry-operator@sha256:9f62a7e50ea91a2424fc48f94feff3ccfc4a1fccaabf56dd5259852ba2565efd
+                    image: registry.connect.redhat.com/sumologic/sumologic-kubernetes-collection-helm-operator@sha256:fb215100b4d18dc4c4816e2594422b4a163cba2e195413bb396bb3062d96fda3
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: operator
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                      requests:
+                        cpu: 500m
+                        memory: 100Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: sumologic-helm-operator
+                terminationGracePeriodSeconds: 10
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+                - coordination.k8s.io
+              resources:
+                - configmaps
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: sumologic-helm-operator
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - collection
+    - logging
+    - metrics
+    - monitoring
+  links:
+    - name: Sumo Logic Kubernetes Collection Helm Operator
+      url: https://github.com/SumoLogic/sumologic-kubernetes-collection-helm-operator
+  maintainers:
+    - email: collection@sumologic.com
+      name: Sumo Logic
+  maturity: alpha
+  provider:
+    name: Sumo Logic
+    url: https://www.sumologic.com/
+  version: 2.17.0-0

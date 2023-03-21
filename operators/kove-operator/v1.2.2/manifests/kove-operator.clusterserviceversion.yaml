@@ -1,0 +1,464 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "containers.kove.net/v1",
+          "kind": "KoveMemoryConfig",
+          "metadata": {
+            "labels": {
+              "KoveMemoryConfig": ""
+            },
+            "name": "example-memory-config"
+          },
+          "spec": {
+            "container": "",
+            "namespace": "",
+            "size": ""
+          }
+        },
+        {
+          "apiVersion": "containers.kove.net/v1",
+          "kind": "KoveSystem",
+          "metadata": {
+            "labels": {
+              "KoveSystem": ""
+            },
+            "name": "kove-system"
+          },
+          "spec": {
+            "autogrowInitialIncrement": "1 GiB",
+            "autogrowMaxIncrement": "1 TiB",
+            "l4MaxMemoryPercent": 90,
+            "managementConsoleAddress": "",
+            "memoryPlusLocalMemoryMaxSize": "0 MiB"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: AI/Machine Learning, Big Data
+    containerImage: quay.io/kove/kove-operator@sha256:b904dfe8a916efe45916c2c4160c1e5f992f4c7133a4731dbea5f2523eaa9671
+    createdAt: 2022-09-23T12:50:09-05:00
+    description: Configure containers with Kove memory
+    olm.skipRange: '>=1.1.5 <1.2.2'
+    operatorframework.io/suggested-namespace: kove-operator-system
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
+    operators.operatorframework.io/builder: operator-sdk-v1.16.0-ocp
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    support: Kove
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/os.linux: supported
+  name: kove-operator.v1.2.2
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Configure containers with Kove memory
+      displayName: Kove Memory Configuration
+      kind: KoveMemoryConfig
+      name: kovememoryconfigs.containers.kove.net
+      resources:
+      - kind: Pod
+        name: ""
+        version: v1
+      specDescriptors:
+      - description: Containers with a matching name in the specified Namespace will
+          use this memory configuration. Leave blank to match all containers in the
+          specified Namespace.
+        displayName: Container Name
+        path: container
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Containers in the selected Namespace will use this memory configuration.
+        displayName: Container Namespace
+        path: namespace
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Namespace
+      - description: Initial allocation size. e.g. 1 GB, 2 GiB, 4 TB, 8 TiB, etc.
+        displayName: Allocation Size
+        path: size
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      statusDescriptors:
+      - displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1
+    - description: Configure cluster with Kove
+      displayName: Kove System Configuration
+      kind: KoveSystem
+      name: kovesystems.containers.kove.net
+      resources:
+      - kind: DaemonSet
+        name: kove-agent
+        version: v1
+      - kind: DaemonSet
+        name: kove-client-drivers
+        version: v1
+      - kind: DaemonSet
+        name: kove-container-hook
+        version: v1
+      specDescriptors:
+      - description: Initial increment by which Kove will grow an allocation. The
+          autogrow increment will double in size each time an allocation grows until
+          Autogrow Maximum Increment is reached, after which the increment remains
+          constant. (e.g. 1 GB, 2 GiB)
+        displayName: Autogrow Initial Increment
+        path: autogrowInitialIncrement
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Maximum increment by which Kove will grow an allocation. (e.g.
+          10 GB, 32 GiB)
+        displayName: Autogrow Maximum Increment
+        path: autogrowMaxIncrement
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: 'Maximum size of the Kove L4 Cache, specified as a percentage
+          of free memory. (valid range: 1-95)'
+        displayName: L4 Cache Maximum Percent
+        path: l4MaxMemoryPercent
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Hostname or IP address of the Kove Management Console for this
+          cluster.
+        displayName: Management Console Hostname or IP Address
+        path: managementConsoleAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Maximum amount of local memory that will be allocated by Kove
+          before allocating external memory. (e.g. 32 GB, 64 GiB, 256 GiB, value of
+          0 disables Memory+)
+        displayName: Memory+ Maximum Local Memory Size
+        path: memoryPlusLocalMemoryMaxSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      statusDescriptors:
+      - displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1
+  description: |
+    ## About the Operator
+    The Kove External Memory operator integrates Kove's software-defined memory
+    solution with Kubernetes and OpenShift clusters. The operator enables
+    containers to transparently provision any amount of memory, enabling total
+    container memory capacity to exceed physical hardware limitations.
+
+    Use the Kove External Memory operator to:
+
+    * Create custom resources to automatically allocate memory to specific
+      containers
+    * Increase container flexibility with dynamic memory capacity that
+      auto-grows as needed
+    * Scale up container density by removing memory as an orchestration
+      bottleneck
+
+    ## Using the Operator
+    Using the operator is as simple as creating a custom resource which
+    specifies an initial Kove memory allocation size, a namespace, and a
+    container name. Containers in the specified namespace with a matching
+    container name will automatically be provided with a Kove memory allocation
+    which will auto-grow as needed.
+
+    ## About Kove
+    Kove makes memory a provisionable resource, just like storage, CPUs, and
+    networking. Kove External Memory provides a transparent, linearly scalable
+    memory resource accessible to any application without code changes, from
+    bare-metal apps to virtual machines and containers.
+  displayName: Kove External Memory Operator
+  icon:
+  - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz48IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4iICJodHRwOi8vd3d3LnczLm9yZy9HcmFwaGljcy9TVkcvMS4xL0RURC9zdmcxMS5kdGQiPjxzdmcgdmVyc2lvbj0iMS4xIiBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeD0iMHB4IiB5PSIwcHgiIHdpZHRoPSIyMTUuMTI1cHgiIGhlaWdodD0iMTgwLjU2N3B4IiB2aWV3Qm94PSIwIDAgMjE1LjEyNSAxODAuNTY3IiBlbmFibGUtYmFja2dyb3VuZD0ibmV3IDAgMCAyMTUuMTI1IDE4MC41NjciIHhtbDpzcGFjZT0icHJlc2VydmUiPjxnPiA8cGF0aCBmaWxsPSIjNjY2NjY2IiBkPSJNMjE0LjYzOCw1LjQ4M2MwLDIuNTc2LTIuMDcyLDQuNjItNC43MDQsNC42MnMtNC43MzEtMi4wNDQtNC43MzEtNC42MmMwLTIuNTc2LDIuMS00LjU5Miw0Ljc2LTQuNTkyIEMyMTIuNTY2LDAuODkxLDIxNC42MzgsMi45MDcsMjE0LjYzOCw1LjQ4M3ogTTIwNi4zNzgsNS40ODNjMCwyLjA0NCwxLjU0LDMuNjY4LDMuNTg0LDMuNjY4YzEuOTg3LDAuMDI4LDMuNS0xLjYyNCwzLjUtMy42NCBjMC0yLjA0NC0xLjUxMy0zLjY5Ni0zLjU1Ny0zLjY5NkMyMDcuOTE4LDEuODE1LDIwNi4zNzgsMy40NjcsMjA2LjM3OCw1LjQ4M3ogTTIwOS4yMDcsNy44NjNoLTEuMDY0VjMuMjcxIGMwLjQyLTAuMDU2LDEuMDA4LTAuMTQsMS43NjQtMC4xNGMwLjg2OCwwLDEuMjYxLDAuMTQsMS41NjgsMC4zNjRjMC4yOCwwLjE5NiwwLjQ3NiwwLjUzMiwwLjQ3NiwwLjk4IGMwLDAuNTYtMC40MiwwLjkyNC0wLjk1MSwxLjA5MnYwLjA1NmMwLjQ0NywwLjE0LDAuNjcyLDAuNTA0LDAuODEyLDEuMTJjMC4xNCwwLjcsMC4yNTIsMC45NTIsMC4zMzYsMS4xMmgtMS4xMiBjLTAuMTQtMC4xNjgtMC4yMjQtMC41Ni0wLjM2My0xLjEyYy0wLjA4NC0wLjQ3Ni0wLjM2NC0wLjctMC45NTItMC43aC0wLjUwNFY3Ljg2M3ogTTIwOS4yMzQsNS4yODdoMC41MDQgYzAuNTg5LDAsMS4wNjQtMC4xOTYsMS4wNjQtMC42NzJjMC0wLjQyLTAuMzA4LTAuNy0wLjk4LTAuN2MtMC4yNzksMC0wLjQ3NiwwLjAyOC0wLjU4OCwwLjA1NlY1LjI4N3oiLz48L2c+PHBvbHlnb24gZmlsbD0iIzAwN0RBMCIgcG9pbnRzPSIyOS44MzYsNTkuMzU2IDc4LjM4MywxLjg1NiAxMTMuODk1LDEuODU2IDY0Ljg1Miw1OS42OTQgMTE0LjIxNywxMTguMDU0IDc4LjkwMSwxMTguMDU0ICAyOS44MzYsNTkuMzU2ICIvPjxwb2x5Z29uIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBmaWxsPSIjNjY2NjY2IiBwb2ludHM9IjAsMS43MzYgMjYuMDA2LDEuNzM2IDI2LjAwNiwxMTguMTc1IDAsMTE4LjE3NSAwLDEuNzM2ICAiLz48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZmlsbD0iIzY2NjY2NiIgZD0iTTE1NS4xNjcsMGMzMy4xMDcsMCw1OS45NTksMjYuODUzLDU5Ljk1OSw1OS45NTUgYzAsMzMuMTAzLTI2Ljg1Miw1OS45NTktNTkuOTU5LDU5Ljk1OWMtMzMuMDk4LDAtNTkuOTU0LTI2Ljg1Ni01OS45NTQtNTkuOTU5Qzk1LjIxMiwyNi44NTMsMTIyLjA2OSwwLDE1NS4xNjcsMEwxNTUuMTY3LDB6IE0xNTUuMTY4LDI0LjUzOWMxOS41NTcsMCwzNS40MiwxNS44NjIsMzUuNDIsMzUuNDE2YzAsMTkuNTU1LTE1Ljg2MywzNS40MTgtMzUuNDIsMzUuNDE4Yy0xOS41NTMsMC0zNS40MTYtMTUuODYzLTM1LjQxNi0zNS40MTggQzExOS43NTIsNDAuNDAxLDEzNS42MTYsMjQuNTM5LDE1NS4xNjgsMjQuNTM5TDE1NS4xNjgsMjQuNTM5eiIvPjxwb2x5Z29uIGZpbGw9IiMwMDdEQTAiIHBvaW50cz0iMCwxNzkuODA4IDAsMTM3LjE2MyA2LjA5NywxMzcuMTYzIDYuMDk3LDE1Ni4zMzcgMjMuODk3LDEzNy4xNjMgMzEuNTc2LDEzNy4xNjMgMTMuMDQ2LDE1Ny4xNTkgIDM1LjE0NCwxNzkuODA4IDI2LjY0NSwxNzkuODA4IDYuMDk3LDE1OC43MDkgNi4wOTcsMTc5LjgwOCAwLDE3OS44MDggIi8+PHBhdGggZmlsbD0iIzAwN0RBMCIgZD0iTTYxLjY4NiwxNTguNTMyYzAsMi4xNzUsMC40MDYsNC4yNDUsMS4yMTgsNi4yMTFjMC44MTIsMS45NzcsMS45ODcsMy43MjUsMy41MDcsNS4yNDQgYzEuNDg2LDEuNTI5LDMuMjI1LDIuNjk0LDUuMjMyLDMuNTE2YzEuOTk4LDAuODIyLDQuMDg4LDEuMjM4LDYuMjY0LDEuMjM4YzIuMjI2LDAsNC4zMjctMC40MDUsNi4yOTMtMS4yMDcgYzEuOTU3LTAuODAxLDMuNzE1LTEuOTg2LDUuMjU0LTMuNTQ3YzEuNTItMS41MiwyLjY5NS0zLjI2OCwzLjUxOC01LjI0NGMwLjgyMS0xLjk2NiwxLjIzOC00LjAzNiwxLjIzOC02LjIxMSBjMC0yLjE3NC0wLjQwNi00LjIzNC0xLjIxOC02LjE3Yy0wLjgxMi0xLjk0NS0yLjAxOS0zLjcxNC0zLjYwMS01LjMxNmMtMS41MTktMS41Ny0zLjI2Ni0yLjc1Ny01LjI0Mi0zLjU3OCBjLTEuOTY3LTAuODIyLTQuMDQ4LTEuMjM4LTYuMjQyLTEuMjM4Yy0yLjEyMywwLTQuMTYyLDAuNDE2LTYuMTQ5LDEuMjQ4Yy0xLjk3NywwLjgzMy0zLjc2NywyLjAxOS01LjM0NywzLjU2OCBjLTEuNTIsMS40NzgtMi42OTUsMy4yMTUtMy41MDcsNS4yMTNDNjIuMDkyLDE1NC4yNDYsNjEuNjg2LDE1Ni4zMzcsNjEuNjg2LDE1OC41MzJMNjEuNjg2LDE1OC41MzJ6IE01NS4xOTQsMTU4LjMxMyBjMC0yLjg0LDAuNTg0LTUuNjA3LDEuNzM4LTguMjgxYzEuMTU0LTIuNjg0LDIuODA5LTUuMDU2LDQuOTQxLTcuMTA1YzIuMTc0LTIuMDkyLDQuNjMtMy42ODMsNy4zNzctNC43ODYgYzIuNzM2LTEuMDkzLDUuNjI4LTEuNjQ0LDguNjU2LTEuNjQ0YzMuMDc4LDAsNi4wMTMsMC41NTEsOC43OTEsMS42NjVjMi43NjgsMS4xMDMsNS4yMTIsMi42OTQsNy4zMjQsNC43NjUgYzIuMjE1LDIuMTUzLDMuODgsNC41NTcsNS4wMDQsNy4xODljMS4xMTMsMi42NDIsMS42NzUsNS41MTQsMS42NzUsOC42MDRjMCwyLjkwMi0wLjU3Miw1LjY5LTEuNzI4LDguMzY0IGMtMS4xNDQsMi42NzQtMi43NzcsNS4wMjUtNC44ODksNy4wNTRjLTIuMjE3LDIuMTEyLTQuNjgyLDMuNzE1LTcuNDE4LDQuNzk3Yy0yLjczNiwxLjA5Mi01LjY2LDEuNjMzLTguNzYsMS42MzMgYy0zLjAyOCwwLTUuOTMyLTAuNTYyLTguNzA5LTEuNjc1Yy0yLjc2OC0xLjEyNC01LjIxMi0yLjcwNS03LjMyNC00Ljc1NWMtMi4xOTUtMi4xMzMtMy44NTktNC41NDYtNC45ODMtNy4yMiBDNTUuNzU2LDE2NC4yMzMsNTUuMTk0LDE2MS4zNjIsNTUuMTk0LDE1OC4zMTNMNTUuMTk0LDE1OC4zMTN6Ii8+PHBvbHlnb24gZmlsbD0iIzAwN0RBMCIgcG9pbnRzPSIxNDEuNjExLDE4MC4xMDkgMTIyLjgzMiwxMzcuMTYzIDEyOS4xOTksMTM3LjE2MyAxNDIuNDk2LDE2Ny41ODQgMTU2LjA1LDEzNy4xNjMgMTYyLjMzNSwxMzcuMTYzICAxNDMuMTkzLDE4MC4xMDkgMTQxLjYxMSwxODAuMTA5ICIvPjxwb2x5Z29uIGZpbGw9IiMwMDdEQTAiIHBvaW50cz0iMTg4LjM1OCwxNzkuODA4IDE4OC4zNTgsMTM3LjE2MyAyMTMuOTgzLDEzNy4xNjMgMjEzLjk4MywxNDIuNTgzIDE5NC4zOTMsMTQyLjU4MyAxOTQuMzkzLDE1NS41MTYgIDIxMy40NDIsMTU1LjUxNiAyMTMuNDQyLDE2MS4wMjkgMTk0LjM5MywxNjEuMDI5IDE5NC4zOTMsMTc0LjMyNSAyMTQuNjI3LDE3NC4zMjUgMjE0LjYyNywxNzkuODA4IDE4OC4zNTgsMTc5LjgwOCAiLz48L3N2Zz4NCg==
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets/status
+          verbs:
+          - get
+        - apiGroups:
+          - containers.kove.net
+          resources:
+          - kovememoryconfigs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - containers.kove.net
+          resources:
+          - kovememoryconfigs/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - containers.kove.net
+          resources:
+          - kovememoryconfigs/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - containers.kove.net
+          resources:
+          - kovesystems
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - containers.kove.net
+          resources:
+          - kovesystems/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - containers.kove.net
+          resources:
+          - kovesystems/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - privileged
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: kove-operator-controller-manager
+      deployments:
+      - name: kove-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: kove-operator
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                app: kove-operator
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:37a16a1baf121356bb1de376f75d2b616f505d398cea4b31457d2c7190c23d69
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /manager
+                env:
+                - name: RELATED_IMAGE_KOVE_AGENT
+                  value: quay.io/kove/kove-agent@sha256:3dabdc1e523a043df50cf8296b36013c7e2628867839c8b365bf2647cd5cdeb5
+                - name: RELATED_IMAGE_KOVE_CLIENT_DRIVERS_8_3
+                  value: quay.io/kove/kove-client-drivers@sha256:16d614645c2fbd4649285c5905ebb2ef58adf36b11d2e2a584de5a3cdbf930ce
+                - name: RELATED_IMAGE_KOVE_CLIENT_DRIVERS_8_4
+                  value: quay.io/kove/kove-client-drivers@sha256:a31bf264d6d92653761d3073a1438529f5e3253c64351274f78ef498b3a88215
+                - name: RELATED_IMAGE_KOVE_CONTAINER_HOOK
+                  value: quay.io/kove/kove-container-hook@sha256:041325a29ed222714afd139a8cd89bbb2e72e4166cfff80ff67cd630146a83f8
+                - name: RELATED_IMAGE_KOVE_XMEM
+                  value: quay.io/kove/kove-xmem@sha256:4db798be1ec40d38b84a12d6fce97bd72e3a51d2811725f1023caef33e3dfce7
+                image: quay.io/kove/kove-operator@sha256:b904dfe8a916efe45916c2c4160c1e5f992f4c7133a4731dbea5f2523eaa9671
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: kove-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: kove-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Kove
+  - External Memory
+  - Memory
+  links:
+  - name: Kove
+    url: https://kove.net
+  maintainers:
+  - email: contact-kove@kove.net
+    name: Kove
+  maturity: stable
+  minKubeVersion: 1.20.0
+  provider:
+    name: Kove
+    url: https://kove.net
+  relatedImages:
+  - name: kube-rbac-proxy
+    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:37a16a1baf121356bb1de376f75d2b616f505d398cea4b31457d2c7190c23d69
+  - name: manager
+    image: quay.io/kove/kove-operator@sha256:b904dfe8a916efe45916c2c4160c1e5f992f4c7133a4731dbea5f2523eaa9671
+  - name: kove_agent
+    image: quay.io/kove/kove-agent@sha256:3dabdc1e523a043df50cf8296b36013c7e2628867839c8b365bf2647cd5cdeb5
+  - name: kove_client_drivers_8_3
+    image: quay.io/kove/kove-client-drivers@sha256:16d614645c2fbd4649285c5905ebb2ef58adf36b11d2e2a584de5a3cdbf930ce
+  - name: kove_client_drivers_8_4
+    image: quay.io/kove/kove-client-drivers@sha256:a31bf264d6d92653761d3073a1438529f5e3253c64351274f78ef498b3a88215
+  - name: kove_container_hook
+    image: quay.io/kove/kove-container-hook@sha256:041325a29ed222714afd139a8cd89bbb2e72e4166cfff80ff67cd630146a83f8
+  - name: kove_xmem
+    image: quay.io/kove/kove-xmem@sha256:4db798be1ec40d38b84a12d6fce97bd72e3a51d2811725f1023caef33e3dfce7
+  replaces: kove-operator.v1.2.1
+  version: 1.2.2
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: kove-operator-controller-manager
+    failurePolicy: Fail
+    generateName: mpod.kove.net
+    objectSelector:
+      matchExpressions:
+      - key: app
+        operator: NotIn
+        values:
+        - kove-operator
+    rules:
+    - apiGroups:
+      - ""
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - pods
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-v1-pod

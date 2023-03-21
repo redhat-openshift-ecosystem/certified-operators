@@ -1,0 +1,152 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  labels:
+    vdo.vmware.com/managed-by: vdo
+  name: vdoconfigs.vdo.vmware.com
+spec:
+  group: vdo.vmware.com
+  names:
+    kind: VDOConfig
+    listKind: VDOConfigList
+    plural: vdoconfigs
+    singular: vdoconfig
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VDOConfig is the Schema for the vdoconfigs API
+        properties:
+          apiVersion:
+            description: 'Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. '
+            type: string
+          kind:
+            description: 'Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase.'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VDOConfigSpec defines the desired state of VDOConfig
+            properties:
+              cloudProvider:
+                description: CloudProvider refers to the section of config that is required to configure CPI driver
+                properties:
+                  topology:
+                    description: Topology represents the information required for configuring CPI with zone and region
+                    properties:
+                      region:
+                        type: string
+                      zone:
+                        type: string
+                    required:
+                    - region
+                    - zone
+                    type: object
+                  vsphereCloudConfigs:
+                    description: VsphereCloudConfigs refers to the collection of the vSphereCloudConfig resource that holds the vSphere configuration
+                    items:
+                      type: string
+                    type: array
+                type: object
+              storageProvider:
+                description: StorageProvider refers to the section of config that is required to configure CSI driver
+                properties:
+                  clusterDistribution:
+                    description: ClusterDistribution refers to the type of k8s distribution such as TKGI, OpenShift
+                    type: string
+                  customKubeletPath:
+                    description: CustomKubeletPath refers to the Kubelet Path in case of custom K8s deployments
+                    type: string
+                  fileVolumes:
+                    description: FileVolumes refers to the configuration required for file volumes
+                    properties:
+                      netPermissions:
+                        description: NetPermissions refers to the list of Net permissions required for CSI driver to access file based volumes
+                        items:
+                          properties:
+                            ips:
+                              description: Ip refers to IP Subnet or Range to which these restrictions apply
+                              type: string
+                            permissions:
+                              description: Permission refers to access to the volume such as READ_WRITE, READ_ONLY
+                              type: string
+                            rootSquash:
+                              description: RootSquash refers to the access for root user to the volumes. If false, root access is confirmed for all volumes in this IP range
+                              type: boolean
+                          required:
+                          - ips
+                          type: object
+                        type: array
+                      vsanDataStoreUrl:
+                        description: VSanDataStoreUrl refers to the list of datastores that the CSI drivers can access
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  vsphereCloudConfig:
+                    description: VsphereCloudConfig refers to the name of the vSphereCloudConfig resource that holds the vSphere configuration
+                    type: string
+                required:
+                - vsphereCloudConfig
+                type: object
+            required:
+            - storageProvider
+            type: object
+          status:
+            description: VDOConfigStatus defines the observed state of VDOConfig
+            properties:
+              cpi:
+                description: CPIStatus refers to the configuration status of the CPI driver
+                properties:
+                  'nodeStatus ':
+                    additionalProperties:
+                      description: NodeStatus is used to type the constants describing possible node states w.r.t CPI configuration.
+                      type: string
+                    description: NodeStatus indicates the status of CPI driver with respect to each node in the cluster.
+                    type: object
+                  phase:
+                    description: Phase is used to indicate the Phase of the CPI driver
+                    enum:
+                    - Deploying
+                    - Deployed
+                    - Configuring
+                    - Configured
+                    - Failed
+                    type: string
+                  statusMsg:
+                    description: StatusMsg is used to display messages in reference to the Phase of the CPI driver
+                    type: string
+                type: object
+              csi:
+                description: CSIStatus refers to the configuration status of the CSI driver
+                properties:
+                  phase:
+                    description: Phase is used to indicate the Phase of the CSI driver
+                    enum:
+                    - Deploying
+                    - Deployed
+                    - Configuring
+                    - Configured
+                    - Failed
+                    type: string
+                  statusMsg:
+                    description: StatusMsg is used to display messages in reference to the Phase of the CSI driver
+                    type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

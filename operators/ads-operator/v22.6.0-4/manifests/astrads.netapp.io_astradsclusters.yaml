@@ -1,0 +1,1682 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
+  name: astradsclusters.astrads.netapp.io
+spec:
+  group: astrads.netapp.io
+  names:
+    categories:
+    - ads
+    - all
+    kind: AstraDSCluster
+    listKind: AstraDSClusterList
+    plural: astradsclusters
+    shortNames:
+    - adscl
+    singular: astradscluster
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: The status of the cluster
+      jsonPath: .status.clusterStatus
+      name: Status
+      type: string
+    - description: The version of the ADS cluster
+      jsonPath: .status.versions.ads
+      name: Version
+      type: string
+    - description: The license serial number of the cluster
+      jsonPath: .status.licenseSerialNumber
+      name: Serial Number
+      type: string
+    - description: Management Virtual IP
+      jsonPath: .spec.mvip
+      name: MVIP
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    deprecated: true
+    deprecationWarning: v1alpha1 is deprecated, use v1beta1 instead
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AstraDSCluster is the Schema for the astradsclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AstraDSClusterSpec defines the desired state of AstraDSCluster
+            properties:
+              adsDataNetworks:
+                description: List of data networks (__currently only a single data
+                  network is supported__)
+                items:
+                  description: ADS Data Network includes netmask/gateways and ip address
+                    pool of storage ips
+                  properties:
+                    addresses:
+                      description: Addresses is a string of comma separated list of
+                        data ip addresses, one per node in the cluster
+                      type: string
+                    gateway:
+                      description: Gateway is the default gateway of the data network
+                        <br> (___optional:___ if it is already configured for the
+                        data interface on each node)
+                      type: string
+                    netmask:
+                      description: Netmask is the netmask for a data network
+                      type: string
+                  required:
+                  - addresses
+                  - netmask
+                  type: object
+                type: array
+              adsNetworkInterfaces:
+                description: ADSNetworkInterfaces defines settings for configuration
+                  of physical network interfaces used in the cluster
+                properties:
+                  clusterInterface:
+                    description: ClusterInterface is the interface name to use for
+                      cluster traffic
+                    type: string
+                  managementInterface:
+                    description: ManagementInterface is the interface name to use
+                      for management traffic
+                    type: string
+                  storageInterface:
+                    description: StorageInterface is the interface name to use for
+                      nfs traffic
+                    type: string
+                type: object
+              adsNodeConfig:
+                description: ADSNodeConfig defines the settings for resource use for
+                  ADS node in the cluster
+                properties:
+                  cacheDevice:
+                    description: CacheDevice is the cache device drive name in GiB
+                    type: string
+                  capacity:
+                    description: Capacity is the maximum drive capacity (in GiB) to
+                      utilize on each ADS cluster node. If no capacity is specified,
+                      the license capacity is used. The capacity must be large enough
+                      to accommodate the minimum disk count required.
+                    format: int64
+                    type: integer
+                  cpu:
+                    default: 9
+                    description: CPU is the maximum number of CPUs(cores) per ADS
+                      node that will be reserved <br> (___default:___ `9`)
+                    enum:
+                    - 9
+                    - 23
+                    format: int64
+                    type: integer
+                  drivesFilter:
+                    description: DrivesFilter is a regular expression matching the
+                      drive names to be selected as data disks on cluster creation
+                      or node addition
+                    type: string
+                  memory:
+                    default: 34
+                    description: Memory is the maximum GBs of memory per ADS node
+                      that will be reserved <br> (___default:___ `34`)
+                    enum:
+                    - 34
+                    - 96
+                    format: int64
+                    type: integer
+                type: object
+              adsNodeCount:
+                default: 4
+                description: ADSNodeCount optionally allows the user to specify the
+                  size (number of nodes) of the ADS Cluster <br> (___default:___ `4`)
+                maximum: 16
+                minimum: 3
+                type: integer
+              adsNodeSelector:
+                description: ADSNodeSelector is the filter for selecting eligible
+                  nodes for use in the ADS cluster
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+              adsProtectionDomainKey:
+                description: ADSProtectionDomainKey defines settings for data protection
+                  domain in the cluster
+                type: string
+              autoSupportConfig:
+                description: AutoSupportConfig defines the configuration of autosupport
+                  settings
+                properties:
+                  autoUpload:
+                    description: AutoUpload is the flag to enable or disable AutoSupport
+                      upload in the cluster
+                    type: boolean
+                  coredumpUpload:
+                    description: CoredumpUpload defines the flag to enable or disable
+                      the upload of coredumps for this ADS Cluster
+                    type: boolean
+                  destinationURL:
+                    default: https://support.netapp.com/put/AsupPut
+                    description: DestinationURL is the endpoint to transfer the AutoSupport
+                      bundle collection ( In most cases this shouldn't be changed
+                      ) <br> (___default:___ `https://support.netapp.com/put/AsupPut`)
+                    pattern: ^https?:\/\/.+$
+                    type: string
+                  enabled:
+                    description: Enabled defines the flag to enable or disable automatic
+                      AutoSupport collection. When disabled, periodic and event driven
+                      AutoSupport collection would be disabled. It is still possible
+                      to trigger an AutoSupport manually while AutoSupport is disabled
+                    type: boolean
+                  historyRetentionCount:
+                    description: HistoryRetentionCount is the number of local (not
+                      uploaded) AutoSupport Custom Resources to retain in the cluster
+                      before deletion
+                    type: integer
+                  periodic:
+                    description: Periodic defines the config for periodic/scheduled
+                      AutoSupport objects
+                    items:
+                      properties:
+                        periodicconfig:
+                          description: PeriodicConfig defines the fields needed to
+                            create the Periodic AutoSupports
+                          items:
+                            properties:
+                              component:
+                                description: Component is the AutoSupport component
+                                  against which the callhome event is to be invoked
+                                properties:
+                                  event:
+                                    description: Event is the Callhome event to be
+                                      invoked for the component
+                                    type: string
+                                  name:
+                                    description: Name is the AutoSupport component
+                                      associated with the callhome event
+                                    enum:
+                                    - storage
+                                    - controlplane
+                                    - vasaprovider
+                                    type: string
+                                required:
+                                - event
+                                - name
+                                type: object
+                              duration:
+                                description: Duration determines the duration in hours
+                                  from the StartTime for the AutoSupport
+                                format: int64
+                                minimum: 1
+                                multipleOf: 1
+                                type: integer
+                              forceUpload:
+                                default: false
+                                description: ForceUpload is a flag to force a one-off
+                                  AutoSupport bundle transfer to the backend. Overrides
+                                  autoUpload flag in the cluster wide AutoSupport
+                                  configuration and localCollection flag in this AutoSupport
+                                  specification
+                                type: boolean
+                              localCollection:
+                                default: false
+                                description: LocalCollection is a flag to prevent
+                                  transfer of AutoSupport bundle to the backend. When
+                                  set to true, the collected AutoSupport bundle is
+                                  not uploaded. When set to false, the collected AutoSupport
+                                  bundle is uploaded. For a one-off upload of the
+                                  Support bundle, this flag can be overridden by the
+                                  ForceUpload flag
+                                type: boolean
+                              nodes:
+                                description: Nodes define the nodes to trigger/collect
+                                  AutoSupport(s) from. This needs to be specified
+                                  only for Storage Components and can be ignored otherwise.
+                                type: string
+                              priority:
+                                default: notice
+                                description: 'Priority is the priority set on the
+                                  AutoSupport bundle to be sent to the backend. Priority
+                                  is appended to the subject header of the AutoSupport
+                                  bundle (default: `notice`)'
+                                enum:
+                                - notice
+                                - debug
+                                - warning
+                                - error
+                                - emergency
+                                - alert
+                                - info
+                                type: string
+                              retry:
+                                default: false
+                                description: Retry forces the controller to retry
+                                  the operation before the AutoSupport transitioned
+                                  to an error state. When set to true, the operation
+                                  is retried (with exponential backoff) till the operation
+                                  is successful. When set to false, the AutoSupport
+                                  transitions to an error state on any error
+                                type: boolean
+                              startTime:
+                                description: StartTime is the starting time from when
+                                  the AutoSupport is supposed to collect the data.
+                                format: date-time
+                                type: string
+                              userMessage:
+                                description: UserMessage is the additional message
+                                  to include in the AutoSupport subject header
+                                type: string
+                            required:
+                            - component
+                            type: object
+                          type: array
+                        schedule:
+                          description: Schedule defines the Kubernetes Cronjob schedule
+                          type: string
+                      required:
+                      - schedule
+                      type: object
+                    type: array
+                  proxyURL:
+                    description: ProxyURL is the URL of the proxy with port to be
+                      used for AutoSupport bundle transfer (Example `https://proxy.mycorp.org`)
+                    pattern: ^(https?:\/\/.+|)$
+                    type: string
+                required:
+                - autoUpload
+                - coredumpUpload
+                - enabled
+                type: object
+              monitoringConfig:
+                description: MonitoringConfig defines the configuration of the monitoring
+                  operator
+                properties:
+                  namespace:
+                    default: netapp-monitoring
+                    description: Namespace is where the monitoring agent is present.  <br>
+                      (___default:___ `netapp-monitoring`)
+                    type: string
+                  repo:
+                    description: Repo is where the monitoring operator would find
+                      required images such as fluent, telegraf etc.
+                    type: string
+                required:
+                - namespace
+                - repo
+                type: object
+              mvip:
+                description: IP address of the MVIP for the cluster
+                type: string
+              namespace:
+                description: Namespace is the namespace of the AstraDS control plane
+                type: string
+            required:
+            - adsDataNetworks
+            - adsNodeConfig
+            - autoSupportConfig
+            - mvip
+            type: object
+          status:
+            description: AstraDSClusterStatus defines the observed state of AstraDSCluster
+            properties:
+              adsDataAddresses:
+                items:
+                  description: ADS Data Address to be exposed in cluster CR status
+                  properties:
+                    address:
+                      description: Address is the IP address of a data address resource
+                      type: string
+                    currentNode:
+                      description: CurrentNode is the node id that a data address
+                        is currently on
+                      format: int32
+                      type: integer
+                    uuid:
+                      description: UUID is the internal UUID of a data address resource
+                      type: string
+                  type: object
+                type: array
+              autosupport:
+                description: AutoSupportConfigStatus defines the condition of the
+                  AutoSupport configuration in the cluster
+                properties:
+                  details:
+                    description: Details defines an optional string containing any
+                      additional information about the state
+                    type: string
+                  periodicmap:
+                    additionalProperties:
+                      properties:
+                        periodicconfig:
+                          description: PeriodicConfig defines the fields needed to
+                            create the Periodic AutoSupports
+                          items:
+                            properties:
+                              component:
+                                description: Component is the AutoSupport component
+                                  against which the callhome event is to be invoked
+                                properties:
+                                  event:
+                                    description: Event is the Callhome event to be
+                                      invoked for the component
+                                    type: string
+                                  name:
+                                    description: Name is the AutoSupport component
+                                      associated with the callhome event
+                                    enum:
+                                    - storage
+                                    - controlplane
+                                    - vasaprovider
+                                    type: string
+                                required:
+                                - event
+                                - name
+                                type: object
+                              duration:
+                                description: Duration determines the duration in hours
+                                  from the StartTime for the AutoSupport
+                                format: int64
+                                minimum: 1
+                                multipleOf: 1
+                                type: integer
+                              forceUpload:
+                                default: false
+                                description: ForceUpload is a flag to force a one-off
+                                  AutoSupport bundle transfer to the backend. Overrides
+                                  autoUpload flag in the cluster wide AutoSupport
+                                  configuration and localCollection flag in this AutoSupport
+                                  specification
+                                type: boolean
+                              localCollection:
+                                default: false
+                                description: LocalCollection is a flag to prevent
+                                  transfer of AutoSupport bundle to the backend. When
+                                  set to true, the collected AutoSupport bundle is
+                                  not uploaded. When set to false, the collected AutoSupport
+                                  bundle is uploaded. For a one-off upload of the
+                                  Support bundle, this flag can be overridden by the
+                                  ForceUpload flag
+                                type: boolean
+                              nodes:
+                                description: Nodes define the nodes to trigger/collect
+                                  AutoSupport(s) from. This needs to be specified
+                                  only for Storage Components and can be ignored otherwise.
+                                type: string
+                              priority:
+                                default: notice
+                                description: 'Priority is the priority set on the
+                                  AutoSupport bundle to be sent to the backend. Priority
+                                  is appended to the subject header of the AutoSupport
+                                  bundle (default: `notice`)'
+                                enum:
+                                - notice
+                                - debug
+                                - warning
+                                - error
+                                - emergency
+                                - alert
+                                - info
+                                type: string
+                              retry:
+                                default: false
+                                description: Retry forces the controller to retry
+                                  the operation before the AutoSupport transitioned
+                                  to an error state. When set to true, the operation
+                                  is retried (with exponential backoff) till the operation
+                                  is successful. When set to false, the AutoSupport
+                                  transitions to an error state on any error
+                                type: boolean
+                              startTime:
+                                description: StartTime is the starting time from when
+                                  the AutoSupport is supposed to collect the data.
+                                format: date-time
+                                type: string
+                              userMessage:
+                                description: UserMessage is the additional message
+                                  to include in the AutoSupport subject header
+                                type: string
+                            required:
+                            - component
+                            type: object
+                          type: array
+                        schedule:
+                          description: Schedule defines the Kubernetes Cronjob schedule
+                          type: string
+                      required:
+                      - schedule
+                      type: object
+                    description: PeriodicMap defines the config for periodic/scheduled
+                      AutoSupport objects
+                    type: object
+                type: object
+              clusterStatus:
+                description: ClusterStatus tells us what pre-defined stage the cluster
+                  is in at the moment
+                type: string
+              clusterUUID:
+                description: Firetap cluster UUID
+                type: string
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    lastUpdateTime:
+                      description: The last time this condition was updated.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of cluster condition.
+                      type: string
+                  required:
+                  - type
+                  type: object
+                type: array
+              desiredVersions:
+                description: The version of ADS that the operator is attempting to
+                  upgrade to
+                properties:
+                  ads:
+                    description: ADS is the current version of the ADS system
+                    type: string
+                  firetap:
+                    description: Firetap is the current version of the Firetap system
+                    type: string
+                type: object
+              ftClusterHealth:
+                description: FTClusterHealth tells us the state of the firetap cluster
+                properties:
+                  details:
+                    description: These details are more specific on why the cluster
+                      would be unhealthy. This field will be nil if there are no cluster
+                      faults and the cluster is not syncing.
+                    properties:
+                      clusterFaults:
+                        items:
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              type: string
+                            nodeId:
+                              format: int32
+                              type: integer
+                            timestamp:
+                              format: date-time
+                              type: string
+                          required:
+                          - code
+                          - details
+                          - nodeId
+                          - timestamp
+                          type: object
+                        type: array
+                      syncing:
+                        default: false
+                        type: boolean
+                    type: object
+                  healthy:
+                    default: false
+                    description: Healthy is set to true when the cluster has no cluster
+                      faults
+                    type: boolean
+                type: object
+              ftNodeCount:
+                description: FTNodeCount is the current firetap cluster node count
+                type: integer
+              licenseSerialNumber:
+                description: LicenseSerialNumber is the current license serial number
+                type: string
+              masterNodeID:
+                description: MasterNodeID is the ID of the current cluster master
+                  node
+                format: int64
+                type: integer
+              nodeStatuses:
+                description: NodeStatuses contains information about the current state
+                  of nodes in the cluster
+                items:
+                  description: AstraDSNodeStatus defines the observed state of firetap
+                    nodes
+                  properties:
+                    driveFilterValidity:
+                      type: string
+                    driveStatuses:
+                      items:
+                        description: AstraDSDriveStatus is the status for an Astra
+                          SDS Drive
+                        properties:
+                          driveID:
+                            description: DriveID is the internal ID of a drive
+                            type: string
+                          driveName:
+                            description: DriveName is the device name of a drive
+                            type: string
+                          driveSerial:
+                            description: DriveSerial is the serail number of a drive
+                            type: string
+                          drivesStatus:
+                            description: DriveStatus is the current cluster state
+                              of a drive
+                            type: string
+                        type: object
+                      type: array
+                    maintenanceStatus:
+                      description: AstraDSNode's maintenance state
+                      properties:
+                        state:
+                          type: string
+                        variant:
+                          type: string
+                      type: object
+                    nodeHA:
+                      description: NodeHA implies if this node is needed for high
+                        availability or not, also when NodeHA is false, then this
+                        node could be removed
+                      type: boolean
+                    nodeID:
+                      format: int64
+                      type: integer
+                    nodeIsReachable:
+                      description: If true, node is reachable. If false node is not
+                        reachable. If nil, we have not received a value from firetap.
+                      type: boolean
+                    nodeManagementIP:
+                      type: string
+                    nodeName:
+                      type: string
+                    nodeRole:
+                      type: string
+                    nodeUUID:
+                      type: string
+                    nodeVersion:
+                      type: string
+                    protectionDomain:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              resources:
+                description: AstraDSClusterResources is the current amount of physical
+                  resources deployed in the cluster
+                properties:
+                  capacityDeployed:
+                    description: CapacityDeployed is the total storage (in GiB) used
+                      in this cluster
+                    format: int64
+                    type: integer
+                  cpuDeployed:
+                    description: CPUDeployed is the total number of cores used in
+                      this cluster
+                    format: int64
+                    type: integer
+                type: object
+              versions:
+                description: The current version of the ADS cluster
+                properties:
+                  ads:
+                    description: ADS is the current version of the ADS system
+                    type: string
+                  firetap:
+                    description: Firetap is the current version of the Firetap system
+                    type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - description: The status of the cluster
+      jsonPath: .status.clusterStatus
+      name: Status
+      type: string
+    - description: The version of the ADS cluster
+      jsonPath: .status.versions.ads
+      name: Version
+      type: string
+    - description: The license serial number of the cluster
+      jsonPath: .status.licenseSerialNumber
+      name: Serial Number
+      type: string
+    - description: Management Virtual IP
+      jsonPath: .spec.mvip
+      name: MVIP
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: AstraDSCluster is the Schema for the astradsclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AstraDSClusterSpec defines the desired state of AstraDSCluster
+            properties:
+              adsDataNetworks:
+                description: List of data networks (__currently only a single data
+                  network is supported__)
+                items:
+                  description: ADS Data Network includes netmask/gateways and ip address
+                    pool of storage ips
+                  properties:
+                    addresses:
+                      description: Addresses is a string of comma separated list of
+                        data ip addresses, one per node in the cluster
+                      type: string
+                    gateway:
+                      description: Gateway is the default gateway of the data network
+                        <br> (___optional:___ if it is already configured for the
+                        data interface on each node)
+                      type: string
+                    netmask:
+                      description: Netmask is the netmask for a data network
+                      type: string
+                  required:
+                  - addresses
+                  - netmask
+                  type: object
+                type: array
+              adsNetworkInterfaces:
+                description: ADSNetworkInterfaces defines settings for configuration
+                  of physical network interfaces used in the cluster
+                properties:
+                  clusterInterface:
+                    description: ClusterInterface is the interface name to use for
+                      cluster traffic
+                    type: string
+                  managementInterface:
+                    description: ManagementInterface is the interface name to use
+                      for management traffic
+                    type: string
+                  storageInterface:
+                    description: StorageInterface is the interface name to use for
+                      nfs traffic
+                    type: string
+                type: object
+              adsNodeConfig:
+                description: ADSNodeConfig defines the settings for resource use for
+                  ADS node in the cluster
+                properties:
+                  cacheDevice:
+                    description: CacheDevice is the cache device drive name
+                    type: string
+                  capacity:
+                    description: Capacity is the maximum drive capacity (in GiB) to
+                      utilize on each ADS cluster node. If no capacity is specified,
+                      the license capacity is used. The capacity must be large enough
+                      to accommodate the minimum disk count required.
+                    format: int64
+                    minimum: 300
+                    type: integer
+                  cpu:
+                    default: 9
+                    description: CPU is the maximum number of CPUs(cores) per ADS
+                      node that will be reserved <br> (___default:___ `9`)
+                    format: int64
+                    maximum: 35
+                    minimum: 9
+                    type: integer
+                  drivesFilter:
+                    description: DrivesFilter is a regular expression matching the
+                      drive names to be selected as data disks on cluster creation
+                      or node addition
+                    type: string
+                  memory:
+                    default: 38
+                    description: Memory is the amount of RAM in GiB that ADS is allowed
+                      to consume on a node. <br> (___default:___ `38`) <br> Must be
+                      at least 2 + (4 * CPU) <br> Set Memory to 38 for a 9 CPU deployment
+                      <br> Set Memory to 94 for a 23 CPU deployment
+                    format: int64
+                    type: integer
+                type: object
+              adsNodeCount:
+                description: ADSNodeCount optionally allows the user to specify the
+                  cluster size in number of nodes
+                maximum: 25
+                minimum: 3
+                type: integer
+              adsNodeSelector:
+                description: ADSNodeSelector is the filter for selecting eligible
+                  nodes for use in the ADS cluster
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+              adsProtectionDomainKey:
+                description: ADSProtectionDomainKey defines settings for data protection
+                  domain in the cluster
+                type: string
+              autoSupportConfig:
+                description: AutoSupportConfig defines the configuration of autosupport
+                  settings
+                properties:
+                  autoCaseCreation:
+                    default: false
+                    description: AutoCaseCreation flag enables the auto case creation
+                      from the AutoSupports.
+                    type: boolean
+                  autoUpload:
+                    description: AutoUpload is the flag to enable or disable AutoSupport
+                      upload in the cluster
+                    type: boolean
+                  caseCreationURL:
+                    default: https://m2m-stage.netapp.com
+                    description: Case Creation endpoint.
+                    pattern: ^https?:\/\/.+$
+                    type: string
+                  coredumpUpload:
+                    description: CoredumpUpload defines the flag to enable or disable
+                      the upload of coredumps for this ADS Cluster
+                    type: boolean
+                  destinationURL:
+                    default: https://support.netapp.com/put/AsupPut
+                    description: DestinationURL is the endpoint to transfer the AutoSupport
+                      bundle collection ( In most cases this shouldn't be changed
+                      ) <br> (___default:___ `https://support.netapp.com/put/AsupPut`)
+                    pattern: ^https?:\/\/.+$
+                    type: string
+                  enabled:
+                    description: Enabled defines the flag to enable or disable automatic
+                      AutoSupport collection. When disabled, periodic and event driven
+                      AutoSupport collection would be disabled. It is still possible
+                      to trigger an AutoSupport manually while AutoSupport is disabled
+                    type: boolean
+                  historyRetentionCount:
+                    description: HistoryRetentionCount is the number of local (not
+                      uploaded) AutoSupport Custom Resources to retain in the cluster
+                      before deletion
+                    type: integer
+                  periodic:
+                    description: Periodic defines the config for periodic/scheduled
+                      AutoSupport objects
+                    items:
+                      properties:
+                        periodicconfig:
+                          description: PeriodicConfig defines the fields needed to
+                            create the Periodic AutoSupports
+                          items:
+                            properties:
+                              component:
+                                description: Component is the AutoSupport component
+                                  against which the callhome event is to be invoked
+                                properties:
+                                  event:
+                                    description: Event is the Callhome event to be
+                                      invoked for the component
+                                    type: string
+                                  name:
+                                    description: Name is the AutoSupport component
+                                      associated with the callhome event
+                                    enum:
+                                    - storage
+                                    - controlplane
+                                    - vasaprovider
+                                    type: string
+                                required:
+                                - event
+                                - name
+                                type: object
+                              duration:
+                                description: Duration determines the duration in hours
+                                  from the StartTime for the AutoSupport
+                                format: int64
+                                minimum: 1
+                                multipleOf: 1
+                                type: integer
+                              forceUpload:
+                                default: false
+                                description: ForceUpload is a flag to force a one-off
+                                  AutoSupport bundle transfer to the backend. Overrides
+                                  autoUpload flag in the cluster wide AutoSupport
+                                  configuration and localCollection flag in this AutoSupport
+                                  specification
+                                type: boolean
+                              localCollection:
+                                default: false
+                                description: LocalCollection is a flag to prevent
+                                  transfer of AutoSupport bundle to the backend. When
+                                  set to true, the collected AutoSupport bundle is
+                                  not uploaded. When set to false, the collected AutoSupport
+                                  bundle is uploaded. For a one-off upload of the
+                                  Support bundle, this flag can be overridden by the
+                                  ForceUpload flag
+                                type: boolean
+                              nodes:
+                                description: Nodes define the nodes to trigger/collect
+                                  AutoSupport(s) from. This needs to be specified
+                                  only for Storage Components and can be ignored otherwise.
+                                type: string
+                              priority:
+                                default: notice
+                                description: 'Priority is the priority set on the
+                                  AutoSupport bundle to be sent to the backend. Priority
+                                  is appended to the subject header of the AutoSupport
+                                  bundle (default: `notice`)'
+                                enum:
+                                - notice
+                                - debug
+                                - warning
+                                - error
+                                - emergency
+                                - alert
+                                - info
+                                type: string
+                              retry:
+                                default: false
+                                description: Retry forces the controller to retry
+                                  the operation before the AutoSupport transitioned
+                                  to an error state. When set to true, the operation
+                                  is retried (with exponential backoff) till the operation
+                                  is successful. When set to false, the AutoSupport
+                                  transitions to an error state on any error
+                                type: boolean
+                              startTime:
+                                description: StartTime is the starting time from when
+                                  the AutoSupport is supposed to collect the data.
+                                format: date-time
+                                type: string
+                              userMessage:
+                                description: UserMessage is the additional message
+                                  to include in the AutoSupport subject header
+                                type: string
+                            required:
+                            - component
+                            type: object
+                          type: array
+                        schedule:
+                          description: Schedule defines the Kubernetes Cronjob schedule
+                          type: string
+                      required:
+                      - schedule
+                      type: object
+                    type: array
+                  proxyURL:
+                    description: ProxyURL is the URL of the proxy with port to be
+                      used for AutoSupport bundle transfer (Example `https://proxy.mycorp.org`)
+                    pattern: ^(https?:\/\/.+|)$
+                    type: string
+                required:
+                - autoUpload
+                - coredumpUpload
+                - enabled
+                type: object
+              dryRun:
+                default: false
+                description: DryRun is the flag to specify whether a dry run has to
+                  be performed for this cluster before committing to it
+                type: boolean
+              monitoringConfig:
+                description: MonitoringConfig defines the configuration of the monitoring
+                  operator
+                properties:
+                  namespace:
+                    default: netapp-monitoring
+                    description: Namespace is where the monitoring agent is present.  <br>
+                      (___default:___ `netapp-monitoring`)
+                    type: string
+                  repo:
+                    description: Repo is where the monitoring operator would find
+                      required images such as fluent, telegraf etc.
+                    type: string
+                required:
+                - namespace
+                - repo
+                type: object
+              mvip:
+                description: IP address of the MVIP for the cluster
+                type: string
+              namespace:
+                description: Namespace is the namespace of the AstraDS control plane
+                type: string
+              softwareEncryptionAtRest:
+                description: Configure SEAR
+                properties:
+                  adsKeyProvider:
+                    description: If no key provider is configured, then the internal
+                      keymanager is used.
+                    type: string
+                  keyRotationPeriod:
+                    default: 2160h
+                    description: Default 90 days
+                    type: string
+                type: object
+            required:
+            - adsDataNetworks
+            - adsNodeConfig
+            - autoSupportConfig
+            - mvip
+            type: object
+          status:
+            description: AstraDSClusterStatus defines the observed state of AstraDSCluster
+            properties:
+              adsDataAddresses:
+                items:
+                  description: ADS Data Address to be exposed in cluster CR status
+                  properties:
+                    address:
+                      description: Address is the IP address of a data address resource
+                      type: string
+                    currentNode:
+                      description: CurrentNode is the node id that a data address
+                        is currently on
+                      format: int32
+                      type: integer
+                    uuid:
+                      description: UUID is the internal UUID of a data address resource
+                      type: string
+                  type: object
+                type: array
+              autosupport:
+                description: AutoSupportConfigStatus defines the condition of the
+                  AutoSupport configuration in the cluster
+                properties:
+                  details:
+                    description: Details defines an optional string containing any
+                      additional information about the state
+                    type: string
+                  periodicmap:
+                    additionalProperties:
+                      properties:
+                        periodicconfig:
+                          description: PeriodicConfig defines the fields needed to
+                            create the Periodic AutoSupports
+                          items:
+                            properties:
+                              component:
+                                description: Component is the AutoSupport component
+                                  against which the callhome event is to be invoked
+                                properties:
+                                  event:
+                                    description: Event is the Callhome event to be
+                                      invoked for the component
+                                    type: string
+                                  name:
+                                    description: Name is the AutoSupport component
+                                      associated with the callhome event
+                                    enum:
+                                    - storage
+                                    - controlplane
+                                    - vasaprovider
+                                    type: string
+                                required:
+                                - event
+                                - name
+                                type: object
+                              duration:
+                                description: Duration determines the duration in hours
+                                  from the StartTime for the AutoSupport
+                                format: int64
+                                minimum: 1
+                                multipleOf: 1
+                                type: integer
+                              forceUpload:
+                                default: false
+                                description: ForceUpload is a flag to force a one-off
+                                  AutoSupport bundle transfer to the backend. Overrides
+                                  autoUpload flag in the cluster wide AutoSupport
+                                  configuration and localCollection flag in this AutoSupport
+                                  specification
+                                type: boolean
+                              localCollection:
+                                default: false
+                                description: LocalCollection is a flag to prevent
+                                  transfer of AutoSupport bundle to the backend. When
+                                  set to true, the collected AutoSupport bundle is
+                                  not uploaded. When set to false, the collected AutoSupport
+                                  bundle is uploaded. For a one-off upload of the
+                                  Support bundle, this flag can be overridden by the
+                                  ForceUpload flag
+                                type: boolean
+                              nodes:
+                                description: Nodes define the nodes to trigger/collect
+                                  AutoSupport(s) from. This needs to be specified
+                                  only for Storage Components and can be ignored otherwise.
+                                type: string
+                              priority:
+                                default: notice
+                                description: 'Priority is the priority set on the
+                                  AutoSupport bundle to be sent to the backend. Priority
+                                  is appended to the subject header of the AutoSupport
+                                  bundle (default: `notice`)'
+                                enum:
+                                - notice
+                                - debug
+                                - warning
+                                - error
+                                - emergency
+                                - alert
+                                - info
+                                type: string
+                              retry:
+                                default: false
+                                description: Retry forces the controller to retry
+                                  the operation before the AutoSupport transitioned
+                                  to an error state. When set to true, the operation
+                                  is retried (with exponential backoff) till the operation
+                                  is successful. When set to false, the AutoSupport
+                                  transitions to an error state on any error
+                                type: boolean
+                              startTime:
+                                description: StartTime is the starting time from when
+                                  the AutoSupport is supposed to collect the data.
+                                format: date-time
+                                type: string
+                              userMessage:
+                                description: UserMessage is the additional message
+                                  to include in the AutoSupport subject header
+                                type: string
+                            required:
+                            - component
+                            type: object
+                          type: array
+                        schedule:
+                          description: Schedule defines the Kubernetes Cronjob schedule
+                          type: string
+                      required:
+                      - schedule
+                      type: object
+                    description: PeriodicMap defines the config for periodic/scheduled
+                      AutoSupport objects
+                    type: object
+                type: object
+              certificateUpdate:
+                description: The firetap nodes certificate update status
+                properties:
+                  startTime:
+                    description: StartTime is the timestamp that cert update operation
+                      is ordered
+                    format: date-time
+                    type: string
+                  state:
+                    description: State shows the internal job state
+                    type: string
+                  updateCerts:
+                    description: UpdateCerts tells us which cert update operation
+                      to perform ("FullChain" or "NodeCertsOnly")
+                    type: string
+                  uuid:
+                    description: Internal job UUID
+                    type: string
+                type: object
+              clusterStatus:
+                description: ClusterStatus tells us what pre-defined stage the cluster
+                  is in at the moment
+                type: string
+              clusterUUID:
+                description: Firetap cluster UUID
+                type: string
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    lastUpdateTime:
+                      description: The last time this condition was updated.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of cluster condition.
+                      type: string
+                  required:
+                  - type
+                  type: object
+                type: array
+              desiredVersions:
+                description: The version of ADS that the operator is attempting to
+                  upgrade to
+                properties:
+                  ads:
+                    description: ADS is the current version of the ADS system
+                    type: string
+                  firetap:
+                    description: Firetap is the current version of the Firetap system
+                    type: string
+                type: object
+              dryRunSummary:
+                description: DryRunSummary shows the results of a dry run for the
+                  cluster. This summary will be deleted once the DryRun in Spec is
+                  set to false i.e. when the user proceeds to creating the cluster
+                  post dry run
+                properties:
+                  dryRunConfiguration:
+                    properties:
+                      cpuDeployed:
+                        type: integer
+                      licensedUsableCapacity:
+                        format: int64
+                        type: integer
+                      rawCapacityDeployed:
+                        format: int64
+                        type: integer
+                    type: object
+                  rejectedNodes:
+                    items:
+                      properties:
+                        capacity:
+                          description: Capacity is the disk capacity contributed by
+                            the node
+                          type: string
+                        disks:
+                          description: Disks is a list of selected disks on this node
+                          items:
+                            properties:
+                              capacity:
+                                type: string
+                              id:
+                                type: string
+                              name:
+                                type: string
+                              selected:
+                                type: boolean
+                              type:
+                                type: string
+                            required:
+                            - id
+                            type: object
+                          type: array
+                        name:
+                          description: Name is the name of the node (k8s FQDN)
+                          type: string
+                        protectionDomain:
+                          description: ProtectionDomain is the node's protection domain
+                          type: string
+                        rawCapacityLimit:
+                          description: RawCapacityLimit is the maximum disk capacity
+                            that can be contributed by this node
+                          format: int64
+                          type: integer
+                        rejectionReason:
+                          description: RejectedReason is a string explanation for
+                            rejecting this node
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  selectedNodes:
+                    items:
+                      properties:
+                        capacity:
+                          description: Capacity is the disk capacity contributed by
+                            the node
+                          type: string
+                        disks:
+                          description: Disks is a list of selected disks on this node
+                          items:
+                            properties:
+                              capacity:
+                                type: string
+                              id:
+                                type: string
+                              name:
+                                type: string
+                              selected:
+                                type: boolean
+                              type:
+                                type: string
+                            required:
+                            - id
+                            type: object
+                          type: array
+                        name:
+                          description: Name is the name of the node (k8s FQDN)
+                          type: string
+                        protectionDomain:
+                          description: ProtectionDomain is the node's protection domain
+                          type: string
+                        rawCapacityLimit:
+                          description: RawCapacityLimit is the maximum disk capacity
+                            that can be contributed by this node
+                          format: int64
+                          type: integer
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  validations:
+                    items:
+                      properties:
+                        message:
+                          description: Message is a string explanation of dry run
+                            result
+                          type: string
+                        resolution:
+                          description: Resolution is the corrective/recommended action
+                          type: string
+                        status:
+                          description: Status can be one of "OK, ERROR or WARNING"
+                          type: string
+                        type:
+                          description: Type specifies the type of validation i.e.
+                            Network, Disk, Node, License, etc.
+                          type: string
+                      type: object
+                    type: array
+                type: object
+              ftClusterHealth:
+                description: FTClusterHealth tells us the state of the firetap cluster
+                properties:
+                  details:
+                    description: These details are more specific on why the cluster
+                      would be unhealthy. This field will be nil if there are no cluster
+                      faults and the cluster is not syncing.
+                    properties:
+                      clusterFaults:
+                        items:
+                          properties:
+                            code:
+                              type: string
+                            details:
+                              type: string
+                            nodeId:
+                              format: int32
+                              type: integer
+                            timestamp:
+                              format: date-time
+                              type: string
+                          required:
+                          - code
+                          - details
+                          - nodeId
+                          - timestamp
+                          type: object
+                        type: array
+                      syncing:
+                        default: false
+                        type: boolean
+                    type: object
+                  healthy:
+                    default: false
+                    description: Healthy is set to true when the cluster has no cluster
+                      faults
+                    type: boolean
+                type: object
+              ftNodeCount:
+                description: FTNodeCount is the current firetap cluster node count
+                type: integer
+              licenseSerialNumber:
+                description: LicenseSerialNumber is the current license serial number
+                type: string
+              masterNodeID:
+                description: MasterNodeID is the ID of the current cluster master
+                  node
+                format: int64
+                type: integer
+              nodeStatuses:
+                description: NodeStatuses contains information about the current state
+                  of nodes in the cluster
+                items:
+                  description: AstraDSNodeStatus defines the observed state of firetap
+                    nodes
+                  properties:
+                    driveFilterValidity:
+                      type: string
+                    driveStatuses:
+                      items:
+                        description: AstraDSDriveStatus is the status for an Astra
+                          SDS Drive
+                        properties:
+                          driveID:
+                            description: DriveID is the internal ID of a drive
+                            type: string
+                          driveName:
+                            description: DriveName is the device name of a drive
+                            type: string
+                          driveSerial:
+                            description: DriveSerial is the serail number of a drive
+                            type: string
+                          drivesStatus:
+                            description: DriveStatus is the current cluster state
+                              of a drive
+                            type: string
+                        type: object
+                      type: array
+                    maintenanceStatus:
+                      description: AstraDSNode's maintenance state
+                      properties:
+                        state:
+                          type: string
+                        variant:
+                          type: string
+                      type: object
+                    nodeHA:
+                      description: NodeHA implies if this node is needed for high
+                        availability or not, also when NodeHA is false, then this
+                        node could be removed
+                      type: boolean
+                    nodeID:
+                      format: int64
+                      type: integer
+                    nodeIsReachable:
+                      description: If true, node is reachable. If false node is not
+                        reachable. If nil, we have not received a value from firetap.
+                      type: boolean
+                    nodeManagementIP:
+                      type: string
+                    nodeName:
+                      type: string
+                    nodeRole:
+                      type: string
+                    nodeUUID:
+                      type: string
+                    nodeVersion:
+                      type: string
+                    protectionDomain:
+                      type: string
+                    status:
+                      type: string
+                  type: object
+                type: array
+              protectionDomains:
+                description: Protection domain status
+                items:
+                  properties:
+                    name:
+                      description: Name of the protection domain
+                      type: string
+                    resilience:
+                      description: Describes the ability for the cluster to automatically
+                        heal back in response to a protection domain failure.
+                      properties:
+                        protectionSchemeResilience:
+                          description: Describes the ability for the cluster to automatically
+                            heal back to node tolerance in response to a protection
+                            domain failure.
+                          items:
+                            properties:
+                              protectionScheme:
+                                description: 'Protection scheme type eg: DoubleHelix'
+                                type: string
+                              sustainableFailures:
+                                description: Predicted number of simultaneous failures
+                                  which may occur without losing the ability to automatically
+                                  heal to node tolerance.
+                                format: int64
+                                type: integer
+                            required:
+                            - sustainableFailures
+                            type: object
+                          type: array
+                        singleFailureThresholdBytes:
+                          description: The maximum number of bytes that can be stored
+                            on the cluster before losing the ability to automatically
+                            heal to where the data has node tolerance.
+                          format: int64
+                          type: integer
+                        sustainableFailuresForEnsemble:
+                          description: The number of simultaneous failures which may
+                            occur without losing the ability to automatically heal
+                            to where the ensemble has node tolerance.
+                          format: int64
+                          type: integer
+                        sustainableFailuresForVolumes:
+                          description: The number of simultaneous failures which may
+                            occur without losing the ability to automatically heal
+                            to where volume access has node tolerance.
+                          format: int64
+                          type: integer
+                      required:
+                      - singleFailureThresholdBytes
+                      - sustainableFailuresForEnsemble
+                      - sustainableFailuresForVolumes
+                      type: object
+                    tolerance:
+                      description: Describes the ability of the cluster to continue
+                        reading and writing data through one or more protection domain
+                        failures.
+                      properties:
+                        protectionSchemeTolerance:
+                          description: Describes how many simultaneous failures can
+                            be sustained through which the cluster can continue to
+                            read and write data.
+                          items:
+                            properties:
+                              protectionScheme:
+                                description: 'Protection scheme type eg: DoubleHelix'
+                                type: string
+                              sustainableFailures:
+                                description: The number of simultaneous failures which
+                                  can occur without losing availability for the Protection
+                                  Scheme.
+                                format: int64
+                                type: integer
+                            required:
+                            - sustainableFailures
+                            type: object
+                          type: array
+                        sustainableFailuresForEnsemble:
+                          description: The number of simultaneous failures which can
+                            occur without losing the ensemble quorum.
+                          format: int64
+                          type: integer
+                        sustainableFailuresForVolumes:
+                          description: The number of simultaneous failures which can
+                            occur without losing volume access.
+                          format: int64
+                          type: integer
+                      required:
+                      - sustainableFailuresForEnsemble
+                      - sustainableFailuresForVolumes
+                      type: object
+                    uuid:
+                      description: UUID of the protection domain
+                      type: string
+                  type: object
+                type: array
+              qosPriorityBands:
+                description: Qos Priority Bands
+                items:
+                  properties:
+                    name:
+                      description: What the band is called. One of 'High', 'Medium',
+                        or 'Low'
+                      type: string
+                    priority:
+                      description: How much more 'priority' this band has relative
+                        to the 'Low' band. Low is always 1
+                      format: int32
+                      type: integer
+                  required:
+                  - name
+                  - priority
+                  type: object
+                type: array
+              resources:
+                description: AstraDSClusterResources is the current amount of physical
+                  resources deployed in the cluster
+                properties:
+                  capacityDeployed:
+                    description: CapacityDeployed is the total storage (in GiB) used
+                      in this cluster
+                    format: int64
+                    type: integer
+                  cpuDeployed:
+                    description: CPUDeployed is the total number of cores used in
+                      this cluster
+                    format: int64
+                    type: integer
+                  licensedCapacity:
+                    description: LicenseCapacity is the total capacity (in GiB) enforced
+                      by license.
+                    format: int64
+                    type: integer
+                  usedCapacity:
+                    description: UsedCapacity is the total raw capacity (in GiB) used.  This
+                      is limited by LicensedCapacity
+                    format: int64
+                    type: integer
+                type: object
+              softwareEncryptionAtRestStatus:
+                description: SoftwareEncryptionAtRest status
+                properties:
+                  keyActiveTime:
+                    format: date-time
+                    type: string
+                  keyProviderName:
+                    type: string
+                  keyProviderUUID:
+                    type: string
+                  keyUUID:
+                    type: string
+                type: object
+              storageClusterCreationTimestamp:
+                description: StorageClusterCreationTimestamp is used to set the firetap
+                  cluster creation timestamp
+                format: date-time
+                type: string
+              versions:
+                description: The current version of the ADS cluster
+                properties:
+                  ads:
+                    description: ADS is the current version of the ADS system
+                    type: string
+                  firetap:
+                    description: Firetap is the current version of the Firetap system
+                    type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

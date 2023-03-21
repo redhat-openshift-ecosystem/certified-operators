@@ -1,0 +1,422 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "certification.redhat.com/v1alpha1",
+          "kind": "OperatorPipeline",
+          "metadata": {
+            "name": "operatorpipeline-sample"
+          },
+          "spec": {
+            "applyCIPipeline": true,
+            "applyHostedPipeline": false,
+            "applyReleasePipeline": false,
+            "gitHubSecretName": "github-api-token",
+            "kubeconfigSecretName": "kubeconfig",
+            "operatorPipelinesRelease": "main",
+            "pyxisSecretName": "pyxis-api-secret"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    operatorframework.io/suggested-namespace: openshift-operators
+    operators.operatorframework.io.bundle.channel.default.v1: alpha
+    operators.operatorframework.io.bundle.channels: alpha
+    operators.operatorframework.io/builder: operator-sdk-v1.14.0+git
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    repository: https://github.com/redhat-openshift-ecosystem/operator-certification-operator
+    support: Red Hat
+  name: operator-certification-operator.v1.0.2
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: OperatorPipeline is the Schema for the operatorpipelines API
+      displayName: Operator Pipeline
+      kind: OperatorPipeline
+      name: operatorpipelines.certification.redhat.com
+      specDescriptors:
+      - description: ApplyCIPipeline determines whether to install the ci pipeline.
+        displayName: CI Pipeline
+        path: applyCIPipeline
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: ApplyHostedPipeline determines whether to install the hosted
+          pipeline.
+        displayName: Hosted Pipeline
+        path: applyHostedPipeline
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: ApplyReleasePipeline determines whether to install the release
+          pipeline.
+        displayName: Release Pipeline
+        path: applyReleasePipeline
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      version: v1alpha1
+  description: |-
+    A Kubernetes operator to provision resources for the operator certification pipeline. This operator is installed in all namespaces which can support multi-tenant scenarios. **Note:** This operator should only be used by Red Hat partners attempting to certify their operator(s).
+
+
+    **Requirements**
+
+
+    The certification operator requires that you have the following tools installed, functional, and in your path.
+    - [Install](https://docs.openshift.com/container-platform/4.8/cli_reference/openshift_cli/getting-started-cli.html#installing-openshift-cli) oc, the OpenShift CLI tool (tested with version 4.7.13)
+    - [Install](https://tekton.dev/docs/cli/) tkn, the Tekton CLI tool (tested with version 0.19.1)
+    - [Install](https://git-scm.com/downloads) git, the Git CLI tool (tested with 2.32.0)
+    - The certification pipeline expects you to have the source files of your Operator bundle
+
+
+    **Pre - Installation**
+
+
+    The below steps exist for simplicity and to make the installation clearer. The operator watches all namespaces, so if secrets/configs/etc already exist in another namespace, feel free to use the existing namespace when following the operator installation steps.
+
+
+    **Create a new namespace where the following secrets will be applied.**
+    ```
+    oc new-project oco
+    ```
+
+
+    **Add the kubeconfig secret which will be used to deploy the operator under test and run the certification checks.**
+    * Open a terminal window
+    * Set the `KUBECONFIG` environment variable
+    ```
+    export KUBECONFIG=/path/to/your/cluster/kubeconfig
+    ```
+    > *This kubeconfig will be used to deploy the Operator under test and run the certification checks.*
+    ```
+    oc create secret generic kubeconfig --from-file=kubeconfig=$KUBECONFIG
+    ```
+
+
+    **Configuring steps for submitting the results**
+    - Add the github API token to the repo where the PR will be created
+    ```
+    oc create secret generic github-api-token --from-literal GITHUB_TOKEN=<github token>
+    ```
+    - Add RedHat Container API access key
+
+      This API access key is specifically related to your unique partner account for Red Hat Connect portal. Instructions to obtain your API key can be found: [here](https://github.com/redhat-openshift-ecosystem/certification-releases/blob/main/4.9/ga/operator-cert-workflow.md#step-b---get-api-key)
+    ```
+    oc create secret generic pyxis-api-secret --from-literal pyxis_api_key=< API KEY >
+    ```
+
+    - Optional pipeline configurations can be found [here](https://github.com/redhat-openshift-ecosystem/certification-releases/blob/main/4.9/ga/ci-pipeline.md#optional-configuration)
+
+
+    **Execute the Pipeline (Development Iterations)**
+
+
+    A pre-requisite to running a pipeline is that a `workspace-template.yaml` exists in the directory you want to execute the `tkn` commands from.
+
+    To create a workspace-template.yaml
+    ```
+    cat <<EOF > workspace-template.yaml
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 5Gi
+    EOF
+    ```
+
+    There are multiple ways to execute the Pipeline which can be found [here](https://github.com/redhat-openshift-ecosystem/certification-releases/blob/main/4.9/ga/ci-pipeline.md#execute-the-pipeline-development-iterations)
+  displayName: Operator Certification Operator
+  icon:
+  - base64data: |-
+      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
+      Wjy0OmdfIfEAAAAASUVORK5CYII=
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - certification.redhat.com
+          resources:
+          - operatorpipelines
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - certification.redhat.com
+          resources:
+          - operatorpipelines/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - certification.redhat.com
+          resources:
+          - operatorpipelines/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - image.openshift.io
+          resources:
+          - imagestreamimports
+          verbs:
+          - create
+        - apiGroups:
+          - image.openshift.io
+          resources:
+          - imagestreams
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tekton.dev
+          resources:
+          - pipelines
+          - tasks
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: certification-operator-controller-manager
+      deployments:
+      - name: certification-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:f000432f07cd187469f0310e3ed9dcf9a5db2be14b8bab9c5293dd1ee8518176
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources: {}
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /manager
+                env:
+                - name: GIT_REPO_PATH
+                  value: /git
+                image: quay.io/opdev/operator-certification-operator@sha256:8eea368053c2f47e33fa73e9f9aebb49fe39d4501caf690a14a911738ca67c02
+                imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 200m
+                    memory: 100Mi
+                  requests:
+                    cpu: 100m
+                    memory: 20Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                volumeMounts:
+                - mountPath: /git
+                  name: pipeline-clone-volume
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: certification-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - emptyDir: {}
+                name: pipeline-clone-volume
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: certification-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - certification
+  - pipeline
+  - openshift
+  links:
+  - name: Operator Certification CI Pipeline
+    url: https://github.com/redhat-openshift-ecosystem/certification-releases/blob/main/4.9/ga/ci-pipeline.md
+  - name: Red Hat OpenShift Pipelines
+    url: https://github.com/openshift/tektoncd-operator
+  maintainers:
+  - email: certification-operator-devel@redhat.com
+    name: Red Hat
+  maturity: alpha
+  minKubeVersion: 1.21.0
+  provider:
+    name: Red Hat
+  version: 1.0.2

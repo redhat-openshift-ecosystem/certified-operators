@@ -1,0 +1,241 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: alertingtemplates.sre.smm.cisco.com
+spec:
+  group: sre.smm.cisco.com
+  names:
+    kind: AlertingTemplate
+    listKind: AlertingTemplateList
+    plural: alertingtemplates
+    shortNames:
+    - at
+    singular: alertingtemplate
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AlertingTemplate specifies non-slo based alerting for a given
+          service/workload
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AlertingTemplateSpec specifies a template for alerting purposes
+              (without SLOs)
+            properties:
+              category:
+                description: Category should be used on the frontend to categorize
+                  multiple ATs
+                type: string
+              details:
+                description: Additional details to show to the user, when eximinging
+                  the Alert
+                properties:
+                  description:
+                    description: Description is the one paragraph long description
+                      of the health indicator scenario
+                    type: string
+                  metricUnit:
+                    description: MetricUnit contains the unit in which the given metric
+                      is measured
+                    type: string
+                  relatedGraphs:
+                    description: RelatedGraphs specify what additional information
+                      we can show the end user for better troubleshooting capabilities
+                    items:
+                      description: RelatedGraphsConfiguration defines the additional
+                        graphs configuration that can help the end-user to troubleshoot
+                        the given health indicator issue.
+                      properties:
+                        name:
+                          description: Name is the five-word description of the health
+                            indicator scenario
+                          type: string
+                        series:
+                          description: Series is the specification of the prometheus
+                            based series to show on this graph
+                          items:
+                            description: SeriesQueryConfiguration  defines a series
+                              that should be shown on the related graphs
+                            properties:
+                              name:
+                                description: Name is the additional description appended
+                                  to the given series, useful for differentiating
+                                  series coming from different sources, should be
+                                  only used when showing multiple series
+                                type: string
+                              query:
+                                description: Query defines the prometheus query to
+                                  be executed to fetch the graph's data. The same
+                                  go templating variables are available as with .spec.condition.query
+                                type: string
+                            required:
+                            - query
+                            type: object
+                          type: array
+                        stack:
+                          description: 'Stack describes if the graph should be displayed
+                            in stacked manner, default: false'
+                          type: boolean
+                        thresholds:
+                          description: Thresholds can show some thresholds on the
+                            graphs based on promql queries if desired, useful for
+                            showing moving averages the health indicators are relative
+                            to.
+                          items:
+                            description: RelatedGraphThresholdConfiguration specifies
+                              a threshold line on the graph itself
+                            properties:
+                              name:
+                                description: Name is the name of the threshold shown
+                                  on the user interface
+                                type: string
+                              query:
+                                description: Query defines the prometheus query to
+                                  be executed to fetch the threshold's data. The same
+                                  go templating variables are available as with .spec.condition.query.
+                                  If it returns multiple labels the first label will
+                                  be used for grouping.
+                                type: string
+                            required:
+                            - name
+                            - query
+                            type: object
+                          type: array
+                        unit:
+                          description: Unit describes the unit of values shown on
+                            the graph, if empty defaults to the parent object's unit
+                            (HealthIndicator or Group)
+                          type: string
+                        when:
+                          description: When, if not an empty string, contain a go
+                            template for a PromQL query. Before showing the graph,
+                            the query is executed and the graph is only shown if the
+                            query returns any data
+                          type: string
+                      required:
+                      - name
+                      - series
+                      type: object
+                    type: array
+                  shortName:
+                    description: ShortName is the five-word description of the health
+                      indicator scenario
+                    type: string
+                required:
+                - shortName
+                type: object
+              parameters:
+                description: Definitions of the parameters the Rules are depending
+                  on
+                items:
+                  properties:
+                    advanced:
+                      type: boolean
+                    default:
+                      type: string
+                    description:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - default
+                  - description
+                  - name
+                  type: object
+                type: array
+              rules:
+                description: Rules is the template that is to be used to render the
+                  final PrometheusRule each field is subject to template rendering
+                  the same way as with SLI Templates
+                items:
+                  description: 'RuleGroup is a list of sequentially evaluated recording
+                    and alerting rules. Note: PartialResponseStrategy is only used
+                    by ThanosRuler and will be ignored by Prometheus instances.  Valid
+                    values for this field are ''warn'' or ''abort''.  More info: https://github.com/thanos-io/thanos/blob/master/docs/components/rule.md#partial-response'
+                  properties:
+                    interval:
+                      type: string
+                    name:
+                      type: string
+                    partial_response_strategy:
+                      type: string
+                    rules:
+                      items:
+                        description: Rule describes an alerting or recording rule.
+                        properties:
+                          alert:
+                            type: string
+                          annotations:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          expr:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            x-kubernetes-int-or-string: true
+                          for:
+                            type: string
+                          labels:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          record:
+                            type: string
+                        required:
+                        - expr
+                        type: object
+                      type: array
+                  required:
+                  - name
+                  - rules
+                  type: object
+                type: array
+              scope:
+                allOf:
+                - enum:
+                  - service
+                  - workload
+                - enum:
+                  - service
+                description: Scope specifies if this is a service or workload specific
+                  template, right now only services are supported
+                type: string
+            required:
+            - category
+            - details
+            - parameters
+            - rules
+            - scope
+            type: object
+          status:
+            description: AlertingTemplateStatus describes the status of an AlertingTemplate
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

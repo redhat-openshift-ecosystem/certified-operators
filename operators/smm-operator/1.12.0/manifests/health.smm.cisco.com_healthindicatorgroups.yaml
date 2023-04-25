@@ -1,0 +1,262 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: healthindicatorgroups.health.smm.cisco.com
+spec:
+  group: health.smm.cisco.com
+  names:
+    kind: HealthIndicatorGroup
+    listKind: HealthIndicatorGroupList
+    plural: healthindicatorgroups
+    shortNames:
+    - hig
+    singular: healthindicatorgroup
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: name of the first dimension to categorize health indicators on
+      format: byte
+      jsonPath: .spec.dimensions.primary.name
+      name: 1st dimension
+      type: string
+    - description: name of the first dimension to categorize health indicators on
+      format: byte
+      jsonPath: .spec.dimensions.secondary.name
+      name: 2nd dimension
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HealthIndicatorGroup is the Schema for the healthindicators API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HealthIndicatorGroupSpec defines the desired state of HealthIndicatorGroup
+            properties:
+              details:
+                description: Details defines additional info on the health indicator
+                properties:
+                  description:
+                    description: Description is the one paragraph long description
+                      of the health indicator scenario
+                    type: string
+                  metricUnit:
+                    description: MetricUnit contains the unit in which the given metric
+                      is measured
+                    type: string
+                  relatedGraphs:
+                    description: RelatedGraphs specify what additional information
+                      we can show the end user for better troubleshooting capabilities
+                    items:
+                      description: RelatedGraphsConfiguration defines the additional
+                        graphs configuration that can help the end-user to troubleshoot
+                        the given health indicator issue.
+                      properties:
+                        name:
+                          description: Name is the five-word description of the health
+                            indicator scenario
+                          type: string
+                        series:
+                          description: Series is the specification of the prometheus
+                            based series to show on this graph
+                          items:
+                            description: SeriesQueryConfiguration  defines a series
+                              that should be shown on the related graphs
+                            properties:
+                              name:
+                                description: Name is the additional description appended
+                                  to the given series, useful for differentiating
+                                  series coming from different sources, should be
+                                  only used when showing multiple series
+                                type: string
+                              query:
+                                description: Query defines the prometheus query to
+                                  be executed to fetch the graph's data. The same
+                                  go templating variables are available as with .spec.condition.query
+                                type: string
+                            required:
+                            - query
+                            type: object
+                          type: array
+                        stack:
+                          description: 'Stack describes if the graph should be displayed
+                            in stacked manner, default: false'
+                          type: boolean
+                        thresholds:
+                          description: Thresholds can show some thresholds on the
+                            graphs based on promql queries if desired, useful for
+                            showing moving averages the health indicators are relative
+                            to.
+                          items:
+                            description: RelatedGraphThresholdConfiguration specifies
+                              a threshold line on the graph itself
+                            properties:
+                              name:
+                                description: Name is the name of the threshold shown
+                                  on the user interface
+                                type: string
+                              query:
+                                description: Query defines the prometheus query to
+                                  be executed to fetch the threshold's data. The same
+                                  go templating variables are available as with .spec.condition.query.
+                                  If it returns multiple labels the first label will
+                                  be used for grouping.
+                                type: string
+                            required:
+                            - name
+                            - query
+                            type: object
+                          type: array
+                        unit:
+                          description: Unit describes the unit of values shown on
+                            the graph, if empty defaults to the parent object's unit
+                            (HealthIndicator or Group)
+                          type: string
+                        when:
+                          description: When, if not an empty string, contain a go
+                            template for a PromQL query. Before showing the graph,
+                            the query is executed and the graph is only shown if the
+                            query returns any data
+                          type: string
+                      required:
+                      - name
+                      - series
+                      type: object
+                    type: array
+                  shortName:
+                    description: ShortName is the five-word description of the health
+                      indicator scenario
+                    type: string
+                required:
+                - shortName
+                type: object
+              dimensions:
+                description: Dimensions describe a primary and an optional secondary
+                  dimension which allows grouping of the HealthIndicator values on
+                  the user interface for example in case of latency the reporter can
+                  be the primary dimension, while the percentile value (p50, p99,
+                  etc.) can the secondary dimension
+                properties:
+                  primary:
+                    description: DimensionConfiguration describes a given dimension
+                    properties:
+                      description:
+                        description: Description details what exactly this dimension
+                          contains and describes
+                        type: string
+                      name:
+                        description: Name is the name of the dimension used in HealthIndicators
+                          .spec.aggregation.group.dimensions
+                        type: string
+                      shortName:
+                        description: ShortName is the short name of the dimension
+                          when shown on the user interface
+                        type: string
+                      values:
+                        description: Values describes the allowed keys and their description
+                          for the dimension
+                        items:
+                          description: DimensionKeyConfiguration describes a specific
+                            dimension key declared by the health indicators
+                          properties:
+                            description:
+                              description: Description details what exactly this dimension
+                                contains and describes
+                              type: string
+                            name:
+                              description: Name is the name of the given key, must
+                                match the HealthIndicator's `.spec.aggregation.group.dimensions`
+                                primary or secondary value
+                              type: string
+                            shortName:
+                              description: ShortName is the short name of the dimension
+                                when shown on the user interface
+                              type: string
+                          required:
+                          - name
+                          - shortName
+                          type: object
+                        type: array
+                    required:
+                    - name
+                    - shortName
+                    type: object
+                  secondary:
+                    description: DimensionConfiguration describes a given dimension
+                    properties:
+                      description:
+                        description: Description details what exactly this dimension
+                          contains and describes
+                        type: string
+                      name:
+                        description: Name is the name of the dimension used in HealthIndicators
+                          .spec.aggregation.group.dimensions
+                        type: string
+                      shortName:
+                        description: ShortName is the short name of the dimension
+                          when shown on the user interface
+                        type: string
+                      values:
+                        description: Values describes the allowed keys and their description
+                          for the dimension
+                        items:
+                          description: DimensionKeyConfiguration describes a specific
+                            dimension key declared by the health indicators
+                          properties:
+                            description:
+                              description: Description details what exactly this dimension
+                                contains and describes
+                              type: string
+                            name:
+                              description: Name is the name of the given key, must
+                                match the HealthIndicator's `.spec.aggregation.group.dimensions`
+                                primary or secondary value
+                              type: string
+                            shortName:
+                              description: ShortName is the short name of the dimension
+                                when shown on the user interface
+                              type: string
+                          required:
+                          - name
+                          - shortName
+                          type: object
+                        type: array
+                    required:
+                    - name
+                    - shortName
+                    type: object
+                required:
+                - primary
+                type: object
+            required:
+            - details
+            - dimensions
+            type: object
+          status:
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

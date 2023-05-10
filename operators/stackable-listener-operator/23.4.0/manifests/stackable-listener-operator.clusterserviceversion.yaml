@@ -1,0 +1,225 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: listener-operator.v23.4.0
+spec:
+  annotations:
+    support: stackable.tech
+    olm.properties: '[]'
+    categories: Storage
+    capabilities: Full Lifecycle
+    description: Stackable Listener Operator
+    repository: https://github.com/stackabletech/listener-operator
+    containerImage: docker.stackable.tech/stackable/listener-operator:23.4.0
+
+  displayName: Stackable Listener Operator
+  description: |-
+    This is an operator for Kubernetes that provisions network listeners according to the cluster policy, and injects connection parameters into Pods.
+    The Stackable Listener Operator is part of the Stackable Data Platform, a curated selection of the best open source data apps like Kafka, Druid, Trino or
+    Spark, all working together seamlessly. Based on Kubernetes, it runs everywhere – on prem or in the cloud.
+
+    See it in action in one of our [demos](https://stackable.tech/en/demos/) or follow this
+    [usage overview](https://docs.stackable.tech/home/stable/listener-operator/usage.html).
+
+    N.B. this operator requires the following Stackable internal operators to be installed as well:
+
+    - [Commons Operator](https://github.com/stackabletech/commons-operator)
+    - [Secret Operator](https://github.com/stackabletech/secret-operator)
+  keywords:
+    - listener
+  maintainers:
+    - email: info@stackable.tech
+      name: Stackable GmbH
+  maturity: stable
+  provider:
+    name: Stackable GmbH
+    url: https://stackable.tech
+  version: 23.4.0
+  minKubeVersion: 1.23.0
+
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: false
+      type: AllNamespaces
+
+  customresourcedefinitions:
+    owned:
+      # a list of CRDs that this operator owns
+      # name is the metadata.name of the CRD (which is of the form <plural>.<group>)
+      - name: listenerclasses.listeners.stackable.tech
+        # version is the spec.versions[].name value defined in the CRD
+        version: v1alpha1
+        # kind is the CamelCased singular value defined in spec.names.kind of the CRD.
+        kind: ListenerClass
+        # human-friendly display name of the CRD for rendering in graphical consoles (optional)
+        displayName: Listener Class
+        # a short description of the CRDs purpose for rendering in graphical consoles (optional)
+        description: Represents a Listener Class
+      - name: listeners.listeners.stackable.tech
+        version: v1alpha1
+        kind: Listener
+        displayName: Listener
+        description: Represents a Listener
+
+  relatedImages:
+    - name: listener-operator
+      image: docker.stackable.tech/stackable/listener-operator:23.4.0
+  install:
+    # strategy indicates what type of deployment artifacts are used
+    strategy: deployment
+    # spec for the deployment strategy is a list of deployment specs and required permissions - similar to a pod template used in a deployment
+    spec:
+      permissions:
+        - serviceAccountName: listener-operator-deployer
+          rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - '*'
+      # permissions required at the cluster scope
+      clusterPermissions:
+        - serviceAccountName: listener-operator-deployer
+          rules:
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - get
+                - list
+            - apiGroups:
+                - apps
+              resources:
+                - daemonsets
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - delete
+                - patch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - csidrivers
+                - storageclasses
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - delete
+                - patch
+            - apiGroups:
+                - listeners.stackable.tech
+              resources:
+                - listeners
+                - listenerclasses
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - delete
+                - patch
+            - apiGroups:
+                - security.openshift.io
+              resources:
+                - securitycontextconstraints
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - delete
+                - patch
+
+      deployments:
+        - name: listener-operator-deployer
+          spec:
+            replicas: 1
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: listener-operator-deployer
+                app.kubernetes.io/instance: listener-operator-deployer
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: listener-operator-deployer
+                  app.kubernetes.io/instance: listener-operator-deployer
+              spec:
+                serviceAccountName: listener-operator-deployer
+                securityContext: {}
+                containers:
+                  - name: listener-operator-deployer
+                    securityContext: {}
+                    image: docker.stackable.tech/stackable/tools:1.0.0-stackable23.4.0
+                    imagePullPolicy: IfNotPresent
+                    resources: {}
+                    command: ["bash", "-c", "echo 'Deploying listener-operator manifests' && export LISTENER_OPERATOR_DEPLOYER_DEPLOYMENT_UID=$(kubectl get deployment listener-operator-deployer -o go-template='{{.metadata.uid}}') && export LISTENER_OPERATOR_CLUSTERROLE_NAME=$(kubectl get clusterrole -l olm.owner=listener-operator.v23.4.0,olm.owner.kind=ClusterServiceVersion -o name | head -n 1 | grep -oP '/\\K.*') && export LISTENER_OPERATOR_CLUSTERROLE_UID=$(kubectl get clusterrole $LISTENER_OPERATOR_CLUSTERROLE_NAME -o go-template='{{.metadata.uid}}') && for file in /manifests/*.yaml; do echo Deploying $file && cat $file | envsubst | ./kubectl apply -f -; done && echo 'Successfully deployed listener-operator manifests' && sleep infinity"]
+                    volumeMounts:
+                      - name: manifests
+                        mountPath: /manifests
+                volumes:
+                  - name: manifests
+                    configMap:
+                      name: listener-operator-deployer-manifests
+        - name: listener-operator-controller-deployment
+          spec:
+            replicas: 1
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                app.kubernetes.io/role: controller
+                app.kubernetes.io/instance: listener-operator
+                app.kubernetes.io/name: listener-operator
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/role: controller
+                  app.kubernetes.io/instance: listener-operator
+                  app.kubernetes.io/name: listener-operator
+              spec:
+                serviceAccountName: listener-operator-serviceaccount
+                securityContext: {}
+                containers:
+                  - name: listener-operator
+                    securityContext:
+                      privileged: true
+                      runAsUser: 0
+                    image: docker.stackable.tech/stackable/listener-operator:23.4.0
+                    imagePullPolicy: IfNotPresent
+                    resources: {}
+                    args:
+                      - run
+                      - controller
+                    env:
+                      - name: CSI_ENDPOINT
+                        value: /csi/csi.sock
+                    volumeMounts:
+                      - name: csi
+                        mountPath: /csi
+                  - name: external-provisioner
+                    image: docker.stackable.tech/k8s/sig-storage/csi-provisioner:v3.1.0
+                    imagePullPolicy: IfNotPresent
+                    args:
+                      - --csi-address=/csi/csi.sock
+                      - --feature-gates=Topology=true
+                      - --extra-create-metadata
+                    volumeMounts:
+                      - name: csi
+                        mountPath: /csi
+                volumes:
+                  - name: csi
+                    emptyDir: {}

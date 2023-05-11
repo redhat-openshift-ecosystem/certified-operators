@@ -135,3 +135,67 @@ data:
           uid: "${LISTENER_OPERATOR_CLUSTERROLE_UID}"
     spec:
       serviceType: LoadBalancer
+  listener-deployment.yaml: |
+    apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: listener-operator-controller-deployment
+      labels:
+        app.kubernetes.io/instance: listener-operator
+        app.kubernetes.io/name: listener-operator
+        app.kubernetes.io/version: 23.4.0
+      # We have to use a namespaced object as an owner of another namespaced object
+      ownerReferences:
+        - apiVersion: apps/v1
+          kind: Deployment
+          name: listener-operator-deployer
+          uid: "${LISTENER_OPERATOR_DEPLOYER_DEPLOYMENT_UID}"
+    spec:
+      replicas: 1
+      strategy:
+        type: Recreate
+      selector:
+        matchLabels:
+          app.kubernetes.io/role: controller
+          app.kubernetes.io/instance: listener-operator
+          app.kubernetes.io/name: listener-operator
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/role: controller
+            app.kubernetes.io/instance: listener-operator
+            app.kubernetes.io/name: listener-operator
+        spec:
+          serviceAccountName: listener-operator-serviceaccount
+          securityContext: {}
+          containers:
+            - name: listener-operator
+              securityContext:
+                privileged: true
+                runAsUser: 0
+              image: docker.stackable.tech/stackable/listener-operator@sha256:b0dac422363b35b7046a680246d7f90b6bceb338a5e47865e100b5c5bb82b54b
+              imagePullPolicy: IfNotPresent
+              resources: {}
+              args:
+                - run
+                - controller
+              env:
+                - name: CSI_ENDPOINT
+                  value: /csi/csi.sock
+              volumeMounts:
+                - name: csi
+                  mountPath: /csi
+            - name: external-provisioner
+              image: docker.stackable.tech/k8s/sig-storage/csi-provisioner:3.1.0
+              imagePullPolicy: IfNotPresent
+              args:
+                - --csi-address=/csi/csi.sock
+                - --feature-gates=Topology=true
+                - --extra-create-metadata
+              volumeMounts:
+                - name: csi
+                  mountPath: /csi
+          volumes:
+            - name: csi
+              emptyDir: {}
+

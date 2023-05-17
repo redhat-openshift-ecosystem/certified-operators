@@ -117,10 +117,134 @@ metadata:
               "useIstioResources": true
             }
           }
+        },
+        {
+          "apiVersion": "smm.cisco.com/v1alpha1",
+          "kind": "ControlPlane",
+          "metadata": {
+            "name": "smm-sdm-example"
+          },
+          "spec": {
+            "certManager": {
+              "enabled": true,
+              "namespace": "cert-manager"
+            },
+            "clusterName": "<cluster-name>",
+            "clusterRegistry": {
+              "enabled": true,
+              "namespace": "cluster-registry"
+            },
+            "sdm": {
+              "enabled": true,
+              "namespace": "supertubes-control-plane"
+            },
+            "sdmApplicationManifest": {
+              "enabled": true,
+              "namespace": "supertubes-control-plane"
+            },
+            "log": {},
+            "meshManager": {
+              "enabled": true,
+              "istio": {
+                "enabled": true,
+                "istioCRRef": {
+                  "name": "cp-v115x",
+                  "namespace": "istio-system"
+                },
+                "operators": {
+                  "namespace": "smm-system"
+                }
+              },
+              "namespace": "smm-system"
+            },
+            "nodeExporter": {
+              "enabled": true,
+              "namespace": "smm-system",
+              "psp": {
+                "enabled": false
+              },
+              "rbac": {
+                "enabled": true
+              }
+            },
+            "oneEye": {},
+            "platform": "openshift",
+            "registryAccess": {
+              "enabled": true,
+              "imagePullSecretsController": {},
+              "namespace": "smm-registry-access",
+              "pullSecrets": [
+                {
+                  "name": "smm-registry.eticloud.io-pull-secret",
+                  "namespace": "smm-registry-access"
+                }
+              ]
+            },
+            "repositoryOverride": {
+              "host": "registry.eticloud.io",
+              "prefix": "smm"
+            },
+            "role": "active",
+            "smm": {
+              "als": {
+                "enabled": true,
+                "log": {}
+              },
+              "application": {
+                "enabled": true,
+                "log": {}
+              },
+              "auth": {
+                "mode": "impersonation"
+              },
+              "certManager": {
+                "enabled": true
+              },
+              "enabled": true,
+              "federationGateway": {
+                "enabled": true,
+                "name": "smm",
+                "service": {
+                  "enabled": true,
+                  "name": "smm-federation-gateway",
+                  "port": 80
+                }
+              },
+              "federationGatewayOperator": {
+                "enabled": true
+              },
+              "impersonation": {
+                "enabled": true
+              },
+              "istio": {
+                "revision": "cp-v115x.istio-system"
+              },
+              "leo": {
+                "enabled": true,
+                "log": {}
+              },
+              "log": {},
+              "namespace": "smm-system",
+              "prometheus": {
+                "enabled": true,
+                "replicas": 1
+              },
+              "prometheusOperator": {},
+              "releaseName": "smm",
+              "role": "active",
+              "sre": {
+                "enabled": true
+              },
+              "sdm": {
+                "enabled": true
+              },
+              "useIstioResources": true
+            }
+          }
         }
       ]
     capabilities: Basic Install
-    createdAt: "2023-05-09T15:55:09Z"
+    createdAt: "2023-05-17T15:55:09Z"
     operatorframework.io/suggested-namespace: smm-registry-access
     operators.operatorframework.io/builder: operator-sdk-v1.28.0
     operators.operatorframework.io/internal-objects: '["clusterfeatures.clusterregistry.k8s.cisco.com",
@@ -245,14 +369,14 @@ spec:
 
     ### Prerequisites
     1. Sign up for a free Calisti account [here](https://www.calisti.app/)
-    2. Download the Service Mesh Manager command-line tool from [download](https://cloud.calisti.app/download) page
+    2. Download the Service Mesh Manager command-line tool from [download](https://cloud.calisti.app/download) page, step 1
     3. Create a namespace for calisti-smm-operator (called smm-registry-access):
 
         ```
         $ kubectl create ns smm-registry-access
         ```
 
-    4. Add a secret within the smm-operator namespace. If you don't have registry credentials, get it from [here](https://calisti.app/download)
+    4. Add a secret within the smm-operator namespace. Get your credentials from [here](https://calisti.app/download), step 2
 
         ```
         $ kubectl create secret docker-registry smm-registry.eticloud.io-pull-secret --docker-server=registry.eticloud.io --docker-username=<your-username> \
@@ -270,22 +394,15 @@ spec:
           - ""
           resources:
           - namespaces
+          - configmaps
           verbs:
+          - create
+          - delete
           - get
-        - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
-          - clusterrolebindings
-          - clusterroles
-          verbs:
-          - '*'
-        - apiGroups:
-          - apps
-          resources:
-          - deployments
-          - statefulsets
-          verbs:
-          - '*'
+          - list
+          - patch
+          - update
+          - watch
         - apiGroups:
           - ""
           resources:
@@ -301,20 +418,6 @@ spec:
           verbs:
           - create
         - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
-          - rolebindings
-          - roles
-          verbs:
-          - '*'
-        - apiGroups:
-          - apiextensions.k8s.io
-          resources:
-          - customresourcedefinitions
-          verbs:
-          - '*'
-        - apiGroups:
-          - ""
           - apps
           - autoscaling
           - batch
@@ -337,7 +440,6 @@ spec:
           - authentication.istio.io
           - cert-manager.io
           - networking.istio.io
-          - networking.istio.io
           - security.istio.io
           - k8s.cni.cncf.io
           - kafka.banzaicloud.io
@@ -355,42 +457,22 @@ spec:
           - list
           - watch
         - apiGroups:
-          - ""
-          - extensions
-          - admissionregistration.k8s.io
-          - apiextensions.k8s.io
           - apiregistration.k8s.io
-          - cert-manager.io
-          - acme.cert-manager.io
           - route.openshift.io
           resources:
           - '*'
           verbs:
           - '*'
         - apiGroups:
-          - ""
-          - apps
-          - autoscaling
-          - extensions
-          - policy
-          - admissionregistration.k8s.io
           - apiextensions.k8s.io
-          - authentication.k8s.io
-          - authorization.k8s.io
-          - certificates.k8s.io
           - discovery.k8s.io
-          - networking.k8s.io
           - rbac.authorization.k8s.io
           - networking.x-k8s.io
-          - istio.banzaicloud.io
-          - authentication.istio.io
           - cloud.istio.io
           - config.istio.io
           - istio.istio.io
-          - networking.istio.io
           - rbac.istio.io
           - scalingpolicy.istio.io
-          - security.istio.io
           - servicemesh.cisco.com
           - clusterregistry.k8s.cisco.com
           resources:
@@ -398,24 +480,8 @@ spec:
           verbs:
           - '*'
         - apiGroups:
-          - extensions
-          resources:
-          - '*'
-          verbs:
-          - '*'
-        - apiGroups:
-          - ""
-          - apps
           - monitoring.smm.cisco.com
           - monitoring.coreos.com
-          resources:
-          - '*'
-          verbs:
-          - '*'
-        - apiGroups:
-          - monitoring.smm.cisco.com
-          - sre.smm.cisco.com
-          - health.smm.cisco.com
           resources:
           - '*'
           verbs:
@@ -431,20 +497,6 @@ spec:
           - create
           - update
           - delete
-        - apiGroups:
-          - smm.cisco.com
-          resources:
-          - controlplanes
-          - controlplanes/status
-          - controlplanes/finalizers
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
         serviceAccountName: calisti-smm-operator
       deployments:
       - label:
@@ -492,7 +544,7 @@ spec:
                 - --logtostderr=true
                 - --v=0
                 - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256
-                image: registry.eticloud.io/smm/kube-rbac-proxy@sha256:f4aca52b713f968b1f886fd7aca4ebbdf3bded9c7a6aeaefa16308c6a95dfca8
+                image: registry.eticloud.io/smm/kube-rbac-proxy@sha256:dfd422d9e009dbc1afff528cc881f3b72db443563b64fe65065bc0a3bd02bfd7
                 name: kube-rbac-proxy
                 ports:
                 - containerPort: 8443
@@ -517,7 +569,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: registry.eticloud.io/smm/smm-operator-rh-ubi8@sha256:6af69278483f630d02c49701b12455d76e1c220f59205ab94ccffa02e5bf80b0
+                image: registry.eticloud.io/smm/smm-operator-rh-ubi8@sha256:4c91e761b4e95519d9b4ed5793843d4599d3292c404ff73ffbc05f9f575c8b91
                 name: manager
                 resources:
                   requests:
@@ -533,7 +585,7 @@ spec:
               securityContext:
                 runAsNonRoot: true
               serviceAccountName: calisti-smm-operator
-              terminationGracePeriodSeconds: 60
+              terminationGracePeriodSeconds: 10
       permissions:
       - rules:
         - apiGroups:

@@ -1,0 +1,385 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: healthindicators.health.smm.cisco.com
+spec:
+  group: health.smm.cisco.com
+  names:
+    kind: HealthIndicator
+    listKind: HealthIndicatorList
+    plural: healthindicators
+    shortNames:
+    - hi
+    singular: healthindicator
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: 'Scope defines the type of resources for which the health indicator
+        will be evaluated, values: service and/or workload'
+      format: byte
+      jsonPath: .spec.scope
+      name: Scope
+      type: string
+    - description: Group is used to group together multiple Health Indicator instances
+        (e.g. PXX latencies, source/destination reporting etc.) so that when the aggregated
+        score is calculated the Health Indicators in the same group count as only
+        one metric to the aggregated score
+      format: byte
+      jsonPath: .spec.aggregation.group.reference.name
+      name: Group
+      type: string
+    - description: Status
+      format: byte
+      jsonPath: .status.status
+      name: Status
+      type: string
+    - format: date
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Ignore Negative Divergence flags if negative divergence patterns
+        should be calculated as errors in case of metrics. If true, it marks negative
+        patterns as completely healthy for indicator scores.
+      format: byte
+      jsonPath: .spec.condition.ignoreNegativeDivergence
+      name: Ignore Negative Divergence
+      priority: 1
+      type: boolean
+    - description: Indicator flags if the query returns an indicator in itself. If
+        not set it is assumed to be a generic metric
+      format: byte
+      jsonPath: .spec.condition.indicator
+      name: Indicator
+      priority: 1
+      type: boolean
+    - description: Short Name is the five-word description of the health indicator
+        scenario
+      format: byte
+      jsonPath: .spec.details.shortName
+      name: Short Name
+      priority: 1
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HealthIndicator is the Schema for the healthindicators API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HealthIndicatorSpec defines the desired state of HealthIndicator
+            properties:
+              aggregation:
+                description: Aggregation defines the settings for the aggregated score
+                  calculations
+                properties:
+                  group:
+                    description: Group is used to group together multiple Health Indicator
+                      instances (e.g. PXX latencies, source/destination reporting
+                      etc.) so that when the aggregated score is calculated the Health
+                      Indicators in the same group count as only one metric to the
+                      aggregated score
+                    properties:
+                      dimensions:
+                        additionalProperties:
+                          type: string
+                        description: Dimensions specify what exactly this indicator
+                          measures inside the given group. Key is the name of the
+                          given dimension (see HealthIndicatorGroup's .spec.dimensions
+                          for names), value is the value of the given dimension for
+                          this HealthIndicator
+                        type: object
+                      reference:
+                        description: Reference to the HealthIndicatorGroup object
+                          this indicator belongs to
+                        properties:
+                          name:
+                            description: Name of the object
+                            type: string
+                          namespace:
+                            description: Namespace of the object
+                            type: string
+                        required:
+                        - name
+                        - namespace
+                        type: object
+                    required:
+                    - dimensions
+                    - reference
+                    type: object
+                type: object
+              condition:
+                description: Condition defines the necessary steps to evaluate the
+                  health indicator
+                properties:
+                  indicator:
+                    description: IndicatorConfiguration describes an indicator typed
+                      health indicator. These indicators are not subject to the analysis
+                      health controller does on metrics.
+                    properties:
+                      labelMapping:
+                        description: LabelMapping specifies which labels are containing
+                          in the resulting vector the subject's namespace, cluster,
+                          name and kind.
+                        properties:
+                          cluster:
+                            description: Cluster specifies which label to use as source
+                              for the cluster property of the given subject
+                            type: string
+                          kind:
+                            description: Kind specifies which label to use as source
+                              for the kind property of the given subject, if empty
+                              or the label is not present on the response the system
+                              will try to autodetect it (defaults to kind label)
+                            type: string
+                          name:
+                            description: Name specifies which label to use as source
+                              for the cluster property of the given subject
+                            type: string
+                          namespace:
+                            description: Namespace specifies which label to use as
+                              source for the namespace property of the given subject
+                            type: string
+                        type: object
+                      query:
+                        description: Query is the Prometheus Query, which needs to
+                          be run to evaluate the health indicator
+                        type: string
+                    required:
+                    - query
+                    type: object
+                  metric:
+                    description: MetricConfiguration describes a metric that is subject
+                      to the outlier detection logic of health controller
+                    properties:
+                      aggregation:
+                        description: AggregationFunction describes which aggregation
+                          function to use if there are multiple metrics with the same
+                          subject specific labels. Defaults to avg.
+                        enum:
+                        - sum
+                        - avg
+                        type: string
+                      filterLabels:
+                        additionalProperties:
+                          type: string
+                        description: FilterLabels specifies additional label values
+                          to filter on when executing the query
+                        type: object
+                      ignoreNegativeDivergence:
+                        description: IgnoreNegativeDivergence flags if negative divergence
+                          patterns should be calculated as errors in case of metrics.
+                          If true, it marks negative patterns as completely healthy
+                          for indicator scores.
+                        type: boolean
+                      labelMapping:
+                        description: LabelMapping specifies which labels are containing
+                          in the source metric the subject's namespace, cluster, name
+                          and kind.
+                        properties:
+                          cluster:
+                            description: Cluster specifies which label to use as source
+                              for the cluster property of the given subject
+                            type: string
+                          kind:
+                            description: Kind specifies which label to use as source
+                              for the kind property of the given subject, if empty
+                              or the label is not present on the response the system
+                              will try to autodetect it (defaults to kind label)
+                            type: string
+                          name:
+                            description: Name specifies which label to use as source
+                              for the cluster property of the given subject
+                            type: string
+                          namespace:
+                            description: Namespace specifies which label to use as
+                              source for the namespace property of the given subject
+                            type: string
+                        type: object
+                      source:
+                        description: Source specifies the prometheus metric that contains
+                          the values for this given metric
+                        pattern: ^([a-z0-9:_]+)$
+                        type: string
+                    required:
+                    - source
+                    type: object
+                type: object
+              details:
+                description: Details defines additional info on the health indicator
+                properties:
+                  description:
+                    description: Description is the one paragraph long description
+                      of the health indicator scenario
+                    type: string
+                  metricUnit:
+                    description: MetricUnit contains the unit in which the given metric
+                      is measured
+                    type: string
+                  relatedGraphs:
+                    description: RelatedGraphs specify what additional information
+                      we can show the end user for better troubleshooting capabilities
+                    items:
+                      description: RelatedGraphsConfiguration defines the additional
+                        graphs configuration that can help the end-user to troubleshoot
+                        the given health indicator issue.
+                      properties:
+                        name:
+                          description: Name is the five-word description of the health
+                            indicator scenario
+                          type: string
+                        series:
+                          description: Series is the specification of the prometheus
+                            based series to show on this graph
+                          items:
+                            description: SeriesQueryConfiguration  defines a series
+                              that should be shown on the related graphs
+                            properties:
+                              name:
+                                description: Name is the additional description appended
+                                  to the given series, useful for differentiating
+                                  series coming from different sources, should be
+                                  only used when showing multiple series
+                                type: string
+                              query:
+                                description: Query defines the prometheus query to
+                                  be executed to fetch the graph's data. The same
+                                  go templating variables are available as with .spec.condition.query
+                                type: string
+                            required:
+                            - query
+                            type: object
+                          type: array
+                        stack:
+                          description: 'Stack describes if the graph should be displayed
+                            in stacked manner, default: false'
+                          type: boolean
+                        thresholds:
+                          description: Thresholds can show some thresholds on the
+                            graphs based on promql queries if desired, useful for
+                            showing moving averages the health indicators are relative
+                            to.
+                          items:
+                            description: RelatedGraphThresholdConfiguration specifies
+                              a threshold line on the graph itself
+                            properties:
+                              name:
+                                description: Name is the name of the threshold shown
+                                  on the user interface
+                                type: string
+                              query:
+                                description: Query defines the prometheus query to
+                                  be executed to fetch the threshold's data. The same
+                                  go templating variables are available as with .spec.condition.query.
+                                  If it returns multiple labels the first label will
+                                  be used for grouping.
+                                type: string
+                            required:
+                            - name
+                            - query
+                            type: object
+                          type: array
+                        unit:
+                          description: Unit describes the unit of values shown on
+                            the graph, if empty defaults to the parent object's unit
+                            (HealthIndicator or Group)
+                          type: string
+                        when:
+                          description: When, if not an empty string, contain a go
+                            template for a PromQL query. Before showing the graph,
+                            the query is executed and the graph is only shown if the
+                            query returns any data
+                          type: string
+                      required:
+                      - name
+                      - series
+                      type: object
+                    type: array
+                  shortName:
+                    description: ShortName is the five-word description of the health
+                      indicator scenario
+                    type: string
+                required:
+                - shortName
+                type: object
+              preprocessing:
+                description: Preprocessing defines the necessary steps to do before
+                  the condition can be evaluated
+                properties:
+                  recordingRules:
+                    description: RecordingRules defined here will be created by the
+                      controller before the condition will be evaluated
+                    items:
+                      description: Rule describes an alerting or recording rule.
+                      properties:
+                        alert:
+                          type: string
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        expr:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          x-kubernetes-int-or-string: true
+                        for:
+                          type: string
+                        labels:
+                          additionalProperties:
+                            type: string
+                          type: object
+                        record:
+                          type: string
+                      required:
+                      - expr
+                      type: object
+                    type: array
+                type: object
+              scope:
+                description: 'Scope defines the type of resources for which the health
+                  indicator will be evaluated, values: service and/or workload'
+                enum:
+                - service
+                - workload
+                type: string
+            required:
+            - condition
+            - details
+            - scope
+            type: object
+          status:
+            description: HealthIndicatorStatus defines the observed state of HealthIndicator
+            properties:
+              details:
+                type: string
+              status:
+                type: string
+            required:
+            - status
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

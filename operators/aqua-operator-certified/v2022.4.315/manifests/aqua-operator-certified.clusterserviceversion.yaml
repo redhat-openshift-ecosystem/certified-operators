@@ -9,7 +9,7 @@ metadata:
     olm.skipRange: ">=1.0.2 <2022.4.315"
     description: The Aqua Security Operator runs within a Openshift cluster and provides a means to deploy and manage Aqua Security cluster and components.
     certified: "true"
-    containerImage: registry.connect.redhat.com/aquasec/aquasec@sha256:549e5d0003a7e2ff0f66cab1cddffeed5d4eb5136ce14bc1f658217706c9e251
+    containerImage: registry.connect.redhat.com/aquasec/aquasec@sha256:068fde2389081ba9aa8386640409c5fc691628b57ba53e0a460bf9b8e4235b0d
     createdAt: ''
     support: Aqua Security, Inc.
     repository: https://github.com/aquasecurity/aqua-operator
@@ -108,11 +108,21 @@ metadata:
             "config": {
               "gateway_address": "aqua-gateway.aqua:8443",
               "cluster_name": "aqua-secure",
-              "imagePullSecret": "aqua-registry",
-              "kubebench_image": "registry.connect.redhat.com/aquasec/kube-bench@sha256:3290c9bea8f3ed6561833b8c6c919da8a39969b67e348287387c4f0666c53db3"
+              "imagePullSecret": "aqua-registry"
             },
             "deploy": {
               "service": "ClusterIP"
+            },
+            "starboard": {
+              "infra": {
+                "serviceAccount": "starboard-operator"
+              },
+              "config": {
+                "imagePullSecret": "aqua-registry"
+              },
+              "deploy": {
+                "replicas": 1
+              }
             },
             "token": "<<KUBE_ENFORCER_GROUP_TOKEN>>"
           }
@@ -203,6 +213,60 @@ metadata:
             }
           },
           "runAsNonRoot": false
+        },
+        {
+          "apiVersion": "operator.aquasec.com/v1alpha1",
+          "kind": "AquaLightning",
+          "metadata": {
+            "name": "aqua"
+          },
+          "spec": {
+            "global": {
+              "gateway_address": "aqua-gateway.aqua:8443",
+              "cluster_name": "Default-cluster-name"
+            },
+            "common": {
+              "imagePullSecret": "aqua-registry"
+            },
+            "kubeEnforcer": {
+              "infra": {
+                "serviceAccount": "aqua-kube-enforcer-sa"
+              },
+              "token": "<<KUBE_ENFORCER_GROUP_TOKEN>>",
+              "deploy": {
+                "service": "ClusterIP"
+              },
+              "starboard": {
+                "infra": {
+                  "serviceAccount": "aqua-kube-enforcer-sa"
+                },
+                "config": {
+                  "imagePullSecret": "aqua-registry"
+                },
+                "deploy": {
+                  "replicas": 1
+                }
+              },
+              "env": []
+            },
+            "enforcer": {
+              "infra": {
+                "serviceAccount": "aqua-sa",
+                "version": "2022.4"
+              },
+              "deploy": null,
+              "token": "<<ENFORCER_GROUP_TOKEN>>",
+              "env": [
+      
+              ],
+              "secret": {
+                "name": null,
+                "key": null
+              },
+              "runAsNonRoot": null,
+              "rhcosVersion": null
+            }
+          }
         }
       ]
     operators.operatorframework.io/internal-objects: '["aquastarboards.aquasecurity.github.io","configauditreports.aquasecurity.github.io", "clusterconfigauditreports.aquasecurity.github.io"]'
@@ -440,7 +504,7 @@ spec:
                 serviceAccountName: aqua-operator
                 containers:
                   - name: aqua-operator
-                    image: registry.connect.redhat.com/aquasec/aquasec@sha256:549e5d0003a7e2ff0f66cab1cddffeed5d4eb5136ce14bc1f658217706c9e251
+                    image: registry.connect.redhat.com/aquasec/aquasec@sha256:068fde2389081ba9aa8386640409c5fc691628b57ba53e0a460bf9b8e4235b0d
                     imagePullPolicy: Always
                     command:
                       - /manager
@@ -472,6 +536,10 @@ spec:
                         value: "registry.connect.redhat.com/aquasec/enforcer@sha256:6b293a3e72391a3d3fedb3589d8bb255692979aa6cf661a921d40215f13a696e"
                       - name: RELATED_IMAGE_KUBE_ENFORCER
                         value: "registry.connect.redhat.com/aquasec/kube-enforcer@sha256:bbe46bb4bde840d30a6cf9119b07fa9cd956a3c12c917606bee44d9332b48230"
+                      - name: RELATED_IMAGE_KUBE_BENCH
+                        value: "registry.connect.redhat.com/aquasec/kube-bench@sha256:3290c9bea8f3ed6561833b8c6c919da8a39969b67e348287387c4f0666c53db3"
+                      - name: RELATED_IMAGE_STARBOARD
+                        value: "registry.connect.redhat.com/aquasec/starboard@sha256:324a7dc07c84d577544aa880d35d215e6a05d698a800f4d3c8a033216f783298"
                     ports:
                       - containerPort: 60000
                         name: metrics

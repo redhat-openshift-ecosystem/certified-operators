@@ -1,0 +1,194 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.8.0-ocp
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: abinitio-runtime-operator.v4.2.2
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: CoOperatingSystemRuntimeClaim
+      name: cooperatingsystemruntimeclaims.cloud.abinitio.com
+      version: v1
+    - kind: CoOperatingSystemRuntimePoolMetric
+      name: cooperatingsystemruntimepoolmetrics.cloud.abinitio.com
+      version: v1
+    - kind: CoOperatingSystemRuntimePool
+      name: cooperatingsystemruntimepools.cloud.abinitio.com
+      version: v1
+    - kind: CoOperatingSystemRuntimeProfile
+      name: cooperatingsystemruntimeprofiles.cloud.abinitio.com
+      version: v1
+    - kind: CoOperatingSystemRuntime
+      name: cooperatingsystemruntimes.cloud.abinitio.com
+      version: v1
+    - kind: CoOperatingSystemRuntimeTemplate
+      name: cooperatingsystemruntimetemplates.cloud.abinitio.com
+      version: v1
+  description: Ab Initio Runtime Operator
+  displayName: Ab Initio Runtime Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - cloud.abinitio.com
+          resources:
+          - cooperatingsystemruntimeclaims
+          - cooperatingsystemruntimepoolmetrics
+          - cooperatingsystemruntimepools
+          - cooperatingsystemruntimeprofiles
+          - cooperatingsystemruntimes
+          - cooperatingsystemruntimetemplates
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - cloud.abinitio.com
+          resources:
+          - cooperatingsystemruntimeclaims/status
+          - cooperatingsystemruntimepoolmetrics/status
+          - cooperatingsystemruntimepools/status
+          - cooperatingsystemruntimeprofiles/status
+          - cooperatingsystemruntimes/status
+          - cooperatingsystemruntimetemplates/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - persistentvolumeclaims
+          - pods
+          - secrets
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - endpoints
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+          - update
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - metrics.k8s.io
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
+        serviceAccountName: abinitio-system-runtime-controller-manager
+      deployments:
+      - name: abinitio-system-runtime-controller-manager
+        spec:
+          replicas: 1
+          strategy:
+            type: Recreate
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: ab-runtime-operator
+              app.kubernetes.io/instance: abinitio-runtime-operator.v4.2.2
+              control-plane: runtime-controller-manager
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/name: ab-runtime-operator
+                app.kubernetes.io/instance: abinitio-runtime-operator.v4.2.2
+                control-plane: runtime-controller-manager
+            spec:
+              serviceAccountName: abinitio-system-runtime-controller-manager
+              securityContext:
+                fsGroup: 2000
+              containers:
+                - name: manager
+                  image: quay.io/abinitio/runtime-operator:V4-2-2
+                  imagePullPolicy: IfNotPresent
+                  command:
+                  - /manager
+                  args:
+                  - --metrics-addr=0.0.0.0:8080
+                  ports:
+                  - containerPort: 8080
+                    name: http
+                  volumeMounts:
+                  - name: ab-runtime-operator-config
+                    mountPath: /disk1/conf/
+                  - name: abinitio-job-metrics-storage
+                    mountPath: /abinitio
+                  env:
+                  - name: NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace
+                  - name: POD_NAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.name
+              volumes:
+                - name: ab-runtime-operator-config
+                  configMap:
+                    name: ab-runtime-operator-config
+                - name: abinitio-job-metrics-storage
+                  emptyDir:
+                    sizeLimit: 200Mi
+              terminationGracePeriodSeconds: 10
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - abinitio
+  - runtime
+  - operator
+  links:
+  - name: Abinitio Runtime Operator
+    url: https://abinitio-runtime-operator.domain
+  maintainers:
+  - email: "support@abinitio.com"
+    name: Ab Initio Support
+  maturity: alpha
+  provider:
+    name: Ab Initio
+  version: 4.2.2

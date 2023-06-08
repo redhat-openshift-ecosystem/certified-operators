@@ -46,6 +46,6 @@ Currently, the certification process supports the following options:
 
 * `cert_project_id` - Identifier of certification project created through Red Hat Connect.
 * `merge` - A boolean value that determines whether a new operator is automatically
-merged when passed all required checks. (optional, default: `True`)
+merged when passed all required checks. (optional, default: `True` maybe)
 
 [ci-pipeline]:   https://github.com/redhat-openshift-ecosystem/operator-pipelines

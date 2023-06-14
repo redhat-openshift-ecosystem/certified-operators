@@ -79,7 +79,9 @@ spec:
                     description: Name of secret containing DB credentials for this component
                     type: string
               global:
+                type: object
                 description: Platform configuration options
+                x-kubernetes-preserve-unknown-fields: true
                 properties:
                   <<: [*dbComponentProperties]
                   registry:
@@ -259,9 +261,65 @@ spec:
                   elk:
                     description: Install ELK stack
                     type: boolean
-                type: object
-                x-kubernetes-preserve-unknown-fields: true
-
+                  telemetry:
+                    type: object
+                    description: 'Configuration options related to collecting telemetry from the XL
+                                  instance.'
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: 'Whether the necessary components are there to collect
+                                      telemetry and store it locally. For telemetry to be sent
+                                      anywhere, the UI checkbox needs to also be checked.'
+                      secret:
+                        type: string
+                        description: 'An opaque token encapsulating one or more remote destinations
+                                      for telemetry and the means to authenticate with them.'
+                      scrapeInterval:
+                        type: string
+                        description: 'How often to collect telemetry. Should be in the Prometheus
+                                      duration format.'
+                      automatic:
+                        type: object
+                        description: 'Settings specific to automatic transmission of telemetry.'
+                        properties:
+                          enabled:
+                            type: boolean
+                            description: 'Whether to enable the subsystem responsible for automatic
+                                          transmission of telemetry. For telemetry to be sent
+                                          anywhere, the UI checkbox needs to also be checked.'
+                      frontEnd:
+                        type: object
+                        description: 'Settings specific to front-end telemetry.'
+                        properties:
+                          enabled:
+                            type: boolean
+                            description: 'Whether to enable the subsystem responsible for collection
+                                          of font-end telemetry. For telemetry to be sent anywhere,
+                                          the UI checkbox needs to also be checked.'
+                      plg:
+                        type: object
+                        description: Product Led Growth (PLG) configurations include AWS Prometheus parameters
+                        properties:
+                          enabled:
+                            description: If set to true will send metrics to AWS Prometheus remote endpoint
+                            type: boolean
+                          queue_config:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                            description: 'Number of samples to buffer per shard before we block reading of more samples from the WAL (write-ahead log).
+                                          properties here correspond to the queue_config options at
+                                          https://prometheus.io/docs/prometheus/latest/configuration/configuration/#remote_write'
+                            properties:
+                              max_samples_per_send:
+                                description: Max samples per send
+                                type: integer
+                              max_shards:
+                                description: Max shards configures the maximum number of shards, or parallelism, Prometheus will use for each remote write queue
+                                type: integer
+                              capacity:
+                                description: Capacity controls how many samples are queued in memory per shard before blocking reading from the WAL (write-ahead log)
+                                type: integer
               # Enable Platform
               nginxingress:
                 properties:
@@ -488,6 +546,9 @@ spec:
                     x-kubernetes-preserve-unknown-fields: true
                   enabled:
                     description: Enable extractor
+                    type: boolean
+                  enableAwsMsk:
+                    description: Enable MSK stream
                     type: boolean
                   logstash:
                     properties:
@@ -729,6 +790,12 @@ spec:
                       address:
                         type: string
                         description: the name that will be given to the exposed service
+                  workerConnections:
+                    description: Worker connections parameter
+                    type: integer
+                  workerProcesses:
+                    description: Worker processes parameter
+                    type: integer
                 type: object
               postgres:
                 properties:
@@ -1238,79 +1305,166 @@ spec:
                     type: boolean
                 type: object
               prometheus:
+                type: object
+                description: Configuration options related to Prometheus and supporting services.
                 properties:
                   enabled:
-                    description: Enable prometheus
                     type: boolean
+                    description: Whether the Prometheus component(s) should be enabled.
                   alertmanager:
-                    description:
-                    properties:
-                      resources:
-                        description: component resource configuration
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
                     type: object
+                    description: Configuration of Alert Manager container and assiciated side-cars.
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: Whether the Alert Manager pod should be created.
+                      useClusterRole:
+                        type: boolean
+                        description: Whether Alert Manager should use a cluster role and role binding.
+                      resources:
+                        type: object
+                        description: component resource configuration
+                        x-kubernetes-preserve-unknown-fields: true
                   configmapReload:
-                    description:
+                    type: object
+                    description: 'Configuration options related to side-cars responsible for keeping
+                                  in-memory configuration in sync with one mounted as a file.'
                     properties:
                       alertmanager:
-                        description: configuration for alertmanager configmap-reload container
+                        type: object
+                        description: Configuration for alertmanager configmap-reload container
                         properties:
+                          enabled:
+                            type: boolean
+                            description: 'Whether the Alert Manager configmap-reload side-car
+                                          container should be created.'
                           resources:
                             description: component resource configuration
                             type: object
                             x-kubernetes-preserve-unknown-fields: true
-                        type: object
                       prometheus:
-                        description: configuration for prometheus configmap-reload container
+                        type: object
+                        description: Configuration for prometheus configmap-reload container
                         properties:
+                          enabled:
+                            type: boolean
+                            description: 'Whether the Prometheus server configmap-reload side-car
+                                          container should be created.'
                           resources:
                             description: component resource configuration
                             type: object
                             x-kubernetes-preserve-unknown-fields: true
-                        type: object
-                    type: object
                   nodeExporter:
-                    description:
-                    properties:
-                      resources:
-                        description: component resource configuration
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
                     type: object
+                    description: Configuration of Node Exporter supporting component of Prometheus.
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: 'Whether the Node Exporter daemon should be created.'
+                      resources:
+                        type: object
+                        description: component resource configuration
+                        x-kubernetes-preserve-unknown-fields: true
+                  kube-state-metrics:
+                    type: object
+                    description: 'Configuration of Kube State Metrics exporter for Prometheus.'
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: 'Whether Kube State Metrics pod should be created.'
                   pushgateway:
-                    description:
+                    type: object
+                    description: Configuration of Push Gateway supporting component of Prometheus.
                     properties:
+                      enabled:
+                        type: boolean
+                        description: 'Whether the Push Gateway pod should be created.'
                       resources:
+                        type: object
                         description: component resource configuration
-                        type: object
                         x-kubernetes-preserve-unknown-fields: true
-                    type: object
                   server:
-                    description:
-                    properties:
-                      configManager:
-                        description: configuration for prometheus configuration manager sidecar sidecar container
-                        properties:
-                          resources:
-                            description: component resource configuration
-                            type: object
-                            x-kubernetes-preserve-unknown-fields: true
-                        type: object
-                      kafkaAdapter:
-                        description: configuration for prometheus to kafka adapter sidecar container
-                        properties:
-                          resources:
-                            description: component resource configuration
-                            type: object
-                            x-kubernetes-preserve-unknown-fields: true
-                        type: object
-                      resources:
-                        description: resource configuration for server container
-                        type: object
-                        x-kubernetes-preserve-unknown-fields: true
                     type: object
-                type: object
+                    description: Configuration of Prometheus server container and assiciated side-cars.
+                    x-kubernetes-preserve-unknown-fields: true
+                    properties:
+                      enabled:
+                        type: boolean
+                        description: 'Whether Prometheus server pod should be created.'
+                      useClusterRole:
+                        type: boolean
+                        description: 'Whether to use a cluster role and role binding for Prometheus
+                                      server allowing it to scrape all namespaces.'
+                      outOfTheBoxScrapeConfigs:
+                        type: object
+                        description: 'Commonly used, predefined groups of scrape jobs that can be
+                                      turned on and off.'
+                        properties:
+                          prometheus:
+                            type: object
+                            description: Scrape job for Prometheus server self-monitoring.
+                            properties:
+                              enabled:
+                                type: boolean
+                                description: Whether this group of targets should be scraped.
+                          kubernetes:
+                            type: object
+                            description: 'Scrape jobs for a wide variety of Kubernetes resources.
+                                          they are intended to scrape the whole Kubernetes cluster.'
+                            properties:
+                              enabled:
+                                type: boolean
+                                description: Whether this group of targets should be scraped.
+                          xl:
+                            type: object
+                            description: Scrape jobs for monitoring the XL components.
+                            properties:
+                              enabled:
+                                type: boolean
+                                description: Whether this group of targets should be scraped.
+                              lightweight:
+                                type: boolean
+                                description: 'Whether to strip down jobs to the minimum needed for
+                                              XL self-monitoring features, like turbo-on-turbo, or
+                                              use the full version.'
+                      configManager:
+                        type: object
+                        description: 'Configuration for Prometheus Configuration Manager sidecar
+                                      container.'
+                        properties:
+                          resources:
+                            type: object
+                            description: component resource configuration
+                            x-kubernetes-preserve-unknown-fields: true
+                      kafkaAdapter:
+                        type: object
+                        description: Configuration for Prometheus-to-Kafka adapter sidecar container
+                        properties:
+                          resources:
+                            type: object
+                            description: component resource configuration
+                            x-kubernetes-preserve-unknown-fields: true
+                      global:
+                        type: object
+                        description: Configuration common to all scrape jobs.
+                        properties:
+                          external_labels:
+                            type: object
+                            description: 'The labels to add to any time series or alert when
+                                          communicating with external systems (federation, remote
+                                          storage, Alertmanager).'
+                            properties:
+                              tenant_id:
+                                description: tenant id from SSM
+                                type: string
+                              iui:
+                                description: IBM unique id from SSM
+                                type: string
+                            x-kubernetes-preserve-unknown-fields: true
+                      resources:
+                        type: object
+                        description: resource configuration for server container
+                        x-kubernetes-preserve-unknown-fields: true
               hydra:
                 properties:
                   <<: [*dbComponentProperties]
@@ -4057,6 +4211,30 @@ spec:
                 type: object
               mediation-hyperv:
                 properties:
+                  winrm-proxy:
+                    description: winrm-proxy settings
+                    type: object
+                    properties:
+                      enabled:
+                        description: |-
+                          use winrm-proxy server to encrypt and decrypt all the messages
+                          sent over http
+                        type: boolean
+                      env:
+                        description: environment variables for winrm-proxy server
+                        type: object
+                        properties:
+                          logLevel:
+                            description: |-
+                              log level for winrm-proxy server, eg, debug, info,
+                              waring, error
+                            type: string
+                          serverWorker:
+                            description: how many request workers running in winrm-proxy server
+                            type: integer
+                          krbRenewHours:
+                            description: renew krb tickets after hours.
+                            type: integer
                   annotations:
                     description: component specific pod annotations list
                     type: object
@@ -5422,6 +5600,33 @@ spec:
                 type: object
               mediation-vmm:
                 properties:
+                  winrm-proxy:
+                    description: winrm-proxy settings
+                    type: object
+                    properties:
+                      enabled:
+                        description: |-
+                          use winrm-proxy server to encrypt and decrypt all the messages
+                          sent over http
+                        type: boolean
+                      env:
+                        description: environment variables for winrm-proxy server
+                        type: object
+                        properties:
+                          logLevel:
+                            description: |-
+                              log level for winrm-proxy server, eg, debug, info,
+                              waring, error
+                            type: string
+                          logPrefix:
+                            description: prefix for log
+                            type: string
+                          serverWorker:
+                            description: how many request workers running in winrm-proxy server
+                            type: integer
+                          krbRenewHours:
+                            description: renew krb tickets after hours.
+                            type: integer
                   annotations:
                     description: component specific pod annotations list
                     type: object
@@ -5913,6 +6118,9 @@ spec:
                         type: string
                       openIdJwkSetUri:
                         description: URI for the SSO provider JWK certificate endpoint
+                        type: string
+                      trialExpirationTime:
+                        description: For SAAS_TRIAL deploymentMode, when does the trial expire, in ISO 8601 Format
                         type: string
                     type: object
                     x-kubernetes-preserve-unknown-fields: true

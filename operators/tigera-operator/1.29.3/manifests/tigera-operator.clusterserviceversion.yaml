@@ -136,7 +136,350 @@ spec:
       mediatype: image/svg+xml
   install:
     spec:
-      deployments: [{spec: {template: {spec: {containers: [{image: 'quay.io/tigera/operator@sha256:2a5acd29d8dca6adb318af04dbb15d93d899ed2b28b2ee9aaac09147395efb58', name: tigera-operator}]}}, selector: {matchLabels: {name: tigera-operator}}}}]
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+                - pods
+                - podtemplates
+                - services
+                - endpoints
+                - events
+                - configmaps
+                - secrets
+                - serviceaccounts
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - delete
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - resourcequotas
+              verbs:
+                - list
+                - get
+                - watch
+            - apiGroups:
+                - ""
+              resourceNames:
+                - calico-critical-pods
+                - tigera-critical-pods
+              resources:
+                - resourcequotas
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - delete
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - nodes
+              verbs:
+                - get
+                - patch
+                - list
+                - watch
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterroles
+                - clusterrolebindings
+                - rolebindings
+                - roles
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - delete
+                - watch
+                - bind
+                - escalate
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - daemonsets
+                - statefulsets
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - delete
+                - watch
+            - apiGroups:
+                - apps
+              resourceNames:
+                - tigera-operator
+              resources:
+                - deployments/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - operator.tigera.io
+              resources:
+                - '*'
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - patch
+                - delete
+                - watch
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - networkpolicies
+              verbs:
+                - create
+                - update
+                - delete
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - crd.projectcalico.org
+              resources:
+                - felixconfigurations
+              verbs:
+                - create
+                - patch
+                - list
+                - get
+                - watch
+            - apiGroups:
+                - crd.projectcalico.org
+              resources:
+                - ippools
+                - kubecontrollersconfigurations
+                - bgpconfigurations
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - scheduling.k8s.io
+              resources:
+                - priorityclasses
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - delete
+                - watch
+            - apiGroups:
+                - policy
+              resources:
+                - poddisruptionbudgets
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - delete
+                - watch
+            - apiGroups:
+                - apiregistration.k8s.io
+              resources:
+                - apiservices
+              verbs:
+                - list
+                - watch
+                - create
+                - update
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - delete
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - csidrivers
+              verbs:
+                - list
+                - watch
+                - update
+                - get
+                - create
+                - delete
+            - apiGroups:
+                - config.openshift.io
+              resources:
+                - networks/status
+              verbs:
+                - get
+                - list
+                - update
+            - apiGroups:
+                - config.openshift.io
+              resources:
+                - networks
+                - infrastructures
+              verbs:
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - security.openshift.io
+              resources:
+                - securitycontextconstraints
+              verbs:
+                - create
+                - get
+                - list
+                - update
+                - delete
+                - watch
+            - apiGroups:
+                - security.openshift.io
+              resourceNames:
+                - hostaccess
+              resources:
+                - securitycontextconstraints
+              verbs:
+                - use
+            - apiGroups:
+                - crd.projectcalico.org
+              resources:
+                - bgpconfigurations
+                - bgppeers
+                - felixconfigurations
+                - kubecontrollersconfigurations
+                - globalnetworkpolicies
+                - globalnetworksets
+                - hostendpoints
+                - ippools
+                - networkpolicies
+                - networksets
+              verbs:
+                - create
+            - apiGroups:
+                - crd.projectcalico.org
+              resources:
+                - ipamblocks
+              verbs:
+                - list
+            - apiGroups:
+                - crd.projectcalico.org
+              resources:
+                - clusterinformations
+              verbs:
+                - get
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+                - cronjobs
+              verbs:
+                - create
+                - update
+                - list
+                - watch
+          serviceAccountName: tigera-operator
+      deployments:
+        - name: tigera-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                name: tigera-operator
+            strategy: {}
+            template:
+              metadata:
+                labels:
+                  k8s-app: tigera-operator
+                  name: tigera-operator
+              spec:
+                containers:
+                  - command:
+                      - operator
+                    env:
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: tigera-operator
+                      - name: TIGERA_OPERATOR_INIT_IMAGE_VERSION
+                        value: v1.29.3
+                    envFrom:
+                      - configMapRef:
+                          name: kubernetes-services-endpoint
+                          optional: true
+                    image: quay.io/tigera/operator@sha256:2a5acd29d8dca6adb318af04dbb15d93d899ed2b28b2ee9aaac09147395efb58
+                    imagePullPolicy: IfNotPresent
+                    name: tigera-operator
+                    resources: {}
+                    volumeMounts:
+                      - mountPath: /var/lib/calico
+                        name: var-lib-calico
+                        readOnly: true
+                dnsPolicy: ClusterFirstWithHostNet
+                hostNetwork: true
+                initContainers:
+                  - args:
+                      - --allow-version-mismatch
+                      - create
+                      - --skip-exists
+                      - --skip-empty
+                      - -f
+                      - /calico-resources
+                    command:
+                      - calicoctl
+                    env:
+                      - name: DATASTORE_TYPE
+                        value: kubernetes
+                    image: docker.io/calico/ctl:v3.25.1
+                    name: create-initial-resources
+                    resources: {}
+                    volumeMounts:
+                      - mountPath: /calico-resources
+                        name: calico-resources
+                nodeSelector:
+                  kubernetes.io/os: linux
+                serviceAccountName: tigera-operator
+                tolerations:
+                  - effect: NoExecute
+                    operator: Exists
+                  - effect: NoSchedule
+                    operator: Exists
+                volumes:
+                  - hostPath:
+                      path: /var/lib/calico
+                    name: var-lib-calico
+                  - configMap:
+                      defaultMode: 256
+                      name: calico-resources
+                    name: calico-resources
+                  - configMap:
+                      defaultMode: 511
+                      name: install-resources-script
+                    name: install-resources-script
     strategy: deployment
   installModes:
     - supported: true

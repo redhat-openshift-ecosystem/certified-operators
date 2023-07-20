@@ -537,7 +537,7 @@ spec:
               securityContext:
                 runAsNonRoot: true
               serviceAccountName: calisti-operator
-              terminationGracePeriodSeconds: 10
+              terminationGracePeriodSeconds: 60
       - label:
           control-plane: calisti-sdm-operator
         name: calisti-sdm-operator
@@ -588,6 +588,7 @@ spec:
                     - ALL
               - args:
                 - --metrics-addr=127.0.0.1:8080
+                - --health-probe-addr=:8081
                 - --webhook-server-port=9443
                 - --enable-leader-election
                 - --leader-election-namespace=
@@ -616,10 +617,20 @@ spec:
                   - containerPort: 9443
                     name: webhook-server
                     protocol: TCP
+                  - containerPort: 8081
+                    name: health-probes
+                    protocol: TCP
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: health-probes
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
                 readinessProbe:
-                  tcpSocket:
-                    port: 9443
-                  initialDelaySeconds: 5
+                  httpGet:
+                    path: /readyz
+                    port: health-probes
+                  initialDelaySeconds: 10
                   periodSeconds: 10
                 volumeMounts:
                   - mountPath: /tmp/k8s-webhook-server/serving-certs

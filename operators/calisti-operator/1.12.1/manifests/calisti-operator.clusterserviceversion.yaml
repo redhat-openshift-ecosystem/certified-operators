@@ -1,0 +1,723 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "smm.cisco.com/v1alpha1",
+          "kind": "ControlPlane",
+          "metadata": {
+            "name": "calisti-controlplane-example"
+          },
+          "spec": {
+            "certManager": {
+              "enabled": true,
+              "namespace": "cert-manager"
+            },
+            "clusterName": "cluster-name",
+            "clusterRegistry": {
+              "enabled": true,
+              "namespace": "cluster-registry"
+            },
+            "sdm": {
+              "enabled": true,
+              "namespace": "supertubes-control-plane"
+            },
+            "sdmApplicationManifest": {
+              "enabled": true,
+              "namespace": "supertubes-control-plane"
+            },
+            "log": {},
+            "meshManager": {
+              "enabled": true,
+              "istio": {
+                "enabled": true,
+                "istioCRRef": {
+                  "name": "cp-v115x",
+                  "namespace": "istio-system"
+                },
+                "operators": {
+                  "namespace": "smm-system"
+                }
+              },
+              "namespace": "smm-system"
+            },
+            "nodeExporter": {
+              "enabled": true,
+              "namespace": "smm-system",
+              "psp": {
+                "enabled": false
+              },
+              "rbac": {
+                "enabled": true
+              }
+            },
+            "oneEye": {},
+            "platform": "openshift",
+            "registryAccess": {
+              "enabled": true,
+              "imagePullSecretsController": {},
+              "namespace": "supertubes-control-plane",
+              "pullSecrets": [
+                {
+                  "name": "smm-registry.eticloud.io-pull-secret",
+                  "namespace": "supertubes-control-plane"
+                }
+              ]
+            },
+            "repositoryOverride": {
+              "host": "registry.eticloud.io",
+              "prefix": "smm"
+            },
+            "role": "active",
+            "smm": {
+              "als": {
+                "enabled": true,
+                "log": {}
+              },
+              "application": {
+                "enabled": true,
+                "log": {}
+              },
+              "auth": {
+                "mode": "impersonation"
+              },
+              "certManager": {
+                "enabled": true
+              },
+              "enabled": true,
+              "federationGateway": {
+                "enabled": true,
+                "name": "smm",
+                "service": {
+                  "enabled": true,
+                  "name": "smm-federation-gateway",
+                  "port": 80
+                }
+              },
+              "federationGatewayOperator": {
+                "enabled": true
+              },
+              "impersonation": {
+                "enabled": true
+              },
+              "istio": {
+                "revision": "cp-v115x.istio-system"
+              },
+              "leo": {
+                "enabled": true,
+                "log": {}
+              },
+              "log": {},
+              "namespace": "smm-system",
+              "prometheus": {
+                "enabled": true,
+                "replicas": 1
+              },
+              "prometheusOperator": {},
+              "releaseName": "smm",
+              "role": "active",
+              "sre": {
+                "enabled": true
+              },
+              "sdm": {
+                "enabled": true
+              },
+              "useIstioResources": true
+            }
+          }
+        },
+        {
+          "apiVersion": "supertubes.banzaicloud.io/v1beta1",
+          "kind": "ApplicationManifest",
+          "metadata": {
+            "name": "calisti-applicationmanifest-example",
+            "namespace": "supertubes-control-plane"
+          },
+          "spec": {
+            "clusterRegistry": {
+              "enabled": false,
+              "namespace": "cluster-registry"
+            },
+            "controllerSettings": {
+              "platform": "openshift"
+            },
+            "csrOperator": {
+              "enabled": true,
+              "namespace": "csr-operator-system",
+              "valuesOverride": "image:\n  repository: registry.eticloud.io/csro/csr-operator\n"
+            },
+            "imagePullSecretsOperator": {
+              "enabled": false,
+              "namespace": "supertubes-system"
+            },
+            "istioOperator": {
+              "enabled": false,
+              "namespace": "istio-system"
+            },
+            "kafkaMinion": {},
+            "kafkaOperator": {
+              "enabled": true,
+              "namespace": "kafka",
+              "valuesOverride": "alertManager:\n  permissivePeerAuthentication:\n    create: true\n"
+            },
+            "monitoring": {
+              "grafanaDashboards": {
+                "label": "app.kubernetes.io/supertubes_managed_grafana_dashboard"
+              },
+              "prometheusOperator": {
+                "enabled": true,
+                "namespace": "supertubes-system",
+                "valuesOverride": "prometheus:\n  prometheusSpec:\n    resources:\n      limits:\n        cpu: 2\n        memory: 4Gi\n      requests:\n        cpu: 1\n        memory: 2Gi\nprometheus-node-exporter:\n  service:\n    port: 9123\n    targetPort: 9123\nprometheusOperator:\n  admissionWebhooks:\n    createSecretJob:\n      securityContext:\n        allowPrivilegeEscalation: false\n        capabilities:\n          drop:\n          - ALL\n    patchWebhookJob:\n      securityContext:\n        allowPrivilegeEscalation: false\n        capabilities:\n          drop:\n          - ALL\n  containerSecurityContext:\n    capabilities:\n      drop:\n      - ALL\n  resources:\n    limits:\n      cpu: 400m\n      memory: 400Mi\n    requests:\n      cpu: 200m\n      memory: 200Mi\n"
+              }
+            },
+            "supertubes": {
+              "enabled": true,
+              "namespace": "supertubes-system",
+              "valuesOverride": "operator:\n  cruiseControlModules:\n    image:\n      repository: registry.eticloud.io/sdm/cruisecontrol-modules\n  image:\n    repository: registry.eticloud.io/sdm/supertubes\n  kafkaAuthAgent:\n    image:\n      repository: registry.eticloud.io/sdm/kafka-authn-agent\n  kafkaModules:\n    image:\n      repository: registry.eticloud.io/sdm/kafka-modules\nui-backend:\n  image:\n    repository: registry.eticloud.io/sdm/supertubes-ui\n  podLabels:\n    smm.cisco.com/jwt-auth-from-ingress: \"true\"\n"
+            },
+            "zookeeperOperator": {
+              "enabled": true,
+              "namespace": "zookeeper"
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2023-05-31T02:44:38Z"
+    operatorframework.io/suggested-namespace: supertubes-control-plane
+    operators.operatorframework.io/builder: operator-sdk-v1.28.0
+    operators.operatorframework.io/internal-objects: '["clusterfeatures.clusterregistry.k8s.cisco.com",
+      "clusters.clusterregistry.k8s.cisco.com", "resourcesyncrules.clusterregistry.k8s.cisco.com",
+      "metadata.extensions.cisco.com", "healthindicatorgroups.health.smm.cisco.com",
+      "healthindicators.health.smm.cisco.com", "network-attachment-definitions.k8s.cni.cncf.io",
+      "alertmanagerconfigs.monitoring.smm.cisco.com", "alertmanagers.monitoring.smm.cisco.com",
+      "podmonitors.monitoring.smm.cisco.com", "probes.monitoring.smm.cisco.com",
+      "prometheuses.monitoring.smm.cisco.com", "prometheusrules.monitoring.smm.cisco.com",
+      "servicemonitors.monitoring.smm.cisco.com", "thanosrulers.monitoring.smm.cisco.com",
+      "istiocontrolplanes.servicemesh.cisco.com", "istiomeshes.servicemesh.cisco.com",
+      "istiomeshgateways.servicemesh.cisco.com", "peeristiocontrolplanes.servicemesh.cisco.com",
+      "clouddoorgateways.smm.cisco.com", "demoapplications.smm.cisco.com", "istiooperators.smm.cisco.com",
+      "licenses.smm.cisco.com", "alertingpolicies.sre.smm.cisco.com", "alertingtemplates.sre.smm.cisco.com",
+      "servicelevelindicatortemplates.sre.smm.cisco.com", "servicelevelobjectives.sre.smm.cisco.com"]'
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: calisti-operator.v1.12.1
+  namespace: supertubes-control-plane
+spec:
+  replaces: calisti-operator.v1.12.0
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: ControlPlane is the Schema for the controlplanes API
+      kind: ControlPlane
+      displayName: Control Plane Resource
+      name: controlplanes.smm.cisco.com
+      version: v1alpha1
+    - description: ApplicationManifest is the Schema for the applicationmanifests API
+      kind: ApplicationManifest
+      name: applicationmanifests.supertubes.banzaicloud.io
+      displayName: Application Manifest Resource
+      version: v1beta1
+    - kind: AlertingPolicy
+      name: alertingpolicies.sre.smm.cisco.com
+      version: v1alpha1
+    - kind: AlertingTemplate
+      name: alertingtemplates.sre.smm.cisco.com
+      version: v1alpha1
+    - kind: AlertmanagerConfig
+      name: alertmanagerconfigs.monitoring.smm.cisco.com
+      version: v1alpha1
+    - kind: Alertmanager
+      name: alertmanagers.monitoring.smm.cisco.com
+      version: v1
+    - kind: ClouddoorGateway
+      name: clouddoorgateways.smm.cisco.com
+      version: v1alpha1
+    - kind: ClusterFeature
+      name: clusterfeatures.clusterregistry.k8s.cisco.com
+      version: v1alpha1
+    - kind: Cluster
+      name: clusters.clusterregistry.k8s.cisco.com
+      version: v1alpha1
+    - kind: DemoApplication
+      name: demoapplications.smm.cisco.com
+      version: v1alpha1
+    - kind: HealthIndicatorGroup
+      name: healthindicatorgroups.health.smm.cisco.com
+      version: v1alpha1
+    - kind: HealthIndicator
+      name: healthindicators.health.smm.cisco.com
+      version: v1alpha1
+    - kind: IstioControlPlane
+      name: istiocontrolplanes.servicemesh.cisco.com
+      version: v1alpha1
+    - kind: IstioMesh
+      name: istiomeshes.servicemesh.cisco.com
+      version: v1alpha1
+    - kind: IstioMeshGateway
+      name: istiomeshgateways.servicemesh.cisco.com
+      version: v1alpha1
+    - kind: IstioOperator
+      name: istiooperators.smm.cisco.com
+      version: v1alpha1
+    - kind: License
+      name: licenses.smm.cisco.com
+      version: v1alpha1
+    - kind: Metadata
+      name: metadata.extensions.cisco.com
+      version: v1alpha1
+    - kind: PeerIstioControlPlane
+      name: peeristiocontrolplanes.servicemesh.cisco.com
+      version: v1alpha1
+    - kind: PodMonitor
+      name: podmonitors.monitoring.smm.cisco.com
+      version: v1
+    - kind: Probe
+      name: probes.monitoring.smm.cisco.com
+      version: v1
+    - kind: Prometheus
+      name: prometheuses.monitoring.smm.cisco.com
+      version: v1
+    - kind: PrometheusRule
+      name: prometheusrules.monitoring.smm.cisco.com
+      version: v1
+    - kind: ResourceSyncRule
+      name: resourcesyncrules.clusterregistry.k8s.cisco.com
+      version: v1alpha1
+    - kind: ServiceLevelIndicatorTemplate
+      name: servicelevelindicatortemplates.sre.smm.cisco.com
+      version: v1alpha1
+    - kind: ServiceLevelObjective
+      name: servicelevelobjectives.sre.smm.cisco.com
+      version: v1alpha1
+    - kind: ServiceMonitor
+      name: servicemonitors.monitoring.smm.cisco.com
+      version: v1
+    - kind: ThanosRuler
+      name: thanosrulers.monitoring.smm.cisco.com
+      version: v1
+  description: |
+    Calisti is the industry's first multi cloud solution designed to simplify and secure the operations of cloud native
+    applications including event streaming applications. It simplifies managing Istio and and streaming applications using
+    Apache Kafka.
+
+    Calisti provides:
+    - Encryption, Observability and Traffic Management for Apache Kafka
+    - Automated operations, providing graceful upscaling/downscaling, self-healing, alert-based storage expansion and smooth zero-downtime upgrades
+    - Seamless and integrated security via Kubernetes-native declarative Apache Kafka ACL management, as well as zeroconfig mTLS for client applications
+    - High-Availability with rack awareness, availability zones and cross-cluster replication
+    - Disaster Recovery via Kubernetes snapshots
+    - Observability via Prometheus rules and Grafana dashboards
+
+    ### Prerequisites
+    1. Sign up for a free Calisti account [here](https://calisti.app/) or use existing Calisti account
+    2. Download the Calisti command-line tool from [download](https://console.calisti.app/connect-new-cluster) page, step 3
+    3. Create a namespace called supertubes-control-plane:
+
+        ```
+        $ kubectl create ns supertubes-control-plane
+        ```
+    4. Add a secret within the supertubes-control-plane namespace. Get your credentials from [here](https://calisti.app/download), step 2
+
+        ```bash
+        $ kubectl create secret docker-registry smm-registry.eticloud.io-pull-secret --docker-server=registry.eticloud.io --docker-username=<your-username> \
+            --docker-password=<your-password> -n supertubes-control-plane
+        ```
+    5. Create a secret named supertubes-manifest-controller-serving-cert with custom tls certs
+
+        ```
+        $ kubectl create secret generic supertubes-manifest-controller-serving-cert --from-file=tls.crt=server.crt --from-file=tls.key=server.key --from-file=ca.crt=ca.crt -n supertubes-control-plane
+        ```
+        If custom tls certs are not available, generate self-signed certs using following openssl and feed them to the above command
+        ```
+        $ openssl req -x509 -sha256 -newkey rsa:4096 -keyout ca.key -out ca.crt -days 365 -nodes -subj '/CN=Example Certificate Authority'
+        $ openssl req -new -newkey rsa:4096 -keyout server.key -out server.csr -nodes -subj '/CN=*.example.com'
+        $ openssl x509 -req -sha256 -days 365 -in server.csr -CA ca.crt -CAkey ca.key -set_serial 01 -out server.crt
+        ```
+    ### Install
+    Use OperatorHub for steps 1-3, detailed instructions are at [Adding Operators to a cluster](https://docs.openshift.com/container-platform/4.11/operators/admin/olm-adding-operators-to-cluster.html)
+    1. Install `calisti-operator` from OperatorHub using either the web console or CLI
+    2. Create a ControlPlane resource
+
+       **Note: Replace cluster-name with your OpenShift cluster name**
+
+    3. Create an ApplicationManifest resource
+
+    3. Wait until ControlPlane and ApplicationManifest resources status is `Succeeded`
+
+    4. Run this command to launch your dashboard, where you'll learn more about your cluster's health and resources(kafka clusters and cloud native apps)
+       ```bash
+       $ smm dashboard
+       ```
+
+    5. For more advanced configurations, please refer to the [Calisti docs](https://docs.calisti.app/) page
+
+  displayName: Calisti Operator
+  icon:
+  - base64data: PHN2ZyB3aWR0aD0iMTEzIiBoZWlnaHQ9IjM4IiB2aWV3Qm94PSIwIDAgMTEzIDM4IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPgo8ZyBjbGlwLXBhdGg9InVybCgjY2xpcDBfMjA5N18zODMyKSI+CjxwYXRoIGQ9Ik04MS42NDAyIDEwLjE5NTRDODIuODI0MyAxMC4xOTU0IDgzLjc4NDMgOS4yMzU0OCA4My43ODQzIDguMDUxMzJDODMuNzg0MyA2Ljg2NzE3IDgyLjgyNDMgNS45MDcyMyA4MS42NDAyIDUuOTA3MjNDODAuNDU2IDUuOTA3MjMgNzkuNDk2MSA2Ljg2NzE3IDc5LjQ5NjEgOC4wNTEzMkM3OS40OTYxIDkuMjM1NDggODAuNDU2IDEwLjE5NTQgODEuNjQwMiAxMC4xOTU0WiIgZmlsbD0iIzEzMjg0QyIvPgo8cGF0aCBkPSJNMTEwLjg1NSAxMC4xOTU0QzExMi4wMzkgMTAuMTk1NCAxMTIuOTk5IDkuMjM1NDggMTEyLjk5OSA4LjA1MTMyQzExMi45OTkgNi44NjcxNyAxMTIuMDM5IDUuOTA3MjMgMTEwLjg1NSA1LjkwNzIzQzEwOS42NzEgNS45MDcyMyAxMDguNzExIDYuODY3MTcgMTA4LjcxMSA4LjA1MTMyQzEwOC43MTEgOS4yMzU0OCAxMDkuNjcxIDEwLjE5NTQgMTEwLjg1NSAxMC4xOTU0WiIgZmlsbD0iIzEzMjg0QyIvPgo8cGF0aCBkPSJNNTMuNjExMSAyMS4wNzA1SDU2Ljk2MThDNTYuODU0NyAyMS43ODE0IDU2LjYwNzUgMjIuNDY0IDU2LjIzNDUgMjMuMDc4NkM1NS44NjE1IDIzLjY5MzMgNTUuMzcwMiAyNC4yMjc3IDU0Ljc4OSAyNC42NTA5QzUzLjY3MTIgMjUuNDcxIDUyLjI5MzIgMjUuODgxIDUwLjY1NDggMjUuODgxQzQ4LjQ4OSAyNS44ODEgNDYuODEzMiAyNS4xOTE1IDQ1LjYyNzYgMjMuODEyNkM0NC41NjIxIDIyLjU3ODIgNDQuMDI5MyAyMC45MTM4IDQ0LjAyOTMgMTguODE5M0M0NC4wMjkzIDE2LjM4MTggNDQuNzEgMTQuNTA2NyA0Ni4wNzE1IDEzLjE5NEM0Ny4yNTcyIDEyLjA1NzEgNDguNzkyOCAxMS40ODk1IDUwLjY3ODQgMTEuNDkxMkM1Mi40Mzg1IDExLjQ5MTIgNTMuODk0OSAxMS45NDQ4IDU1LjA0NzUgMTIuODUxOEM1Ni4wMzg0IDEzLjYxODQgNTYuNzAyNyAxNC43MzE0IDU2LjkwNjkgMTUuOTY3NEg1My41MTE5QzUzLjM3ODkgMTUuMzU5MyA1My4wMzU4IDE0LjgxNzUgNTIuNTQzIDE0LjQzNzFDNTIuMDMxMSAxNC4wNTMzIDUxLjQwNDEgMTMuODU0NCA1MC43NjQ1IDEzLjg3M0M1MC4yNTA5IDEzLjg1MDEgNDkuNzQwNSAxMy45NjQxIDQ5LjI4NTMgMTQuMjAzMUM0OC44MzAxIDE0LjQ0MjIgNDguNDQ2NiAxNC43OTc4IDQ4LjE3MzkgMTUuMjMzNkM0Ny42MTUgMTYuMDkwMiA0Ny4zMzU1IDE3LjMwODkgNDcuMzM1NSAxOC44ODk4QzQ3LjMzNTUgMjAuNDcwNyA0Ny43MTM0IDIxLjY4NTkgNDguNDY5IDIyLjUzNTVDNDguNzUxOCAyMi44NTAzIDQ5LjA5OTUgMjMuMDk5OSA0OS40ODgyIDIzLjI2NzFDNDkuODc2OCAyMy40MzQ0IDUwLjI5NzIgMjMuNTE1NCA1MC43MjAxIDIzLjUwNDRDNTEuNDA3NiAyMy41MzE1IDUyLjA4MTQgMjMuMzA3OSA1Mi42MTYxIDIyLjg3NTFDNTMuMTQwMyAyMi40MDE3IDUzLjQ5MDYgMjEuNzY2MyA1My42MTExIDIxLjA3MDVaIiBmaWxsPSIjMTMyODRDIi8+CjxwYXRoIGQ9Ik02Mi4wNDkgMTUuNzMyNEg1OC43ODcyQzU4Ljg3NzQgMTUuMDY3OCA1OS4xMTQ1IDE0LjQzMTYgNTkuNDgxMyAxMy44NzAxQzU5Ljg0ODEgMTMuMzA4NiA2MC4zMzU0IDEyLjgzNTkgNjAuOTA3OCAxMi40ODYyQzYxLjk3MTUgMTEuODIyOSA2My4zMDYgMTEuNDkxMiA2NC45MTEzIDExLjQ5MTJDNjYuODQ5MSAxMS40OTEyIDY4LjMyOSAxMS45ODgzIDY5LjM1MSAxMi45ODI0QzY5Ljc5MzggMTMuNDEyMiA3MC4xNDE1IDEzLjkzMDIgNzAuMzcxNCAxNC41MDI5QzcwLjYwMTMgMTUuMDc1NiA3MC43MDgzIDE1LjY5MDIgNzAuNjg1NSAxNi4zMDY5VjI1LjQ5NDVINjguMTczMUw2Ny43ODE0IDIzLjgxNzhDNjYuNzE1OSAyNS4xOTY3IDY1LjIwNjQgMjUuODg2MiA2My4yNTI5IDI1Ljg4NjJDNjEuNjk5OSAyNS44ODYyIDYwLjQ5NiAyNS40Njc1IDU5LjY0MTEgMjQuNjNDNTkuMjY5OSAyNC4yNjY4IDU4Ljk3ODEgMjMuODMwMyA1OC43ODQ0IDIzLjM0ODRDNTguNTkwNiAyMi44NjY1IDU4LjQ5OTEgMjIuMzQ5NiA1OC41MTU2IDIxLjgzMDRDNTguNTE1NiAyMC41NTYgNTguOTc3OCAxOS41NjEgNTkuOTAyMyAxOC44NDU0QzYwLjczOTcgMTguMTgyMSA2Mi4wMzk0IDE3LjcwMjQgNjMuODAxNCAxNy40MDY0TDY3LjU0MzggMTYuNzc3VjE2LjEyNDFDNjcuNTQzOCAxNS4zMDQxIDY3LjI3MzkgMTQuNjk0NyA2Ni43MzQyIDE0LjI5NkM2Ni4xNjc2IDEzLjkwMTkgNjUuNDg1NCAxMy43MDg5IDY0Ljc5NjQgMTMuNzQ3NkM2My4xODI0IDEzLjc0NDEgNjIuMjY2NiAxNC40MDU3IDYyLjA0OSAxNS43MzI0Wk02Ny41MzMzIDE4Ljg0NTRMNjQuNTc3IDE5LjM2NzdDNjMuNTYzNyAxOS41NTkyIDYyLjgzOTQgMTkuODI0NyA2Mi40MDQyIDIwLjE2NDJDNjIuMTg5MiAyMC4zMzIzIDYyLjAxNzcgMjAuNTQ5NiA2MS45MDQxIDIwLjc5NzdDNjEuNzkwNSAyMS4wNDU4IDYxLjczODEgMjEuMzE3NiA2MS43NTEzIDIxLjU5MDJDNjEuNzUxMyAyMi44NjQ2IDYyLjUyNzggMjMuNTAxOCA2NC4wODA4IDIzLjUwMThDNjQuNTUyNyAyMy41MTI4IDY1LjAyMjIgMjMuNDMwNiA2NS40NjIyIDIzLjI1OThDNjUuOTAyMyAyMy4wODkxIDY2LjMwNDQgMjIuODMzMiA2Ni42NDU0IDIyLjUwNjhDNjYuOTI1OSAyMi4yNTEzIDY3LjE0OTggMjEuOTQgNjcuMzAyNyAyMS41OTI3QzY3LjQ1NTYgMjEuMjQ1NSA2Ny41MzQyIDIwLjg3MDEgNjcuNTMzMyAyMC40OTA3VjE4Ljg0NTRaIiBmaWxsPSIjMTMyODRDIi8+CjxwYXRoIGQ9Ik03Ni44NzIyIDYuNjQ5NDFWMjUuNDk0NUg3My43MzgzVjYuNjQ5NDFINzYuODcyMloiIGZpbGw9IiMxMzI4NEMiLz4KPHBhdGggZD0iTTgzLjE3ODggMjUuNDk0M0g4MC4wNDQ5VjExLjg4MjhIODMuMTc4OFYyNS40OTQzWiIgZmlsbD0iIzEzMjg0QyIvPgo8cGF0aCBkPSJNODguNTk1IDIxLjYxODVDODguODQwNSAyMi45MjYxIDg5LjgyNjggMjMuNTgwNyA5MS41NTM5IDIzLjU4MjRDOTIuNTExNSAyMy41ODI0IDkzLjIzNDkgMjMuMzk5NiA5My43MjQxIDIzLjAzNEM5My45MTU1IDIyLjg5MiA5NC4wNzAxIDIyLjcwNjIgOTQuMTc1MSAyMi40OTIyQzk0LjI4IDIyLjI3ODIgOTQuMzMyMiAyMi4wNDIyIDk0LjMyNzQgMjEuODA0Qzk0LjMyNzQgMjEuMTU2MyA5My45Nzc0IDIwLjY3ODQgOTMuMjgyOCAyMC4zNjI0QzkyLjQyIDIwLjA1NyA5MS41MzY5IDE5LjgxMjYgOTAuNjM5OSAxOS42MzExQzg4Ljk2MzIgMTkuMjQ4MSA4Ny43NjggMTguNzI1OCA4Ny4wNTQyIDE4LjA2NDJDODYuNzAwNCAxNy43NDU0IDg2LjQyMDkgMTcuMzUyOCA4Ni4yMzU1IDE2LjkxNDJDODYuMDUgMTYuNDc1NiA4NS45NjMxIDE2LjAwMTYgODUuOTgwOCAxNS41MjU3Qzg1Ljk1ODEgMTQuOTE4IDg2LjA5NjEgMTQuMzE1IDg2LjM4MDggMTMuNzc3NkM4Ni42NjU1IDEzLjI0MDMgODcuMDg3IDEyLjc4NzUgODcuNjAyNiAxMi40NjVDODguNTYzNyAxMS44MjA4IDg5Ljg4MTYgMTEuNDk3OCA5MS41NTY1IDExLjQ5NjFDOTMuMjgxOSAxMS40OTYxIDk0LjY2ODYgMTEuOTA2MSA5NS43MTY3IDEyLjcyNjFDOTYuNjIwMiAxMy40MTkzIDk3LjIyNzcgMTQuNDI4OSA5Ny40MTY5IDE1LjU1MTlIOTQuMjIyOUM5My45NiAxNC4zODU0IDkzLjA1MjEgMTMuODAxMiA5MS40OTkxIDEzLjc5OTVDODkuOTQ2MSAxMy43OTc4IDg5LjE2MjYgMTQuMjc3NCA4OS4xNDg2IDE1LjIzODVDODkuMTM3NiAxNS40NTkzIDg5LjE4NzkgMTUuNjc4OSA4OS4yOTM5IDE1Ljg3MjlDODkuMzk5OSAxNi4wNjcgODkuNTU3NSAxNi4yMjc5IDg5Ljc0OTMgMTYuMzM3OUM5MC4xNTE1IDE2LjU4MzQgOTAuOTYyOCAxNi44NTQyIDkyLjE4MzMgMTcuMTUwMUM5NC4wNjg5IDE3LjU4NTQgOTUuMzc0NiAxOC4wNzM4IDk2LjEwMDcgMTguNjE1MkM5Ni41NTE1IDE4Ljk0MTkgOTYuOTE0MiAxOS4zNzU0IDk3LjE1NjIgMTkuODc2OEM5Ny4zOTgyIDIwLjM3ODEgOTcuNTEyIDIwLjkzMTggOTcuNDg3NCAyMS40ODhDOTcuNTA4MyAyMi4xNDM1IDk3LjM2MDYgMjIuNzkzNSA5Ny4wNTgzIDIzLjM3NTZDOTYuNzU2IDIzLjk1NzcgOTYuMzA5NCAyNC40NTI1IDk1Ljc2MTIgMjQuODEyNUM5NC43MTY1IDI1LjUyODEgOTMuMzAyOCAyNS44ODU4IDkxLjUxOTkgMjUuODg1OEM4OS42NTUzIDI1Ljg4NTggODguMTY0MSAyNS40NDEgODcuMDQ2MyAyNC41NTEzQzg2LjU4OTcgMjQuMTk3MyA4Ni4yMDg2IDIzLjc1NTQgODUuOTI1NSAyMy4yNTE3Qzg1LjY0MjUgMjIuNzQ4IDg1LjQ2MzMgMjIuMTkyNyA4NS4zOTg0IDIxLjYxODVIODguNTk1WiIgZmlsbD0iIzEzMjg0QyIvPgo8cGF0aCBkPSJNMTA2LjczMyAyMy4xOTExVjI1LjU3MjhDMTA2LjA1NSAyNS43NzM0IDEwNS4zNTEgMjUuODc4OSAxMDQuNjQ0IDI1Ljg4NjJDMTAzLjMwMiAyNS44ODYyIDEwMi4yODEgMjUuNDg0OSAxMDEuNTgzIDI0LjY4MjNDMTAwLjk4OCAyMy45OTk4IDEwMC42OTEgMjMuMDg0IDEwMC42OTMgMjEuOTM0OVYxNC4yOTA4SDk4LjY1MDRWMTEuODgzSDEwMC43TDEwMC45MDkgOC42MTMyOEgxMDMuODM0VjExLjg4M0gxMDYuNzA3VjE0LjI5MDhIMTAzLjgzNFYyMi4wMzk0QzEwMy44MzQgMjIuOTQ2NCAxMDQuMjk3IDIzLjQgMTA1LjIyNCAyMy40QzEwNS43MzMgMjMuMzg0MyAxMDYuMjM5IDIzLjMxNDMgMTA2LjczMyAyMy4xOTExWiIgZmlsbD0iIzEzMjg0QyIvPgo8cGF0aCBkPSJNMTEyLjI2MyAyNS40OTQzSDEwOS4xMjlWMTEuODgyOEgxMTIuMjYzVjI1LjQ5NDNaIiBmaWxsPSIjMTMyODRDIi8+CjxwYXRoIGQ9Ik0zMC41MDYyIDM1LjI5ODFDMzEuNzI3NyAzNC40Njg3IDMyLjg1MjUgMzMuNTA1MiAzMy44NTk1IDMyLjQyNTRDMzAuODk4IDMwLjczMzEgMjcuNzM1MyAyOS40NjEyIDI0LjU2MjMgMjguMjA1MUMyMy4xNTQ5IDI5LjAwNDEgMjEuNzk5NCAyOS44OTExIDIwLjUwMzkgMzAuODYxQzIzLjkwMTYgMzIuMjI0MyAyNy4zMTQ5IDMzLjUzMDEgMzAuNTA2MiAzNS4yOTgxWiIgZmlsbD0iIzAyQjlFOCIvPgo8cGF0aCBkPSJNNS41MTAzNiAxNS44MjMyQzQuNzY4NjcgMTQuODM4NiA0LjA3NjYxIDEzLjgxNDkgMy40MzkzOSAxMi43NjUxQzMuMDI5MzcgMTIuMDkxMyAyLjUzNTc4IDExLjE5ODEgMi4wMDgyNSAxMC4yMTA5QzEuMTgwMSAxMS44NTAxIDAuNTg3NTE4IDEzLjU5NzkgMC4yNDgwNDcgMTUuNDAyN0MwLjg3MTM0MSAxNi40NTk2IDEuNTQ1MTMgMTcuNDg1OSAyLjI2OTQgMTguNDgxOEMzLjAyMjk4IDE3Ljc2MDIgMy44MTgyNyAxNy4wODM1IDQuNjUxMTUgMTYuNDU1MkM0LjkzMzIgMTYuMjM4NCA1LjIyMzA5IDE2LjAzMjEgNS41MTAzNiAxNS44MjMyWiIgZmlsbD0iIzAyQjlFOCIvPgo8cGF0aCBkPSJNMTkuODI2NyAyNi4yOTAyQzE4LjYwNzEgMjUuNzY3OSAxNy4zOTc5IDI1LjIxNDMgMTYuMjE0OSAyNC42MTFMMTUuNTcyNCAyNC4yNzE1QzE0LjMzODIgMjUuMTE0NSAxMy4xNjUzIDI2LjA0MzkgMTIuMDYyNSAyNy4wNTI4QzEyLjQ1MTYgMjcuMjY5NiAxMi44NDYgMjcuNDc4NSAxMy4yMzUxIDI3LjY4MjJDMTQuMTYyMiAyOC4xNTc1IDE1LjEwNSAyOC41OTg5IDE2LjA1ODIgMjkuMDIxOUMxNi43NzczIDI4LjQxNiAxNy41MjI0IDI3Ljg0MzIgMTguMjkzNyAyNy4zMDM1QzE4Ljc5NTEgMjYuOTUxIDE5LjMwOTYgMjYuNjE2NyAxOS44MjY3IDI2LjI5MDJaIiBmaWxsPSIjMDJCOUU4Ii8+CjxwYXRoIGQ9Ik05Ljk4NjEgMjAuNTU4MkM5LjM4NTQ0IDIwLjA2MiA4LjgxMzUxIDE5LjUzNDQgOC4yNjI0NiAxOC45OTEyQzcuMTEzMTUgMTkuODMyMSA2LjAyNzI5IDIwLjc1NjUgNS4wMTM2NyAyMS43NTY5QzUuNzMyNjUgMjIuNDk2NyA2LjQ5MzkgMjMuMTk0MyA3LjI5MzU3IDIzLjg0NjFDNy42NDYxMyAyNC4xMzYgOC4wMDkxNCAyNC40MTI4IDguMzc3MzcgMjQuNjg3MUM5LjQxOTYyIDIzLjY3NDIgMTAuNTM0MiAyMi43Mzg1IDExLjcxMjMgMjEuODg3NEMxMS4xMjIxIDIxLjQ2OTYgMTAuNTQyNCAyMS4wMjgyIDkuOTg2MSAyMC41NTgyWiIgZmlsbD0iIzAyQjlFOCIvPgo8cGF0aCBkPSJNMjQuNTAyMiAxMC4yNTg1QzI1LjY1MzkgOS42MzY5OCAyNi43ODk5IDguOTgxNDcgMjcuODk3MiA4LjI2ODUxQzI5LjYwODMgNy4xNjk4OSAzMS4yMDgxIDUuOTA2ODcgMzIuNjczOCA0LjQ5NzQxQzMxLjYwMjMgMy41Mjc0NiAzMC40MjY5IDIuNjc4NzggMjkuMTY5MSAxLjk2NjhDMjcuMzc1NyAzLjYxNTg2IDI1LjQwNyA1LjA2MzQ3IDIzLjI5ODMgNi4yODM3MkMyMi41MzIyIDYuNzM2MzkgMjEuNzU1NyA3LjE3MTY2IDIwLjk2ODggNy41ODk1MUMyMS44ODg2IDguNDE3OTUgMjIuODY3IDkuMTc5MDIgMjMuODk2MyA5Ljg2NjhDMjQuMDkyMiA5Ljk5NzM4IDI0LjI5ODUgMTAuMTI1MyAyNC41MDIyIDEwLjI1ODVaIiBmaWxsPSIjMTk1NEEyIi8+CjxwYXRoIGQ9Ik0xNi4wMTY1IDE0LjQ0MThDMTcuNDA4NCAxMy43NTQ5IDE4LjgxMDkgMTMuMDkxNiAyMC4yMTA3IDEyLjQyMDRDMjAuMDM4MyAxMi4yOTUxIDE5Ljg2NTkgMTIuMTcyMyAxOS42ODgzIDEyLjA0NDRDMTguNzAzNyAxMS4yOTU0IDE3Ljc3MTcgMTAuNDc5NiAxNi44OTkyIDkuNjAyNTRDMTUuNTkzNCAxMC4yMzQ1IDE0LjI2NjcgMTAuODU4NyAxMi45NjA5IDExLjUwMzhDMTMuOTA1NSAxMi41NTczIDE0LjkyNjggMTMuNTM5MyAxNi4wMTY1IDE0LjQ0MThaIiBmaWxsPSIjMTk1NEEyIi8+CjxwYXRoIGQ9Ik0xMC4xMDA5IDE3LjcxOTlDMTAuNzE5OSAxNy4zMjAzIDExLjM1NDUgMTYuOTM2NCAxMS45OTE3IDE2LjU3MDhDMTAuOTYyNCAxNS42MjQgMTAuMDAyNCAxNC42MDQ2IDkuMTE4OTkgMTMuNTIwNUM3Ljg3MjUxIDE0LjIyNTEgNi42NjM0NyAxNC45OTM5IDUuNDk2NzQgMTUuODIzOUM1LjIwOTQ3IDE2LjAzMDIgNC45MTk1OCAxNi4yMzkxIDQuNjM3NTMgMTYuNDU1OUMzLjgwNDY1IDE3LjA4NDMgMy4wMDkzNiAxNy43NjA5IDIuMjU1NzggMTguNDgyNUMxLjQ1MTIyIDE5LjI1MjIgMC42OTMzODQgMjAuMDY5NCAtMC4wMTM2NzE5IDIwLjkyOTVDMC4xNjEwNSAyMi43Njc2IDAuNTk0NDk3IDI0LjU3MTcgMS4yNzM4MyAyNi4yODg1QzIuMTE3MjQgMjUuMDA0OCAzLjA2Nzc2IDIzLjc5NDggNC4xMTUyMiAyMi42NzE0QzQuMzk5ODggMjIuMzU4MSA0LjY5NzYgMjIuMDUyNSA1LjAwMDU0IDIxLjc1NDhDNi4wMTQxNiAyMC43NTQ0IDcuMTAwMDIgMTkuODMwMSA4LjI0OTMzIDE4Ljk4OTFDOC44NjMwNSAxOC41NDc4IDkuNDc0MTYgMTguMTIyMSAxMC4xMDA5IDE3LjcxOTlaIiBmaWxsPSIjMTk1NEEyIi8+CjxwYXRoIGQ9Ik0yMC4yMTE4IDEyLjQyMDZDMjEuNTQ2IDEzLjM4MjggMjIuOTQ2NyAxNC4yNDk0IDI0LjQwMzMgMTUuMDEzOUMyNS45MTI4IDE0LjI3NzQgMjcuNDExOSAxMy41MTc1IDI4Ljg3NDMgMTIuNjg5NkMyNy4zNjc1IDExLjk3MTcgMjUuOTA3MyAxMS4xNTk3IDI0LjUwMjYgMTAuMjU4MkMyNC4yOTg5IDEwLjEyNSAyNC4wOTI2IDkuOTk3MDYgMjMuODkxNSA5Ljg1ODY1QzIyLjg2MjIgOS4xNzA4NyAyMS44ODM4IDguNDA5ODEgMjAuOTYzOSA3LjU4MTM3QzE4LjU0OTMgNS4zODU2MyAxNi40ODczIDIuODMxMTggMTQuODUwMiAwLjAwNzgxMjVDMTMuNTA5NyAwLjMzNTMwNiAxMi4yMDc5IDAuODA0NTUgMTAuOTY2OCAxLjQwNzYxQzExLjUzNjEgMi40NTIyNCAxMi4xMzQyIDMuNDY4MTQgMTIuNzgxOCA0LjQ2NTc2QzEzLjk2OTUgNi4zMjQ3NCAxNS4zNTM3IDguMDUwNDggMTYuOTEwNyA5LjYxMzE3QzE3Ljc4MzMgMTAuNDkwMiAxOC43MTUyIDExLjMwNjEgMTkuNjk5OSAxMi4wNTVDMTkuODY3IDEyLjE3MjUgMjAuMDM5NCAxMi4yOTUzIDIwLjIxMTggMTIuNDIwNloiIGZpbGw9IiM3NkJGNEEiLz4KPHBhdGggZD0iTTI5LjI3MjIgMjUuNzU1M0MyNy42MTkgMjUuMDg5NCAyNS45NTgxIDI0LjQ0OTUgMjQuMzEwMiAyMy43NzA1QzIyLjc4MjQgMjQuNTU0IDIxLjI3ODEgMjUuMzc0IDE5LjgyNjEgMjYuMjkwN0MxOS4zMDM4IDI2LjYxNzEgMTguNzgxNSAyNi45NTE0IDE4LjI5MzEgMjcuMzA0QzE3LjUyMTggMjcuODQzNyAxNi43NzY3IDI4LjQxNjUgMTYuMDU3NiAyOS4wMjI0QzE1LjE0NCAyOS43ODgxIDE0LjI4MTIgMzAuNjEyNCAxMy40NzQ4IDMxLjQ5MDNDMTIuMTUyIDMyLjkzNTMgMTAuOTc4NyAzNC41MTAyIDkuOTcyNjYgMzYuMTkxMUMxMS4yMTQyIDM2Ljg4MjkgMTIuNTI3OCAzNy40MzY0IDEzLjg5IDM3Ljg0MTZDMTUuNjg1OSAzNS4xNjA2IDE3LjkyNDYgMzIuODA0NSAyMC41MTAzIDMwLjg3NEMyMS44MDU4IDI5LjkwNDEgMjMuMTYxMyAyOS4wMTcgMjQuNTY4NyAyOC4yMThDMjQuODQ1NSAyOC4wNjEzIDI1LjEyMjQgMjcuOTA0NiAyNS40MDE4IDI3Ljc1MzJDMjYuNjY1OCAyNy4wNDI4IDI3Ljk2MzggMjYuMzg5OSAyOS4yNzIyIDI1Ljc1NTNaIiBmaWxsPSIjNzZCRjRBIi8+CjxwYXRoIGQ9Ik0yNC4zNjI2IDE5LjQyNzdDMjIuODE0IDIwLjE2OTQgMjEuMjczMiAyMC45MjY4IDE5Ljc2MzcgMjEuNzQxNkMyMC4xMjU4IDIxLjkxNTcgMjAuNDkwNiAyMi4wODk4IDIwLjg1NzkgMjIuMjYzOUMyMS45OTY2IDIyLjc4NjIgMjMuMTQ4MyAyMy4yODc2IDI0LjMxMDQgMjMuNzYyOUMyNS45NTgzIDI0LjQzOTMgMjcuNjE5MyAyNS4wODE4IDI5LjI3MjQgMjUuNzQ3N0MzMC43MDA5IDI2LjMyNDkgMzIuMTI0MiAyNi45MTc3IDMzLjUyMTQgMjcuNTc1OEMzNC4xNzQzIDI3Ljg3NjIgMzUuMjkyMSAyOC40ODk5IDM2LjM2MjggMjkuMDk1OEMzNy4wNzcxIDI3LjkwMTIgMzcuNjYxIDI2LjYzMzQgMzguMTA0NyAyNS4zMTQyQzM3LjY5MjEgMjUuMDg3IDM3LjM0MjEgMjQuODk5IDM3LjEzNTggMjQuNzkxOUMzNi4xMzU2IDI0LjMwNjEgMzUuMTE0NSAyMy44NTQzIDM0LjA4ODEgMjMuNDIwOEMzMi40NDU1IDIyLjcyMzUgMzAuNzgxOSAyMi4wNzMzIDI5LjEyNjEgMjEuNDEyNUMyNy41MiAyMC43OTEgMjUuOTI3IDIwLjE0MDcgMjQuMzYyNiAxOS40Mjc3WiIgZmlsbD0iIzAyQjlFOCIvPgo8cGF0aCBkPSJNMTEuOTkyNCAxNi41NzAzQzEyLjYxNTcgMTcuMTQ2NiAxMy4yNjY4IDE3LjY5MjQgMTMuOTQ1OCAxOC4yMDc3QzE0LjQ5NDMgMTguNjI1NiAxNS4wNTg0IDE5LjAxOTkgMTUuNjMyOSAxOS40MDEyQzE3LjA0MDYgMTguNjE3OCAxOC40ODQ4IDE3Ljg3MDkgMTkuOTQyIDE3LjE2MDVDMTkuMzMwOSAxNi43OTc1IDE4LjcyNzYgMTYuNDI0IDE4LjEzNzQgMTYuMDIxOUMxNy40MDQyIDE1LjUzNjIgMTYuNjk2NCAxNS4wMTMyIDE2LjAxNjggMTQuNDU0OUMxNC45MzA3IDEzLjU1MiAxMy45MTI5IDEyLjU3IDEyLjk3MTcgMTEuNTE2OUMxMS40NzAzIDkuODI2NSAxMC4xNDMgNy45ODkxMyA5LjAwOTk4IDYuMDMyNjFDOC41MTYzOSA1LjE5NjkxIDguMDUxNTMgNC4zNDU1MyA3LjU5OTczIDMuNDg2MzNDNi43MzM2MyA0LjE0NzYyIDUuOTI0NjggNC44ODA1NyA1LjE4MTQyIDUuNjc3NDNDNC45Njk4OCA1LjkwMjAzIDQuNzY4NzkgNi4xMzE4NSA0LjU3MDMxIDYuMzY0MjdDNS4zMjc2NyA3LjgxODkyIDYuMTM3MjYgOS4yNTAwNiA3LjAyNzggMTAuNjMxNkM3LjY3NDMzIDExLjYzNzUgOC4zNzcwOSAxMi42MDYyIDkuMTMyNzIgMTMuNTMzQzEwLjAxMjQgMTQuNjEyMiAxMC45NjgxIDE1LjYyNzIgMTEuOTkyNCAxNi41NzAzWiIgZmlsbD0iIzAyQjlFOCIvPgo8cGF0aCBkPSJNMTkuMjU2OSAyMi4wMTc3TDE5Ljc2MzYgMjEuNzU2NUMyMS4yNzMxIDIwLjk0MTcgMjIuODEzOSAyMC4xODk2IDI0LjM2MjYgMTkuNDQyN0MyNS45MTEyIDE4LjY5NTggMjcuNDc4MiAxNy45NTkzIDI5LjAxOSAxNy4xODExQzI5LjgwMjUgMTYuNzg2NyAzMC41ODU5IDE2LjM5NzYgMzEuMzM1NSAxNS45NjQxQzMyLjA4NSAxNS41MzA2IDMyLjc4NDkgMTUuMTU0NSAzMy40OSAxNC43MTg0QzM0Ljk2NSAxMy44MTE3IDM2LjM3MDQgMTIuNzk2NSAzNy42OTQ2IDExLjY4MTFDMzcuMTQ4MSAxMC4zMzEyIDM2LjQ1MTYgOS4wNDY5OCAzNS42MTg0IDcuODUyNTRDMzMuOTM1NSA5LjQwNTY4IDMyLjA5NzggMTAuNzgyMiAzMC4xMzQxIDExLjk2MDVDMjkuNzE2MyAxMi4yMjE3IDI5LjI5MzIgMTIuNDU5MyAyOC44NzAxIDEyLjY5OTZDMjcuNDA3NyAxMy41Mjc1IDI1LjkwODYgMTQuMjg3NSAyNC4zOTkxIDE1LjAyMzlDMjIuODg5NiAxNS43NjA0IDIxLjQxOTMgMTYuNDQ3MiAxOS45Mzg2IDE3LjE3MDZDMTguNDU3OCAxNy44OTQgMTcuMDM3MSAxOC42MTQ4IDE1LjYyOTUgMTkuNDExM0MxNC40NDEyIDIwLjA4MjUgMTMuMjc5MSAyMC43OTgxIDEyLjE1MzUgMjEuNTg2OEwxMS43MDk1IDIxLjkwMjhDMTAuNTMxNCAyMi43NTM4IDkuNDE2NzkgMjMuNjg5NSA4LjM3NDU0IDI0LjcwMjRDOC4wMTkzNyAyNS4wNDk3IDcuNjY5NDIgMjUuNDA0OSA3LjMyOTkxIDI1Ljc3MDVDNS45NTc3IDI3LjI2OTEgNC43NDU0OCAyOC45MDY3IDMuNzEyODkgMzAuNjU2OEM0LjQzNDgzIDMxLjYzODUgNS4yNDUxOSAzMi41NTIgNi4xMzM4MSAzMy4zODU5QzYuMzAzNTYgMzMuNTQ1MiA2LjQ4MTE1IDMzLjY5NCA2LjY1NjEzIDMzLjg0NTVDNy41OTU1OCAzMi4yMjIzIDguNjg1OTQgMzAuNjkxMiA5LjkxMjc1IDI5LjI3MjZDMTAuNTg1NyAyOC40OTAxIDExLjMwNDIgMjcuNzQ4IDEyLjA2NDcgMjcuMDUwMkMxMy4xNjM0IDI2LjA0MjcgMTQuMzMxOSAyNS4xMTQxIDE1LjU2MTYgMjQuMjcxNUMxNi43NTMxIDIzLjQ1NiAxNy45ODY2IDIyLjcwMzggMTkuMjU2OSAyMi4wMTc3WiIgZmlsbD0iIzE5NTRBMiIvPgo8cGF0aCBkPSJNMzkuMDY2OSAyMC43ODUxQzM5LjE3NzkgMTkuNTIzOSAzOS4xNjc0IDE4LjI1NSAzOS4wMzU1IDE2Ljk5NTdDMzkuMDM1NSAxNi45OTU3IDM1LjAxODkgMTUuMzIxNyAzMy41MDQyIDE0LjcwOEMzMi43OTkxIDE1LjE0NDEgMzIuMDc4MyAxNS41NTk0IDMxLjM0OTcgMTUuOTUzN0MzMC42MjEgMTYuMzQ4MSAyOS44MTE1IDE2Ljc3NjQgMjkuMDMzMiAxNy4xNzA3QzMwLjYwMDEgMTcuODM2NyAzMi4yMDM3IDE4LjQ2MzQgMzMuNzk0MSAxOS4wOTU0QzMyLjI2MzcgMTkuOTE1NSAzMC43MDIgMjAuNjYyNCAyOS4xMzUxIDIxLjQyNUMzMC43OTYgMjIuMDg1NyAzMi40NTk2IDIyLjczMDggMzQuMDk3IDIzLjQzMzNDMzUuMjMwNSAyMi44NzE4IDM4Ljg4NCAyMC44ODcgMzkuMDY2OSAyMC43ODUxWiIgZmlsbD0iIzc2QkY0QSIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzIwOTdfMzgzMiI+CjxyZWN0IHdpZHRoPSIxMTMiIGhlaWdodD0iMzcuODM5IiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo=
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          - configmaps
+          - pods
+          - secrets
+          - serviceaccounts
+          - services
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - acme.cert-manager.io
+          - admissionregistration.k8s.io
+          - apiextensions.k8s.io
+          - apiregistration.k8s.io
+          - apps
+          - authentication.k8s.io
+          - authorization.k8s.io
+          - autoscaling
+          - batch
+          - certificates.k8s.io
+          - cert-manager.io
+          - discovery.k8s.io
+          - extensions
+          - k8s.cni.cncf.io
+          - networking.k8s.io
+          - networking.x-k8s.io
+          - policy
+          - rbac.authorization.k8s.io
+          - route.openshift.io
+          - storage.k8s.io
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - authentication.istio.io
+          - config.istio.io
+          - cloud.istio.io
+          - istio.istio.io
+          - networking.istio.io
+          - rbac.istio.io
+          - scalingpolicy.istio.io
+          - security.istio.io
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - apiGroups:
+          - clusterregistry.k8s.cisco.com
+          - deployments.banzaicloud.io
+          - graphql.cisco.com
+          - health.smm.cisco.com
+          - images.banzaicloud.io
+          - istio.banzaicloud.io
+          - kafka.banzaicloud.io
+          - monitoring.coreos.com
+          - monitoring.smm.cisco.com
+          - servicemesh.cisco.com
+          - smm.cisco.com
+          - sre.smm.cisco.com
+          - supertubes.banzaicloud.io
+          - zookeeper.pravega.io
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - delete
+        serviceAccountName: calisti-operator
+      deployments:
+      - label:
+          control-plane: calisti-smm-operator
+        name: calisti-smm-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: calisti-smm-operator
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: smm-manager
+              labels:
+                control-plane: calisti-smm-operator
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - arm64
+                        - ppc64le
+                        - s390x
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                - --tls-cipher-suites=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256
+                image: registry.eticloud.io/smm/kube-rbac-proxy@sha256:3f478e52e232cd3691595b2c9da4d6ed8623af76f025b58270ac5f89f24dd916
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --metrics.addr=127.0.0.1:8080
+                - --leaderElection.enabled
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: registry.eticloud.io/smm/smm-operator-rh-ubi8@sha256:5a3ee148815df7ae5dc760aa597b4acc5f23a084a558bccc3d1af0177f75f8cf
+                name: smm-manager
+                resources:
+                  requests:
+                    cpu: 200m
+                    memory: 256Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              imagePullSecrets:
+              - name: smm-registry.eticloud.io-pull-secret
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: calisti-operator
+              terminationGracePeriodSeconds: 60
+      - label:
+          control-plane: calisti-sdm-operator
+        name: calisti-sdm-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: calisti-sdm-operator
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: sdm-manager
+              labels:
+                control-plane: calisti-sdm-operator
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - arm64
+                        - ppc64le
+                        - s390x
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=10
+                image: registry.eticloud.io/smm/kube-rbac-proxy@sha256:3f478e52e232cd3691595b2c9da4d6ed8623af76f025b58270ac5f89f24dd916
+                name: rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --metrics-addr=127.0.0.1:8080
+                - --health-probe-addr=:8081
+                - --webhook-server-port=9443
+                - --enable-leader-election
+                - --leader-election-namespace=
+                - --zap-devel=false
+                - --zap-encoder=console
+                - --zap-log-level=info
+                image: registry.eticloud.io/sdm/supertubes-control-plane-rh-ubi8@sha256:9a16449531ba36acdfac1904a1033df3baecc33c8201e7d5930389d0d7161b67
+                name: sdm-manager
+                env:
+                  - name: SDM_FRONTEND_ENABLED
+                    value: "true"
+                resources:
+                  limits:
+                    cpu: 800m
+                    memory: 1024Mi
+                  requests:
+                    cpu: 400m
+                    memory: 512Mi
+                ports:
+                  - containerPort: 8080
+                    name: metrics
+                    protocol: TCP
+                  - containerPort: 9001
+                    name: alerts
+                    protocol: TCP
+                  - containerPort: 9443
+                    name: webhook-server
+                    protocol: TCP
+                  - containerPort: 8081
+                    name: health-probes
+                    protocol: TCP
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: health-probes
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: health-probes
+                  initialDelaySeconds: 10
+                  periodSeconds: 10
+                volumeMounts:
+                  - mountPath: /tmp/k8s-webhook-server/serving-certs
+                    name: serving-cert
+                    readOnly: true
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: calisti-operator
+              imagePullSecrets: [{"name": "smm-registry.eticloud.io-pull-secret"}]
+              volumes:
+                - name: serving-cert
+                  secret:
+                    secretName: supertubes-manifest-controller-serving-cert
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: calisti-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  keywords:
+  - Calisti
+  - Cisco
+  - Kafka
+  - Service Mesh Manager
+  - Streaming Data Manager
+  maintainers:
+  - email: rnasani@cisco.com
+    name: Ravi Nasani
+  links:
+  - name: Getting Started
+    url: https://calisti.app/
+  - name: Calisti documents
+    url: https://docs.calisti.app/
+  maturity: alpha
+  minKubeVersion: 1.24.0
+  provider:
+    name: Cisco
+    url: https://www.cisco.com
+  relatedImages:
+  - image: registry.eticloud.io/smm/kube-rbac-proxy@sha256:3f478e52e232cd3691595b2c9da4d6ed8623af76f025b58270ac5f89f24dd916
+    name: kube-rbac-proxy
+  - image: registry.eticloud.io/smm/smm-operator-rh-ubi8@sha256:5a3ee148815df7ae5dc760aa597b4acc5f23a084a558bccc3d1af0177f75f8cf
+    name: smm-operator-rh-ubi8
+  - image: registry.eticloud.io/sdm/supertubes-control-plane-rh-ubi8@sha256:9a16449531ba36acdfac1904a1033df3baecc33c8201e7d5930389d0d7161b67
+    name: supertubes-control-plane-rh-ubi8
+  version: 1.12.1

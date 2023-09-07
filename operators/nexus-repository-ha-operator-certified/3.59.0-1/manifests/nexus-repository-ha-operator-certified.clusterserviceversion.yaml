@@ -101,9 +101,9 @@ metadata:
               "container": {
                 "containerPort": 8081,
                 "env": {
-                  "clustered": true,
+                  "clustered": false,
                   "install4jAddVmParams": "-Xms2703m -Xmx2703m",
-                  "jdbcUrl": "jdbc:postgresql://your_db_server:5432/nexus",
+                  "jdbcUrl": null,
                   "nexusInitialPassword": "nexusabc",
                   "password": "nexus",
                   "user": "nexus"
@@ -136,7 +136,7 @@ metadata:
                 "path": "/",
                 "periodSeconds": 60
               },
-              "replicaCount": 3
+              "replicaCount": 1
             }
           }
         }
@@ -206,72 +206,8 @@ spec:
     into **its own namespace** with **manual approval** for updates.
 
     ## Usage
-    ### Pre-requisites for starting a Nexus Repository instance using this operator.
-    1.) Create a Kubernetes Secret object named `nexus-repository-secret` in the same namespace/project that you intend to install this operator in.
-     The Kubernetes Secret is used to configure Nexus Repository via the Helm chart values.yaml and must contain the following `stringData` entries:
-
-    | Parameter                                   | Description                                                                             |
-    | ------------------------------------------  | ----------------------------------------------------------------------------------------|
-    | `nexusJdbcUrl`                              |  The JDBC URL of a PostgreSQL database. E.g jdbc:postgresql://server_url:5432/nexus     |
-    | `nexusDatabaseUser`                         |  The database user                                                                      |
-    | `nexusDatabasePassword`                     |  The database password                                                                  |
-    | `nexusInitialAdminPassword`                 |  The initial admin password                                                             |
-    | `nexus-repo-license`                        |  Base 64 encoded Nexus Repository PRO license                                           |
-
-    ** See example below:**
-      apiVersion: v1
-      kind: Secret
-      metadata:
-        name: nexus-repository-secret
-        namespace: operator
-      type: Opaque
-      stringData:
-        nexusJdbcUrl: "jdbc:postgresql://<your database server address>:5432/nexus"
-        nexusDatabaseUser: nexus
-        nexusDatabasePassword: nexus
-        nexusInitialAdminPassword: nexus123
-        nexus-repo-license: base_64_encoded_license
-    2.) Create a Kubernetes ConfigMap object named `nexus-repository-config` in the same namespace/project that you intend to install this operator in.
-     The Kubernetes ConfigMap should contain the following `data` entries:
-    | Parameter                                   | Description                                                                                                                                                 |
-    | ------------------------------------------  | ------------------------------------------------------------------------------------------------------------------------------------------------------------|
-    | `nexus-pod-replicas`                        |  The number of Nexus Repository pods to start                                                                                                               |
-    | `local-storage-enabled`                     |  Whether to use local storage for the Nexus Repository pods. Set to "true" to enable, set to "false" to disable.                                            |
-    | `node-names`                                |  The names of the nodes in your Open shift cluster. This is used for local volume node selector settings. This should be space delimited.                   |
-    | `local-pv-size`                             |  The persistent volume size for the local volume                                                                                                            |
-    | `pvc-size`                                  |  The persistent volume constraint size for the local volume                                                                                                 |
-    | `nexus-service-enabled`                     |  Whether to create Kubernetes Service objects for your Nexus Repository pods. Set to "true" to enable or "false" to disable                                 |
-    | `nexus-ingress-enabled`                     |  Whether to create Kubernetes Ingress object for your Nexus Repository pods. Set to "true" to enable or "false" to disable                                  |
-    | `nexus-ingress-add-defaultRule              |  Whether to add a rule to a Kubernetes Service or not. Set to "true" to enable or "false" to disable                                                        |
-    | `nexus-ingress-host                         |  The Ingress host setting                                                                                                                                   |
-    | `nfs-enabled                                |  Whether to use NFS storage for the Nexus Repository pods. Set to "true" to enable, set to "false" to disable.                                              |
-    | `nfs-provisioner`                           |  An NFS sub directory provisioner                                                                                                                           |
-    | `nfs-exported-server-paths`                 |  The exported paths on the NFS server. This should be a space delmited string e.g. "/exportedPath1 /exportedPath2 /exportedPath3"                           |
-    | `nfs-server-ip`                             |  The NFS server address                                                                                                                                     |
-    **Note: the `local-storage-enabled` and `nfs-enabled` settings are mutually exclusive.**
-    ** See example below:**
-      apiVersion: v1
-      kind: ConfigMap
-      metadata:
-        name: nexus-repository-config
-        namespace: operator
-      data:
-        nexus-pod-replicas: "2"
-        local-storage-enabled: "true"
-        local-pv-size: "5Gi"
-        pvc-size: "3Gi"
-        storage-reclaim-policy: "Delete"
-        node-names: "node-87z92-master-0 node-87z92-master-1 node-87z92-master-2"
-        nfs-enabled: "false"
-        nfs-provisioner: "nfs-provisioner"
-        nfs-exported-server-paths: "/serverPath1 /serverPath2 /serverPath3"
-        nfs-server-ip: "nfs-server-ip"
-        nexus-service-enabled: "true"
-        nexus-ingress-enabled: "true"
-        nexus-ingress-add-defaultRule: "true"
-        nexus-ingress-host: "nexus-ingress.example.com"
-    ### Additional configuration
-    * Once the server instance is created by the operator and running, Nexus Repository can be further configured via the NexusRepo custom resource:
+    By default, the Nexus Repository starts up in OSS mode until a license is installed.
+    The Nexus Repository can be further configured via the NexusRepo custom resource definition:
 
     | Parameter                                                   | Description                         | Default                                 |
     | ----------------------------------------------------------- | ----------------------------------  | ----------------------------------------|
@@ -384,106 +320,6 @@ spec:
                         value: nexus-repository-ha-operator-certified
                       - name: RELATED_IMAGE_NEXUS
                         value: registry.connect.redhat.com/sonatype/nexus-repository-manager@sha256:98ecd45ed9a9a8f92fcc53c3e209ddcb8b4d71a21ba3981278fe8d542d702686
-                      - name: NEXUS_DB_USER
-                        valueFrom:
-                          secretKeyRef:
-                            name: nexus-repository-secret
-                            key: nexusDatabaseUser
-                      - name: NEXUS_DB_PASSWORD
-                        valueFrom:
-                          secretKeyRef:
-                            name: nexus-repository-secret
-                            key: nexusDatabasePassword
-                      - name: NEXUS_DB_JDBC_RL
-                        valueFrom:
-                          secretKeyRef:
-                            name: nexus-repository-secret
-                            key: nexusJdbcUrl
-                      - name: NEXUS_ADMIN_INITIAL_PASSWORD
-                        valueFrom:
-                          secretKeyRef:
-                            name: nexus-repository-secret
-                            key: nexusInitialAdminPassword
-                      - name: NEXUS_LICENSE_BASE_64
-                        valueFrom:
-                          secretKeyRef:
-                            name: nexus-repository-secret
-                            key: nexus-repo-license
-                      - name: NEXUS_POD_REPLICAS
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nexus-pod-replicas
-                      - name: NFS_PV_ENABLED
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nfs-enabled
-                      - name: LOCAL_PV_ENABLED
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: local-storage-enabled
-                      - name: NFS_PROVISIONER
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nfs-provisioner
-                      - name: NFS_EXPORTED_SERVER_PATHS
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nfs-exported-server-paths
-                      - name: NFS_SERVER_IP
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nfs-server-ip
-                      - name: PVC_ACCESS_MODES
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: pvc-access-mode
-                      - name: CLUSTER_NODE_NAMES
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: node-names
-                      - name: LOCAL_PV_SIZE
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: local-pv-size
-                      - name: PVC_SIZE
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: pvc-size
-                      - name: STORAGE_RECLAIM_POLICY
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: storage-reclaim-policy
-                      - name: NEXUS_SERVICE_ENABLED
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nexus-service-enabled
-                      - name: NEXUS_INGRESS_ENABLED
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nexus-ingress-enabled
-                      - name: NEXUS_INGRESS_HOST
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nexus-ingress-host
-                      - name: NEXUS_INGRESS_ADD_DEFAULT_RULE
-                        valueFrom:
-                          configMapKeyRef:
-                            name: nexus-repository-config
-                            key: nexus-ingress-add-defaultRule
                     image: registry.connect.redhat.com/sonatype/nexus-repository-ha-operator-certified@sha256:621fd73c4920305d2e57bd9c1e12b6641565e440104b3d4877e015ef4acb82ac
                     imagePullPolicy: Always
                     name: nexus-repository-ha-operator-certified

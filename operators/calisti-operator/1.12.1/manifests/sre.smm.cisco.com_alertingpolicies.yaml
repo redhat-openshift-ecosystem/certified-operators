@@ -1,0 +1,229 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.9.2
+  creationTimestamp: null
+  name: alertingpolicies.sre.smm.cisco.com
+spec:
+  group: sre.smm.cisco.com
+  names:
+    kind: AlertingPolicy
+    listKind: AlertingPolicyList
+    plural: alertingpolicies
+    shortNames:
+    - ap
+    singular: alertingpolicy
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: 'Represents the actual state of the alert: inactive, pending or
+        firing'
+      format: byte
+      jsonPath: .status.alertState
+      name: Alert state
+      type: string
+    - description: The duration since the alert is in the current state
+      format: date
+      jsonPath: .status.inStateFrom
+      name: In state
+      type: date
+    - description: The last calculated value for the alert metric
+      format: float
+      jsonPath: .status.currentValue
+      name: Current value
+      type: string
+    - format: date
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Name of the corresponding SLO resource
+      format: byte
+      jsonPath: .spec.burnRate.sloRef.name
+      name: SLO Name
+      priority: 1
+      type: string
+    - description: Namespace of the corresponding SLO resource
+      format: byte
+      jsonPath: .spec.burnRate.sloRef.namespace
+      name: SLO Namespace
+      priority: 1
+      type: string
+    - description: Duration for which the error rate is averaged
+      format: byte
+      jsonPath: .spec.burnRate.lookBackWindow
+      name: LookBack Window
+      priority: 1
+      type: string
+    - description: Shorter duration for which the error rate is averaged at the end
+        of the longer duration
+      format: byte
+      jsonPath: .spec.burnRate.secondaryWindow
+      name: Secondary Window
+      priority: 1
+      type: string
+    - description: The burn rate value, when it is exceeded for the given time periods
+        an alert is triggered
+      format: float
+      jsonPath: .spec.burnRate.threshold
+      name: Threshold
+      priority: 1
+      type: string
+    - description: Configures the duration for which the alerting condition has to
+        be fulfilled continuously to trigger an alert
+      format: byte
+      jsonPath: .spec.burnRate.conditionMetDuration
+      name: Condition Met Duration
+      priority: 1
+      type: string
+    - description: 'Can be set for an alert: page or ticket'
+      format: byte
+      jsonPath: .spec.burnRate.severity
+      name: Severity
+      priority: 1
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AlertingPolicy is the Schema for the alertingpolicies API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AlertingPolicySpec defines the desired state of AlertingPolicy
+            properties:
+              alert:
+                description: Alert defines a new alert based on an existing Alerting
+                  template
+                properties:
+                  description:
+                    description: Description is the description of this alerting
+                    type: string
+                  parameters:
+                    additionalProperties:
+                      type: string
+                    description: Parameters contain the list of additional parameter
+                      to use when instantiating the rules inside AlertingTemplate
+                      object
+                    type: object
+                  subject:
+                    description: Subject defines which object this Alert is specific
+                      to
+                    properties:
+                      kind:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - kind
+                    - name
+                    - namespace
+                    type: object
+                  template:
+                    description: Template references the AlertingTemplate object this
+                      alert is based on
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                required:
+                - subject
+                - template
+                type: object
+              burnRate:
+                description: BurnRate defines a burn rate based alert configuration
+                properties:
+                  conditionMetDuration:
+                    description: ConditionMetDuration configures the duration for
+                      which the alerting condition has to be fulfilled continuously
+                      to trigger an alert
+                    type: string
+                  lookBackWindow:
+                    description: LookBackWindow is the duration for which the error
+                      rate is averaged
+                    type: string
+                  secondaryWindow:
+                    description: SecondaryWindow is a shorter duration for which the
+                      error rate is averaged at the end of the longer duration
+                    type: string
+                  severity:
+                    description: 'Severity can be set for an alert: page or ticket'
+                    enum:
+                    - page
+                    - ticket
+                    type: string
+                  sloRef:
+                    description: SLORef has to reference an existing ServiceLevelObjective
+                      CR based on which the alerts are evaluated
+                    properties:
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  threshold:
+                    description: Threshold is the burn rate value, when it is exceeded
+                      for the given time periods an alert is triggered
+                    pattern: ^([0-9]*\.[0-9]+|[0-9]+)$
+                    type: string
+                required:
+                - lookBackWindow
+                - secondaryWindow
+                - sloRef
+                - threshold
+                type: object
+            type: object
+          status:
+            description: AlertingPolicyStatus defines the observed state of AlertingPolicy
+            properties:
+              alertState:
+                description: 'AlertState represents the actual state of the alert:
+                  inactive, pending or firing'
+                enum:
+                - inactive
+                - pending
+                - firing
+                - error
+                type: string
+              currentValue:
+                description: CurrentValue is the last calculated value for the alert
+                  metric
+                type: string
+              inStateFrom:
+                description: InStateFrom is the timestamp starting from the alert
+                  is in the current state
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

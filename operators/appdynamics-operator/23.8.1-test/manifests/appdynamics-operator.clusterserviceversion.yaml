@@ -74,7 +74,58 @@ spec:
       mediatype: image/png
   install:
     spec:
-      clusterPermissions:
+      deployments:
+        - label:
+            control-plane: appdynamics-operator
+          name: appdynamics-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: appdynamics-operator
+            strategy: {}
+            template:
+              metadata:
+                labels:
+                  control-plane: appdynamics-operator
+              spec:
+                containers:
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --leader-elect
+                    command:
+                      - /usr/local/bin/start-operator.sh
+                    env:
+                      - name: APPDYNAMICS_OPERATOR_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                    image: registry.connect.redhat.com/appdynamics/cluster-agent-operator@sha256:51b0714d50fb2a8ef76d7ba09d32b0511c5fa6d90363c759eb53ecae5133b29d
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 200m
+                        memory: 128Mi
+                      requests:
+                        cpu: 100m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                serviceAccountName: appdynamics-operator
+                terminationGracePeriodSeconds: 10
+      permissions:
         - rules:
             - apiGroups:
                 - ""
@@ -189,57 +240,6 @@ spec:
                 - list
                 - update
           serviceAccountName: appdynamics-operator
-      deployments:
-        - label:
-            control-plane: appdynamics-operator
-          name: appdynamics-operator
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
-                control-plane: appdynamics-operator
-            strategy: {}
-            template:
-              metadata:
-                labels:
-                  control-plane: appdynamics-operator
-              spec:
-                containers:
-                  - args:
-                      - --health-probe-bind-address=:8081
-                      - --leader-elect
-                    command:
-                      - /usr/local/bin/start-operator.sh
-                    env:
-                      - name: APPDYNAMICS_OPERATOR_NAMESPACE
-                        valueFrom:
-                          fieldRef:
-                            fieldPath: metadata.namespace
-                    image: registry.connect.redhat.com/appdynamics/cluster-agent-operator@sha256:51b0714d50fb2a8ef76d7ba09d32b0511c5fa6d90363c759eb53ecae5133b29d
-                    livenessProbe:
-                      httpGet:
-                        path: /healthz
-                        port: 8081
-                      initialDelaySeconds: 15
-                      periodSeconds: 20
-                    name: manager
-                    readinessProbe:
-                      httpGet:
-                        path: /readyz
-                        port: 8081
-                      initialDelaySeconds: 5
-                      periodSeconds: 10
-                    resources:
-                      limits:
-                        cpu: 200m
-                        memory: 128Mi
-                      requests:
-                        cpu: 100m
-                        memory: 64Mi
-                    securityContext:
-                      allowPrivilegeEscalation: false
-                serviceAccountName: appdynamics-operator
-                terminationGracePeriodSeconds: 10
     strategy: deployment
   installModes:
     - supported: true

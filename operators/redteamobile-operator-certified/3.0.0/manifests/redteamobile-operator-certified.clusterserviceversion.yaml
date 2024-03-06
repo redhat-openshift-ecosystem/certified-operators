@@ -75,9 +75,19 @@ metadata:
     createdAt: "2024-03-01T02:07:47Z"
     operators.operatorframework.io/builder: operator-sdk-v1.33.0+git
     operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    features.operators.openshift.io/cnf: "true"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
   labels:
     operatorframework.io/arch.amd64: supported
-    operatorframework.io/arch.arm64: supported
+    operatorframework.io/os.linux: supported
   name: redteamobile-operator-certified.v3.0.0
   namespace: placeholder
 spec:
@@ -90,10 +100,10 @@ spec:
   description: redteamobile
   displayName: redteamobile
   relatedImages:
-    - name: frontend
-      image: quay.io/redtea-ops/operator/redteamobile-operator-certified-frontend@sha256:a2b13c9cf7d2e805e0acc789356d6cda85ed61ceeaf9a8dbe23843254f6b9ee6
     - name: kube-rbac-proxy
       image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:d8cc6ffb98190e8dd403bfe67ddcb454e6127d32b87acc237b3e5240f70a20fb
+    - name: frontend
+      image: quay.io/redtea-ops/redteamobile/frontend@sha256:7434aa68bc76f1bfe5d797ae8723e3bb057d3760a21c149798c0ea9cb5fa9281
   install:
     spec:
       clusterPermissions:
@@ -142,12 +152,30 @@ spec:
               labels:
                 control-plane: controller-manager
             spec:
+              affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: kubernetes.io/arch
+                              operator: In
+                              values:
+                                - amd64
+                            - key: kubernetes.io/os
+                              operator: In
+                              values:
+                                - linux
               containers:
               - args:
                 - --secure-listen-address=0.0.0.0:8443
                 - --upstream=http://127.0.0.1:8080/
                 - --logtostderr=true
                 - --v=0
+                env:
+                  - name: OPERATOR_NAME
+                    value: redteamobile-operator-certified
+                  - name: RELATED_IMAGE_FRONTEND
+                    value: quay.io/redtea-ops/redteamobile/frontend@sha256:7434aa68bc76f1bfe5d797ae8723e3bb057d3760a21c149798c0ea9cb5fa9281
                 image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:d8cc6ffb98190e8dd403bfe67ddcb454e6127d32b87acc237b3e5240f70a20fb
                 name: kube-rbac-proxy
                 ports:

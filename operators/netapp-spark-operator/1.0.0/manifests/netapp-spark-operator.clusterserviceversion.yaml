@@ -1,0 +1,417 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "charts.netapp.com/v1alpha1",
+          "kind": "SparkOperator",
+          "metadata": {
+            "name": "sparkoperator-sample"
+          },
+          "spec": {
+            "spark-operator": {
+              "affinity": {},
+              "controllerThreads": 20,
+              "disableExecutorReporting": false,
+              "hostNetwork": false,
+              "image": {
+                "pullPolicy": "IfNotPresent",
+                "repository": "public.ecr.aws/f4k1p1n4/spark-operator",
+                "tag": "b0f3ed0-ubi9-rel20240315"
+              },
+              "imagePullSecrets": [],
+              "istio": {
+                "enabled": true
+              },
+              "jobAffinity": {},
+              "podLabels": {},
+              "pprof": {
+                "enable": true,
+                "port": 6060,
+                "portName": "pprof"
+              },
+              "rbac": {
+                "createClusterRole": true,
+                "createRole": true
+              },
+              "resources": {
+                "requests": {
+                  "cpu": "1000m",
+                  "memory": "1000Mi"
+                }
+              },
+              "securityContext": {},
+              "serviceAccounts": {
+                "spark": {
+                  "create": true
+                }
+              },
+              "sparkJobNamespace": "",
+              "tolerations": [],
+              "uiService": {
+                "enable": false
+              },
+              "webhook": {
+                "enable": true,
+                "jobTTLSecondsAfterFinished": 60,
+                "port": 443
+              },
+              "workqueue": {
+                "maxDelay": {
+                  "enabled": false,
+                  "value": "6h"
+                },
+                "tokenBucketSize": 500,
+                "tokenRefillRate": 50
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "sparkoperator.k8s.io/v1beta2",
+          "kind": "SparkApplication",
+          "metadata": {
+            "name": "spark-pi"
+          },
+          "spec": {
+            "arguments": [
+              "1000"
+            ],
+            "driver": {
+              "coreLimit": "1200m",
+              "cores": 1,
+              "labels": {
+                "version": "3.5.0"
+              },
+              "memory": "512m",
+              "serviceAccount": "sparkoperator-sample-spark",
+              "volumeMounts": [
+                {
+                  "mountPath": "/tmp",
+                  "name": "test-volume"
+                }
+              ]
+            },
+            "executor": {
+              "cores": 1,
+              "instances": 1,
+              "labels": {
+                "version": "3.5.0"
+              },
+              "memory": "512m",
+              "volumeMounts": [
+                {
+                  "mountPath": "/tmp",
+                  "name": "test-volume"
+                }
+              ]
+            },
+            "image": "public.ecr.aws/f4k1p1n4/spark:netapp-spark-support-image-v3.5-rel20240315",
+            "imagePullPolicy": "IfNotPresent",
+            "mainApplicationFile": "local:///opt/spark/examples/jars/spark-examples_2.13-3.5.0.jar",
+            "mainClass": "org.apache.spark.examples.SparkPi",
+            "mode": "cluster",
+            "restartPolicy": {
+              "type": "Never"
+            },
+            "sparkVersion": "3.5.0",
+            "type": "Scala",
+            "volumes": [
+              {
+                "emptyDir": {},
+                "name": "test-volume"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    createdAt: "2024-03-21T19:18:30Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.33.0
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: netapp-spark-operator.v1.0.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: ScheduledSparkApplication
+      name: scheduledsparkapplications.sparkoperator.k8s.io
+      version: v1beta2
+    - kind: SparkApplication
+      name: sparkapplications.sparkoperator.k8s.io
+      version: v1beta2
+    - kind: SparkOperator
+      name: sparkoperators.charts.netapp.com
+      version: v1alpha1
+  description: Red Hat and NetApp have partnered to offer enterprise-grade supported
+    Apache Spark on OpenShift.
+  displayName: NetApp Supported Apache Spark™ on OpenShift
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - charts.netapp.com
+          resources:
+          - sparkoperators
+          - sparkoperators/status
+          - sparkoperators/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          verbs:
+          - '*'
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          - roles
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - '*'
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - charts.netapp.com
+          resources:
+          - sparkoperators
+          - sparkoperators/status
+          - sparkoperators/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          verbs:
+          - '*'
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          - roles
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - '*'
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          verbs:
+          - '*'
+        serviceAccountName: netapp-spark-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: netapp-spark-operator
+          app.kubernetes.io/instance: controller-manager
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: netapp-spark-operator
+          control-plane: controller-manager
+        name: netapp-spark-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --leader-elect
+                - --leader-election-id=netapp-spark-operator-controller
+                image: public.ecr.aws/f4k1p1n4/netapp-spark-operator-controller:1.0.0
+                imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 1Gi
+                  requests:
+                    cpu: 10m
+                    memory: 256Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: netapp-spark-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: netapp-spark-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - spark
+  - bigdata
+  - apache
+  links:
+  - name: NetApp Supported Apache Spark™ on OpenShift
+    url: https://www.instaclustr.com/support-solutions
+  maintainers:
+  - email: thorsteinn.sigurdsson@netapp.com
+    name: Thorsteinn Sigurdsson
+  maturity: alpha
+  minKubeVersion: 1.23.0
+  provider:
+    name: NetApp
+    url: https://www.netapp.com/
+  version: 1.0.0

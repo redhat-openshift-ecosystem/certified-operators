@@ -1,9 +1,8 @@
----
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.1
+    controller-gen.kubebuilder.io/version: v0.9.2
   creationTimestamp: null
   name: clusteragents.cluster.appdynamics.com
 spec:
@@ -104,6 +103,8 @@ spec:
                 type: string
               clusterMetricsSyncInterval:
                 type: integer
+              containerAppCorrelationMethod:
+                type: string
               containerBatchSize:
                 type: integer
               containerRegistrationInterval:
@@ -150,6 +151,12 @@ spec:
                 type: string
               deploySchemaName:
                 type: string
+              enableClusterAgentRestartProbe:
+                type: boolean
+              enableForceReInstrumentation:
+                type: boolean
+              enableInstallationReport:
+                type: boolean
               env:
                 items:
                   description: EnvVar represents an environment variable present in
@@ -190,6 +197,7 @@ spec:
                           required:
                           - key
                           type: object
+                          x-kubernetes-map-type: atomic
                         fieldRef:
                           description: 'Selects a field of the pod: supports metadata.name,
                             metadata.namespace, `metadata.labels[''<KEY>'']`, `metadata.annotations[''<KEY>'']`,
@@ -207,6 +215,7 @@ spec:
                           required:
                           - fieldPath
                           type: object
+                          x-kubernetes-map-type: atomic
                         resourceFieldRef:
                           description: 'Selects a resource of the container: only
                             resources limits and requests (limits.cpu, limits.memory,
@@ -231,6 +240,7 @@ spec:
                           required:
                           - resource
                           type: object
+                          x-kubernetes-map-type: atomic
                         secretKeyRef:
                           description: Selects a key of a secret in the pod's namespace
                           properties:
@@ -249,6 +259,7 @@ spec:
                           required:
                           - key
                           type: object
+                          x-kubernetes-map-type: atomic
                       type: object
                   required:
                   - name
@@ -279,6 +290,8 @@ spec:
                   properties:
                     agentMountPath:
                       type: string
+                    alpineInitContainerImage:
+                      type: string
                     image:
                       type: string
                     imagePullPolicy:
@@ -289,6 +302,8 @@ spec:
                   - imagePullPolicy
                   type: object
                 type: object
+              imagePullPolicy:
+                type: string
               imagePullSecret:
                 type: string
               initContainerDir:
@@ -346,6 +361,8 @@ spec:
               instrumentationRules:
                 items:
                   properties:
+                    allowPrivilegeEscalation:
+                      type: boolean
                     analyticsHost:
                       type: string
                     analyticsPort:
@@ -356,6 +373,23 @@ spec:
                       type: string
                     appNameLabel:
                       type: string
+                    capabilities:
+                      description: Adds and removes POSIX capabilities from running
+                        containers.
+                      properties:
+                        add:
+                          description: Added capabilities
+                          items:
+                            description: Capability represent POSIX capabilities type
+                            type: string
+                          type: array
+                        drop:
+                          description: Removed capabilities
+                          items:
+                            description: Capability represent POSIX capabilities type
+                            type: string
+                          type: array
+                      type: object
                     containerMatchString:
                       type: string
                     customAgentConfig:
@@ -369,14 +403,19 @@ spec:
                             type: string
                         required:
                         - configMapName
-                        - subDir
                         type: object
                       type: array
+                    customSecretKey:
+                      type: string
+                    customSecretName:
+                      type: string
                     env:
                       type: string
                     imageInfo:
                       properties:
                         agentMountPath:
+                          type: string
+                        alpineInitContainerImage:
                           type: string
                         image:
                           type: string
@@ -408,16 +447,100 @@ spec:
                         port:
                           type: integer
                       type: object
+                    nodeName:
+                      type: string
+                    privileged:
+                      type: boolean
+                    procMount:
+                      type: string
+                    readOnlyRootFilesystem:
+                      type: boolean
                     runAsGroup:
                       format: int64
                       type: integer
+                    runAsNonRoot:
+                      type: boolean
                     runAsUser:
                       format: int64
                       type: integer
+                    seLinuxOptions:
+                      description: SELinuxOptions are the labels to be applied to
+                        the container
+                      properties:
+                        level:
+                          description: Level is SELinux level label that applies to
+                            the container.
+                          type: string
+                        role:
+                          description: Role is a SELinux role label that applies to
+                            the container.
+                          type: string
+                        type:
+                          description: Type is a SELinux type label that applies to
+                            the container.
+                          type: string
+                        user:
+                          description: User is a SELinux user label that applies to
+                            the container.
+                          type: string
+                      type: object
+                    seccompProfile:
+                      description: SeccompProfile defines a pod/container's seccomp
+                        profile settings. Only one profile source may be set.
+                      properties:
+                        localhostProfile:
+                          description: localhostProfile indicates a profile defined
+                            in a file on the node should be used. The profile must
+                            be preconfigured on the node to work. Must be a descending
+                            path, relative to the kubelet's configured seccomp profile
+                            location. Must only be set if type is "Localhost".
+                          type: string
+                        type:
+                          description: "type indicates which kind of seccomp profile
+                            will be applied. Valid options are: \n Localhost - a profile
+                            defined in a file on the node should be used. RuntimeDefault
+                            - the container runtime default profile should be used.
+                            Unconfined - no profile should be applied."
+                          type: string
+                      type: object
                     tierName:
                       type: string
                     tierNameLabel:
                       type: string
+                    windowsOptions:
+                      description: WindowsSecurityContextOptions contain Windows-specific
+                        options and credentials.
+                      properties:
+                        gmsaCredentialSpec:
+                          description: GMSACredentialSpec is where the GMSA admission
+                            webhook (https://github.com/kubernetes-sigs/windows-gmsa)
+                            inlines the contents of the GMSA credential spec named
+                            by the GMSACredentialSpecName field.
+                          type: string
+                        gmsaCredentialSpecName:
+                          description: GMSACredentialSpecName is the name of the GMSA
+                            credential spec to use.
+                          type: string
+                        hostProcess:
+                          description: HostProcess determines if a container should
+                            be run as a 'Host Process' container. This field is alpha-level
+                            and will only be honored by components that enable the
+                            WindowsHostProcessContainers feature flag. Setting this
+                            field without the feature flag will result in errors when
+                            validating the Pod. All of a Pod's containers must have
+                            the same effective HostProcess value (it is not allowed
+                            to have a mix of HostProcess containers and non-HostProcess
+                            containers).  In addition, if HostProcess is true then
+                            HostNetwork must also be set to true.
+                          type: boolean
+                        runAsUserName:
+                          description: The UserName in Windows to run the entrypoint
+                            of the container process. Defaults to the user specified
+                            in image metadata if unspecified. May also be set in PodSecurityContext.
+                            If set in both SecurityContext and PodSecurityContext,
+                            the value specified in SecurityContext takes precedence.
+                          type: string
+                      type: object
                   type: object
                 type: array
               jDKMountName:
@@ -440,9 +563,15 @@ spec:
                 type: integer
               logSchemaName:
                 type: string
+              maxNumberOfInformerWorkers:
+                type: integer
               maxPodLogsTailLinesCount:
                 type: integer
               maxPodsToRegisterCount:
+                type: integer
+              memoryThresholdForRestart:
+                type: integer
+              metadataServerPort:
                 type: integer
               metadataSyncInterval:
                 type: integer
@@ -491,14 +620,6 @@ spec:
                 type: array
               nsToInstrumentRegex:
                 type: string
-              nsToMonitor:
-                items:
-                  type: string
-                type: array
-              nsToMonitorExclude:
-                items:
-                  type: string
-                type: array
               nsToMonitorRegex:
                 type: string
               numberOfTaskWorkers:
@@ -534,6 +655,13 @@ spec:
                 type: object
               podSchemaName:
                 description: snapshot schemas
+                type: string
+              pprofEnabled:
+                description: pprof properties
+                type: boolean
+              pprofPort:
+                type: integer
+              priorityClassName:
                 type: string
               proxyPass:
                 type: string
@@ -719,14 +847,6 @@ spec:
                     items:
                       type: string
                     type: array
-                  nsToMonitor:
-                    items:
-                      type: string
-                    type: array
-                  nsToMonitorExclude:
-                    items:
-                      type: string
-                    type: array
                   snapshotSyncInterval:
                     type: integer
                   version:
@@ -746,9 +866,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

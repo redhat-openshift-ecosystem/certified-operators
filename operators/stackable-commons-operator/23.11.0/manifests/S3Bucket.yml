@@ -1,0 +1,136 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: s3buckets.s3.stackable.tech
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  group: s3.stackable.tech
+  names:
+    categories: []
+    kind: S3Bucket
+    plural: s3buckets
+    shortNames: []
+    singular: s3bucket
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns: []
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: Auto-generated derived type for S3BucketSpec via `CustomResource`
+          properties:
+            spec:
+              description: S3 bucket specification containing only the bucket name and an inlined or referenced connection specification.
+              properties:
+                bucketName:
+                  nullable: true
+                  type: string
+                connection:
+                  description: Operators are expected to define fields for this type in order to work with S3 connections.
+                  nullable: true
+                  oneOf:
+                    - required:
+                        - inline
+                    - required:
+                        - reference
+                  properties:
+                    inline:
+                      description: S3 connection definition as CRD.
+                      properties:
+                        accessStyle:
+                          description: Which access style to use. Defaults to virtual hosted-style as most of the data products out there. Have a look at the official documentation on <https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html>
+                          enum:
+                            - Path
+                            - VirtualHosted
+                          nullable: true
+                          type: string
+                        credentials:
+                          description: If the S3 uses authentication you have to specify you S3 credentials. In the most cases a SecretClass providing `accessKey` and `secretKey` is sufficient.
+                          nullable: true
+                          properties:
+                            scope:
+                              description: '[Scope](https://docs.stackable.tech/secret-operator/scope.html) of the [SecretClass](https://docs.stackable.tech/secret-operator/secretclass.html)'
+                              nullable: true
+                              properties:
+                                node:
+                                  default: false
+                                  type: boolean
+                                pod:
+                                  default: false
+                                  type: boolean
+                                services:
+                                  default: []
+                                  items:
+                                    type: string
+                                  type: array
+                              type: object
+                            secretClass:
+                              description: '[SecretClass](https://docs.stackable.tech/secret-operator/secretclass.html) containing the LDAP bind credentials'
+                              type: string
+                          required:
+                            - secretClass
+                          type: object
+                        host:
+                          description: Hostname of the S3 server without any protocol or port
+                          nullable: true
+                          type: string
+                        port:
+                          description: Port the S3 server listens on. If not specified the products will determine the port to use.
+                          format: uint16
+                          minimum: 0.0
+                          nullable: true
+                          type: integer
+                        tls:
+                          description: If you want to use TLS when talking to S3 you can enable TLS encrypted communication with this setting.
+                          nullable: true
+                          properties:
+                            verification:
+                              description: The verification method used to verify the certificates of the server and/or the client
+                              oneOf:
+                                - required:
+                                    - none
+                                - required:
+                                    - server
+                              properties:
+                                none:
+                                  description: Use TLS but don't verify certificates
+                                  type: object
+                                server:
+                                  description: Use TLS and ca certificate to verify the server
+                                  properties:
+                                    caCert:
+                                      description: Ca cert to verify the server
+                                      oneOf:
+                                        - required:
+                                            - webPki
+                                        - required:
+                                            - secretClass
+                                      properties:
+                                        secretClass:
+                                          description: Name of the SecretClass which will provide the ca cert. Note that a SecretClass does not need to have a key but can also work with just a ca cert. So if you got provided with a ca cert but don't have access to the key you can still use this method.
+                                          type: string
+                                        webPki:
+                                          description: Use TLS and the ca certificates trusted by the common web browsers to verify the server. This can be useful when you e.g. use public AWS S3 or other public available services.
+                                          type: object
+                                      type: object
+                                  required:
+                                    - caCert
+                                  type: object
+                              type: object
+                          required:
+                            - verification
+                          type: object
+                      type: object
+                    reference:
+                      type: string
+                  type: object
+              type: object
+          required:
+            - spec
+          title: S3Bucket
+          type: object
+      served: true
+      storage: true
+      subresources: {}

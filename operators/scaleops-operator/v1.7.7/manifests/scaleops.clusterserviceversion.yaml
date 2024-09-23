@@ -38,9 +38,9 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - kind: ScaleOps
-        name: scaleops.analysis.scaleops.sh
-        version: v1
+    - kind: ScaleOps
+      name: scaleops.analysis.scaleops.sh
+      version: v1
   description: ScaleOps Cluster Optimization
   displayName: ScaleOps
   icon:
@@ -49,198 +49,198 @@ spec:
   install:
     spec:
       clusterPermissions:
-        - rules:
-            - apiGroups:
-                - ""
-              resources:
-                - namespaces
-              verbs:
-                - get
-            - apiGroups:
-                - ""
-              resources:
-                - secrets
-              verbs:
-                - '*'
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-                - patch
-            - apiGroups:
-                - analysis.scaleops.sh
-              resources:
-                - '*'
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - scheduling.k8s.io
-              resources:
-                - priorityclasses
-              verbs:
-                - '*'
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
-                - clusterrolebindings
-                - clusterroles
-              verbs:
-                - '*'
-            - apiGroups:
-                - admissionregistration.k8s.io
-              resources:
-                - mutatingwebhookconfigurations
-              verbs:
-                - '*'
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-                - persistentvolumeclaims
-                - secrets
-                - serviceaccounts
-                - services
-              verbs:
-                - '*'
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
-                - rolebindings
-                - roles
-              verbs:
-                - '*'
-            - apiGroups:
-                - apps
-              resources:
-                - deployments
-              verbs:
-                - '*'
-            - apiGroups:
-                - apiextensions.k8s.io
-              resources:
-                - customresourcedefinitions
-              verbs:
-                - '*'
-          serviceAccountName: scaleops-operator-controller-manager
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - analysis.scaleops.sh
+          resources:
+          - '*'
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - scheduling.k8s.io
+          resources:
+          - priorityclasses
+          verbs:
+          - '*'
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          verbs:
+          - '*'
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - mutatingwebhookconfigurations
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - persistentvolumeclaims
+          - secrets
+          - serviceaccounts
+          - services
+          verbs:
+          - '*'
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          - roles
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - '*'
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - '*'
+        serviceAccountName: scaleops-operator-controller-manager
       deployments:
-        - label:
-            app.kubernetes.io/component: manager
-            app.kubernetes.io/created-by: operator
-            app.kubernetes.io/instance: controller-manager
-            app.kubernetes.io/managed-by: kustomize
-            app.kubernetes.io/name: deployment
-            app.kubernetes.io/part-of: operator
-            control-plane: controller-manager
-          name: scaleops-operator-controller-manager
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: operator
+          app.kubernetes.io/instance: controller-manager
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: operator
+          control-plane: controller-manager
+        name: scaleops-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
                 control-plane: controller-manager
-            strategy: {}
-            template:
-              metadata:
-                annotations:
-                  kubectl.kubernetes.io/default-container: manager
-                labels:
-                  control-plane: controller-manager
-              spec:
-                containers:
-                  - args:
-                      - --leader-elect
-                      - --reconcile-period=5m
-                      - --leader-election-id=operator
-                      - --zap-devel
-                    image: ghcr.io/scaleops-sh/operator:v1.7.7
-                    env:
-                      - name: RELATED_IMAGE_PROMETHEUS_CONFIG_RELOADER
-                        value: ghcr.io/scaleops-sh/configmap-reload/ubi:v0.76.0
-                      - name: RELATED_IMAGE_PROMETHEUS
-                        value: ghcr.io/scaleops-sh/prometheus/ubi:v2.51.6
-                      - name: RELATED_IMAGE_KUBE_STATE_METRICS
-                        value: ghcr.io/scaleops-sh/kube-state-metrics/ubi:v2.12.2
-                      - name: RELATED_IMAGE_DCGM_EXPORTER
-                        value: ghcr.io/scaleops-sh/dcgm-exporter:v3.5.0
-                    livenessProbe:
-                      httpGet:
-                        path: /healthz
-                        port: 8081
-                      initialDelaySeconds: 15
-                      periodSeconds: 20
-                    name: manager
-                    readinessProbe:
-                      httpGet:
-                        path: /readyz
-                        port: 8081
-                      initialDelaySeconds: 5
-                      periodSeconds: 10
-                    resources:
-                      requests:
-                        cpu: 500m
-                        memory: 256Mi
-                    securityContext:
-                      allowPrivilegeEscalation: false
-                      capabilities:
-                        drop:
-                          - ALL
-                imagePullSecrets:
-                  - name: scaleops-operator-pull-secret
+            spec:
+              containers:
+              - args:
+                - --leader-elect
+                - --reconcile-period=5m
+                - --leader-election-id=operator
+                - --zap-devel
+                image: ghcr.io/scaleops-sh/operator@sha256:3c133399afb52e1682256b032bf5c83f7ea8646af10d36709d9b39ce17397c6c
+                env:
+                - name: RELATED_IMAGE_PROMETHEUS_CONFIG_RELOADER
+                  value: ghcr.io/scaleops-sh/configmap-reload/ubi@sha256:fed19f1aad43228560912abc36372a6c124d9ddf5e3e39476269dc51604d26de
+                - name: RELATED_IMAGE_PROMETHEUS
+                  value: ghcr.io/scaleops-sh/prometheus/ubi@sha256:8aeeae2a33251493d4d6e2f02a2fff1d4c2f32ab54554e6a84619ecd8b4aa69a
+                - name: RELATED_IMAGE_KUBE_STATE_METRICS
+                  value: ghcr.io/scaleops-sh/kube-state-metrics/ubi@sha256:d8cb65795861ce257f08726b7a3aa60a869cc44ed152f559431191bc79e98908
+                - name: RELATED_IMAGE_DCGM_EXPORTER
+                  value: ghcr.io/scaleops-sh/dcgm-exporter@sha256:2a2ebd2c90181212274694dbbc964641a7dd584908fdc81c98e29eb5e545d676
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  requests:
+                    cpu: 500m
+                    memory: 256Mi
                 securityContext:
-                  runAsNonRoot: true
-                serviceAccountName: scaleops-operator-controller-manager
-                terminationGracePeriodSeconds: 10
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              imagePullSecrets:
+              - name: scaleops-operator-pull-secret
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: scaleops-operator-controller-manager
+              terminationGracePeriodSeconds: 10
       permissions:
-        - rules:
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - coordination.k8s.io
-              resources:
-                - leases
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-                - patch
-          serviceAccountName: scaleops-operator-controller-manager
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: scaleops-operator-controller-manager
     strategy: deployment
   installModes:
-    - supported: false
-      type: OwnNamespace
-    - supported: false
-      type: SingleNamespace
-    - supported: false
-      type: MultiNamespace
-    - supported: true
-      type: AllNamespaces
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
   keywords:
   - vertical scaling
   - horizontal scaling
@@ -260,12 +260,20 @@ spec:
     name: ScaleOps
     url: https://scaleops.com
   relatedImages:
-  - image: ghcr.io/scaleops-sh/configmap-reload/ubi:v0.76.0
-    name: prometheus-config-reloader
-  - image: ghcr.io/scaleops-sh/prometheus/ubi:v2.51.6
-    name: prometheus
-  - image: ghcr.io/scaleops-sh/kube-state-metrics/ubi:v2.12.2
-    name: kube-state-metrics
-  - image: ghcr.io/scaleops-sh/dcgm-exporter:v3.5.0
-    name: dcgm-exporter
+  - name: prometheus-config-reloader
+    image: ghcr.io/scaleops-sh/configmap-reload/ubi@sha256:fed19f1aad43228560912abc36372a6c124d9ddf5e3e39476269dc51604d26de
+  - name: prometheus
+    image: ghcr.io/scaleops-sh/prometheus/ubi@sha256:8aeeae2a33251493d4d6e2f02a2fff1d4c2f32ab54554e6a84619ecd8b4aa69a
+  - name: kube-state-metrics
+    image: ghcr.io/scaleops-sh/kube-state-metrics/ubi@sha256:d8cb65795861ce257f08726b7a3aa60a869cc44ed152f559431191bc79e98908
+  - name: dcgm-exporter
+    image: ghcr.io/scaleops-sh/dcgm-exporter@sha256:2a2ebd2c90181212274694dbbc964641a7dd584908fdc81c98e29eb5e545d676
+  - name: manager
+    image: ghcr.io/scaleops-sh/operator@sha256:3c133399afb52e1682256b032bf5c83f7ea8646af10d36709d9b39ce17397c6c
+  - name: prometheus_config_reloader
+    image: ghcr.io/scaleops-sh/configmap-reload/ubi@sha256:fed19f1aad43228560912abc36372a6c124d9ddf5e3e39476269dc51604d26de
+  - name: kube_state_metrics
+    image: ghcr.io/scaleops-sh/kube-state-metrics/ubi@sha256:d8cb65795861ce257f08726b7a3aa60a869cc44ed152f559431191bc79e98908
+  - name: dcgm_exporter
+    image: ghcr.io/scaleops-sh/dcgm-exporter@sha256:2a2ebd2c90181212274694dbbc964641a7dd584908fdc81c98e29eb5e545d676
   version: 1.7.7

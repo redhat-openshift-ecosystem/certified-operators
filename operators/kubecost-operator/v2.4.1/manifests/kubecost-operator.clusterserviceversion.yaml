@@ -8,13 +8,14 @@ metadata:
           "apiVersion": "charts.kubecost.com/v1alpha1",
           "kind": "CostAnalyzer",
           "metadata": {
-            "name": "costanalyzer-sample"
+            "name": "kubecost"
           },
           "spec": {
             "affinity": {},
             "awsstore": {
               "annotations": {},
               "createServiceAccount": false,
+              "imageNameAndVersion": "gcr.io/kubecost1/awsstore:latest",
               "nodeSelector": {},
               "priorityClassName": "",
               "useAwsStore": false
@@ -27,6 +28,10 @@ metadata:
                 "namespaceTurndown": null
               },
               "enabled": false,
+              "image": {
+                "repository": "gcr.io/kubecost1/cluster-controller",
+                "tag": "v0.16.9"
+              },
               "imagePullPolicy": "IfNotPresent",
               "kubescaler": {
                 "defaultResizeAll": false
@@ -69,12 +74,22 @@ metadata:
                 "retention": "7d"
               }
             },
+            "etlUtils": {
+              "affinity": {},
+              "enabled": false,
+              "env": {},
+              "fullImageName": null,
+              "nodeSelector": {},
+              "resources": {},
+              "tolerations": []
+            },
             "extraObjects": [],
             "extraVolumeMounts": [],
             "extraVolumes": [],
             "federatedETL": {
               "agentOnly": false,
               "federatedCluster": false,
+              "readOnlyPrimary": false,
               "redirectS3Backup": false,
               "useMultiClusterDB": false
             },
@@ -84,6 +99,7 @@ metadata:
               "env": {
                 "GUNICORN_CMD_ARGS": "--log-level info -t 1200"
               },
+              "fullImageName": "gcr.io/kubecost1/kubecost-modeling:v0.1.16",
               "imagePullPolicy": "IfNotPresent",
               "livenessProbe": {
                 "enabled": true,
@@ -116,24 +132,22 @@ metadata:
             },
             "global": {
               "additionalLabels": {},
-              "advancedReports": {
+              "ammsp": {
+                "aadAuthProxy": {
+                  "aadClientId": "$\u003cAZURE_MANAGED_IDENTITY_CLIENT_ID\u003e",
+                  "aadTenantId": "$\u003cAZURE_MANAGED_IDENTITY_TENANT_ID\u003e",
+                  "audience": "https://prometheus.monitor.azure.com/.default",
+                  "enabled": false,
+                  "identityType": "userAssigned",
+                  "image": "$\u003cIMAGE\u003e",
+                  "imagePullPolicy": "IfNotPresent",
+                  "name": "aad-auth-proxy",
+                  "port": 8081
+                },
                 "enabled": false,
-                "reports": [
-                  {
-                    "aggregateBy": "namespace",
-                    "cloudBreakdown": "service",
-                    "cloudJoin": "label:kubernetes_namespace",
-                    "filters": [
-                      {
-                        "key": "cluster",
-                        "operator": ":",
-                        "value": "dev"
-                      }
-                    ],
-                    "title": "Example Advanced Report 0",
-                    "window": "7d"
-                  }
-                ]
+                "prometheusServerEndpoint": "http://localhost:8081/",
+                "queryEndpoint": "$\u003cAMMSP_QUERY_ENDPOINT\u003e",
+                "remoteWriteService": "$\u003cAMMSP_METRICS_INGESTION_ENDPOINT\u003e"
               },
               "amp": {
                 "enabled": false,
@@ -188,6 +202,7 @@ metadata:
                 "enabled": false,
                 "gmpProxy": {
                   "enabled": false,
+                  "image": "gke.gcr.io/prometheus-engine/frontend:v0.4.1-gke.0",
                   "imagePullPolicy": "IfNotPresent",
                   "name": "gmp-proxy",
                   "port": 8085,
@@ -220,6 +235,7 @@ metadata:
               },
               "mimirProxy": {
                 "enabled": false,
+                "image": "nginxinc/nginx-unprivileged",
                 "mimirEndpoint": "$mimir_endpoint",
                 "name": "mimir-proxy",
                 "orgIdentifier": "$your_tenant_ID",
@@ -326,6 +342,11 @@ metadata:
               "dashboards": {},
               "dashboardsConfigMaps": {},
               "deploymentStrategy": "RollingUpdate",
+              "downloadDashboardsImage": {
+                "pullPolicy": "IfNotPresent",
+                "repository": "curlimages/curl",
+                "tag": "latest"
+              },
               "env": {},
               "envFromSecret": "",
               "extraSecretMounts": [],
@@ -354,6 +375,11 @@ metadata:
                   "root_url": "%(protocol)s://%(domain)s:%(http_port)s/grafana",
                   "serve_from_sub_path": false
                 }
+              },
+              "image": {
+                "pullPolicy": "IfNotPresent",
+                "repository": "cgr.dev/chainguard/grafana",
+                "tag": "latest"
               },
               "ingress": {
                 "annotations": {},
@@ -424,8 +450,8 @@ metadata:
                 },
                 "image": {
                   "pullPolicy": "IfNotPresent",
-                  "repository": "kiwigrid/k8s-sidecar",
-                  "tag": "1.27.2"
+                  "repository": "cgr.dev/chainguard/k8s-sidecar",
+                  "tag": "latest"
                 },
                 "resources": {}
               },
@@ -470,18 +496,24 @@ metadata:
                 },
                 "resources": {}
               },
+              "containerResourceUsageRetentionDays": 1,
+              "dbConcurrentIngestionCount": 1,
+              "dbMemoryLimit": "0GB",
+              "dbReadThreads": 1,
+              "dbTrimMemoryOnClose": true,
+              "dbWriteMemoryLimit": "0GB",
+              "dbWriteThreads": 1,
               "deployMethod": "singlepod",
               "enabled": false,
-              "env": {
-                "DB_CONCURRENT_INGESTION_COUNT": "3",
-                "DB_READ_THREADS": "1",
-                "DB_WRITE_THREADS": "1",
-                "LOG_LEVEL": "info"
-              },
+              "etlDailyStoreDurationDays": 91,
+              "etlHourlyStoreDurationHours": 49,
               "imagePullPolicy": "IfNotPresent",
               "jaeger": {
-                "enabled": false
+                "enabled": false,
+                "image": "jaegertracing/all-in-one",
+                "imageVersion": "latest"
               },
+              "logLevel": "info",
               "numDBCopyPartitions": 25,
               "persistentConfigsStorage": {
                 "storageClass": "",
@@ -495,6 +527,9 @@ metadata:
               },
               "replicas": 1,
               "resources": {},
+              "service": {
+                "labels": {}
+              },
               "stagingEmptyDirSizeLimit": "2Gi"
             },
             "kubecostDeployment": {
@@ -506,8 +541,8 @@ metadata:
               "deployMethod": "singlepod",
               "deploymentStrategy": {},
               "enabled": true,
-              "fullImageName": "gcr.io/kubecost1/frontend@sha256:45125a6df7daa330209ea9f26cbe48405595962d3eac799583c4e08ba853f20c",
               "haReplicas": 2,
+              "image": "gcr.io/kubecost1/frontend",
               "imagePullPolicy": "IfNotPresent",
               "ipv6": {
                 "enabled": true
@@ -565,7 +600,7 @@ metadata:
               "etlReadOnlyMode": false,
               "extraArgs": [],
               "extraPorts": [],
-              "fullImageName": "gcr.io/kubecost1/cost-model@sha256:74ff30f7b9bd7c48c345e703999b1d119fae7cac8d4098eba68d9812aae8b908",
+              "image": "gcr.io/kubecost1/cost-model",
               "imagePullPolicy": "IfNotPresent",
               "ingress": {
                 "annotations": null,
@@ -588,12 +623,16 @@ metadata:
               },
               "maxQueryConcurrency": 5,
               "plugins": {
-                "configSecret": "kubecost-plugin-secret",
                 "enabled": false,
                 "enabledPlugins": [],
+                "existingCustomSecret": {
+                  "enabled": false,
+                  "name": ""
+                },
                 "folder": "/opt/opencost/plugin",
                 "install": {
                   "enabled": false,
+                  "fullImageName": "curlimages/curl:latest",
                   "securityContext": {
                     "allowPrivilegeEscalation": false,
                     "capabilities": {
@@ -608,7 +647,8 @@ metadata:
                       "type": "RuntimeDefault"
                     }
                   }
-                }
+                },
+                "secretName": "kubecost-plugin-secret"
               },
               "readinessProbe": {
                 "enabled": true,
@@ -654,6 +694,10 @@ metadata:
               "enabled": false,
               "extraArgs": [],
               "healthCheckProbes": {},
+              "image": {
+                "repository": "gcr.io/kubecost1/kubecost-network-costs",
+                "tag": "v0.17.6"
+              },
               "imagePullPolicy": "IfNotPresent",
               "logLevel": "info",
               "nodeSelector": {},
@@ -705,7 +749,8 @@ metadata:
               "rbac": {
                 "enabled": false
               },
-              "skipOnlineTokenValidation": false
+              "skipOnlineTokenValidation": false,
+              "useClientSecretPost": false
             },
             "persistentVolume": {
               "annotations": {},
@@ -740,6 +785,11 @@ metadata:
                 "extraArgs": {},
                 "extraEnv": {},
                 "extraSecretMounts": [],
+                "image": {
+                  "pullPolicy": "IfNotPresent",
+                  "repository": "cgr.dev/chainguard/prometheus-alertmanager",
+                  "tag": "latest"
+                },
                 "ingress": {
                   "annotations": {},
                   "enabled": false,
@@ -825,6 +875,11 @@ metadata:
                   "extraArgs": {},
                   "extraConfigmapMounts": [],
                   "extraVolumeDirs": [],
+                  "image": {
+                    "pullPolicy": "IfNotPresent",
+                    "repository": "cgr.dev/chainguard/prometheus-config-reloader",
+                    "tag": "latest"
+                  },
                   "name": "configmap-reload",
                   "resources": {}
                 },
@@ -834,11 +889,16 @@ metadata:
                   "extraArgs": {},
                   "extraConfigmapMounts": [],
                   "extraVolumeDirs": [],
+                  "image": {
+                    "pullPolicy": "IfNotPresent",
+                    "repository": "cgr.dev/chainguard/prometheus-config-reloader",
+                    "tag": "latest"
+                  },
                   "name": "configmap-reload",
                   "resources": {}
                 }
               },
-              "extraScrapeConfigs": "- job_name: kubecost\n  honor_labels: true\n  scrape_interval: 1m\n  scrape_timeout: 60s\n  metrics_path: /metrics\n  scheme: http\n  dns_sd_configs:\n  - names:\n    - {{ template \"cost-analyzer.serviceName\" . }}\n    type: 'A'\n    port: 9003\n- job_name: kubecost-networking\n  kubernetes_sd_configs:\n    - role: pod\n  relabel_configs:\n  # Scrape only the the targets matching the following metadata\n    - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance]\n      action: keep\n      regex:  kubecost\n    - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]\n      action: keep\n      regex:  network-costs\n- job_name: kubecost-aggregator\n  scrape_interval: 1m\n  scrape_timeout: 60s\n  metrics_path: /metrics\n  scheme: http\n  dns_sd_configs:\n  - names:\n    - {{ template \"aggregator.serviceName\" . }}\n    type: 'A'\n    {{- if or .Values.saml.enabled .Values.oidc.enabled }}\n    port: 9008\n    {{- else }}\n    port: 9004\n    {{- end }}\n",
+              "extraScrapeConfigs": "- job_name: kubecost\n  honor_labels: true\n  scrape_interval: 1m\n  scrape_timeout: 60s\n  metrics_path: /metrics\n  scheme: http\n  dns_sd_configs:\n  - names:\n    - {{ template \"cost-analyzer.serviceName\" . }}\n    type: 'A'\n    port: 9003\n- job_name: kubecost-networking\n  kubernetes_sd_configs:\n    - role: pod\n  relabel_configs:\n  # Scrape only the the targets matching the following metadata\n    - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance]\n      action: keep\n      regex:  kubecost\n    - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]\n      action: keep\n      regex:  network-costs\n- job_name: kubecost-aggregator\n  scrape_interval: 1m\n  scrape_timeout: 60s\n  metrics_path: /metrics\n  scheme: http\n  dns_sd_configs:\n  - names:\n    - {{ template \"aggregator.serviceName\" . }}\n    type: 'A'\n    {{- if or .Values.saml.enabled .Values.oidc.enabled }}\n    port: 9008\n    {{- else }}\n    port: 9004\n    {{- end }}\n## Enables scraping of NVIDIA GPU metrics via dcgm-exporter. Scrapes all\n## endpoints which contain \"dcgm-exporter\" in labels \"app\",\n## \"app.kubernetes.io/component\", or \"app.kubernetes.io/name\" with a case\n## insensitive match.\n## Refs:\n## https://github.com/NVIDIA/gpu-operator/blob/d4316a415bbd684ce8416a88042305fc1a093aa4/assets/state-dcgm-exporter/0600_service.yaml#L7\n## https://github.com/NVIDIA/dcgm-exporter/blob/54fd1ca137c66511a87a720390613680b9bdabdd/deployment/templates/service.yaml#L23\n- job_name: kubecost-dcgm-exporter\n  kubernetes_sd_configs:\n    - role: endpoints\n  relabel_configs:\n    - source_labels: [__meta_kubernetes_pod_label_app, __meta_kubernetes_pod_label_app_kubernetes_io_component, __meta_kubernetes_pod_label_app_kubernetes_io_name]\n      action: keep\n      regex: (?i)(.*dcgm-exporter.*|.*dcgm-exporter.*|.*dcgm-exporter.*)\n",
               "imagePullSecrets": null,
               "networkPolicy": {
                 "enabled": false
@@ -852,6 +912,11 @@ metadata:
                 "extraHostPathMounts": [],
                 "hostNetwork": true,
                 "hostPID": true,
+                "image": {
+                  "pullPolicy": "IfNotPresent",
+                  "repository": "prom/node-exporter",
+                  "tag": "v1.8.2"
+                },
                 "name": "node-exporter",
                 "nodeSelector": {},
                 "pod": {
@@ -886,6 +951,11 @@ metadata:
               "pushgateway": {
                 "enabled": false,
                 "extraArgs": {},
+                "image": {
+                  "pullPolicy": "IfNotPresent",
+                  "repository": "prom/pushgateway",
+                  "tag": "v1.9.0"
+                },
                 "ingress": {
                   "annotations": {},
                   "enabled": false,
@@ -974,8 +1044,9 @@ metadata:
                   "scrape_timeout": "60s"
                 },
                 "image": {
-                  "fullImageName": "registry.access.redhat.com/openshift3/prometheus@sha256:cc82e7c85f816a0ab6109dc0ee2bd587db3859450bf10e2d3b9241cf5daee233",
-                  "pullPolicy": "IfNotPresent"
+                  "pullPolicy": "IfNotPresent",
+                  "repository": "cgr.dev/chainguard/prometheus",
+                  "tag": "latest"
                 },
                 "ingress": {
                   "annotations": {},
@@ -1390,7 +1461,15 @@ metadata:
                 "enabled": false,
                 "interval": "1m",
                 "metricRelabelings": [],
-                "relabelings": [],
+                "relabelings": [
+                  {
+                    "action": "replace",
+                    "sourceLabels": [
+                      "__meta_kubernetes_namespace"
+                    ],
+                    "targetLabel": "namespace"
+                  }
+                ],
                 "scrapeTimeout": "10s"
               },
               "enabled": false,
@@ -1410,6 +1489,7 @@ metadata:
             "sigV4Proxy": {
               "extraEnv": null,
               "host": "aps-workspaces.us-west-2.amazonaws.com",
+              "image": "public.ecr.aws/aws-observability/aws-sigv4-proxy:latest",
               "imagePullPolicy": "IfNotPresent",
               "name": "aps",
               "port": 8005,
@@ -1432,256 +1512,292 @@ metadata:
         }
       ]
     capabilities: Basic Install
-    features.operators.openshift.io/disconnected: "true"
-    features.operators.openshift.io/fips-compliant: "true"
-    features.operators.openshift.io/proxy-aware: "false"
-    features.operators.openshift.io/tls-profiles: "false"
-    features.operators.openshift.io/token-auth-aws: "false"
-    features.operators.openshift.io/token-auth-azure: "false"
-    features.operators.openshift.io/token-auth-gcp: "false"
-    createdAt: "2024-07-07T23:26:52Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.35.0
+    categories: Monitoring
+    containerImage: quay.io/kcadawson/kubecost-operator:v2.4.1
+    description: An operator that deploys Kubecost 2.4.1 via the Helm chart.
+    support: Stackwatch
+    createdAt: "2024-09-30T17:30:22Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.37.0
     operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
-  name: kubecost-operator.v0.0.4
+  name: kubecost-operator.v2.4.1
   namespace: kubecost
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-      - kind: CostAnalyzer
-        name: costanalyzers.charts.kubecost.com
-        version: v1alpha1
-  description: An operator for running kubecost cost-model
-  displayName: kubecost-operator
+    - kind: CostAnalyzer
+      name: costanalyzers.charts.kubecost.com
+      version: v1alpha1
+      displayName: CostAnalyzer
+      description: The CostAnalyzer API describes a deployment of Kubecost and its dependencies.
+  description: |-
+    Kubecost provides real-time cost visibility and insights for teams using Kubernetes, helping you continuously reduce your cloud costs.
+
+    This OpenShift operator deploys Kubecost from the official Helm chart.
+
+    Kubecost allows you to:
+
+    * See allocated spend across all native Kubernetes concepts, so you can provide your teams with transparent, accurate cost data reconciled with your actual cloud bill.
+    * Join in-cluster costs like CPU and memory with out-of-cluster spend from cloud infrastructure services for complete cost visibility—all services from AWS, GCP, and Microsoft Azure are supported.
+    * Gain insights you can use to save 30-50% or more on your infrastructure spend, without exposing your private information—your data never gets shared externally, even with us.
+    * Have real-time alerts and recurring reports, empowering teams to take control of their Kubernetes-enabled infrastructure, stay within budgeted limits, and address monitoring interruptions immediately.
+
+    Visit the Kubecost website for more details including features, pricing, documentation, and more at www.kubecost.com.
+  displayName: Kubecost
   icon:
-    - base64data: "PHN2ZyB3aWR0aD0iNTAwIiBoZWlnaHQ9IjEwNSIgdmlld0JveD0iMCAwIDUwMCAxMDUiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8yMDEzXzY3NjAwKSI+CjxwYXRoIGQ9Ik0xMDYuNTEzIDg3Ljk3NzRWMjEuODI1MkgxMTguNTA1VjU4LjM4NjlIMTIwLjIxOUwxMzUuNzk0IDQxLjExM0gxNTEuMzY5TDEyOS42NDIgNjMuODA5MkwxNTIuMTQ4IDg3Ljk3NzRIMTM2LjcyOUwxMjAuMjE5IDY5LjM4NjRIMTE4LjUwNVY4Ny45Nzc0SDEwNi41MTNaIiBmaWxsPSIjMDIzOTI3Ii8+CjxwYXRoIGQ9Ik0xNzUuNDM0IDg4Ljc1MThDMTcxLjc3MyA4OC43NTE4IDE2OC41OCA4Ny45MDAxIDE2NS43NzcgODYuMjczNEMxNjMuMDUxIDg0LjU2OTMgMTYwLjg3IDgyLjMyMjcgMTU5LjM5IDc5LjMwMTdDMTU3LjgzMyA3Ni4zNTgyIDE1Ny4xMzIgNzIuOTQ5OSAxNTcuMTMyIDY5LjA3NjhWNDEuMTEzM0gxNjkuMDQ4VjY4LjE0NzNDMTY5LjA0OCA3MS43MTA1IDE2OS45MDQgNzQuMzQ0MiAxNzEuNjk1IDc2LjA0ODRDMTczLjQwOSA3Ny44Mjk5IDE3NS45IDc4LjY4MiAxNzkuMTcxIDc4LjY4MkMxODIuODMyIDc4LjY4MiAxODUuNzEzIDc3LjQ0MjYgMTg3LjczOCA3NS4wNDE0QzE4OS43NjMgNzIuNjQgMTkwLjc3NSA2OS4yMzE3IDE5MC43NzUgNjQuODkzOVY0MS4xMTMzSDIwMi43NjhWODcuOTc3NkgxOTAuODUzVjgxLjg1OEgxODkuMTM5QzE4OC4zNjEgODMuNDA2OCAxODYuOTU5IDg0Ljk1NjggMTg0Ljg1NiA4Ni41MDU5QzE4Mi44MzIgODcuOTc3NiAxNzkuNjM5IDg4Ljc1MTggMTc1LjQzNCA4OC43NTE4WiIgZmlsbD0iIzAyMzkyNyIvPgo8cGF0aCBkPSJNMjM4LjU5MSA4OS4yOTRDMjM0LjMwNyA4OS4yOTQgMjMxLjExNSA4OC41OTY1IDIyOC43NzggODcuMTI0OUMyMjYuNTIgODUuNjUzMiAyMjQuODA3IDg0LjEwNCAyMjMuNzE3IDgyLjMyMjRIMjIyLjAwM1Y4Ny45Nzc0SDIxMC4yNDRWMjEuODI1MkgyMjIuMjM3VjQ2LjUzNTRIMjIzLjk1QzIyNC42NTEgNDUuMzczNCAyMjUuNTg2IDQ0LjM2NjQgMjI2Ljc1NCA0My4zNTk0QzIyNy45MjIgNDIuMzUyNCAyMjkuNDc5IDQxLjUwMDQgMjMxLjQyNyA0MC44ODA3QzIzMy4zNzMgNDAuMTgzNSAyMzUuNzg3IDM5Ljg3MzcgMjM4LjU5MSAzOS44NzM3QzI0Mi40MDcgMzkuODczNyAyNDUuOTEyIDQwLjgwMzIgMjQ5LjEwNCA0Mi42NjIzQzI1Mi4yOTcgNDQuNTIxNCAyNTQuOTQ1IDQ3LjIzMjUgMjU2Ljg5MiA1MC44NzMyQzI1OC44MzkgNTQuNDM2NCAyNTkuODUyIDU4Ljc3NDIgMjU5Ljg1MiA2My44ODY3VjY1LjQzNTlDMjU5Ljg1MiA3MC41NDg0IDI1OC44MzkgNzQuODg2MiAyNTYuODkyIDc4LjQ0OTRDMjU0Ljk0NSA4Mi4wMTI2IDI1Mi4yOTcgODQuODAxNSAyNDkuMTA0IDg2LjY2MDdDMjQ1LjkxMiA4OC41MTkgMjQyLjQwNyA4OS4yOTQgMjM4LjU5MSA4OS4yOTRaTTIzNS4wMDggNzguOTE0MkMyMzguNjY5IDc4LjkxNDIgMjQxLjc4NCA3Ny43NTIyIDI0NC4xOTggNzUuMzUwOUMyNDYuNjkgNzMuMDI3MSAyNDcuOTM3IDY5LjU0MTQgMjQ3LjkzNyA2NC45NzExVjY0LjA0MTZDMjQ3LjkzNyA1OS40NzE0IDI0Ni42OSA1Ni4wNjMxIDI0NC4yNzYgNTMuNjYxOEMyNDEuODYyIDUxLjMzNzkgMjM4Ljc0NyA1MC4wOTg1IDIzNS4wMDggNTAuMDk4NUMyMzEuMzQ4IDUwLjA5ODUgMjI4LjIzMyA1MS4yNjA0IDIyNS44MTkgNTMuNjYxOEMyMjMuMzI3IDU2LjA2MzEgMjIyLjA4MSA1OS40NzE0IDIyMi4wODEgNjQuMDQxNlY2NC45NzExQzIyMi4wODEgNjkuNTQxNCAyMjMuMzI3IDcyLjk0OTYgMjI1LjgxOSA3NS4zNTA5QzIyOC4yMzMgNzcuNzUyMiAyMzEuMjcxIDc4LjkxNDIgMjM1LjAwOCA3OC45MTQyWiIgZmlsbD0iIzAyMzkyNyIvPgo8cGF0aCBkPSJNMjg3LjgwOSA4OS4yOTM3QzI4My4xMzYgODkuMjkzNyAyNzkuMDA5IDg4LjI4NzEgMjc1LjQyNiA4Ni4zNTA0QzI3MS44NDQgODQuMzM2MiAyNjkuMDQxIDgxLjU0NzYgMjY3LjA5NCA3Ny45MDY5QzI2NS4wNjkgNzQuMjY2MSAyNjQuMTM1IDcwLjAwNTggMjY0LjEzNSA2NS4xMjU3VjYzLjk2MzhDMjY0LjEzNSA1OS4wODM3IDI2NS4xNDYgNTQuNzQ1OSAyNjcuMDk0IDUxLjE4MjdDMjY5LjA0MSA0Ny41NDIxIDI3MS44NDQgNDQuNzUzNCAyNzUuMzQ5IDQyLjczOTRDMjc4LjkzMSA0MC43MjU1IDI4Mi45ODEgMzkuNzk1OSAyODcuNzMxIDM5Ljc5NTlDMjkyLjMyNiAzOS43OTU5IDI5Ni4zNzYgNDAuODAyOSAyOTkuODAyIDQyLjg5NDRDMzAzLjIyOSA0NC45MDgzIDMwNS44NzYgNDcuNzc0NCAzMDcuNzQ2IDUxLjQxNTFDMzA5LjYxNSA1NS4wNTU4IDMxMC42MjYgNTkuMjM4NyAzMTAuNjI2IDY0LjA0MTNWNjguMDY5M0gyNzYuMzYxQzI3Ni41MTYgNzEuMjQ1MiAyNzcuNjg1IDczLjg3ODkgMjc5Ljk0MyA3NS44OTI5QzI4Mi4yMDEgNzcuOTA2OSAyODUuMDA2IDc4LjkxMzkgMjg4LjI3NiA3OC45MTM5QzI5MS42MjUgNzguOTEzOSAyOTQuMTE3IDc4LjIxNjcgMjk1LjY3NSA3Ni43NDVDMjk3LjIzMiA3NS4yNzMxIDI5OC40NzggNzMuNzI0IDI5OS4yNTYgNzEuOTQyM0wzMDkuMDY5IDc3LjA1NDhDMzA4LjIxMiA3OC42ODE1IDMwNi44ODkgODAuNDYzMSAzMDUuMjUzIDgyLjM5OTZDMzAzLjU0IDg0LjMzNjIgMzAxLjM2IDg1Ljk2MjkgMjk4LjU1NiA4Ny4yNzk2QzI5NS41OTYgODguNjczNyAyOTIuMDkyIDg5LjI5MzcgMjg3LjgwOSA4OS4yOTM3Wk0yNzYuMjgzIDU5LjE2MTJIMjk4LjMyMkMyOTguMDg5IDU2LjQ1MDEgMjk2Ljk5OCA1NC4yODExIDI5NS4wNTEgNTIuNjU0NUMyOTMuMTA1IDUxLjAyNzggMjkwLjYxMiA1MC4xNzU3IDI4Ny40OTcgNTAuMTc1N0MyODQuMzA1IDUwLjE3NTcgMjgxLjczNSA1MS4wMjc4IDI3OS43ODcgNTIuNjU0NUMyNzcuOTE5IDU0LjI4MTEgMjc2Ljc1MSA1Ni40NTAxIDI3Ni4yODMgNTkuMTYxMloiIGZpbGw9IiMwMjM5MjciLz4KPHBhdGggZD0iTTMzOS40NDEgODkuMjkzN0MzMzQuODQ2IDg5LjI5MzcgMzMwLjcxOSA4OC4zNjM3IDMyNy4wNTkgODYuNDI3OUMzMjMuMzIgODQuNTY4NyAzMjAuNDM5IDgxLjc3OTkgMzE4LjI1OSA3OC4yMTY3QzMxNi4wNzggNzQuNjUzNSAzMTUuMDY1IDcwLjMxNTYgMzE1LjA2NSA2NS4yMDMyVjYzLjg4NjRDMzE1LjA2NSA1OC43NzM5IDMxNi4xNTUgNTQuNDM2MSAzMTguMjU5IDUwLjg3MjlDMzIwLjQzOSA0Ny4zMDk2IDMyMy4zMiA0NC41MjExIDMyNy4wNTkgNDIuNjYyQzMzMC43OTYgNDAuODAyOSAzMzQuOTI0IDM5Ljc5NTkgMzM5LjQ0MSAzOS43OTU5QzM0My45NTggMzkuNzk1OSAzNDcuNzc0IDQwLjU3MDYgMzUxLjA0NSA0Mi4xOTcyQzM1NC4yMzggNDMuNzQ2NCAzNTYuODg1IDQ1LjkxNTMgMzU4LjkxIDQ4LjcwNEMzNjAuOTM1IDUxLjQxNTEgMzYyLjE4MSA1NC41MTM2IDM2Mi44ODIgNTcuOTk5M0wzNTEuMjc4IDYwLjQwMDZDMzUxLjA0NSA1OC41NDE2IDM1MC40MjEgNTYuODM3NCAzNDkuNTY1IDU1LjI4ODFDMzQ4LjcwOCA1My43MzkgMzQ3LjQ2MiA1Mi41NzcgMzQ1LjgyNyA1MS43MjVDMzQ0LjE5MSA1MC44NzI5IDM0Mi4xNjYgNTAuNDA4MSAzMzkuODMgNTAuNDA4MUMzMzcuNDE2IDUwLjQwODEgMzM1LjIzNSA1MC45NTAzIDMzMy4yODkgNTEuOTU3M0MzMzEuMzQyIDUyLjk2NDMgMzI5Ljg2MiA1NC41MTM2IDMyOC42OTQgNTYuNjA1QzMyNy42MDQgNTguNjE5IDMyNy4wNTkgNjEuMTc1MiAzMjcuMDU5IDY0LjExODdWNjUuMDQ4M0MzMjcuMDU5IDY3Ljk5MTggMzI3LjYwNCA3MC41NDgxIDMyOC42OTQgNzIuNTYyMUMzMjkuNzg1IDc0LjU3NjEgMzMxLjM0MiA3Ni4xMjUyIDMzMy4yODkgNzcuMjA5N0MzMzUuMjM1IDc4LjIxNjcgMzM3LjQxNiA3OC43NTg5IDMzOS44MyA3OC43NTg5QzM0My40MTMgNzguNzU4OSAzNDYuMjE2IDc3LjgyOTQgMzQ4LjA4NSA3NS45NzAzQzM0OS45NTUgNzQuMTExMiAzNTEuMTIyIDcxLjYzMjUgMzUxLjY2OCA2OC42MTE1TDM2My4yNzEgNzEuMzIyNkMzNjIuNDE1IDc0LjY1MzUgMzYxLjAxMyA3Ny42NzQ1IDM1OS4wNjYgODAuNDYzMUMzNTcuMDQxIDgzLjE3NDIgMzU0LjQ3MSA4NS4zNDI5IDM1MS4yIDg2Ljk2OTZDMzQ3Ljg1MiA4OC41MTg3IDM0My45NTggODkuMjkzNyAzMzkuNDQxIDg5LjI5MzdaIiBmaWxsPSIjMDIzOTI3Ii8+CjxwYXRoIGQ9Ik0zOTEuNjE5IDg5LjI5NEMzODYuOTQ2IDg5LjI5NCAzODIuNzQxIDg4LjM2NCAzNzkuMDAyIDg2LjQyODJDMzc1LjI2NSA4NC41NjkgMzcyLjMwNSA4MS43ODAyIDM3MC4yMDIgNzguMjE3QzM2OC4wMjIgNzQuNjUzOCAzNjcuMDEgNzAuMzE1OSAzNjcuMDEgNjUuMjgwOVY2My43MzE4QzM2Ny4wMSA1OC42OTY4IDM2OC4xIDU0LjM1ODkgMzcwLjIwMiA1MC43OTU3QzM3Mi4zODMgNDcuMjMyNSAzNzUuMjY1IDQ0LjQ0MzggMzc5LjAwMiA0Mi41ODQ3QzM4Mi43NDEgNDAuNzI1NyAzODYuOTQ2IDM5LjcxODggMzkxLjYxOSAzOS43MTg4QzM5Ni4yOTEgMzkuNzE4OCA0MDAuNDk2IDQwLjY0ODIgNDA0LjIzNSA0Mi41ODQ3QzQwNy45NzMgNDQuNDQzOCA0MTAuOTMyIDQ3LjIzMjUgNDEzLjAzNSA1MC43OTU3QzQxNS4yMTYgNTQuMzU4OSA0MTYuMjI4IDU4LjY5NjggNDE2LjIyOCA2My43MzE4VjY1LjI4MDlDNDE2LjIyOCA3MC4zMTU5IDQxNS4xMzcgNzQuNjUzOCA0MTMuMDM1IDc4LjIxN0M0MTAuODU0IDgxLjc4MDIgNDA3Ljk3MyA4NC41NjkgNDA0LjIzNSA4Ni40MjgyQzQwMC40OTYgODguMzY0IDM5Ni4yOTEgODkuMjk0IDM5MS42MTkgODkuMjk0Wk0zOTEuNjE5IDc4Ljc1OTJDMzk1LjI3OSA3OC43NTkyIDM5OC4zMTYgNzcuNTk3MiA0MDAuNzMxIDc1LjE5NkM0MDMuMTQ1IDcyLjc5NDcgNDA0LjMxMiA2OS40NjM4IDQwNC4zMTIgNjUuMDQ4NlY2NC4xMTlDNDA0LjMxMiA1OS43MDM4IDQwMy4xNDUgNTYuMjk1NCA0MDAuNzMxIDUzLjk3MTZDMzk4LjMxNiA1MS42NDc3IDM5NS4yNzkgNTAuNDA4MyAzOTEuNTQxIDUwLjQwODNDMzg3Ljg4MSA1MC40MDgzIDM4NC44NDMgNTEuNTcwMiAzODIuNDI5IDUzLjk3MTZDMzgwLjAxNSA1Ni4yOTU0IDM3OC44NDYgNTkuNzAzOCAzNzguODQ2IDY0LjExOVY2NS4wNDg2QzM3OC44NDYgNjkuNDYzOCAzODAuMDE1IDcyLjg3MjIgMzgyLjQyOSA3NS4xOTZDMzg0LjkyMSA3Ny41OTcyIDM4Ny45NTggNzguNzU5MiAzOTEuNjE5IDc4Ljc1OTJaIiBmaWxsPSIjMDIzOTI3Ii8+CjxwYXRoIGQ9Ik00NDEuMjI2IDg5LjI5MzdDNDM1LjA3NCA4OS4yOTM3IDQzMC4wMTIgODcuOTc3MSA0MjYuMTE4IDg1LjM0MjlDNDIyLjIyNCA4Mi43MDk1IDQxOS44MSA3OC45MTM5IDQxOS4wMzEgNzQuMDMzOEw0MzAuMDkgNzEuMTY3N0M0MzAuNTU3IDczLjMzNjYgNDMxLjI1OCA3NS4xMTgyIDQzMi4zNDggNzYuMzU3NkM0MzMuMzYgNzcuNTk3IDQzNC42ODUgNzguNTI2NiA0MzYuMjQyIDc5LjA2ODhDNDM3LjggNzkuNjExIDQzOS41MTMgNzkuODQzNCA0NDEuMzA0IDc5Ljg0MzRDNDQ0LjEwNyA3OS44NDM0IDQ0Ni4xMzIgNzkuMzc4NiA0NDcuNDU2IDc4LjM3MTZDNDQ4Ljc4IDc3LjM2NDYgNDQ5LjQ4MSA3Ni4yMDI3IDQ0OS40ODEgNzQuNzMxQzQ0OS40ODEgNzMuMjU5MSA0NDguODU4IDcyLjE3NDcgNDQ3LjYxMiA3MS40MDAxQzQ0Ni4zNjUgNzAuNjI1NSA0NDQuMzQxIDcwLjAwNTggNDQxLjUzNyA2OS40NjM2TDQzOC44OSA2OC45OTg4QzQzNS42MTkgNjguMzc5MiA0MzIuNTgxIDY3LjUyNzEgNDI5Ljg1NiA2Ni4zNjUxQzQyNy4xMyA2NS4yODA2IDQyNC45NSA2My43MzE1IDQyMy4zMTUgNjEuNzk0OUM0MjEuNjc5IDU5Ljg1ODQgNDIwLjgyMiA1Ny4zMDIxIDQyMC44MjIgNTQuMjAzN0M0MjAuODIyIDQ5LjU1NjEgNDIyLjUzNSA0NS45OTI4IDQyNS45NjIgNDMuNTE0MUM0MjkuMzg5IDQxLjAzNTMgNDMzLjkwNSAzOS43OTU5IDQzOS40MzUgMzkuNzk1OUM0NDQuNzMgMzkuNzk1OSA0NDkuMDkxIDQwLjk1NzggNDUyLjUxOCA0My4yODE2QzQ1Ni4wMjIgNDUuNjA1NSA0NTguMjgxIDQ4LjcwNCA0NTkuMzcxIDUyLjQyMjFMNDQ4LjIzNSA1NS44MzA0QzQ0Ny42OSA1My40MjkxIDQ0Ni42NzcgNTEuNzI1IDQ0NS4xMiA1MC43MThDNDQzLjU2MiA0OS43MTEgNDQxLjYxNSA0OS4xNjg3IDQzOS4zNTcgNDkuMTY4N0M0MzcuMDk5IDQ5LjE2ODcgNDM1LjMwNyA0OS41NTYxIDQzNC4xNCA1MC4zMzA2QzQzMi45NzEgNTEuMTA1MiA0MzIuMzQ4IDUyLjE4OTcgNDMyLjM0OCA1My41ODRDNDMyLjM0OCA1NS4xMzMyIDQzMi45NzEgNTYuMjE3NyA0MzQuMjE3IDU2LjkxNDhDNDM1LjQ2MyA1Ny42MTIgNDM3LjE3NiA1OC4xNTQyIDQzOS4zNTcgNTguNTQxNkw0NDIuMDA1IDU5LjAwNjNDNDQ1LjU4NyA1OS42MjYgNDQ4Ljc4IDYwLjQ3ODEgNDUxLjY2MSA2MS40ODUxQzQ1NC41NDMgNjIuNDkyMSA0NTYuODAxIDY0LjA0MTMgNDU4LjUxNSA2NS45MDA0QzQ2MC4yMjggNjcuODM2OSA0NjEuMDA2IDcwLjM5MzEgNDYxLjAwNiA3My43MjRDNDYxLjAwNiA3OC42MDQgNDU5LjIxNSA4Mi4zOTk3IDQ1NS42MzMgODUuMTEwNEM0NTIuMDUgODcuOTc3MSA0NDcuMjIyIDg5LjI5MzcgNDQxLjIyNiA4OS4yOTM3WiIgZmlsbD0iIzAyMzkyNyIvPgo8cGF0aCBkPSJNNDg0Ljc2IDg3Ljk3NzhDNDgxLjY0NSA4Ny45Nzc4IDQ3OS4xNTMgODcuMDQ3OCA0NzcuMjA2IDg1LjExMTFDNDc1LjI1OSA4My4xNzUgNDc0LjMyNSA4MC42MTg3IDQ3NC4zMjUgNzcuNDQyOFY1MC45NTFINDYyLjU2NVY0MS4xMTM0SDQ3NC4zMjVWMjYuNTUwOEg0ODYuMzE3VjQxLjExMzRINDk5LjI0NVY1MC45NTFINDg2LjMxN1Y3NS4zNTE0QzQ4Ni4zMTcgNzcuMjEwNSA0ODcuMTc0IDc4LjIxNzUgNDg4Ljk2NSA3OC4yMTc1SDQ5OS4yNDVWODguMDU1M0g0ODQuNzZWODcuOTc3OFoiIGZpbGw9IiMwMjM5MjciLz4KPGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOm11bHRpcGx5Ij4KPGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOm11bHRpcGx5Ij4KPHBhdGggZD0iTTMzLjY5NyA2MC43ODgxQzE1LjI0MDIgNjAuNzg4MSAwLjgzMzAwOCA3MC4zMTU4IDAuODMzMDA4IDgyLjQ3NzNDMC44MzMwMDggOTQuNjM4OSAxNS4yNDAyIDEwNC4xNjYgMzMuNjk3IDEwNC4xNjZDNTIuMTUzOCAxMDQuMTY2IDY2LjU2MSA5NC42Mzg5IDY2LjU2MSA4Mi40NzczQzY2LjU2MSA3MC4zMTU4IDUyLjE1MzggNjAuNzg4MSAzMy42OTcgNjAuNzg4MVpNMzMuNjk3IDk1LjQxMzFDMjIuMzI3IDk1LjQxMzEgOS42MzMwOSA5MC4wNjgxIDkuNjMzMDkgODIuNDc3M0M5LjYzMzA5IDc0Ljg4NjEgMjIuMzI3IDY5LjU0MTMgMzMuNjk3IDY5LjU0MTNDMzYuMzQ0OCA2OS41NDEzIDM5LjA3MDUgNjkuODUxMSA0MS42NDA0IDcwLjM5MzNDNDUuMzAwNyA3MC45MzU2IDYyLjU4OTMgNzYuMjAyOSA1Ny4wNiA4NS40OTgxQzU0LjMzNDMgOTEuNDYzMSA0My41MDk1IDk1LjQxMzEgMzMuNjk3IDk1LjQxMzFaIiBmaWxsPSIjNjRFODkyIi8+CjwvZz4KPC9nPgo8ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6bXVsdGlwbHkiPgo8ZyBzdHlsZT0ibWl4LWJsZW5kLW1vZGU6bXVsdGlwbHkiPgo8cGF0aCBkPSJNNTIuNjk5NyAwLjgzMzAwOEMzOC4yOTI1IDAuODMzMDA4IDMwLjUwNDkgMjUuNzc1NSAzMC41MDQ5IDQ5LjI0NjNDMzAuNTA0OSA3Mi43MTcxIDM4LjI5MjUgOTcuNjU5NyA1Mi42OTk3IDk3LjY1OTdDNjcuMTA3IDk3LjY1OTcgNzQuODk0NiA3Mi43MTcxIDc0Ljg5NDYgNDkuMjQ2M0M3NC44OTQ2IDI1Ljc3NTUgNjcuMTA3IDAuODMzMDA4IDUyLjY5OTcgMC44MzMwMDhaTTU0LjE3OTQgODguNjczOEM0Ni43MDMyIDkzLjI0NDcgNDEuNTYzNCA3MC4zMTU4IDQxLjU2MzQgNzAuMzE1OEM0MC4xNjE1IDY0LjQyODcgMzkuMzA1IDU3LjM3OTggMzkuMzA1IDQ5LjMyMzhDMzkuMzA1IDI1LjA3ODQgNDcuMjQ4NCA5LjU4NjA5IDUyLjY5OTcgOS41ODYwOUM1OC4xNTExIDkuNTg2MDkgNjYuMDk0NSAyNS4wNzg0IDY2LjA5NDUgNDkuMzIzOEM2Ni4wOTQ1IDcxLjQwMDMgNTkuNDc1MSA4Ni4yNzMgNTQuMTc5NCA4OC42NzM4WiIgZmlsbD0iIzY0RTg5MiIvPgo8L2c+CjwvZz4KPGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOm11bHRpcGx5Ij4KPGcgc3R5bGU9Im1peC1ibGVuZC1tb2RlOm11bHRpcGx5Ij4KPHBhdGggZD0iTTU0LjgwMTkgNTIuMzQ1NEM0MS45NTIzIDM1LjkyMzcgMjQuMTk2NCAyOC43OTcyIDE0LjMwNiAzNi4xNTZDMTEuMDM1MiAzOC42MzQ4IDguOTMyNTMgNDIuMzUyOSA4LjMwOTUgNDcuMDc4MUM3LjA2MzQ2IDU2LjI5NTkgMTEuMjY4OCA2OC4xNDc1IDE5LjUyMzggNzguNzU5OEMyOC45NDY5IDkwLjg0MzcgNDEuMDE3NyA5Ny44OTI5IDUwLjY3NDQgOTcuODkyOUM1NC4xNzg5IDk3Ljg5MjkgNTcuMzcxOSA5Ni45NjI5IDYwLjAxOTcgOTUuMDI2MkM2My4yOTA0IDkyLjU0NzkgNjUuMzkzMSA4OC44Mjk1IDY2LjAxNjIgODQuMTA0NUM2Ny4yNjIyIDc0LjgwOTIgNjMuMDU2OSA2Mi45NTc2IDU0LjgwMTkgNTIuMzQ1NFpNNTcuMDYwNCA4NS40MjEyTDU2Ljk4MjQgODUuNDk4N0M1Ni43NDg5IDg1Ljk2MzcgNTYuNDM3NCA4Ni4zNTEyIDU2LjA0NzkgODYuODE1NEM1NS44OTIyIDg3LjA0NzkgNTUuNjU4NSA4Ny4yODA0IDU1LjUwMjggODcuNDM1NEM1NS40MjQ5IDg3LjUxMjkgNTUuMjY5MiA4Ny42Njc5IDU1LjE5MTMgODcuNzQ1NEM1NS4xMTM0IDg3LjgyMjkgNTUuMDM1NSA4Ny45MDA0IDU0Ljk1NzcgODcuOTc3OUM1NC44MDE5IDg4LjEzMjkgNTQuNjQ2MiA4OC4yMTA0IDU0LjU2ODMgODguMjg3OUw1NC40OTA0IDg4LjM2NDVDNTQuMzM0NyA4OC40NDIgNTQuMTc4OSA4OC41OTcgNTQuMDIzMSA4OC42NzQ1QzUzLjg2NzQgODguNzUyIDUzLjcxMTYgODguODI5NSA1My41NTU5IDg4LjkwN0M1My40NzggODguOTA3IDUzLjQwMDEgODguOTg0NSA1My4zMjIzIDg4Ljk4NDVDNTMuMTY2NSA4OS4wNjIgNTMuMDg4NiA4OS4wNjIgNTIuOTMyOSA4OS4wNjJDNDUuNTM0NiA5MC4xNDYyIDM0Ljk0MzQgODQuMjU5NSAyNi40NTQ4IDczLjI2QzE5Ljc1NzQgNjQuNzM5MyAxNi4wMTkzIDU0LjgyNDIgMTYuOTUzOCA0OC4wODUxQzE3LjI2NTQgNDUuNjgzOCAxOC4xMjE5IDQzLjk3OTYgMTkuNTIzOCA0Mi45NzI2QzIwLjYxNCA0Mi4xOTggMjIuMDkzNyA0MS43MzMzIDIzLjgwNjkgNDEuNzMzM0MzMC4wMzcxIDQxLjczMzMgMzkuNzcxNyA0Ny4wNzgxIDQ3Ljg3MDkgNTcuNTM1NEM1My4yNDQ0IDY0LjQyOTQgNTcuNTI3NiA3NC44MDkyIDU4LjE1MDYgODEuMTYxVjgxLjIzODVDNTguMTUwNiA4MS4zMTU5IDU4LjE1MDYgODEuMzE1OSA1OC4xNTA2IDgxLjM5MzRDNTguMjI4NSA4Mi43ODc3IDU3LjkxNjkgODQuMDI3IDU3LjA2MDQgODUuNDIxMloiIGZpbGw9IiM2NEU4OTIiLz4KPC9nPgo8L2c+CjwvZz4KPGRlZnM+CjxjbGlwUGF0aCBpZD0iY2xpcDBfMjAxM182NzYwMCI+CjxyZWN0IHdpZHRoPSI1MDAiIGhlaWdodD0iMTA1IiBmaWxsPSJ3aGl0ZSIvPgo8L2NsaXBQYXRoPgo8L2RlZnM+Cjwvc3ZnPgo="
-      mediatype: "image/svg+xml"
+  - base64data: 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
+    mediatype: image/png
   install:
     spec:
       clusterPermissions:
-        - rules:
-            - apiGroups:
-                - ""
-              resources:
-                - namespaces
-              verbs:
-                - get
-            - apiGroups:
-                - ""
-              resources:
-                - secrets
-              verbs:
-                - '*'
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-            - apiGroups:
-                - charts.kubecost.com
-              resources:
-                - costanalyzers
-                - costanalyzers/status
-                - costanalyzers/finalizers
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
-                - clusterrolebindings
-                - clusterroles
-              verbs:
-                - '*'
-            - apiGroups:
-                - rbac.authorization.k8s.io
-              resources:
-                - rolebindings
-                - roles
-              verbs:
-                - '*'
-            - apiGroups:
-                - apps
-              resources:
-                - deployments
-              verbs:
-                - '*'
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-                - persistentvolumeclaims
-                - serviceaccounts
-                - services
-              verbs:
-                - '*'
-            - apiGroups:
-                - authentication.k8s.io
-              resources:
-                - tokenreviews
-              verbs:
-                - create
-            - apiGroups:
-                - authorization.k8s.io
-              resources:
-                - subjectaccessreviews
-              verbs:
-                - create
-          serviceAccountName: kubecost-operator-controller-manager
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          - nodes
+          - persistentvolumes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - charts.kubecost.com
+          resources:
+          - costanalyzers
+          - costanalyzers/status
+          - costanalyzers/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          verbs:
+          - '*'
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          - roles
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - statefulsets
+          verbs:
+          - '*'
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - persistentvolumeclaims
+          - persistentvolumes
+          - secrets
+          - serviceaccounts
+          - services
+          verbs:
+          - '*'
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - '*'
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - '*'
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - create
+          - get
+          - list
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: kubecost-operator-controller-manager
       deployments:
-        - label:
-            app.kubernetes.io/component: manager
-            app.kubernetes.io/created-by: kubecost-operator
-            app.kubernetes.io/instance: controller-manager
-            app.kubernetes.io/managed-by: kustomize
-            app.kubernetes.io/name: deployment
-            app.kubernetes.io/part-of: kubecost-operator
-            control-plane: controller-manager
-          name: kubecost-operator-controller-manager
-          spec:
-            replicas: 1
-            selector:
-              matchLabels:
+      - label:
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: kubecost-operator
+          control-plane: controller-manager
+        name: kubecost-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
                 control-plane: controller-manager
-            strategy: {}
-            template:
-              metadata:
-                annotations:
-                  kubectl.kubernetes.io/default-container: manager
-                labels:
-                  control-plane: controller-manager
-              spec:
-                containers:
-                  - args:
-                      - --secure-listen-address=0.0.0.0:8443
-                      - --upstream=http://127.0.0.1:8080/
-                      - --logtostderr=true
-                      - --v=0
-                    image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:d8cc6ffb98190e8dd403bfe67ddcb454e6127d32b87acc237b3e5240f70a20fb
-                    name: kube-rbac-proxy
-                    ports:
-                      - containerPort: 8443
-                        name: https
-                        protocol: TCP
-                    resources:
-                      limits:
-                        cpu: 500m
-                        memory: 128Mi
-                      requests:
-                        cpu: 5m
-                        memory: 64Mi
-                    securityContext:
-                      allowPrivilegeEscalation: false
-                      capabilities:
-                        drop:
-                          - ALL
-                  - args:
-                      - --health-probe-bind-address=:8081
-                      - --metrics-bind-address=127.0.0.1:8080
-                      - --leader-elect
-                      - --leader-election-id=kubecost-operator
-                    image: gcr.io/kubecost1/operator/kubecost-operator-controller@sha256:9f906c04fb4aa9d68bd3bf10cb5c21ff76f453a515a33f0e824470c5abe93553
-                    livenessProbe:
-                      httpGet:
-                        path: /healthz
-                        port: 8081
-                      initialDelaySeconds: 15
-                      periodSeconds: 20
-                    name: manager
-                    readinessProbe:
-                      httpGet:
-                        path: /readyz
-                        port: 8081
-                      initialDelaySeconds: 5
-                      periodSeconds: 10
-                    resources:
-                      limits:
-                        cpu: 500m
-                        memory: 128Mi
-                      requests:
-                        cpu: 10m
-                        memory: 64Mi
-                    securityContext:
-                      allowPrivilegeEscalation: false
-                      capabilities:
-                        drop:
-                          - ALL
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.16.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
                 securityContext:
-                  runAsNonRoot: true
-                serviceAccountName: kubecost-operator-controller-manager
-                terminationGracePeriodSeconds: 10
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=kubecost-operator
+                image: quay.io/kcadawson/kubecost-operator:v2.4.1
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 10m
+                    memory: 256Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: kubecost-operator-controller-manager
+              terminationGracePeriodSeconds: 10
       permissions:
-        - rules:
-            - apiGroups:
-                - ""
-              resources:
-                - configmaps
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - coordination.k8s.io
-              resources:
-                - leases
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups:
-                - ""
-              resources:
-                - events
-              verbs:
-                - create
-                - patch
-          serviceAccountName: kubecost-operator-controller-manager
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: kubecost-operator-controller-manager
     strategy: deployment
   installModes:
-    - supported: false
-      type: OwnNamespace
-    - supported: false
-      type: SingleNamespace
-    - supported: false
-      type: MultiNamespace
-    - supported: true
-      type: AllNamespaces
+  - supported: true
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
   keywords:
-    - cost-model
-    - kubecost
+  - kubernetes
+  - cost
+  - kubernetes costs
+  - kubernetes optimization
+  - k8s
+  - cost monitoring
+  - cloud costs
   links:
-    - name: Kubecost Operator
-      url: https://kubecost-operator.domain
+  - name: Kubecost Operator
+    url: https://www.kubecost.com
   maintainers:
-    - email: ajay@kubecost.com
-      name: AjayTripathy
+  - email: andrew@kubecost.com
+    name: Andrew Dawson
   maturity: alpha
-  minKubeVersion: 1.16.0
+  minKubeVersion: 1.21.0
   provider:
-    name: Stackwatch
-  relatedImages:
-    - image: gcr.io/kubecost1/frontend@sha256:45125a6df7daa330209ea9f26cbe48405595962d3eac799583c4e08ba853f20c
-      name: frontend-45125a6df7daa330209ea9f26cbe48405595962d3eac799583c4e08ba853f20c-annotation
-    - image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:d8cc6ffb98190e8dd403bfe67ddcb454e6127d32b87acc237b3e5240f70a20fb
-      name: kube-rbac-proxy
-    - image: gcr.io/kubecost1/operator/kubecost-operator-controller@sha256:9f906c04fb4aa9d68bd3bf10cb5c21ff76f453a515a33f0e824470c5abe93553
-      name: manager
-    - image: registry.access.redhat.com/openshift3/prometheus@sha256:cc82e7c85f816a0ab6109dc0ee2bd587db3859450bf10e2d3b9241cf5daee233
-      name: prometheus-cc82e7c85f816a0ab6109dc0ee2bd587db3859450bf10e2d3b9241cf5daee233-annotation
-    - image: gcr.io/kubecost1/cost-model@sha256:74ff30f7b9bd7c48c345e703999b1d119fae7cac8d4098eba68d9812aae8b908
-      name: cost-model-74ff30f7b9bd7c48c345e703999b1d119fae7cac8d4098eba68d9812aae8b908-annotation
-  version: 0.0.4
+    name: Kubecost
+    url: https://www.kubecost.com
+  version: 2.4.1

@@ -1,0 +1,353 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: kubeturbos.charts.helm.k8s.io
+  annotations:
+    "api-approved.kubernetes.io": "https://github.com/operator-framework/operator-sdk/pull/2703"
+spec:
+  group: charts.helm.k8s.io
+  names:
+    kind: Kubeturbo
+    listKind: KubeturboList
+    plural: kubeturbos
+    singular: kubeturbo
+  scope: Namespaced
+  versions:
+  # Each version can be enabled/disabled by Served flag.
+  # One and only one version must be marked as the storage version.
+  - name: v1alpha1
+    served: true
+    storage: false
+    schema:
+      openAPIV3Schema:
+        description: Kubeturbo is the Schema for the kubeturbos API
+        type: object
+        properties:
+          apiVersion:
+            description: |-
+              'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            type: string
+          kind:
+            description: |-
+              'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired state of Kubeturbo
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+    subresources:
+      status: {}
+  - name: v1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        description: Kubeturbo is the Schema for the kubeturbos API
+        type: object
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired state of Kubeturbo
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              roleName:
+                description: The name of cluster role. Specify custom turbo-cluster-reader or turbo-cluster-admin role instead of the default cluster-admin role
+                type: string
+              roleBinding:
+                description: The name of cluster role binding. Default is turbo-all-binding
+                type: string
+              serviceAccountName:
+                description: The name of the service account name. Default is turbo-user
+                type: string
+              replicaCount:
+                description: Kubeturbo replicaCount
+                type: integer
+              image:
+                description: Kubeturbo image details for deployments outside of RH Operator Hub
+                type: object
+                properties:
+                  repository:
+                    description: Container repository. default is docker hub
+                    type: string
+                  tag:
+                    description: Kubeturbo container image tag
+                    type: string
+                  busyboxRepository:
+                    description: Busybox repository. default is busybox. This is overridden by cpufreqgetterRepository
+                    type: string
+                  cpufreqgetterRepository:
+                    description: Repository used to get node cpufrequency. default is icr.io/cpopen/turbonomic/cpufreqgetter
+                    type: string
+                  pullPolicy:
+                    description: Define pull policy, Always is default
+                    type: string
+                  imagePullSecret:
+                    description: Define the secret used to authenticate to the container image registry
+                    type: string
+              serverMeta:
+                description: Configuration for Turbo Server
+                type: object
+                properties:
+                  version:
+                    description: Turbo Server major version
+                    type: string
+                  turboServer:
+                    description: URL for Turbo Server endpoint
+                    type: string
+                  # proxy: http://username:password@proxyserver:proxyport or http://proxyserver:proxyport
+                  proxy:
+                    description: Proxy server address
+                    type: string
+              restAPIConfig:
+                description: Credentials to register probe with Turbo Server
+                type: object
+                properties:
+                  turbonomicCredentialsSecretName:
+                    description: Name of k8s secret that contains the turbo credentials
+                    type: string
+                  opsManagerUserName:
+                    description: Turbo admin user id
+                    type: string
+                  opsManagerPassword:
+                    description: Turbo admin user password
+                    type: string
+              sdkProtocolConfig:
+                description: Configurations to register probe with Turbo Server
+                type: object
+                properties:
+                  registrationTimeoutSec:
+                    description: Time in seconds to wait for registration response from the Turbo Server
+                    type: integer
+                  restartOnRegistrationTimeout:
+                    description: Restart probe container on registration timeout
+                    type: boolean
+              featureGates:
+                type: object
+                description: Enable or disable features
+                additionalProperties:
+                  type: boolean
+              HANodeConfig:
+                description: Create HA placement policy for Node to Hypervisor by node role. Master is default
+                type: object
+                properties:
+                  nodeRoles:
+                    description: Node role names
+                    type: string
+              daemonPodDetectors:
+                description: |-
+                  You can use this configuration to define how daemon pods are identified.
+                  Note if you do not enable daemonPodDetectors, the default is to identify all pods running as kind = daemonSet
+                  Any entry for daemonPodDetectors would overwrite default. Recommend you do not use this parameter.
+                properties:
+                  podNamePatterns:
+                    description: A list of regular expressions that mark match pods as Daemon pods.
+                    items:
+                      type: string
+                    type: array
+                  namespacePatterns:
+                    description: A list of regular expressions that all pods in the namespace as Daemon pods.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              targetConfig:
+                description: Optional target configuration
+                type: object
+                properties:
+                  targetName:
+                    description: Optional target name for registration
+                    type: string
+              logging:
+                description: Optional logging level configuration. Changing this value does not require restart of Kubeturbo but takes about 1 minute to take effect
+                type: object
+                properties:
+                  level:
+                    description: Define logging level, default is info = 2
+                    type: integer
+              nodePoolSize:
+                description: Optional node pool configuration. Changing this value does not require restart of Kubeturbo but takes about 1 minute to take effect
+                type: object
+                properties:
+                  min:
+                    description: minimum number of nodes allowed in the node pool. default is 1
+                    type: integer
+                  max:
+                    description: maximum number of nodes allowed in the node pool, default is 1000
+                    type: integer
+              ormOwners:
+                description: Cluster Role rules for ORM owners. It's required when using ORM with ClusterRole 'turbo-cluster-admin'. It's recommended to use ORM with ClusterRole 'cluster-admin'.
+                type: object
+                properties:
+                  apiGroup:
+                    description: API group for ORM owners
+                    type: array
+                    items:
+                      type: string
+                  resources:
+                    description: resources for ORM owners
+                    type: array
+                    items:
+                      type: string
+              systemWorkloadDetectors:
+                description: |-
+                  Flag system workloads such as those defined in kube-system, openshift-system, etc.
+                  Kubeturbo will not generate actions for workloads that match the supplied patterns.
+                type: object
+                properties:
+                  namespacePatterns:
+                    description: A list of regular expressions that match the namespace names for system workloads.
+                    type: array
+                    items:
+                      type: string
+              exclusionDetectors:
+                description: Identity operator-controlled workloads by name or namespace using regular expressions.
+                type: object
+                properties:
+                  operatorControlledWorkloadsPatterns:
+                    description: |-
+                      A list of regular expressions representing operator-controlled Workload Controllers.
+                      Workload Controllers that match the supplied expression will not have actions generated
+                      against them.
+                    type: array
+                    items:
+                      type: string
+                  operatorControlledNamespacePatterns:
+                    description: |-
+                      A list of regular expressions representing namespaces containing operator-controlled
+                      Workload Controllers. Workload Controllers deployed within the matching namespaces
+                      will not have actions generated against them.
+                    type: array
+                    items:
+                      type: string
+              args:
+                description: Kubeturbo command line arguments
+                type: object
+                properties:
+                  logginglevel:
+                    description: Define logging level, default is info = 2
+                    type: integer
+                  discoveryIntervalSec:
+                    description: The discovery interval in seconds, default value is 600 seconds
+                    type: integer
+                  discoverySampleIntervalSec:
+                    description: The discovery interval in seconds to collect additional resource usage data samples from kubelet. This should be no smaller than 10 seconds. Default value is 60
+                    type: integer
+                  discoverySamples:
+                    description: The number of resource usage data samples to be collected from kubelet in each full discovery cycle. This should be no larger than 60. Default is 10
+                    type: integer
+                  discoveryTimeoutSec:
+                    description: The discovery timeout in seconds for each discovery worker. Default value is 180 seconds
+                    type: integer
+                  garbageCollectionIntervalMin:
+                    description: The garbage collection interval in minutes for potentially leaked pods due to failed actions and kubeturbo restarts. Default value is 10 minutes
+                    type: integer
+                  discoveryWorkers:
+                    description: The number of discovery workers. Default is 10
+                    type: integer
+                  kubelethttps:
+                    description: Identify if kubelet requires https
+                    type: boolean
+                  kubeletport:
+                    description: Identify kubelet port
+                    type: integer
+                  sccsupport:
+                    description: Allow kubeturbo to execute actions in OCP
+                    type: string
+                  failVolumePodMoves:
+                    description: Allow kubeturbo to reschedule pods with volumes attached
+                    type: string
+                  busyboxExcludeNodeLabels:
+                    description: Do not run busybox on these nodes to discover the cpu frequency with k8s 1.18 and later, default is either of kubernetes.io/os=windows or beta.kubernetes.io/os=windows present as node label
+                    type: string
+                  stitchuuid:
+                    description: Identify if using uuid or ip for stitching
+                    type: boolean
+                  cleanupSccImpersonationResources:
+                    description: Identify if cleanup the resources created for scc impersonation, default is true
+                    type: boolean
+                  skipCreatingSccImpersonationResources:
+                    description: Skip creating the resources for scc impersonation, default is false
+                    type: boolean
+                  gitEmail:
+                    description: The email to be used to push changes to git with ArgoCD integration
+                    type: string
+                  gitUsername:
+                    description: The username to be used to push changes to git with ArgoCD integration
+                    type: string
+                  gitSecretName:
+                    description: The name of the secret which holds the git credentials to be used with ArgoCD integration
+                    type: string
+                  gitSecretNamespace:
+                    description: The namespace of the secret which holds the git credentials to be used with ArgoCD integration
+                    type: string
+                  gitCommitMode:
+                    description: The commit mode that should be used for git action executions with ArgoCD Integration. One of request or direct. Defaults to direct.
+                    type: string
+                  satelliteLocationProvider:
+                    description: The IBM cloud satellite location provider, it only support azure as of today. Defaults to none.
+                    type: string
+              resources:
+                description: Kubeturbo resource configuration
+                type: object
+                properties:
+                  limits:
+                    description: Define limits
+                    type: object
+                    properties:
+                      memory:
+                        description: Define memory limits in Gi or Mi, include units
+                        type: string
+                      cpu:
+                        description: Define cpu limits in cores or millicores, include units
+                        type: string
+                  requests:
+                    description: Define requests
+                    type: object
+                    properties:
+                      memory:
+                        description: Define memory requests in Gi or Mi, include units
+                        type: string
+                      cpu:
+                        description: Define cpu requests in cores or millicores, include units
+                        type: string
+              wiremock:
+                description: WireMock mode configuration
+                type: object
+                properties:
+                  enabled:
+                    description: Enable WireMock mode. Default is false
+                    type: boolean
+                  url:
+                    description: WireMock service URL. Default is wiremock:8080
+                    type: string
+              discovery:
+                description: Discovery-related configurations
+                type: object
+                properties:
+                  chunkSendDelayMillis:
+                    description: Time delay (in milliseconds) between transmissions of chunked discovery data (default = 0)
+                    type: integer
+                  numObjectsPerChunk:
+                    description: Desired size (in number of DTOs) of discovery data chunks (default = 5,000)
+                    type: integer
+    subresources:
+      status: {}

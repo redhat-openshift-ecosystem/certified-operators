@@ -10,15 +10,6 @@ metadata:
         "my-connect-cluster": {
           "description": "Example Kafka Connect cluster"
         },
-        "my-mirror-maker": {
-          "description": "Example Kafka Mirror Maker 1 deployment"
-        },
-        "my-mm2-cluster": {
-          "description": "Example Kafka Mirror Maker 2 deployment"
-        },
-        "my-bridge": {
-          "description": "Example Strimzi Kafka HTTP Bridge deployment"
-        },
         "my-topic": {
           "description": "Example KafkaTopic custom resource"
         },
@@ -45,7 +36,7 @@ metadata:
           },
           "spec":{
             "kafka":{
-                "version":"3.8.0",
+                "version":"3.8.0.1.2",
                 "replicas":3,
                 "listeners": [
                   {
@@ -94,7 +85,7 @@ metadata:
             "name":"my-connect-cluster"
           },
           "spec":{
-            "version":"3.8.0",
+            "version":"3.8.0.1.2",
             "replicas":1,
             "bootstrapServers":"my-cluster-kafka-bootstrap:9093",
             "tls":{
@@ -113,39 +104,6 @@ metadata:
                 "config.storage.replication.factor": -1,
                 "offset.storage.replication.factor": -1,
                 "status.storage.replication.factor": -1
-            }
-          }
-        },
-        {
-          "apiVersion":"kafka.strimzi.io/v1beta2",
-          "kind":"KafkaMirrorMaker",
-          "metadata":{
-            "name":"my-mirror-maker"
-          },
-          "spec":{
-            "version":"3.8.0",
-            "replicas":1,
-            "consumer":{
-                "bootstrapServers":"my-source-cluster-kafka-bootstrap:9092",
-                "groupId":"my-source-group-id"
-            },
-            "producer":{
-                "bootstrapServers":"my-target-cluster-kafka-bootstrap:9092"
-            },
-            "include":".*"
-          }
-        },
-        {
-          "apiVersion":"kafka.strimzi.io/v1beta2",
-          "kind":"KafkaBridge",
-          "metadata":{
-            "name":"my-bridge"
-          },
-          "spec":{
-            "replicas":1,
-            "bootstrapServers":"my-cluster-kafka-bootstrap:9092",
-            "http":{
-                "port":8080
             }
           }
         },
@@ -221,53 +179,6 @@ metadata:
               "file": "/opt/kafka/LICENSE",
               "topic": "my-topic"
             }
-          }
-        },
-        {
-          "apiVersion": "kafka.strimzi.io/v1beta2",
-          "kind": "KafkaMirrorMaker2",
-          "metadata": {
-            "name": "my-mm2-cluster"
-          },
-          "spec": {
-            "version":"3.8.0",
-            "replicas": 1,
-            "connectCluster": "cluster-b",
-            "clusters": [
-              {
-                "alias": "cluster-a",
-                "bootstrapServers": "cluster-a-kafka-bootstrap:9092"
-              },
-              {
-                "alias": "cluster-b",
-                "bootstrapServers": "cluster-b-kafka-bootstrap:9092",
-                "config": {
-                  "config.storage.replication.factor": -1,
-                  "offset.storage.replication.factor": -1,
-                  "status.storage.replication.factor": -1
-                }
-              }
-            ],
-            "mirrors": [
-              {
-                "sourceCluster": "cluster-a",
-                "targetCluster": "cluster-b",
-                "sourceConnector": {
-                  "config": {
-                    "replication.factor": -1,
-                    "offset-syncs.topic.replication.factor": -1,
-                    "sync.topic.acls.enabled": "false"
-                  }
-                },
-                "checkpointConnector": {
-                  "config": {
-                    "checkpoints.topic.replication.factor": -1
-                  }
-                },
-                "topicsPattern": ".*",
-                "groupsPattern": ".*"
-              }
-            ]
           }
         },
         {
@@ -360,10 +271,9 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Streaming & Messaging
-    containerImage: quay.io/strimzi/operator@sha256:d3732245f34afaa6b571f1f912e1cd017891b22003d6367ae8ca059b2a5cb13c
-    createdAt: 2024-08-22 15:19:00
-    description: Strimzi provides a way to run an Apache Kafka cluster on Kubernetes or OpenShift in various deployment configurations.
-    repository: https://github.com/strimzi/strimzi-kafka-operator
+    containerImage: docker-private.infra.cloudera.com/cloudera/kafka-operator@sha256:423f2cbe13c82ff320fc5d79d349dccbcda7ab6da95ec474f0dd2dde312308a8
+    createdAt: 2024-10-08 12:31:00
+    description: Operator for deploying and managing Cloudera Streams Messaging Kafka clusters on OpenShift
     support: Cloudera
     operators.openshift.io/infrastructure-features: |-
       ["disconnected", "proxy", "proxy-aware", "fips"]
@@ -383,7 +293,7 @@ metadata:
     operatorframework.io/arch.s390x: supported
     operatorframework.io/arch.ppc64le: supported
     operatorframework.io/os.linux: supported
-  name: csm-operator.v1.2.0
+  name: csm-operator.v1.2.0-b21
   namespace: placeholder
 spec:
   MinKubeVersion: 1.23.0
@@ -951,9 +861,9 @@ spec:
     ### License
 
     Strimzi is licensed under the [Apache License, Version 2.0](https://github.com/strimzi/strimzi-kafka-operator/blob/main/LICENSE).
-  displayName: Strimzi
+  displayName: Cloudera Streams Messaging Operator
   icon:
-  - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDIyLjAuMSwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDYuMDAgQnVpbGQgMCkgIC0tPgo8c3ZnIHZlcnNpb249IjEuMSIgaWQ9IkxheWVyXzEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIHg9IjBweCIgeT0iMHB4IgoJIHZpZXdCb3g9IjAgMCA1MTIgNTk1IiBzdHlsZT0iZW5hYmxlLWJhY2tncm91bmQ6bmV3IDAgMCA1MTIgNTk1OyIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSI+CjxzdHlsZSB0eXBlPSJ0ZXh0L2NzcyI+Cgkuc3Qwe2ZpbGw6IzE5MkM0Nzt9Cgkuc3Qxe2ZpbGw6dXJsKCNTVkdJRF8xXyk7fQoJLnN0MntmaWxsOnVybCgjU1ZHSURfMl8pO30KCS5zdDN7ZmlsbDp1cmwoI1NWR0lEXzNfKTt9Cgkuc3Q0e2ZpbGw6dXJsKCNTVkdJRF80Xyk7fQoJLnN0NXtmaWxsOnVybCgjU1ZHSURfNV8pO30KCS5zdDZ7ZmlsbDp1cmwoI1NWR0lEXzZfKTt9Cjwvc3R5bGU+CjxnPgoJPHBvbHlnb24gY2xhc3M9InN0MCIgcG9pbnRzPSIyNTYsNSAxLDE1Mi4yIDEsNDQ2LjcgMjU2LDU5My45IDUxMSw0NDYuNyA1MTEsMTUyLjIgMjU2LDUgCSIvPgoJPGxpbmVhckdyYWRpZW50IGlkPSJTVkdJRF8xXyIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIHgxPSIxMDkuNDk5NiIgeTE9Ijg0Ljk2MjIiIHgyPSI0NDAuOTUxNyIgeTI9Ijc5My44MTAyIj4KCQk8c3RvcCAgb2Zmc2V0PSIwIiBzdHlsZT0ic3RvcC1jb2xvcjojRkZGRkZGIi8+CgkJPHN0b3AgIG9mZnNldD0iMSIgc3R5bGU9InN0b3AtY29sb3I6IzU0QkFEOCIvPgoJPC9saW5lYXJHcmFkaWVudD4KCTxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0yNTYsNTYxbDIyNi41LTEzMC44di0yNi4zYy0zNy42LTcuMy04NC45LTE0LjMtMTQzLjUtMTkuM2MtMTk5LjItMTcuMi0xNC44LTU2LjYsNjguOS0xMjcuMQoJCVMxMzAsMTY1LjcsMTMwLDE2NS43czE0Ny42LDMxLDEzMi44LDUwYy0xMC41LDEzLjUtMTM0LjMsNDMuNS0yMzMuMyw4OC4xdjEyNi41TDI1Niw1NjF6Ii8+CjwvZz4KPC9zdmc+Cg==
+  - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyB3aWR0aD0iMTkycHgiIGhlaWdodD0iMTkycHgiIHZpZXdCb3g9IjAgMCAxOTIgMTkyIiB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPgogICAgPHRpdGxlPmljLWNsb3VkZXJhLWxnPC90aXRsZT4KICAgIDxnIGlkPSJTeW1ib2xzIiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj4KICAgICAgICA8ZyBpZD0ic2VydmljZS1sb2dvcy9jbG91ZGVyYS9jbG91ZGVyYS1sYXJnZSIgZmlsbD0iI0Y5NjcwMiI+CiAgICAgICAgICAgIDxwYXRoIGQ9Ik0xNTQuNjE1ODk0LDE0MS41NDI3MzcgTDE1Ny41ODM4MDMsMTQ0LjQ5NjQxMyBMMTE4LjI1OTUzLDE4My42NTUwOTEgQzExNi4xOTQ4MDYsMTgzLjg3MDM5OCAxMTQuMDgzODczLDE4My45MjY4MzcgMTExLjk3NzE0LDE4NCBMMTExLjk3NzE0LDE4NCBMMTU0LjYxNTg5NCwxNDEuNTQyNzM3IFogTTE0Ny42NDc5MjMsMTM0LjYwNDIxMSBMMTUwLjYxNzkzMywxMzcuNTU5OTc3IEwxMDQuMDc0NDc4LDE4My45MDUzMDcgQzEwMi4yMjE4OTcsMTgzLjgwNDk3IDEwMC4zNzM1MTgsMTgzLjcwMjU0MiA5OC41NTI0NDQsMTgzLjQ4OTMyNiBMOTguNTUyNDQ0LDE4My40ODkzMjYgTDE0Ny42NDc5MjMsMTM0LjYwNDIxMSBaIE0xNDAuNjc5OTUzLDEyNy42NjU2ODUgTDE0My42NDk5NjIsMTMwLjYyMTQ1MiBMOTEuNjEzODc5NSwxODIuNDM1MTU4IEM4OS45OTg2NDc5LDE4Mi4xMTUzMzMgODguNDMxNzI2MiwxODEuNjcyMTc3IDg2Ljg1MDEwMTUsMTgxLjI2NjY0OCBMODYuODUwMTAxNSwxODEuMjY2NjQ4IEwxNDAuNjc5OTUzLDEyNy42NjU2ODUgWiBNMTYxLjU4NDkxNCwxNDguNDgxNDcxIEwxNjQuNTUyODI0LDE1MS40MzcyMzggTDEzNS45MTc2NDUsMTc5Ljk0OTcyMiBDMTMzLjI3MzIwMiwxODAuNzkyMTM2IDEzMC41NzQxNDgsMTgxLjQ5ODY3NyAxMjcuODI4ODg0LDE4Mi4wOTIzMzkgTDEyNy44Mjg4ODQsMTgyLjA5MjMzOSBMMTYxLjU4NDkxNCwxNDguNDgxNDcxIFogTTEyMi43Mzc0MzksMTM3LjU2NTQxMiBMODAuNjU5NTAwNiwxNzkuNDY0NTUgQzc5LjE5MzM5OTYsMTc4Ljk3MTIyNiA3Ny43NDIwMDE3LDE3OC40NDY1NDYgNzYuMzExNjA4LDE3Ny44ODAwNTkgTDc2LjMxMTYwOCwxNzcuODgwMDU5IEwxMTUuMDIwNDU1LDEzOS4zMzgwMzYgQzExNy42NzMyOTksMTM4Ljk3MDEzMyAxMjAuMjU0NzI5LDEzOC4zODQ4MzMgMTIyLjczNzQzOSwxMzcuNTY1NDEyIEwxMjIuNzM3NDM5LDEzNy41NjU0MTIgWiBNMTAxLjMyMjQ5MywxMzkuMDk5MzE3IEMxMDMuMDcyMTUyLDEzOS40MDQ1MDkgMTA0Ljg1NTQxOCwxMzkuNTk0NzMyIDEwNi42NjgwOSwxMzkuNjg4Nzk4IEwxMDYuNjY4MDksMTM5LjY4ODc5OCBMNzAuNzczODIxMSwxNzUuNDI5NzQxIEM2OS40MzU4NDY0LDE3NC43OTAwOTEgNjguMDY2MzY1MywxNzQuMjA4OTcyIDY2Ljc2NjE5ODQsMTczLjUwNjYxMSBMNjYuNzY2MTk4NCwxNzMuNTA2NjExIFogTTE2OC41NTMwOTUsMTU1LjQxODUzNCBMMTcxLjUsMTU4LjM1MzM5NiBDMTY1LjEyNzI5MiwxNjQuNjk5NzI0IDE1Ny43NTI2NzgsMTcwLjAyODA0NiAxNDkuNjgyODIxLDE3NC4yMDg3NjMgTDE0OS42ODI4MjEsMTc0LjIwODc2MyBMMTY4LjU1MzA5NSwxNTUuNDE4NTM0IFogTTkwLjcwMTQ1MjIsMTM1LjgwMDUyMyBDOTIuMDgxNDM1NSwxMzYuNDMxODExIDkzLjQ5NTAyNTcsMTM2Ljk5NjIwOCA5NC45NDY0MjM3LDEzNy40ODUzNTEgTDk0Ljk0NjQyMzcsMTM3LjQ4NTM1MSBMNjEuNzkxMTE3LDE3MC40OTYyODcgQzYwLjU4MTI2ODYsMTY5LjczMzMwNiA1OS4zNzk4MjIsMTY4Ljk2ODIzNSA1OC4yMDk4ODE4LDE2OC4xNTA5MDUgTDU4LjIwOTg4MTgsMTY4LjE1MDkwNSBaIE04Mi4wMzUwNzMsMTMwLjU1MjA1MiBDODMuMTU0NjAyOSwxMzEuNDIxNjQxIDg0LjMxNjE0MTMsMTMyLjIzNjg4IDg1LjUxOTY4ODQsMTMyLjk5NTY4IEw4NS41MTk2ODg0LDEzMi45OTU2OCBMNTMuNjM1MTQyNiwxNjQuNzQxOTQ5IEM1Mi41Mzg3MTc1LDE2My44NjgxNzkgNTEuNDk0ODAzMiwxNjIuOTMzNzg5IDUwLjQ0MjQ4NzEsMTYyLjAwNzc2IEw1MC40NDI0ODcxLDE2Mi4wMDc3NiBaIE03MC4wMTA5NDQ1LDExNi4yMTU1NCBDNzIuMDk0NTcyMywxMjAuMTkxNDAxIDc0Ljc0OTUxNzMsMTIzLjgzMDcxNCA3Ny45MDY0NjU0LDEyNi45NzQ2MTMgTDc3LjkwNjQ2NTQsMTI2Ljk3NDYxMyBMNDYuMzk5OTk3MiwxNTguMzQ2NzA3IEM0My4yNzI0NTUxLDE1NS4yMjk5ODMgNDAuNDUzNjc2NSwxNTEuODIwNjA5IDM3LjgxOTczNTcsMTQ4LjI2NyBMMzcuODE5NzM1NywxNDguMjY3IFogTTY1LjExMzU3OTEsOTQuNTM5MTUzMiBDNjUuMDk0Njc1Miw5NS4wNTMzODEzIDY1LjAzNTg2MzEsOTUuNTU3MTU3NiA2NS4wMzU4NjMxLDk2LjA3NTU2NjQgQzY1LjAzNTg2MzEsMTAxLjIwMTEyNSA2NS45NzI2NTU0LDEwNi4xMDMwMTQgNjcuNjA2NzkwOSwxMTAuNjc2NzE4IEw2Ny42MDY3OTA5LDExMC42NzY3MTggTDM0LjU1MDIwNDUsMTQzLjU4OTQwNiBDMzIuMDY5NTk1MiwxMzkuNzQ5NDE4IDI5Ljg2NDE0MjQsMTM1LjcxNTAyNyAyNy45OTg5NTk1LDEzMS40OTI1MDQgTDI3Ljk5ODk1OTUsMTMxLjQ5MjUwNCBaIE0xMDguOTUzMzU5LDggQzEzMy4zNzkyNzQsOCAxNTUuNDkyNjE0LDE3Ljg2MDIxOTIgMTcxLjUsMzMuNzk3MTA5NCBMMTcxLjUsMzMuNzk3MTA5NCBMMTM5Ljk5MzUzMiw2NS4xNjkyMDM4IEMxMzIuMDQxMjk5LDU3LjI1MDkyNzMgMTIxLjA2MDI0NSw1Mi4zNDQ4NTY4IDEwOC45NTMzNTksNTIuMzQ0ODU2OCBDOTYuODQ0MzczMyw1Mi4zNDQ4NTY4IDg1Ljg2NTQxOTQsNTcuMjUwOTI3MyA3Ny45MTMxODY4LDY1LjE2OTIwMzggQzcyLjQyMjY1OTYsNzAuNjM1NDkwMiA2OC40MjM0Mzg2LDc3LjU2MjkzNyA2Ni40NDQ4MzI0LDg1LjI4MjYyOTUgTDY2LjQ0NDgzMjQsODUuMjgyNjI5NSBMMjUuNzY3ODgxNSwxMjUuNzgzMzE4IEMyNC4wNTgxMzA1LDEyMS4wNDAyOTUgMjIuNzQ1MzYxLDExNi4xMjM3NzMgMjEuODY5NDgxMiwxMTEuMDQyMTEyIEwyMS44Njk0ODEyLDExMS4wNDIxMTIgTDcyLjkyNjc2MzEsNjAuMjA0NjAzMyBMNjguOTQ0MzQ1NSw1Ni4yNDEyODQzIEwyMC45MDMyODI4LDEwNC4wNzI4NTggQzIwLjY2NTkzNDEsMTAxLjQzNjkxNyAyMC41LDk4Ljc3NTg5MSAyMC41LDk2LjA3NTE0ODQgQzIwLjUsOTIuMzUwMTMwMiAyMC44MDY2NjMsODguNzA0NTQ1NyAyMS4yNTYxNTUyLDg1LjEwMDc2ODMgTDIxLjI1NjE1NTIsODUuMTAwNzY4MyBMNTkuNTkzMjI1OCw0Ni45MjY2NDg2IEw1NS42MTA4MDgyLDQyLjk2MTIzOTMgTDIzLjA1ODMyNTIsNzUuMzc2NDIyNCBDMjYuOTMzNjIwOCw1OS4zODEwMDIyIDM1LjEwMDA5NzQsNDUuMDU1Nzc4MSA0Ni40MDY3MTg2LDMzLjc5NzEwOTQgQzYyLjQxNDEwNDksMTcuODYwMjE5MiA4NC41Mjc0NDQ3LDggMTA4Ljk1MzM1OSw4IFoiIGlkPSJjbG91ZGVyYSI+PC9wYXRoPgogICAgICAgIDwvZz4KICAgIDwvZz4KPC9zdmc+
     mediatype: image/svg+xml
   install:
     spec:
@@ -1232,7 +1142,7 @@ spec:
           - list
         serviceAccountName: strimzi-cluster-operator
       deployments:
-      - name: csm-operator-v1.2.0
+      - name: csm-operator-v1.2.0-b21
         spec:
           replicas: 1
           selector:
@@ -1253,9 +1163,13 @@ spec:
                 - name: co-config-volume
                   configMap:
                     name: strimzi-cluster-operator
+                - name: csm-op-license
+                  secret:
+                    secretName: csm-op-license
+                    optional: false
               containers:
                 - name: strimzi-cluster-operator
-                  image: quay.io/strimzi/operator@sha256:d3732245f34afaa6b571f1f912e1cd017891b22003d6367ae8ca059b2a5cb13c
+                  image: docker-private.infra.cloudera.com/cloudera/kafka-operator@sha256:423f2cbe13c82ff320fc5d79d349dccbcda7ab6da95ec474f0dd2dde312308a8
                   ports:
                     - containerPort: 8080
                       name: http
@@ -1266,6 +1180,9 @@ spec:
                       mountPath: /tmp
                     - name: co-config-volume
                       mountPath: /opt/strimzi/custom-config/
+                    - name: csm-op-license
+                      mountPath: /opt/strimzi/cloudera-license/
+                      readOnly: true
                   env:
                     - name: STRIMZI_NAMESPACE
                       valueFrom:
@@ -1276,41 +1193,35 @@ spec:
                     - name: STRIMZI_OPERATION_TIMEOUT_MS
                       value: "300000"
                     - name: STRIMZI_DEFAULT_KAFKA_EXPORTER_IMAGE
-                      value: quay.io/strimzi/kafka@sha256:b2f4e8895e9ed66228512ce14aec685101fa75dc329128d47cb1c15e3aef3c9c
+                      value: docker-private.infra.cloudera.com/cloudera/kafka@sha256:90c241bad1c12dfb48468fdbb54eecef698f9a653587e00b8c47e9b002ac3c5f
                     - name: STRIMZI_DEFAULT_CRUISE_CONTROL_IMAGE
-                      value: quay.io/strimzi/kafka@sha256:b2f4e8895e9ed66228512ce14aec685101fa75dc329128d47cb1c15e3aef3c9c
+                      value: docker-private.infra.cloudera.com/cloudera/kafka@sha256:90c241bad1c12dfb48468fdbb54eecef698f9a653587e00b8c47e9b002ac3c5f
                     - name: STRIMZI_KAFKA_IMAGES
                       value: |
-                        3.7.0=quay.io/strimzi/kafka@sha256:d27cf5bf3624e18ba705246b14f92d12b8a15eb8551b13abf027cf71b549baf0
-                        3.7.1=quay.io/strimzi/kafka@sha256:ad06ead5125bce87498b1582a76e78143a6d21408ac4b12bb7e6007aa4cabd84
-                        3.8.0=quay.io/strimzi/kafka@sha256:b2f4e8895e9ed66228512ce14aec685101fa75dc329128d47cb1c15e3aef3c9c
+                        3.7.0.1.1=docker-private.infra.cloudera.com/cloudera/kafka@sha256:f566e10b75b211d4138894fa1b4083cbefa43545c2c1a4e612e6edf152bd450e
+                        3.8.0.1.2=docker-private.infra.cloudera.com/cloudera/kafka@sha256:90c241bad1c12dfb48468fdbb54eecef698f9a653587e00b8c47e9b002ac3c5f
                     - name: STRIMZI_KAFKA_CONNECT_IMAGES
                       value: |
-                        3.7.0=quay.io/strimzi/kafka@sha256:d27cf5bf3624e18ba705246b14f92d12b8a15eb8551b13abf027cf71b549baf0
-                        3.7.1=quay.io/strimzi/kafka@sha256:ad06ead5125bce87498b1582a76e78143a6d21408ac4b12bb7e6007aa4cabd84
-                        3.8.0=quay.io/strimzi/kafka@sha256:b2f4e8895e9ed66228512ce14aec685101fa75dc329128d47cb1c15e3aef3c9c
+                        3.7.0.1.1=docker-private.infra.cloudera.com/cloudera/kafka@sha256:f566e10b75b211d4138894fa1b4083cbefa43545c2c1a4e612e6edf152bd450e
+                        3.8.0.1.2=docker-private.infra.cloudera.com/cloudera/kafka@sha256:90c241bad1c12dfb48468fdbb54eecef698f9a653587e00b8c47e9b002ac3c5f
                     - name: STRIMZI_KAFKA_MIRROR_MAKER_IMAGES
                       value: |
-                        3.7.0=quay.io/strimzi/kafka@sha256:d27cf5bf3624e18ba705246b14f92d12b8a15eb8551b13abf027cf71b549baf0
-                        3.7.1=quay.io/strimzi/kafka@sha256:ad06ead5125bce87498b1582a76e78143a6d21408ac4b12bb7e6007aa4cabd84
-                        3.8.0=quay.io/strimzi/kafka@sha256:b2f4e8895e9ed66228512ce14aec685101fa75dc329128d47cb1c15e3aef3c9c
+                        3.7.0.1.1=docker-private.infra.cloudera.com/cloudera/kafka@sha256:f566e10b75b211d4138894fa1b4083cbefa43545c2c1a4e612e6edf152bd450e
+                        3.8.0.1.2=docker-private.infra.cloudera.com/cloudera/kafka@sha256:90c241bad1c12dfb48468fdbb54eecef698f9a653587e00b8c47e9b002ac3c5f
                     - name: STRIMZI_KAFKA_MIRROR_MAKER_2_IMAGES
                       value: |
-                        3.7.0=quay.io/strimzi/kafka@sha256:d27cf5bf3624e18ba705246b14f92d12b8a15eb8551b13abf027cf71b549baf0
-                        3.7.1=quay.io/strimzi/kafka@sha256:ad06ead5125bce87498b1582a76e78143a6d21408ac4b12bb7e6007aa4cabd84
-                        3.8.0=quay.io/strimzi/kafka@sha256:b2f4e8895e9ed66228512ce14aec685101fa75dc329128d47cb1c15e3aef3c9c
+                        3.7.0.1.1=docker-private.infra.cloudera.com/cloudera/kafka@sha256:f566e10b75b211d4138894fa1b4083cbefa43545c2c1a4e612e6edf152bd450e
+                        3.8.0.1.2=docker-private.infra.cloudera.com/cloudera/kafka@sha256:90c241bad1c12dfb48468fdbb54eecef698f9a653587e00b8c47e9b002ac3c5f
                     - name: STRIMZI_DEFAULT_TOPIC_OPERATOR_IMAGE
-                      value: quay.io/strimzi/operator@sha256:d3732245f34afaa6b571f1f912e1cd017891b22003d6367ae8ca059b2a5cb13c
+                      value: docker-private.infra.cloudera.com/cloudera/kafka-operator@sha256:423f2cbe13c82ff320fc5d79d349dccbcda7ab6da95ec474f0dd2dde312308a8
                     - name: STRIMZI_DEFAULT_USER_OPERATOR_IMAGE
-                      value: quay.io/strimzi/operator@sha256:d3732245f34afaa6b571f1f912e1cd017891b22003d6367ae8ca059b2a5cb13c
+                      value: docker-private.infra.cloudera.com/cloudera/kafka-operator@sha256:423f2cbe13c82ff320fc5d79d349dccbcda7ab6da95ec474f0dd2dde312308a8
                     - name: STRIMZI_DEFAULT_KAFKA_INIT_IMAGE
-                      value: quay.io/strimzi/operator@sha256:d3732245f34afaa6b571f1f912e1cd017891b22003d6367ae8ca059b2a5cb13c
-                    - name: STRIMZI_DEFAULT_KAFKA_BRIDGE_IMAGE
-                      value: quay.io/strimzi/kafka-bridge@sha256:1d2c394fe719cebf37e71a066d4b42bb41b22f96656cfd04db7328eded77c625
+                      value: docker-private.infra.cloudera.com/cloudera/kafka-operator@sha256:423f2cbe13c82ff320fc5d79d349dccbcda7ab6da95ec474f0dd2dde312308a8
                     - name: STRIMZI_DEFAULT_KANIKO_EXECUTOR_IMAGE
-                      value: quay.io/strimzi/kaniko-executor@sha256:ef1a39c363e145041d80103c3c12da9429ce06cf21dff6fb1fb75d0c0ed9c35b
+                      value: docker-private.infra.cloudera.com/cloudera/kaniko-executor@sha256:44871e518bf11e0abdf5e066d1c5d960aba45508aafe745672ba87823846bc13
                     - name: STRIMZI_DEFAULT_MAVEN_BUILDER
-                      value: quay.io/strimzi/maven-builder@sha256:6414f8f3985f221b0eda53867c00494140108d17579c4dcbbc93934bb00e5d49
+                      value: docker-private.infra.cloudera.com/cloudera/maven-builder@sha256:ae43c9501efb0bc122948408342bb5615cebeeac62e6adee0dc61d69cf37386e
                     - name: STRIMZI_OPERATOR_NAMESPACE
                       valueFrom:
                         fieldRef:
@@ -1355,20 +1266,16 @@ spec:
     - supported: true
       type: AllNamespaces
   relatedImages:
-    - name: strimzi-cluster-operator
-      image: quay.io/strimzi/operator@sha256:d3732245f34afaa6b571f1f912e1cd017891b22003d6367ae8ca059b2a5cb13c
-    - name: strimzi-kafka-370
-      image: quay.io/strimzi/kafka@sha256:d27cf5bf3624e18ba705246b14f92d12b8a15eb8551b13abf027cf71b549baf0
-    - name: strimzi-kafka-371
-      image: quay.io/strimzi/kafka@sha256:ad06ead5125bce87498b1582a76e78143a6d21408ac4b12bb7e6007aa4cabd84
-    - name: strimzi-kafka-380
-      image: quay.io/strimzi/kafka@sha256:b2f4e8895e9ed66228512ce14aec685101fa75dc329128d47cb1c15e3aef3c9c
-    - name: strimzi-bridge
-      image: quay.io/strimzi/kafka-bridge@sha256:80f329ecd3ba96fac12e75be874dce0debc8395337737581de34238ce11c8fb1
-    - name: strimzi-kaniko-executor
-      image: quay.io/strimzi/kaniko-executor@sha256:ef1a39c363e145041d80103c3c12da9429ce06cf21dff6fb1fb75d0c0ed9c35b
-    - name: strimzi-maven-builder
-      image: quay.io/strimzi/maven-builder@sha256:6414f8f3985f221b0eda53867c00494140108d17579c4dcbbc93934bb00e5d49
+    - name: cluster-operator
+      image: docker-private.infra.cloudera.com/cloudera/kafka-operator@sha256:423f2cbe13c82ff320fc5d79d349dccbcda7ab6da95ec474f0dd2dde312308a8
+    - name: kafka-370
+      image: docker-private.infra.cloudera.com/cloudera/kafka@sha256:f566e10b75b211d4138894fa1b4083cbefa43545c2c1a4e612e6edf152bd450e
+    - name: kafka-380
+      image: docker-private.infra.cloudera.com/cloudera/kafka@sha256:90c241bad1c12dfb48468fdbb54eecef698f9a653587e00b8c47e9b002ac3c5f
+    - name: kaniko-executor
+      image: docker-private.infra.cloudera.com/cloudera/kaniko-executor@sha256:44871e518bf11e0abdf5e066d1c5d960aba45508aafe745672ba87823846bc13
+    - name: maven-builder
+      image: docker-private.infra.cloudera.com/cloudera/maven-builder@sha256:ae43c9501efb0bc122948408342bb5615cebeeac62e6adee0dc61d69cf37386e
   keywords:
     - kafka
     - messaging
@@ -1396,8 +1303,8 @@ spec:
       name: Strimzi
   maturity: stable
   provider:
-    name: Strimzi
+    name: Cloudera
   selector:
     matchLabels:
       name: strimzi-cluster-operator
-  version: 1.2.0
+  version: 1.2.0-b21

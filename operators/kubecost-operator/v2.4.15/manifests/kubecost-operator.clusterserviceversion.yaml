@@ -13,14 +13,6 @@ metadata:
           },
           "spec": {
             "affinity": {},
-            "awsstore": {
-              "annotations": {},
-              "createServiceAccount": false,
-              "imageNameAndVersion": "gcr.io/kubecost1/awsstore@sha256:1122c3770f41a00ff3d9a436e309ae6494369a445ddc7194c1e55f98c1604a5a",
-              "nodeSelector": {},
-              "priorityClassName": "",
-              "useAwsStore": false
-            },
             "clusterController": {
               "actionConfigs": {
                 "clusterRightsize": null,
@@ -30,8 +22,8 @@ metadata:
               },
               "enabled": false,
               "image": {
-                "repository": "gcr.io/kubecost1/cluster-controller@sha256",
-                "tag": "07f9c6b77183f56b51e8314d87d3574356a42463237b66842de30e88f1981e7e"
+                "repository": "registry.connect.redhat.com/kubecost/kubecost-cluster-controller@sha256",
+                "tag": "c7533d2b6f54e5357327ce3e225a2908afd470edf9c67a8ceff56def4e2d633d"
               },
               "imagePullPolicy": "IfNotPresent",
               "kubescaler": {
@@ -43,6 +35,7 @@ metadata:
                 }
               },
               "priorityClassName": "",
+              "resources": {},
               "tolerations": []
             },
             "costEventsAudit": {
@@ -100,7 +93,7 @@ metadata:
               "env": {
                 "GUNICORN_CMD_ARGS": "--log-level info -t 1200"
               },
-              "fullImageName": "gcr.io/kubecost1/kubecost-modeling@sha256:97e27552f39097d0bf7e69c391852c0fcda140ea2d660b041c6bc37eb4967548",
+              "fullImageName": "registry.connect.redhat.com/kubecost/kubecost-modeling@sha256:8e767e3815a7cba5b5ba5f399d4330ef5035b99b60974b425d4c937d5a77156d",
               "imagePullPolicy": "IfNotPresent",
               "livenessProbe": {
                 "enabled": true,
@@ -140,7 +133,7 @@ metadata:
                   "audience": "https://prometheus.monitor.azure.com/.default",
                   "enabled": false,
                   "identityType": "userAssigned",
-                  "image": "$\u003cIMAGE\u003e",
+                  "image": null,
                   "imagePullPolicy": "IfNotPresent",
                   "name": "aad-auth-proxy",
                   "port": 8081
@@ -199,18 +192,6 @@ metadata:
               "gcpstore": {
                 "enabled": false
               },
-              "gmp": {
-                "enabled": false,
-                "gmpProxy": {
-                  "enabled": false,
-                  "image": "gke.gcr.io/prometheus-engine/frontend@sha256:563f54fd4c298f31d81175c8d63c2c8acd386e9934822365691dc6b4c811a052",
-                  "imagePullPolicy": "IfNotPresent",
-                  "name": "gmp-proxy",
-                  "port": 8085,
-                  "projectId": "YOUR_PROJECT_ID"
-                },
-                "prometheusServerEndpoint": "http://localhost:8085/"
-              },
               "grafana": {
                 "domainName": "cost-analyzer-grafana.default.svc",
                 "enabled": true,
@@ -234,14 +215,6 @@ metadata:
                   "runInterval": "12h"
                 }
               },
-              "mimirProxy": {
-                "enabled": false,
-                "image": "nginxinc/nginx-unprivileged@sha256:26c8c8ad980e08512841cda40a779076767ef0ac59ad94ac6a54244331f5c644",
-                "mimirEndpoint": "$mimir_endpoint",
-                "name": "mimir-proxy",
-                "orgIdentifier": "$your_tenant_ID",
-                "port": 8085
-              },
               "notifications": {
                 "alertmanager": {
                   "enabled": false,
@@ -254,14 +227,17 @@ metadata:
                   "skipSanityChecks": false
                 },
                 "openshift": {
-                  "enabled": false,
+                  "createMonitoringClusterRoleBinding": true,
+                  "createMonitoringResourceReaderRoleBinding": true,
+                  "enabled": true,
+                  "monitoringServiceAccountName": "prometheus-k8s",
                   "route": {
                     "annotations": {},
                     "enabled": false
                   },
                   "scc": {
-                    "networkCosts": false,
-                    "nodeExporter": false
+                    "networkCosts": true,
+                    "nodeExporter": true
                   },
                   "securityContext": {
                     "runAsNonRoot": true,
@@ -274,7 +250,8 @@ metadata:
               "podAnnotations": {},
               "prometheus": {
                 "enabled": true,
-                "fqdn": "http://cost-analyzer-prometheus-server.default.svc"
+                "fqdn": "https://prometheus-k8s.openshift-monitoring.svc.cluster.local:9091",
+                "kubeRBACProxy": true
               },
               "savedReports": {
                 "enabled": false,
@@ -334,133 +311,6 @@ metadata:
                 }
               }
             },
-            "grafana": {
-              "adminPassword": "strongpassword",
-              "adminUser": "admin",
-              "affinity": {},
-              "annotations": {},
-              "dashboardProviders": {},
-              "dashboards": {},
-              "dashboardsConfigMaps": {},
-              "deploymentStrategy": "RollingUpdate",
-              "downloadDashboardsImage": {
-                "pullPolicy": "IfNotPresent",
-                "repository": "curlimages/curl@sha256",
-                "tag": "d9b4541e214bcd85196d6e92e2753ac6d0ea699f0af5741f8c6cccbfcf00ef4b"
-              },
-              "env": {},
-              "envFromSecret": "",
-              "extraSecretMounts": [],
-              "grafana.ini": {
-                "analytics": {
-                  "check_for_updates": true
-                },
-                "auth.anonymous": {
-                  "enabled": true,
-                  "org_name": "Main Org.",
-                  "org_role": "Editor"
-                },
-                "grafana_net": {
-                  "url": "https://grafana.net"
-                },
-                "log": {
-                  "mode": "console"
-                },
-                "paths": {
-                  "data": "/var/lib/grafana/data",
-                  "logs": "/var/log/grafana",
-                  "plugins": "/var/lib/grafana/plugins",
-                  "provisioning": "/etc/grafana/provisioning"
-                },
-                "server": {
-                  "root_url": "%(protocol)s://%(domain)s:%(http_port)s/grafana",
-                  "serve_from_sub_path": false
-                }
-              },
-              "image": {
-                "pullPolicy": "IfNotPresent",
-                "repository": "cgr.dev/chainguard/grafana@sha256",
-                "tag": "715aa0bb9bd971630444f1300363dcbe9e15bc8ccc9cfb65e75ce57c1bca2b85"
-              },
-              "ingress": {
-                "annotations": {},
-                "enabled": false,
-                "hosts": [
-                  "chart-example.local"
-                ],
-                "labels": {},
-                "path": "/",
-                "pathType": "Prefix",
-                "tls": []
-              },
-              "ldap": {
-                "config": "",
-                "existingSecret": ""
-              },
-              "livenessProbe": {
-                "failureThreshold": 10,
-                "httpGet": {
-                  "path": "/api/health",
-                  "port": 3000
-                },
-                "initialDelaySeconds": 60,
-                "timeoutSeconds": 30
-              },
-              "nodeSelector": {},
-              "persistence": {
-                "enabled": false
-              },
-              "plugins": [],
-              "podAnnotations": {},
-              "priorityClassName": "",
-              "rbac": {
-                "create": true
-              },
-              "readinessProbe": {
-                "httpGet": {
-                  "path": "/api/health",
-                  "port": 3000
-                }
-              },
-              "replicas": 1,
-              "resources": {},
-              "securityContext": {},
-              "service": {
-                "annotations": {},
-                "labels": {},
-                "port": 80,
-                "type": "ClusterIP"
-              },
-              "serviceAccount": {
-                "create": true,
-                "name": ""
-              },
-              "sidecar": {
-                "dashboards": {
-                  "annotations": {},
-                  "enabled": true,
-                  "error_throttle_sleep": 0,
-                  "folder": "/tmp/dashboards",
-                  "label": "grafana_dashboard",
-                  "labelValue": "1"
-                },
-                "datasources": {
-                  "enabled": false,
-                  "error_throttle_sleep": 0,
-                  "label": "grafana_datasource"
-                },
-                "image": {
-                  "pullPolicy": "IfNotPresent",
-                  "repository": "cgr.dev/chainguard/k8s-sidecar@sha256",
-                  "tag": "7fbaed4e8721f11338d51189e1c62bbd2a6d0ba8bda82cce4618c8f0f013d972"
-                },
-                "resources": {}
-              },
-              "smtp": {
-                "existingSecret": ""
-              },
-              "tolerations": []
-            },
             "ingress": {
               "annotations": null,
               "enabled": false,
@@ -509,11 +359,6 @@ metadata:
               "etlDailyStoreDurationDays": 91,
               "etlHourlyStoreDurationHours": 49,
               "imagePullPolicy": "IfNotPresent",
-              "jaeger": {
-                "enabled": false,
-                "image": "jaegertracing/all-in-one@sha256",
-                "imageVersion": "85f1eb56e8ac24e53c031c6bcf7cdf6bff1dc4885b69e54605b932022054b612"
-              },
               "logLevel": "info",
               "numDBCopyPartitions": 25,
               "persistentConfigsStorage": {
@@ -542,7 +387,7 @@ metadata:
               "deployMethod": "singlepod",
               "deploymentStrategy": {},
               "enabled": true,
-              "fullImageName": "gcr.io/kubecost1/frontend@sha256:79d99ec1073e41aac4e3067f8e144d04cbacaf5e09b7fef98c0a0a0b6dc5eb5f",
+              "fullImageName": "registry.connect.redhat.com/kubecost/kubecost-frontend@sha256:00dd603e427b8e7ed01a8b382c6ea96f08457b2bc8a2fc5d71e88f5390e24342",
               "haReplicas": 2,
               "imagePullPolicy": "IfNotPresent",
               "ipv6": {
@@ -601,7 +446,7 @@ metadata:
               "etlReadOnlyMode": false,
               "extraArgs": [],
               "extraPorts": [],
-              "fullImageName": "gcr.io/kubecost1/cost-model@sha256:63e50b52e0196b17318d662b66e54dd4ae81af200d3f33a691a0a2593ed058b7",
+              "fullImageName": "registry.connect.redhat.com/kubecost/kubecost-cost-model@sha256:47ac9215cdae77d4e8f46d1e64cd3aca771cbb7a633a7427226023a5c116590e",
               "imagePullPolicy": "IfNotPresent",
               "ingress": {
                 "annotations": null,
@@ -623,34 +468,6 @@ metadata:
                 "periodSeconds": 10
               },
               "maxQueryConcurrency": 5,
-              "plugins": {
-                "enabled": false,
-                "enabledPlugins": [],
-                "existingCustomSecret": {
-                  "enabled": false,
-                  "name": ""
-                },
-                "folder": "/opt/opencost/plugin",
-                "install": {
-                  "enabled": false,
-                  "fullImageName": "curlimages/curl@sha256:d9b4541e214bcd85196d6e92e2753ac6d0ea699f0af5741f8c6cccbfcf00ef4b",
-                  "securityContext": {
-                    "allowPrivilegeEscalation": false,
-                    "capabilities": {
-                      "drop": [
-                        "ALL"
-                      ]
-                    },
-                    "readOnlyRootFilesystem": true,
-                    "runAsNonRoot": true,
-                    "runAsUser": 1001,
-                    "seccompProfile": {
-                      "type": "RuntimeDefault"
-                    }
-                  }
-                },
-                "secretName": "kubecost-plugin-secret"
-              },
               "readinessProbe": {
                 "enabled": true,
                 "failureThreshold": 200,
@@ -696,8 +513,8 @@ metadata:
               "extraArgs": [],
               "healthCheckProbes": {},
               "image": {
-                "repository": "gcr.io/kubecost1/kubecost-network-costs@sha256",
-                "tag": "ab6a54c53fd8741d5f908d8b9f6f96237f7a9474327fb95526ba9e816c592d04"
+                "repository": "registry.connect.redhat.com/kubecost/kubecost-network-costs@sha256",
+                "tag": "18d984a0c0df7c6e51eba72ed20865b773f9805009b3f20647c9bb8de113d24c"
               },
               "imagePullPolicy": "IfNotPresent",
               "logLevel": "info",
@@ -776,178 +593,10 @@ metadata:
             },
             "prometheus": {
               "alertRelabelConfigs": null,
-              "alertmanager": {
-                "affinity": {},
-                "baseURL": "http://localhost:9093",
-                "configFileName": "alertmanager.yml",
-                "configFromSecret": "",
-                "configMapOverrideName": "",
-                "enabled": false,
-                "extraArgs": {},
-                "extraEnv": {},
-                "extraSecretMounts": [],
-                "image": {
-                  "pullPolicy": "IfNotPresent",
-                  "repository": "cgr.dev/chainguard/prometheus-alertmanager@sha256",
-                  "tag": "16d76d83ddae3b713dbc8f7d9cfe01a1266cfd00fe8cf56c4e4144b5e7df6c01"
-                },
-                "ingress": {
-                  "annotations": {},
-                  "enabled": false,
-                  "extraLabels": {},
-                  "extraPaths": [],
-                  "hosts": [],
-                  "tls": []
-                },
-                "name": "alertmanager",
-                "nodeSelector": {},
-                "persistentVolume": {
-                  "accessModes": [
-                    "ReadWriteOnce"
-                  ],
-                  "annotations": {},
-                  "enabled": true,
-                  "existingClaim": "",
-                  "mountPath": "/data",
-                  "size": "2Gi",
-                  "subPath": ""
-                },
-                "podAnnotations": {},
-                "podDisruptionBudget": {
-                  "enabled": false,
-                  "maxUnavailable": 1
-                },
-                "podLabels": {},
-                "prefixURL": "",
-                "priorityClassName": "",
-                "replicaCount": 1,
-                "resources": {},
-                "securityContext": {
-                  "fsGroup": 1001,
-                  "runAsGroup": 1001,
-                  "runAsNonRoot": true,
-                  "runAsUser": 1001
-                },
-                "service": {
-                  "annotations": {},
-                  "clusterIP": "",
-                  "externalIPs": [],
-                  "labels": {},
-                  "loadBalancerIP": "",
-                  "loadBalancerSourceRanges": [],
-                  "servicePort": 80,
-                  "sessionAffinity": "None",
-                  "type": "ClusterIP"
-                },
-                "statefulSet": {
-                  "enabled": false,
-                  "headless": {
-                    "annotations": {},
-                    "labels": {},
-                    "servicePort": 80
-                  },
-                  "podManagementPolicy": "OrderedReady"
-                },
-                "strategy": {
-                  "rollingUpdate": null,
-                  "type": "Recreate"
-                },
-                "tolerations": []
-              },
-              "alertmanagerFiles": {
-                "alertmanager.yml": {
-                  "global": {},
-                  "receivers": [
-                    {
-                      "name": "default-receiver"
-                    }
-                  ],
-                  "route": {
-                    "group_interval": "5m",
-                    "group_wait": "10s",
-                    "receiver": "default-receiver",
-                    "repeat_interval": "3h"
-                  }
-                }
-              },
-              "configmapReload": {
-                "alertmanager": {
-                  "enabled": false,
-                  "extraArgs": {},
-                  "extraConfigmapMounts": [],
-                  "extraVolumeDirs": [],
-                  "image": {
-                    "pullPolicy": "IfNotPresent",
-                    "repository": "cgr.dev/chainguard/prometheus-config-reloader@sha256",
-                    "tag": "e519dd6de95d983179bec4934a90ad8683fd28650cf09f219e098fdc00cb58d2"
-                  },
-                  "name": "configmap-reload",
-                  "resources": {}
-                },
-                "prometheus": {
-                  "containerSecurityContext": {},
-                  "enabled": false,
-                  "extraArgs": {},
-                  "extraConfigmapMounts": [],
-                  "extraVolumeDirs": [],
-                  "image": {
-                    "pullPolicy": "IfNotPresent",
-                    "repository": "cgr.dev/chainguard/prometheus-config-reloader@sha256",
-                    "tag": "e519dd6de95d983179bec4934a90ad8683fd28650cf09f219e098fdc00cb58d2"
-                  },
-                  "name": "configmap-reload",
-                  "resources": {}
-                }
-              },
               "extraScrapeConfigs": "- job_name: kubecost\n  honor_labels: true\n  scrape_interval: 1m\n  scrape_timeout: 60s\n  metrics_path: /metrics\n  scheme: http\n  dns_sd_configs:\n  - names:\n    - {{ template \"cost-analyzer.serviceName\" . }}\n    type: 'A'\n    port: 9003\n- job_name: kubecost-networking\n  kubernetes_sd_configs:\n    - role: pod\n  relabel_configs:\n  # Scrape only the the targets matching the following metadata\n    - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance]\n      action: keep\n      regex:  kubecost\n    - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]\n      action: keep\n      regex:  network-costs\n- job_name: kubecost-aggregator\n  scrape_interval: 1m\n  scrape_timeout: 60s\n  metrics_path: /metrics\n  scheme: http\n  dns_sd_configs:\n  - names:\n    - {{ template \"aggregator.serviceName\" . }}\n    type: 'A'\n    {{- if or .Values.saml.enabled .Values.oidc.enabled }}\n    port: 9008\n    {{- else }}\n    port: 9004\n    {{- end }}\n## Enables scraping of NVIDIA GPU metrics via dcgm-exporter. Scrapes all\n## endpoints which contain \"dcgm-exporter\" in labels \"app\",\n## \"app.kubernetes.io/component\", or \"app.kubernetes.io/name\" with a case\n## insensitive match.\n## Refs:\n## https://github.com/NVIDIA/gpu-operator/blob/d4316a415bbd684ce8416a88042305fc1a093aa4/assets/state-dcgm-exporter/0600_service.yaml#L7\n## https://github.com/NVIDIA/dcgm-exporter/blob/54fd1ca137c66511a87a720390613680b9bdabdd/deployment/templates/service.yaml#L23\n- job_name: kubecost-dcgm-exporter\n  kubernetes_sd_configs:\n    - role: endpoints\n  relabel_configs:\n    - source_labels: [__meta_kubernetes_pod_label_app, __meta_kubernetes_pod_label_app_kubernetes_io_component, __meta_kubernetes_pod_label_app_kubernetes_io_name]\n      action: keep\n      regex: (?i)(.*dcgm-exporter.*|.*dcgm-exporter.*|.*dcgm-exporter.*)\n",
               "imagePullSecrets": null,
               "networkPolicy": {
                 "enabled": false
-              },
-              "nodeExporter": {
-                "deploymentAnnotations": {},
-                "dnsPolicy": "ClusterFirstWithHostNet",
-                "enabled": false,
-                "extraArgs": {},
-                "extraConfigmapMounts": [],
-                "extraHostPathMounts": [],
-                "hostNetwork": true,
-                "hostPID": true,
-                "image": {
-                  "pullPolicy": "IfNotPresent",
-                  "repository": "prom/node-exporter@sha256",
-                  "tag": "065914c03336590ebed517e7df38520f0efb44465fde4123c3f6b7328f5a9396"
-                },
-                "name": "node-exporter",
-                "nodeSelector": {},
-                "pod": {
-                  "labels": {}
-                },
-                "podAnnotations": {},
-                "podDisruptionBudget": {
-                  "enabled": false,
-                  "maxUnavailable": 1
-                },
-                "priorityClassName": "",
-                "resources": {},
-                "securityContext": {},
-                "service": {
-                  "annotations": {
-                    "prometheus.io/scrape": "true"
-                  },
-                  "clusterIP": "None",
-                  "externalIPs": [],
-                  "hostPort": 9100,
-                  "labels": {},
-                  "loadBalancerIP": "",
-                  "loadBalancerSourceRanges": [],
-                  "servicePort": 9100,
-                  "type": "ClusterIP"
-                },
-                "tolerations": [],
-                "updateStrategy": {
-                  "type": "RollingUpdate"
-                }
               },
               "rbac": {
                 "create": true
@@ -985,11 +634,6 @@ metadata:
                   },
                   "scrape_interval": "1m",
                   "scrape_timeout": "60s"
-                },
-                "image": {
-                  "pullPolicy": "IfNotPresent",
-                  "repository": "cgr.dev/chainguard/prometheus@sha256",
-                  "tag": "d652f4811751e75f5af337377d8188fec7485099888e8cd6feb0ff65cd03abc6"
                 },
                 "ingress": {
                   "annotations": {},
@@ -1429,16 +1073,6 @@ metadata:
               "relabelings": [],
               "scrapeTimeout": "10s"
             },
-            "sigV4Proxy": {
-              "extraEnv": null,
-              "host": "aps-workspaces.us-west-2.amazonaws.com",
-              "image": "public.ecr.aws/aws-observability/aws-sigv4-proxy@sha256:527f4721e719f2baa5a24cf3d4f5583dc8db2da63751e9d609b90d08baad9be3",
-              "imagePullPolicy": "IfNotPresent",
-              "name": "aps",
-              "port": 8005,
-              "region": "us-west-2",
-              "resources": {}
-            },
             "supportNFS": false,
             "systemProxy": {
               "enabled": false,
@@ -1456,9 +1090,9 @@ metadata:
       ]
     capabilities: Basic Install
     categories: Monitoring
-    containerImage: quay.io/kcadawson/kubecost-operator@sha256:c9c03c63100ad8c1f54121ae8261c0797ac15e873c48b7a46ce2895ae49b5899
-    createdAt: "2024-10-17T13:28:37Z"
-    description: An operator that deploys Kubecost 2.4.1 via the Helm chart.
+    containerImage: quay.io/kcadawson/kubecost-operator@sha256:a7e8a3b730b6d10c214eef015efc69de174f40b4c710620c9bae40e24dd30626
+    createdAt: "2024-10-25T20:31:04Z"
+    description: An operator that deploys Kubecost 2.4.2 via the Helm chart.
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "true"
@@ -1469,7 +1103,7 @@ metadata:
     operators.openshift.io/valid-subscription: Contact Kubecost for subscription information.
     operators.operatorframework.io/builder: operator-sdk-v1.37.0
     operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
-    support: kubecost.com
+    support: Kubecost.com
   name: kubecost-operator.v2.4.15
   namespace: kubecost
 spec:
@@ -1636,7 +1270,7 @@ spec:
                 - --upstream=http://127.0.0.1:8080/
                 - --logtostderr=true
                 - --v=0
-                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.16.0
+                image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:771a9a173e033a3ad8b46f5c00a7036eaa88c8d8d1fbd89217325168998113ea
                 name: kube-rbac-proxy
                 ports:
                 - containerPort: 8443
@@ -1659,7 +1293,7 @@ spec:
                 - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 - --leader-election-id=kubecost-operator
-                image: quay.io/kcadawson/kubecost-operator:v2.4.15
+                image: quay.io/kcadawson/kubecost-operator@sha256:a7e8a3b730b6d10c214eef015efc69de174f40b4c710620c9bae40e24dd30626
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1676,7 +1310,7 @@ spec:
                 resources:
                   limits:
                     cpu: 500m
-                    memory: 2Gi
+                    memory: 1Gi
                   requests:
                     cpu: 10m
                     memory: 512Mi
@@ -1752,9 +1386,8 @@ spec:
   provider:
     name: Kubecost
     url: https://www.kubecost.com
+  version: 2.4.15
   relatedImages:
-  - image: gcr.io/kubecost1/awsstore@sha256:1122c3770f41a00ff3d9a436e309ae6494369a445ddc7194c1e55f98c1604a5a
-    name: awsstore
   - image: gcr.io/kubecost1/frontend@sha256:79d99ec1073e41aac4e3067f8e144d04cbacaf5e09b7fef98c0a0a0b6dc5eb5f
     name: frontend
   - image: gcr.io/kubecost1/cost-model@sha256:63e50b52e0196b17318d662b66e54dd4ae81af200d3f33a691a0a2593ed058b7
@@ -1767,30 +1400,5 @@ spec:
     name: cluster-controller
   - image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:771a9a173e033a3ad8b46f5c00a7036eaa88c8d8d1fbd89217325168998113ea
     name: kube-rbac-proxy
-  - image: quay.io/kcadawson/kubecost-operator@sha256:c9c03c63100ad8c1f54121ae8261c0797ac15e873c48b7a46ce2895ae49b5899
+  - image: quay.io/kcadawson/kubecost-operator@sha256:a7e8a3b730b6d10c214eef015efc69de174f40b4c710620c9bae40e24dd30626
     name: manager
-  - image: cgr.dev/chainguard/prometheus@sha256:d652f4811751e75f5af337377d8188fec7485099888e8cd6feb0ff65cd03abc6
-    name: prometheus
-  - image: cgr.dev/chainguard/prometheus-config-reloader@sha256:e519dd6de95d983179bec4934a90ad8683fd28650cf09f219e098fdc00cb58d2
-    name: prometheus-config-reloader
-  - image: gke.gcr.io/prometheus-engine/frontend@sha256:563f54fd4c298f31d81175c8d63c2c8acd386e9934822365691dc6b4c811a052
-    name: gmp-proxy
-  - image: curlimages/curl@sha256:d9b4541e214bcd85196d6e92e2753ac6d0ea699f0af5741f8c6cccbfcf00ef4b
-    name: curl
-  - image: cgr.dev/chainguard/grafana@sha256:f99b3943d55f789fe8142a0f7afa92964ac86b2fdf00f9de6ca6b48015b0e7cf
-    name: grafana
-  - image: gke.gcr.io/prometheus-engine/frontend@sha256:563f54fd4c298f31d81175c8d63c2c8acd386e9934822365691dc6b4c811a052
-    name: prometheus-engine-frontend
-  - image: jaegertracing/all-in-one@sha256:85f1eb56e8ac24e53c031c6bcf7cdf6bff1dc4885b69e54605b932022054b612
-    name: jaegertacing/all-in-one
-  - image: cgr.dev/chainguard/k8s-sidecar@sha256:7fbaed4e8721f11338d51189e1c62bbd2a6d0ba8bda82cce4618c8f0f013d972
-    name: k8s-sidecar
-  - image: cgr.dev/chainguard/prometheus-alertmanager@sha256:16d76d83ddae3b713dbc8f7d9cfe01a1266cfd00fe8cf56c4e4144b5e7df6c01
-    name: prometheus-alertmanager
-  - image: public.ecr.aws/aws-observability/aws-sigv4-proxy@sha256:527f4721e719f2baa5a24cf3d4f5583dc8db2da63751e9d609b90d08baad9be3
-    name: aws-sigv4-proxy
-  - image: prom/node-exporter@sha256:065914c03336590ebed517e7df38520f0efb44465fde4123c3f6b7328f5a9396
-    name: node-exporter
-  - image: nginxinc/nginx-unprivileged@sha256:26c8c8ad980e08512841cda40a779076767ef0ac59ad94ac6a54244331f5c644
-    name: nginx-unprivileged
-  version: 2.4.15

@@ -11,12 +11,25 @@ metadata:
             "name": "scaleops",
             "namespace": "scaleops-system"
           },
-          "spec": {}
+          "spec": {
+            "scaleopsToken": "${SCALEOPS_TOKEN}"
+          }
         }
       ]
     capabilities: Basic Install
     categories: Application Runtime
-    createdAt: "2024-10-23T13:42:03Z"
+    containerImage: registry.connect.redhat.com/scaleops-sh/operator:v1.8.11
+    createdAt: "2024-10-27T09:25:43Z"
+    description: |-
+      ScaleOps is the industry-first Kubernetes Optimization Platform that automatically adjusts Compute Resources to changes in real-time, streamlining a new Kubernetes experience for engineering teams.
+
+      ScaleOps eliminates 80% of Kubernetes cloud spending, frees engineers from repeated ongoing configurations, and proactively ensures SLAs are always achieved.
+
+      Installation takes only 2 minutes, and value is provided immediately. Starting from read-only recommendations to continuous and automatic pod optimization during runtime with zero disruption.
+
+      Battle-tested on some of the most critical production clusters in full automation mode. Trusted by industry leaders, such as Wiz, Outbrain, SentinelOne, Outreach, Cato Networks, and many others!
+
+      Contact [us](mailto:team@scaleops.com) to start your free trial today
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
     features.operators.openshift.io/csi: "false"
@@ -30,6 +43,7 @@ metadata:
     operators.openshift.io/valid-subscription: Contact ScaleOps for subscription information.
     operators.operatorframework.io/builder: operator-sdk-v1.37.0
     operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    repository: https://scaleops.com
     support: ScaleOps Support support@scaleops.com
   labels:
     operatorframework.io/arch.amd64: supported
@@ -41,7 +55,10 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: ScaleOps
+    - description: This will install an instance of the ScaleOps Platform on your
+        cluster
+      displayName: ScaleOps Platform
+      kind: ScaleOps
       name: scaleops.analysis.scaleops.sh
       version: v1
   description: |-
@@ -171,21 +188,18 @@ spec:
                 - --reconcile-period=5m
                 - --leader-election-id=operator
                 - --zap-devel
+                - --encrypted-helm-path=/opt/helm/scaleops.tgz.enc
                 env:
-                - name: RELATED_IMAGE_PROMETHEUS_CONFIG_RELOADER
-                  value: ghcr.io/scaleops-sh/configmap-reload/ubi@sha256:1530a0a16012b7df91a473203d10d39358ea903d31dd1d74332cb2679970782e
-                - name: RELATED_IMAGE_PROMETHEUS
-                  value: ghcr.io/scaleops-sh/prometheus/ubi@sha256:8aeeae2a33251493d4d6e2f02a2fff1d4c2f32ab54554e6a84619ecd8b4aa69a
-                - name: RELATED_IMAGE_KUBE_STATE_METRICS
-                  value: ghcr.io/scaleops-sh/kube-state-metrics/ubi@sha256:d8cb65795861ce257f08726b7a3aa60a869cc44ed152f559431191bc79e98908
-                - name: RELATED_IMAGE_DCGM_EXPORTER
-                  value: ghcr.io/scaleops-sh/dcgm-exporter@sha256:32c93191920f43f0b69dca48a183c66338c2d65782a24b7c459fc893959836e1
+                - name: RELATED_IMAGE_SCALEOPS
+                  value: registry.connect.redhat.com/scaleops-sh/scaleops-sh:v1.8.11
+                - name: RELATED_IMAGE_SCALEOPS_OPERATOR
+                  value: registry.connect.redhat.com/scaleops-sh/operator:v1.8.11
                 - name: SCALEOPS_TOKEN
                   valueFrom:
                     secretKeyRef:
                       key: token
                       name: scaleops-operator-pull-secret
-                image: ghcr.io/scaleops-sh/operator@sha256:d1f4be8e87896d28a682c53f255f84cfb9be8f6a67be084778150b67458088b9
+                image: registry.connect.redhat.com/scaleops-sh/operator:v1.8.11
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -208,8 +222,6 @@ spec:
                   capabilities:
                     drop:
                     - ALL
-              imagePullSecrets:
-              - name: scaleops-operator-pull-secret
               securityContext:
                 runAsNonRoot: true
               serviceAccountName: scaleops-operator-controller-manager
@@ -267,30 +279,16 @@ spec:
   - name: ScaleOps
     url: https://scaleops.com
   maintainers:
-  - email: vlad@scaleops.com
-    name: Vladislav Shub
-  - email: guy@scaleops.com
-    name: Guy Baron
+  - email: support@scaleops.com
+    name: ScaleOps
   maturity: stable
   minKubeVersion: 1.25.0
   provider:
     name: ScaleOps
     url: https://scaleops.com
   relatedImages:
-  - name: prometheus-config-reloader
-    image: ghcr.io/scaleops-sh/configmap-reload/ubi@sha256:1530a0a16012b7df91a473203d10d39358ea903d31dd1d74332cb2679970782e
-  - name: prometheus
-    image: ghcr.io/scaleops-sh/prometheus/ubi@sha256:8aeeae2a33251493d4d6e2f02a2fff1d4c2f32ab54554e6a84619ecd8b4aa69a
-  - name: kube-state-metrics
-    image: ghcr.io/scaleops-sh/kube-state-metrics/ubi@sha256:d8cb65795861ce257f08726b7a3aa60a869cc44ed152f559431191bc79e98908
-  - name: dcgm-exporter
-    image: ghcr.io/scaleops-sh/dcgm-exporter@sha256:32c93191920f43f0b69dca48a183c66338c2d65782a24b7c459fc893959836e1
-  - name: manager
-    image: ghcr.io/scaleops-sh/operator@sha256:d1f4be8e87896d28a682c53f255f84cfb9be8f6a67be084778150b67458088b9
-  - name: prometheus_config_reloader
-    image: ghcr.io/scaleops-sh/configmap-reload/ubi@sha256:1530a0a16012b7df91a473203d10d39358ea903d31dd1d74332cb2679970782e
-  - name: kube_state_metrics
-    image: ghcr.io/scaleops-sh/kube-state-metrics/ubi@sha256:d8cb65795861ce257f08726b7a3aa60a869cc44ed152f559431191bc79e98908
-  - name: dcgm_exporter
-    image: ghcr.io/scaleops-sh/dcgm-exporter@sha256:32c93191920f43f0b69dca48a183c66338c2d65782a24b7c459fc893959836e1
+  - image: registry.connect.redhat.com/scaleops-sh/scaleops-sh:v1.8.11
+    name: scaleops
+  - image: registry.connect.redhat.com/scaleops-sh/operator:v1.8.11
+    name: scaleops-operator
   version: 1.8.11

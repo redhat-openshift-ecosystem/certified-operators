@@ -1,0 +1,547 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: >-
+      [
+        {
+          "apiVersion": "datasance.com/v3",
+          "kind": "ControlPlane",
+          "metadata": {
+            "name": "pot"
+          },
+          "spec": {
+            "replicas": {
+              "controller": 2
+            },
+            "database": {
+              "provider": "postgres",
+              "user": "user",
+              "host": "postgre.host",
+              "port": 5432,
+              "password": "password",
+              "databaseName": "dbname"
+            },
+            "auth": {
+              "url": "auth.url",
+              "realm": "realm",
+              "realmKey": "realmKey",
+              "ssl": "none",
+              "controllerClient": "controllerClient",
+              "controllerSecret": "controllerClientSecret",
+              "viewerClient": "viewerClient"
+            },
+            "images": {
+              "pullSecret": "pullsecret",
+              "controller": "ghcr.io/datasance/controller:latest",
+              "portManager": "ghcr.io/datasance/port-manager:latest",
+              "proxy": "ghcr.io/datasance/proxu:latest",
+              "router": "ghcr.io/datasance/router:latest"
+            },
+            "services": {
+              "controller": {
+                "type": "LoadBalancer",
+                "annotations":
+                  "service.beta.kubernetes.io/azure-load-balancer-internal: false"
+              },
+              "proxy": {
+                "type": "LoadBalancer",
+                "annotations":
+                  "service.beta.kubernetes.io/azure-load-balancer-internal: false"
+              },
+              "router": {
+                "type": "LoadBalancer",
+                "annotations":
+                  "service.beta.kubernetes.io/azure-load-balancer-internal: false"
+              }
+            },
+            "controller": {
+              "ecnViewerUrl": "pot.demo.datasance.com",
+              "https": true,
+              "secretName": "secretName"
+            },
+            "ingresses": {
+              "controller": {
+                "annotations":
+                    "cert-manager.io/cluster-issuer: letsencrypt",
+                "ingressClassName": "nginx",
+                "host": "pot.demo.datasance.com",
+                "secretName": "secretName"
+              },
+              "router": {
+                "address": "pot.demo.datasance.com",
+                "messagePort": 5672,
+                "interiorPort": 55672,
+                "edgePort": 45672
+              },
+              "httpProxy": {
+                "address": "pot.demo.datasance.com"
+              },
+              "tcpProxy": {
+                "address": "pot.demo.datasance.com"
+              }
+            }
+          },
+          "status": {
+            "conditions": [
+              {
+                "lastTransitionTime": "2022-04-10T22:44:09Z",
+                "message": "",
+                "reason": "initial_status",
+                "status": "True",
+                "type": "deploying"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: 2024-11-04T20:45:43Z
+    operators.operatorframework.io/builder: operator-sdk-v1.37.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: iofog-operator.v3.4.6
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: ControlPlane
+        name: controlplanes.datasance.com
+        version: v3
+        description: Datasance PoT supported ioFog ControlPlane CRD for managing
+          container workloads on Edge device
+        specDescriptors:
+          - description: Number of replicas for the controller
+            displayName: Controller Replicas
+            path: replicas.controller
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:podCount
+          - description: Database configuration for the Control Plane
+            displayName: Database
+            path: database
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Database
+          - description: Database provider (e.g., MySQL, PostgreSQL)
+            displayName: Provider
+            path: database.provider
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Database user name
+            displayName: User
+            path: database.user
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Database host address
+            displayName: Host
+            path: database.host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Database port number
+            displayName: Port
+            path: database.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Password for the database user
+            displayName: Password
+            path: database.password
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: Name of the database
+            displayName: Database Name
+            path: database.databaseName
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Keycloak Authentication configuration for the Control Plane
+            displayName: Authentication
+            path: auth
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Authentication
+          - description: URL of the Keycloak authentication server
+            displayName: Auth Server URL
+            path: auth.url
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Authentication realm name
+            displayName: Realm
+            path: auth.realm
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Key for the authentication realm
+            displayName: Realm Key
+            path: auth.realmKey
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: SSL config for authentication server (e.g., All Request, External
+              Request, None)
+            displayName: Require SSL
+            path: auth.ssl
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Keycloak Client ID for the controller in the authentication server
+            displayName: Controller Client ID
+            path: auth.controllerClient
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Keycloak Secret key for the controller client
+            displayName: Controller Client Secret
+            path: auth.controllerSecret
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: Keycloak Client ID for the viewer in the authentication server
+            displayName: Viewer Client ID
+            path: auth.viewerClient
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Configuration for images used in the Control Plane deployment
+            displayName: Images Configuration
+            path: images
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Images
+          - description: Secret for pulling images from a private container registry
+            displayName: Image Pull Secret
+            path: images.pullSecret
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Secret
+          - description: Image for the Control Plane controller component
+            displayName: Controller Image
+            path: images.controller
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Image for the Port Manager component
+            displayName: Port Manager Image
+            path: images.portManager
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Image for the Proxy component
+            displayName: Proxy Image
+            path: images.proxy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Image for the Router component
+            displayName: Router Image
+            path: images.router
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Configuration for services used in the Control Plane deployment
+            displayName: Services Configuration
+            path: services
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Services
+          - description: Service configuration for the controller component
+            displayName: Controller Service
+            path: services.controller
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ControllerService
+          - description: The service type for the controller component (e.g., ClusterIP,
+              NodePort, LoadBalancer)
+            displayName: Controller Service Type
+            path: services.controller.type
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ServiceType
+          - description: Annotations for the controller service (e.g., for external load
+              balancer configuration)
+            displayName: Controller Service Annotations
+            path: services.controller.annotations
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Service configuration for the proxy component
+            displayName: Proxy Service
+            path: services.proxy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ProxyService
+          - description: The service type for the proxy component (e.g., ClusterIP,
+              NodePort, LoadBalancer)
+            displayName: Proxy Service Type
+            path: services.proxy.type
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ServiceType
+          - description: Annotations for the proxy service (e.g., for load balancer or
+              ingress settings)
+            displayName: Proxy Service Annotations
+            path: services.proxy.annotations
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Service configuration for the router component
+            displayName: Router Service
+            path: services.router
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:RouterService
+          - description: The service type for the router component (e.g., ClusterIP,
+              NodePort, LoadBalancer)
+            displayName: Router Service Type
+            path: services.router.type
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:ServiceType
+          - description: Annotations for the router service (e.g., for configuration of
+              networking features)
+            displayName: Router Service Annotations
+            path: services.router.annotations
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Configuration specific to the Controller component in the Control
+              Plane
+            displayName: Controller Configuration
+            path: controller
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Controller
+          - description: Directory path for storing PID files related to the controller's
+              processes
+            displayName: PID Base Directory
+            path: controller.pidBaseDir
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Port for the ECN Viewer interface, allowing external access to view
+              the Edge Compute Network
+            displayName: ECN Viewer Port
+            path: controller.ecnViewerPort
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: URL for accessing the ECN Viewer, if applicable
+            displayName: ECN Viewer URL
+            path: controller.ecnViewerUrl
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:url
+          - description: Specifies if HTTPS should be enabled for the controller's external
+              endpoints
+            displayName: Enable HTTPS
+            path: controller.https
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Name of the Kubernetes Secret containing SSL/TLS certificates for
+              secure communication with the controller
+            displayName: SSL Secret Name
+            path: controller.secretName
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Secret
+          - description: Configuration specific to the Ingress resources for the Control
+              Plane
+            displayName: Ingress Configuration
+            path: ingresses
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Ingress
+          - description: Ingress configuration for the Controller component
+            displayName: Controller Ingress
+            path: ingresses.controller
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Controller Ingress
+          - description: Annotations to attach to the Controller Ingress resource, if any
+            displayName: Controller Ingress Annotations
+            path: ingresses.controller.annotations
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Name of the ingress class to use for the Controller Ingress
+              resource
+            displayName: Controller Ingress Class Name
+            path: ingresses.controller.ingressClassName
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Hostname for the Controller Ingress resource
+            displayName: Controller Host
+            path: ingresses.controller.host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Name of the Kubernetes Secret containing SSL/TLS certificates for
+              secure communication for the Controller Ingress
+            displayName: Controller SSL Secret Name
+            path: ingresses.controller.secretName
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:selector:core:v1:Secret
+          - description: Router Ingress configuration for internal message routing
+            displayName: Router Ingress
+            path: ingresses.router
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Router Ingress
+          - description: Address for accessing the router ingress
+            displayName: Router Ingress Address
+            path: ingresses.router.address
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Message port for AMQP messaging
+            displayName: Router Message Port
+            path: ingresses.router.messagePort
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Interior port for internal cluster communication
+            displayName: Router Interior Port
+            path: ingresses.router.interiorPort
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Edge port for external communication to edge devices
+            displayName: Router Edge Port
+            path: ingresses.router.edgePort
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Ingress configuration for HTTP Proxy access
+            displayName: HTTP Proxy Ingress
+            path: ingresses.httpProxy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:HTTP Proxy Ingress
+          - description: Address for accessing the HTTP Proxy ingress
+            displayName: HTTP Proxy Address
+            path: ingresses.httpProxy.address
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Ingress configuration for TCP Proxy access
+            displayName: TCP Proxy Ingress
+            path: ingresses.tcpProxy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:TCP Proxy Ingress
+          - description: Address for accessing the TCP Proxy ingress
+            displayName: TCP Proxy Address
+            path: ingresses.tcpProxy.address
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+  description: ioFog Control Plane on Kubernetes
+  displayName: iofog-operator
+  icon:
+    - base64data: ""
+      mediatype: ""
+  install:
+    spec:
+      deployments:
+        - label:
+            name: iofog-operator
+          name: iofog-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                name: iofog-operator
+            strategy: {}
+            template:
+              metadata:
+                labels:
+                  name: iofog-operator
+              spec:
+                containers:
+                  - args:
+                      - --enable-leader-election
+                    command:
+                      - iofog-operator
+                    env:
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            apiVersion: v1
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: iofog-operator
+                    image: ghcr.io/datasance/operator:3.4.6
+                    imagePullPolicy: Always
+                    name: iofog-operator
+                    resources: {}
+                serviceAccountName: iofog-operator
+                terminationGracePeriodSeconds: 10
+      permissions:
+        - rules:
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - "*"
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - roles
+                - rolebindings
+              verbs:
+                - "*"
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+                - ingresses/status
+              verbs:
+                - "*"
+            - apiGroups:
+                - datasance.com
+              resources:
+                - applications
+                - apps
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - datasance.com
+              resources:
+                - applications/status
+                - apps/finalizers
+                - applications/finalizers
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - datasance.com
+              resources:
+                - controlplanes
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - datasance.com
+              resources:
+                - controlplanes/status
+                - controlplanes/finalizers
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - "*"
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - configmaps
+                - configmaps/status
+                - events
+                - serviceaccounts
+                - services
+                - persistentvolumeclaims
+                - secrets
+              verbs:
+                - "*"
+          serviceAccountName: iofog-operator
+    strategy: deployment
+  installModes:
+    - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - iofog
+    - datasance
+    - pot
+  links:
+    - name: Datasance PoT // Iofog Operator
+      url: https://docs.datasance.com
+  maturity: stable
+  minKubeVersion: 1.18.0
+  provider:
+    name: Datasance
+  version: 3.4.6

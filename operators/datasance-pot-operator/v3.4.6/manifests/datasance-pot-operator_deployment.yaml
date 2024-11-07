@@ -1,0 +1,40 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iofog-operator
+  labels:
+    name: iofog-operator
+spec:
+  selector:
+    matchLabels:
+      name: iofog-operator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        name: iofog-operator
+    spec:
+      serviceAccountName: iofog-operator
+      containers:
+      - command:
+        - iofog-operator
+        args:
+        - --enable-leader-election
+        image: ghcr.io/datasance/operator:3.4.6
+        imagePullPolicy: Always
+        name: iofog-operator
+        env:
+        - name: WATCH_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: OPERATOR_NAME
+          value: iofog-operator
+      terminationGracePeriodSeconds: 10

@@ -1,0 +1,160 @@
+apiVersion: v1
+data:
+  support-bundle-spec: |
+    apiVersion: troubleshoot.sh/v1beta2
+    kind: SupportBundle
+    metadata:
+      name: appian-operator
+    spec:
+      collectors:
+        - clusterResources:
+            namespaces:
+              - "default"
+        - configMap:
+            namespace: "default"
+            name: appian-operator-support-bundle
+            includeAllData: true
+        - logs:
+            selector:
+              - app.kubernetes.io/component=webhooks
+              - app.kubernetes.io/instance=appian-operator
+            namespace: "default"
+            name: pods/logs/webhooks
+        - logs:
+            selector:
+              - app.kubernetes.io/component=controllers
+              - app.kubernetes.io/instance=appian-operator
+            namespace: "default"
+            name: pods/logs/controllers
+        - data:
+            name: helm/values.yaml
+            data: |
+              controllers:
+                additionalArgs: []
+                affinity: {}
+                nodeSelector: {}
+                rbac:
+                  bind:
+                    clusterRoles: []
+                    roles: []
+                  clusterRoles: []
+                  clusterWideAccess: true
+                  roles: []
+                resources: {}
+                tolerations: []
+                vpa:
+                  controlledResources: []
+                  controlledValues: ""
+                  enabled: false
+                  maxAllowed: {}
+                  minAllowed: {}
+                  updateMode: ""
+              crd:
+                update:
+                  affinity: {}
+                  annotations: {}
+                  enabled: false
+                  nodeSelector: {}
+                  resources: {}
+                  tolerations: []
+              fullnameOverride: ""
+              image:
+                pullPolicy: ""
+                repository: 937620572175.dkr.ecr.us-east-1.amazonaws.com/appian/appian-operator
+                tag: ""
+              imagePullSecrets: []
+              nameOverride: ""
+              rbac:
+                aggregatedClusterRoles:
+                  enabled: false
+              webhooks:
+                affinity: {}
+                caBundle: ""
+                enabled: false
+                hpa:
+                  apiVersion: ""
+                  behavior: {}
+                  enabled: false
+                  maxReplicas: null
+                  metrics: []
+                  minReplicas: 1
+                  targetCPUUtilizationPercentage: null
+                nodeSelector: {}
+                podDisruptionBudget:
+                  enabled: false
+                  maxUnavailable: null
+                  minAvailable: null
+                rbac:
+                  clusterRoles: []
+                  roles: []
+                replicas: 1
+                resources: {}
+                secret: ""
+                tolerations: []
+                webhookConfiguration:
+                  annotations: {}
+                  caBundle: ""
+        - data:
+            name: helm/release.yaml
+            data: |
+              IsInstall: true
+              IsUpgrade: false
+              Name: appian-operator
+              Namespace: default
+              Revision: 1
+              Service: Helm
+        - data:
+            name: helm/chart.yaml
+            data: |
+              IsRoot: true
+              apiVersion: v2
+              appVersion: v0.167.0
+              description: A Helm chart for the Appian operator
+              home: https://gitlab.appian-stratus.com/appian/prod/appian-operator
+              icon: https://www.appian.com/content/dam/appian-aem/logo-appian-rebrand.svg
+              keywords:
+              - appian
+              - operator
+              maintainers:
+              - email: squad-appian-on-kubernetes@appian.com
+                name: Appian
+              name: appian-operator
+              sources:
+              - https://gitlab.appian-stratus.com/appian/prod/appian-operator
+              version: v0.167.0
+      analyzers:
+        - jsonCompare:
+            checkName: Appian CRD version
+            fileName: cluster-resources/custom-resource-definitions.json
+            jsonPath: '{$.items[?(@.metadata.name=="appians.crd.k8s.appian.com")].metadata.labels.app\.kubernetes\.io/version}'
+            value: |
+              "v0.167.0"
+            outcomes:
+              - fail:
+                  when: "false"
+                  message: Appian CRD version is not v0.167.0
+              - pass:
+                  message: Appian CRD version is v0.167.0
+        - textAnalyze:
+            checkName: Network connection to API Server
+            fileName: pods/logs/controllers/*/*.log
+            regex: "dial tcp .+: connect: operation timed out"
+            outcomes:
+              - fail:
+                  when: "true"
+                  message: Verify NetworkPolicies allow the operator to connect to the API server
+                  uri: |
+                    https://kubernetes.io/docs/concepts/services-networking/network-policies/
+              - pass:
+                  when: "false"
+                  message: The operator can connect to the API server
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: appian-operator
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: appian-operator
+    app.kubernetes.io/version: v0.167.0
+    helm.sh/chart: appian-operator-v0.167.0
+    troubleshoot.sh/kind: support-bundle
+  name: appian-operator-support-bundle

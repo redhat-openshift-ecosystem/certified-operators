@@ -10,8 +10,8 @@
 # - basic: generates a basic catalog
 # - semver: generates a catalog with semver versioning
 
-PDW=$(shell pwd)
-OPERATOR_NAME=$(shell basename $(PDW))
+PWD=$(shell pwd)
+OPERATOR_NAME=$(shell basename $(PWD))
 TOPDIR=$(abspath $(dir $(PWD))/../)
 BINDIR=${TOPDIR}/bin
 
@@ -21,7 +21,7 @@ export PATH := $(BINDIR):$(PATH)
 CATALOG_DIR=${TOPDIR}/catalogs
 
 # A place to store the operator catalog templates
-OPERATOR_CATALOG_TEMPLATE_DIR = ${PDW}/catalog-templates
+OPERATOR_CATALOG_TEMPLATE_DIR = ${PWD}/catalog-templates
 
 # The operator pipeline image to use for the fbc-onboarding target
 OPERATOR_PIPELINE_IMAGE ?= quay.io/redhat-isv/operator-pipelines-images:released
@@ -34,7 +34,7 @@ CONTAINERS_AUTH := $(XDG_RUNTIME_DIR)/containers/auth.json
 # This list can be customized to include the versions that are relevant to the operator
 # DO NOT change this line (except for the versions) if you want to take advantage
 # of the automated catalog promotion
-OCP_VERSIONS=$(shell echo "v4.12 v4.13 v4.14 v4.15 v4.16 v4.17" )
+OCP_VERSIONS=$(shell echo "v4.12 v4.13 v4.14 v4.15 v4.16 v4.17 v4.18" )
 
 
 .PHONY: fbc-onboarding

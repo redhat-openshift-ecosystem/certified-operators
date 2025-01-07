@@ -12,20 +12,21 @@ metadata:
             "namespace": "antrea-operator"
           },
           "spec": {
-            "antreaAgentConfig": "# FeatureGates is a map of feature names to bools that enable or disable experimental features.\nfeatureGates:\n# AllAlpha is a global toggle for alpha features. Per-feature key values override the default set by AllAlpha.\n#  AllAlpha: false\n\n# AllBeta is a global toggle for beta features. Per-feature key values override the default set by AllBeta.\n#  AllBeta: false\n\n# Enable AntreaProxy which provides ServiceLB for in-cluster Services in antrea-agent.\n# It should be enabled on Windows, otherwise NetworkPolicy will not take effect on\n# Service traffic.\n#  AntreaProxy: true\n\n# Enable EndpointSlice support in AntreaProxy. Don't enable this feature unless that EndpointSlice\n# API version v1 is supported and set as enabled in Kubernetes. If AntreaProxy is not enabled,\n# this flag will not take effect.\n#  EndpointSlice: false\n\n# Enable TopologyAwareHints in AntreaProxy. This requires AntreaProxy and EndpointSlice to be\n# enabled, otherwise this flag will not take effect.\n#  TopologyAwareHints: false\n\n# Enable traceflow which provides packet tracing feature to diagnose network issue.\n#  Traceflow: true\n\n# Enable NodePortLocal feature to make the Pods reachable externally through NodePort\n#  NodePortLocal: true\n\n# Enable Antrea ClusterNetworkPolicy feature to complement K8s NetworkPolicy for cluster admins\n# to define security policies which apply to the entire cluster, and Antrea NetworkPolicy\n# feature that supports priorities, rule actions and externalEntities in the future.\n#  AntreaPolicy: true\n\n# Enable flowexporter which exports polled conntrack connections as IPFIX flow records from each\n# agent to a configured collector.\n#  FlowExporter: false\n\n# Enable collecting and exposing NetworkPolicy statistics.\n#  NetworkPolicyStats: true\n\n# Enable controlling SNAT IPs of Pod egress traffic.\n#  Egress: true\n\n# Enable AntreaIPAM, which can allocate IP addresses from IPPools. AntreaIPAM is required by the\n# bridging mode and allocates IPs to Pods in bridging mode. It is also required to use Antrea for\n# IPAM when configuring secondary network interfaces with Multus.\n#  AntreaIPAM: false\n\n# Enable multicast traffic.\n#  Multicast: false\n\n# Enable Antrea Multi-cluster Gateway to support cross-cluster traffic.\n# This feature is supported only with encap mode.\n#  Multicluster: false\n\n# Enable support for provisioning secondary network interfaces for Pods (using\n# Pod annotations). At the moment, Antrea can only create secondary network\n# interfaces using SR-IOV VFs on baremetal Nodes.\n#  SecondaryNetwork: false\n\n# Enable managing external IPs of Services of LoadBalancer type.\n#  ServiceExternalIP: false\n\n# Enable mirroring or redirecting the traffic Pods send or receive.\n#  TrafficControl: false\n\n# Enable certificated-based authentication for IPsec.\n#  IPsecCertAuth: false\n\n# Enable collecting support bundle files with SupportBundleCollection CRD.\n#  SupportBundleCollection: false\n\n# Enable users to protect their applications by specifying how they are allowed to communicate with others, taking\n# into account application context.\n#  L7NetworkPolicy: false\n\n# Name of the OpenVSwitch bridge antrea-agent will create and use.\n# Make sure it doesn't conflict with your existing OpenVSwitch bridges.\novsBridge: \"br-int\"\n\n# Datapath type to use for the OpenVSwitch bridge created by Antrea. At the moment, the only\n# supported value is 'system', which corresponds to the kernel datapath.\n#ovsDatapathType: system\n\n# Name of the interface antrea-agent will create and use for host \u003c--\u003e pod communication.\n# Make sure it doesn't conflict with your existing interfaces.\nhostGateway: \"antrea-gw0\"\n\n# Determines how traffic is encapsulated. It has the following options:\n# encap(default):    Inter-node Pod traffic is always encapsulated and Pod to external network\n#                    traffic is SNAT'd.\n# noEncap:           Inter-node Pod traffic is not encapsulated; Pod to external network traffic is\n#                    SNAT'd if noSNAT is not set to true. Underlying network must be capable of\n#                    supporting Pod traffic across IP subnets.\n# hybrid:            noEncap if source and destination Nodes are on the same subnet, otherwise encap.\n# networkPolicyOnly: Antrea enforces NetworkPolicy only, and utilizes CNI chaining and delegates Pod\n#                    IPAM and connectivity to the primary CNI.\n#\ntrafficEncapMode: \"encap\"\n\n# Whether or not to SNAT (using the Node IP) the egress traffic from a Pod to the external network.\n# This option is for the noEncap traffic mode only, and the default value is false. In the noEncap\n# mode, if the cluster's Pod CIDR is reachable from the external network, then the Pod traffic to\n# the external network needs not be SNAT'd. In the networkPolicyOnly mode, antrea-agent never\n# performs SNAT and this option will be ignored; for other modes it must be set to false.\nnoSNAT: false\n\n# Tunnel protocols used for encapsulating traffic across Nodes. If WireGuard is enabled in trafficEncryptionMode,\n# this option will not take effect. Supported values:\n# - geneve (default)\n# - vxlan\n# - gre\n# - stt\n# Note that \"gre\" is not supported for IPv6 clusters (IPv6-only or dual-stack clusters).\ntunnelType: \"geneve\"\n\n# TunnelPort is the destination port for UDP and TCP based tunnel protocols (Geneve, VXLAN, and STT).\n# If zero, it will use the assigned IANA port for the protocol, i.e. 6081 for Geneve, 4789 for VXLAN,\n# and 7471 for STT.\ntunnelPort: 0\n\n# TunnelCsum determines whether to compute UDP encapsulation header (Geneve or VXLAN) checksums on outgoing\n# packets. For Linux kernel before Mar 2021, UDP checksum must be present to trigger GRO on the receiver for better\n# performance of Geneve and VXLAN tunnels. The issue has been fixed by\n# https://github.com/torvalds/linux/commit/89e5c58fc1e2857ccdaae506fb8bc5fed57ee063, thus computing UDP checksum is\n# no longer necessary.\n# It should only be set to true when you are using an unpatched Linux kernel and observing poor transfer performance.\ntunnelCsum: false\n\n# Determines how tunnel traffic is encrypted. Currently encryption only works with encap mode.\n# It has the following options:\n# - none (default):  Inter-node Pod traffic will not be encrypted.\n# - ipsec:           Enable IPsec (ESP) encryption for Pod traffic across Nodes. Antrea uses\n#                    Preshared Key (PSK) for IKE authentication. When IPsec tunnel is enabled,\n#                    the PSK value must be passed to Antrea Agent through an environment\n#                    variable: ANTREA_IPSEC_PSK.\n# - wireGuard:       Enable WireGuard for tunnel traffic encryption.\ntrafficEncryptionMode: \"none\"\n\n# Enable bridging mode of Pod network on Nodes, in which the Node's transport interface is connected\n# to the OVS bridge, and cross-Node/VLAN traffic of AntreaIPAM Pods (Pods whose IP addresses are\n# allocated by AntreaIPAM from IPPools) is sent to the underlay network, and forwarded/routed by the\n# underlay network.\n# This option requires the `AntreaIPAM` feature gate to be enabled. At this moment, it supports only\n# IPv4 and Linux Nodes, and can be enabled only when `ovsDatapathType` is `system`,\n# `trafficEncapMode` is `noEncap`, and `noSNAT` is true.\nenableBridgingMode: false\n\n# Disable TX checksum offloading for container network interfaces. It's supposed to be set to true when the\n# datapath doesn't support TX checksum offloading, which causes packets to be dropped due to bad checksum.\n# It affects Pods running on Linux Nodes only.\ndisableTXChecksumOffload: false\n\n# Default MTU to use for the host gateway interface and the network interface of each Pod.\n# If omitted, antrea-agent will discover the MTU of the Node's primary interface and\n# also adjust MTU to accommodate for tunnel encapsulation overhead (if applicable).\ndefaultMTU: 0\n\n# wireGuard specifies WireGuard related configurations.\nwireGuard:\n  # The port for WireGuard to receive traffic.\n  port: 51820\n\negress:\n  # exceptCIDRs is the CIDR ranges to which outbound Pod traffic will not be SNAT'd by Egresses.\n  exceptCIDRs:\n\n# ClusterIP CIDR range for Services. It's required when AntreaProxy is not enabled, and should be\n# set to the same value as the one specified by --service-cluster-ip-range for kube-apiserver. When\n# AntreaProxy is enabled, this parameter is not needed and will be ignored if provided.\nserviceCIDR: \"\"\n\n# ClusterIP CIDR range for IPv6 Services. It's required when using kube-proxy to provide IPv6 Service in a Dual-Stack\n# cluster or an IPv6 only cluster. The value should be the same as the configuration for kube-apiserver specified by\n# --service-cluster-ip-range. When AntreaProxy is enabled, this parameter is not needed.\n# No default value for this field.\nserviceCIDRv6: \"\"\n\n# The port for the antrea-agent APIServer to serve on.\n# Note that if it's set to another value, the `containerPort` of the `api` port of the\n# `antrea-agent` container must be set to the same value.\napiPort: 10350\n\n# Enable metrics exposure via Prometheus. Initializes Prometheus metrics listener.\nenablePrometheusMetrics: true\n\n# Provide the IPFIX collector address as a string with format \u003cHOST\u003e:[\u003cPORT\u003e][:\u003cPROTO\u003e].\n# HOST can either be the DNS name or the IP of the Flow Collector. For example,\n# \"flow-aggregator.flow-aggregator.svc\" can be provided as DNS name to connect\n# to the Antrea Flow Aggregator service. If IP, it can be either IPv4 or IPv6.\n# However, IPv6 address should be wrapped with [].\n# If PORT is empty, we default to 4739, the standard IPFIX port.\n# If no PROTO is given, we consider \"tls\" as default. We support \"tls\", \"tcp\" and\n# \"udp\" protocols. \"tls\" is used for securing communication between flow exporter and\n# flow aggregator.\nflowCollectorAddr: \"flow-aggregator.flow-aggregator.svc:4739:tls\"\n\n# Provide flow poll interval as a duration string. This determines how often the\n# flow exporter dumps connections from the conntrack module. Flow poll interval\n# should be greater than or equal to 1s (one second).\n# Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\nflowPollInterval: \"5s\"\n\n# Provide the active flow export timeout, which is the timeout after which a flow\n# record is sent to the collector for active flows. Thus, for flows with a continuous\n# stream of packets, a flow record will be exported to the collector once the elapsed\n# time since the last export event is equal to the value of this timeout.\n# Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\nactiveFlowExportTimeout: \"5s\"\n\n# Provide the idle flow export timeout, which is the timeout after which a flow\n# record is sent to the collector for idle flows. A flow is considered idle if no\n# packet matching this flow has been observed since the last export event.\n# Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\nidleFlowExportTimeout: \"15s\"\n\nnodePortLocal:\n# Enable NodePortLocal, a feature used to make Pods reachable using port forwarding on the host. To\n# enable this feature, you need to set \"enable\" to true, and ensure that the NodePortLocal feature\n# gate is also enabled (which is the default).\n  enable: false\n# Provide the port range used by NodePortLocal. When the NodePortLocal feature is enabled, a port\n# from that range will be assigned whenever a Pod's container defines a specific port to be exposed\n# (each container can define a list of ports as pod.spec.containers[].ports), and all Node traffic\n# directed to that port will be forwarded to the Pod.\n  portRange: \"61000-62000\"\n\n# Provide the address of Kubernetes apiserver, to override any value provided in kubeconfig or InClusterConfig.\n# Defaults to \"\". It must be a host string, a host:port pair, or a URL to the base of the apiserver.\nkubeAPIServerOverride: \"\"\n\n# Provide the address of DNS server, to override the kube-dns service. It's used to resolve hostname in FQDN policy.\n# Defaults to \"\". It must be a host string or a host:port pair of the DNS server (e.g. 10.96.0.10, 10.96.0.10:53,\n# [fd00:10:96::a]:53).\ndnsServerOverride: \"\"\n\n# Comma-separated list of Cipher Suites. If omitted, the default Go Cipher Suites will be used.\n# https://golang.org/pkg/crypto/tls/#pkg-constants\n# Note that TLS1.3 Cipher Suites cannot be added to the list. But the apiserver will always\n# prefer TLS1.3 Cipher Suites whenever possible.\ntlsCipherSuites: \"\"\n\n# TLS min version from: VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.\ntlsMinVersion: \"\"\n\n# The name of the interface on Node which is used for tunneling or routing the traffic across Nodes.\n# If there are multiple IP addresses configured on the interface, the first one is used. The IP\n# address used for tunneling or routing traffic to remote Nodes is decided in the following order of\n# preference (from highest to lowest):\n# 1. transportInterface\n# 2. transportInterfaceCIDRs\n# 3. The Node IP\ntransportInterface: \"\"\n\nmulticast:\n# The names of the interfaces on Nodes that are used to forward multicast traffic.\n# Defaults to transport interface if not set.\n  multicastInterfaces:\n\n# The interval at which the antrea-agent sends IGMP queries to Pods.\n# Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\n  igmpQueryInterval: \"125s\"\n\n# The network CIDRs of the interface on Node which is used for tunneling or routing the traffic across\n# Nodes. If there are multiple interfaces configured the same network CIDR, the first one is used. The\n# IP address used for tunneling or routing traffic to remote Nodes is decided in the following order of\n# preference (from highest to lowest):\n# 1. transportInterface\n# 2. transportInterfaceCIDRs\n# 3. The Node IP\ntransportInterfaceCIDRs:\n\n# Option antreaProxy contains AntreaProxy related configuration options.\nantreaProxy:\n  # ProxyAll tells antrea-agent to proxy all Service traffic, including NodePort, LoadBalancer, and ClusterIP traffic,\n  # regardless of where they come from. Therefore, running kube-proxy is no longer required. This requires the AntreaProxy\n  # feature to be enabled.\n  # Note that this option is experimental. If kube-proxy is removed, option kubeAPIServerOverride must be used to access\n  # apiserver directly.\n  proxyAll: false\n  # A string array of values which specifies the host IPv4/IPv6 addresses for NodePort. Values can be valid IP blocks.\n  # (e.g. 1.2.3.0/24, 1.2.3.4/32). An empty string slice is meant to select all host IPv4/IPv6 addresses.\n  # Note that the option is only valid when proxyAll is true.\n  nodePortAddresses:\n  # An array of string values to specify a list of Services which should be ignored by AntreaProxy (traffic to these\n  # Services will not be load-balanced). Values can be a valid ClusterIP (e.g. 10.11.1.2) or a Service name\n  # with Namespace (e.g. kube-system/kube-dns)\n  skipServices:\n  # When ProxyLoadBalancerIPs is set to false, AntreaProxy no longer load-balances traffic destined to the\n  # External IPs of LoadBalancer Services. This is useful when the external LoadBalancer provides additional\n  # capabilities (e.g. TLS termination) and it is desirable for Pod-to-ExternalIP traffic to be sent to the\n  # external LoadBalancer instead of being load-balanced to an Endpoint directly by AntreaProxy.\n  # Note that setting ProxyLoadBalancerIPs to false usually only makes sense when ProxyAll is set to true and\n  # kube-proxy is removed from the cluser, otherwise kube-proxy will still load-balance this traffic.\n  proxyLoadBalancerIPs: true\n\n# IPsec tunnel related configurations.\nipsec:\n  # The authentication mode of IPsec tunnel. It has the following options:\n  # - psk (default): Use pre-shared key (PSK) for IKE authentication.\n  # - cert:          Use CA-signed certificates for IKE authentication. This option requires the `IPsecCertAuth`\n  #                  feature gate to be enabled.\n  authenticationMode: \"psk\"\n\nmulticluster:\n# Enable Antrea Multi-cluster Gateway to support cross-cluster traffic.\n# This feature is supported only with encap mode.\n  enable: false\n# The Namespace where Antrea Multi-cluster Controller is running.\n# The default is antrea-agent's Namespace.\n  namespace: \"\"\n# Enable StretchedNetworkPolicy which could be enforced on cross-cluster traffic.\n# This feature is supported only with encap mode.\n  enableStretchedNetworkPolicy: false\n",
+            "antreaAgentConfig": "# FeatureGates is a map of feature names to bools that enable or disable experimental features.\nfeatureGates:\n# AllAlpha is a global toggle for alpha features. Per-feature key values override the default set by AllAlpha.\n#  AllAlpha: false\n\n# AllBeta is a global toggle for beta features. Per-feature key values override the default set by AllBeta.\n#  AllBeta: false\n\n# Enable AntreaProxy which provides ServiceLB for in-cluster Services in antrea-agent.\n# It should be enabled on Windows, otherwise NetworkPolicy will not take effect on\n# Service traffic. Note that this feature gate is deprecated since this feature was\n# promoted to GA in v1.14.\n#  AntreaProxy: true\n\n# Enable TopologyAwareHints in AntreaProxy. This requires AntreaProxy and EndpointSlice to be\n# enabled, otherwise this flag will not take effect.\n#  TopologyAwareHints: true\n\n# Enable support for cleaning up stale UDP Service conntrack connections in AntreaProxy. This requires AntreaProxy to\n# be enabled, otherwise this flag will not take effect.\n#  CleanupStaleUDPSvcConntrack: true\n\n# Enable traceflow which provides packet tracing feature to diagnose network issue.\n#  Traceflow: true\n\n# Enable NodePortLocal feature to make the Pods reachable externally through NodePort\n#  NodePortLocal: true\n\n# Enable Antrea ClusterNetworkPolicy feature to complement K8s NetworkPolicy for cluster admins\n# to define security policies which apply to the entire cluster, and Antrea NetworkPolicy\n# feature that supports priorities, rule actions and externalEntities in the future.\n#  AntreaPolicy: true\n\n# Enable flowexporter which exports polled conntrack connections as IPFIX flow records from each\n# agent to a configured collector.\n#  FlowExporter: false\n\n# Enable collecting and exposing NetworkPolicy statistics.\n#  NetworkPolicyStats: true\n\n# Enable controlling SNAT IPs of Pod egress traffic.\n#  Egress: true\n\n# Enable AntreaIPAM, which can allocate IP addresses from IPPools. AntreaIPAM is required by the\n# bridging mode and allocates IPs to Pods in bridging mode. It is also required to use Antrea for\n# IPAM when configuring secondary network interfaces with Multus.\n#  AntreaIPAM: false\n\n# Enable multicast traffic.\n#  Multicast: true\n\n# Enable Antrea Multi-cluster features.\n#  Multicluster: false\n\n# Enable support for provisioning secondary network interfaces for Pods (using\n# Pod annotations). At the moment, Antrea can only create secondary network\n# interfaces using SR-IOV VFs on baremetal Nodes.\n#  SecondaryNetwork: false\n\n# Enable managing external IPs of Services of LoadBalancer type.\n#  ServiceExternalIP: false\n\n# Enable mirroring or redirecting the traffic Pods send or receive.\n#  TrafficControl: false\n\n# Enable certificate-based authentication for IPSec tunnel.\n#  IPsecCertAuth: false\n\n# Enable collecting support bundle files with SupportBundleCollection CRD.\n#  SupportBundleCollection: false\n\n# Enable users to protect their applications by specifying how they are allowed to communicate with others, taking\n# into account application context.\n#  L7NetworkPolicy: false\n\n# Allow users to specify the load balancer mode as DSR (Direct Server Return).\n#  LoadBalancerModeDSR: false\n\n# Enable Egress traffic shaping.\n#  EgressTrafficShaping: false\n\n# Allow users to allocate Egress IPs from a different subnet from the default Node subnet.\n#  EgressSeparateSubnet: false\n\n# Allow users to apply ClusterNetworkPolicy to Kubernetes Nodes.\n#  NodeNetworkPolicy: false\n\n# Enable L7FlowExporter on Pods and Namespaces to export the application layer flows such as HTTP flows.\n#  L7FlowExporter: false\n\n# Enable NodeLatencyMonitor to monitor the latency between Nodes.\n#  NodeLatencyMonitor: false\n\n# Allow users to initiate BGP process on selected Kubernetes Nodes and advertise Service IPs, Pod IPs and Egress IPs to\n# remote BGP peers.\n#  BGPPolicy: false\n\n# Name of the OpenVSwitch bridge antrea-agent will create and use.\n# Make sure it doesn't conflict with your existing OpenVSwitch bridges.\novsBridge: \"br-int\"\n\n# Datapath type to use for the OpenVSwitch bridge created by Antrea. At the moment, the only\n# supported value is 'system', which corresponds to the kernel datapath.\n#ovsDatapathType: system\n\n# Name of the interface antrea-agent will create and use for host \u003c--\u003e pod communication.\n# Make sure it doesn't conflict with your existing interfaces.\nhostGateway: \"antrea-gw0\"\n\n# Determines how traffic is encapsulated. It has the following options:\n# encap(default):    Inter-node Pod traffic is always encapsulated and Pod to external network\n#                    traffic is SNAT'd.\n# noEncap:           Inter-node Pod traffic is not encapsulated; Pod to external network traffic is\n#                    SNAT'd if noSNAT is not set to true. Underlying network must be capable of\n#                    supporting Pod traffic across IP subnets.\n# hybrid:            noEncap if source and destination Nodes are on the same subnet, otherwise encap.\n# networkPolicyOnly: Antrea enforces NetworkPolicy only, and utilizes CNI chaining and delegates Pod\n#                    IPAM and connectivity to the primary CNI.\n#\ntrafficEncapMode: \"encap\"\n\n# Whether or not to SNAT (using the Node IP) the egress traffic from a Pod to the external network.\n# This option is for the noEncap traffic mode only, and the default value is false. In the noEncap\n# mode, if the cluster's Pod CIDR is reachable from the external network, then the Pod traffic to\n# the external network needs not be SNAT'd. In the networkPolicyOnly mode, antrea-agent never\n# performs SNAT and this option will be ignored; for other modes it must be set to false.\nnoSNAT: false\n\n# Tunnel protocols used for encapsulating traffic across Nodes. If WireGuard is enabled in trafficEncryptionMode,\n# this option will not take effect. Supported values:\n# - geneve (default)\n# - vxlan\n# - gre\n# - stt\n# Note that \"gre\" is not supported for IPv6 clusters (IPv6-only or dual-stack clusters).\ntunnelType: \"geneve\"\n\n# TunnelPort is the destination port for UDP and TCP based tunnel protocols (Geneve, VXLAN, and STT).\n# If zero, it will use the assigned IANA port for the protocol, i.e. 6081 for Geneve, 4789 for VXLAN,\n# and 7471 for STT.\ntunnelPort: 0\n\n# TunnelCsum determines whether to compute UDP encapsulation header (Geneve or VXLAN) checksums on outgoing\n# packets. For Linux kernel before Mar 2021, UDP checksum must be present to trigger GRO on the receiver for better\n# performance of Geneve and VXLAN tunnels. The issue has been fixed by\n# https://github.com/torvalds/linux/commit/89e5c58fc1e2857ccdaae506fb8bc5fed57ee063, thus computing UDP checksum is\n# no longer necessary.\n# It should only be set to true when you are using an unpatched Linux kernel and observing poor transfer performance.\ntunnelCsum: false\n\n# Determines how tunnel traffic is encrypted. Currently encryption only works with encap mode.\n# It has the following options:\n# - none (default):  Inter-node Pod traffic will not be encrypted.\n# - ipsec:           Enable IPsec (ESP) encryption for Pod traffic across Nodes. Antrea uses\n#                    Preshared Key (PSK) for IKE authentication. When IPsec tunnel is enabled,\n#                    the PSK value must be passed to Antrea Agent through an environment\n#                    variable: ANTREA_IPSEC_PSK.\n# - wireGuard:       Enable WireGuard for tunnel traffic encryption.\ntrafficEncryptionMode: \"none\"\n\n# Enable bridging mode of Pod network on Nodes, in which the Node's transport interface is connected\n# to the OVS bridge, and cross-Node/VLAN traffic of AntreaIPAM Pods (Pods whose IP addresses are\n# allocated by AntreaIPAM from IPPools) is sent to the underlay network, and forwarded/routed by the\n# underlay network.\n# This option requires the `AntreaIPAM` feature gate to be enabled. At this moment, it supports only\n# IPv4 and Linux Nodes, and can be enabled only when `ovsDatapathType` is `system`,\n# `trafficEncapMode` is `noEncap`, and `noSNAT` is true.\nenableBridgingMode: false\n\n# Disable TX checksum offloading for container network interfaces. It's supposed to be set to true when the\n# datapath doesn't support TX checksum offloading, which causes packets to be dropped due to bad checksum.\n# It affects Pods running on Linux Nodes only.\ndisableTXChecksumOffload: false\n\n# Default MTU to use for the host gateway interface and the network interface of each Pod.\n# If omitted, antrea-agent will discover the MTU of the Node's primary interface and\n# also adjust MTU to accommodate for tunnel encapsulation overhead (if applicable).\ndefaultMTU: 0\n\n# packetInRate defines the OVS controller packet rate limits for different\n# features. All features will apply this rate-limit individually on packet-in\n# messages sent to antrea-agent. The number stands for the rate as packets per\n# second(pps) and the burst size will be automatically set to twice the rate.\n# When the rate and burst size are exceeded, new packets will be dropped.\npacketInRate: 500\n\n# wireGuard specifies WireGuard related configurations.\nwireGuard:\n  # The port for WireGuard to receive traffic.\n  port: 51820\n\negress:\n  # exceptCIDRs is the CIDR ranges to which outbound Pod traffic will not be SNAT'd by Egresses.\n  exceptCIDRs:\n  # The maximum number of Egress IPs that can be assigned to a Node. It's useful when the Node network restricts\n  # the number of secondary IPs a Node can have, e.g. EKS. It must not be greater than 255.\n  maxEgressIPsPerNode: 255\n\n# ClusterIP CIDR range for Services. It's required when AntreaProxy is not enabled, and should be\n# set to the same value as the one specified by --service-cluster-ip-range for kube-apiserver. When\n# AntreaProxy is enabled, this parameter is not needed and will be ignored if provided.\nserviceCIDR: \"\"\n\n# ClusterIP CIDR range for IPv6 Services. It's required when using kube-proxy to provide IPv6 Service in a Dual-Stack\n# cluster or an IPv6 only cluster. The value should be the same as the configuration for kube-apiserver specified by\n# --service-cluster-ip-range. When AntreaProxy is enabled, this parameter is not needed.\n# No default value for this field.\nserviceCIDRv6: \"\"\n\n# The port for the antrea-agent APIServer to serve on.\n# Note that if it's set to another value, the `containerPort` of the `api` port of the\n# `antrea-agent` container must be set to the same value.\napiPort: 10350\n\n# Enable metrics exposure via Prometheus. Initializes Prometheus metrics listener.\nenablePrometheusMetrics: true\n\n\nflowExporter:\n  # Enable FlowExporter, a feature used to export polled conntrack connections as\n  # IPFIX flow records from each agent to a configured collector. To enable this\n  # feature, you need to set \"enable\" to true, and ensure that the FlowExporter\n  # feature gate is also enabled.\n  enable: false\n  # Provide the IPFIX collector address as a string with format \u003cHOST\u003e:[\u003cPORT\u003e][:\u003cPROTO\u003e].\n  # HOST can either be the DNS name, IP, or Service name of the Flow Collector. If\n  # using an IP, it can be either IPv4 or IPv6. However, IPv6 address should be\n  # wrapped with []. When the collector is running in-cluster as a Service, set\n  # \u003cHOST\u003e to \u003cService namespace\u003e/\u003cService name\u003e. For example,\n  # \"flow-aggregator/flow-aggregator\" can be provided to connect to the Antrea\n  # Flow Aggregator Service.\n  # If PORT is empty, we default to 4739, the standard IPFIX port.\n  # If no PROTO is given, we consider \"tls\" as default. We support \"tls\", \"tcp\" and\n  # \"udp\" protocols. \"tls\" is used for securing communication between flow exporter and\n  # flow aggregator.\n  flowCollectorAddr: \"flow-aggregator/flow-aggregator:4739:tls\"\n\n  # Provide flow poll interval as a duration string. This determines how often the\n  # flow exporter dumps connections from the conntrack module. Flow poll interval\n  # should be greater than or equal to 1s (one second).\n  # Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\n  flowPollInterval: \"5s\"\n\n  # Provide the active flow export timeout, which is the timeout after which a flow\n  # record is sent to the collector for active flows. Thus, for flows with a continuous\n  # stream of packets, a flow record will be exported to the collector once the elapsed\n  # time since the last export event is equal to the value of this timeout.\n  # Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\n  activeFlowExportTimeout: \"5s\"\n\n  # Provide the idle flow export timeout, which is the timeout after which a flow\n  # record is sent to the collector for idle flows. A flow is considered idle if no\n  # packet matching this flow has been observed since the last export event.\n  # Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\n  idleFlowExportTimeout: \"15s\"\n\nnodePortLocal:\n# Enable NodePortLocal, a feature used to make Pods reachable using port forwarding on the host. To\n# enable this feature, you need to set \"enable\" to true.\n  enable: false\n# Provide the port range used by NodePortLocal. When the NodePortLocal feature is enabled, a port\n# from that range will be assigned whenever a Pod's container defines a specific port to be exposed\n# (each container can define a list of ports as pod.spec.containers[].ports), and all Node traffic\n# directed to that port will be forwarded to the Pod.\n  portRange: \"61000-62000\"\n\n# Provide the address of Kubernetes apiserver, to override any value provided in kubeconfig or\n# InClusterConfig. It is typically used when kube-proxy is not deployed (replaced by AntreaProxy).\n# Defaults to \"\". It must be a host string, a host:port pair, or a URL to the base of the apiserver.\nkubeAPIServerOverride: \"\"\n\n# Provide the address of DNS server, to override the kube-dns Service. It's used to resolve\n# hostnames in a FQDN policy.\n# Defaults to \"\". It must be a host string or a host:port pair of the DNS server (e.g. 10.96.0.10,\n# 10.96.0.10:53, [fd00:10:96::a]:53).\ndnsServerOverride: \"\"\n\n# Comma-separated list of Cipher Suites. If omitted, the default Go Cipher Suites will be used.\n# https://golang.org/pkg/crypto/tls/#pkg-constants\n# Note that TLS1.3 Cipher Suites cannot be added to the list. But the apiserver will always\n# prefer TLS1.3 Cipher Suites whenever possible.\ntlsCipherSuites: \"\"\n\n# TLS min version from: VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.\ntlsMinVersion: \"\"\n\n# The name of the interface on Node which is used for tunneling or routing the traffic across Nodes.\n# If there are multiple IP addresses configured on the interface, the first one is used. The IP\n# address used for tunneling or routing traffic to remote Nodes is decided in the following order of\n# preference (from highest to lowest):\n# 1. transportInterface\n# 2. transportInterfaceCIDRs\n# 3. The Node IP\ntransportInterface: \"\"\n\nmulticast:\n  # To enable Multicast, you need to set \"enable\" to true, and ensure that the\n  # Multicast feature gate is also enabled (which is the default).\n  enable: false\n\n  # The names of the interfaces on Nodes that are used to forward multicast traffic.\n  # Defaults to transport interface if not set.\n  multicastInterfaces:\n\n  # The versions of IGMP queries antrea-agent sends to Pods.\n  # Valid versions are 1, 2 and 3.\n  igmpQueryVersions:\n  - 1\n  - 2\n  - 3\n\n  # The interval at which the antrea-agent sends IGMP queries to Pods.\n  # Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".\n  igmpQueryInterval: \"125s\"\n\n# The network CIDRs of the interface on Node which is used for tunneling or routing the traffic across\n# Nodes. If there are multiple interfaces configured the same network CIDR, the first one is used. The\n# IP address used for tunneling or routing traffic to remote Nodes is decided in the following order of\n# preference (from highest to lowest):\n# 1. transportInterface\n# 2. transportInterfaceCIDRs\n# 3. The Node IP\ntransportInterfaceCIDRs:\n\n# Option antreaProxy contains AntreaProxy related configuration options.\nantreaProxy:\n  # To disable AntreaProxy, set this to false.\n  enable: true\n  # proxyAll tells antrea-agent to proxy all Service traffic, including NodePort, LoadBalancer, and ClusterIP traffic,\n  # regardless of where they come from. Therefore, running kube-proxy is no longer required.\n  # Note that this option is experimental. If kube-proxy is removed, option kubeAPIServerOverride must be used to access\n  # apiserver directly.\n  proxyAll: false\n  # A string array of values which specifies the host IPv4/IPv6 addresses for NodePort. Values can be valid IP blocks.\n  # (e.g. 1.2.3.0/24, 1.2.3.4/32). An empty string slice is meant to select all host IPv4/IPv6 addresses.\n  # Note that the option is only valid when proxyAll is true.\n  nodePortAddresses:\n  # An array of string values to specify a list of Services which should be ignored by AntreaProxy (traffic to these\n  # Services will not be load-balanced). Values can be a valid ClusterIP (e.g. 10.11.1.2) or a Service name\n  # with Namespace (e.g. kube-system/kube-dns)\n  skipServices:\n  # When ProxyLoadBalancerIPs is set to false, AntreaProxy no longer load-balances traffic destined to the\n  # External IPs of LoadBalancer Services. This is useful when the external LoadBalancer provides additional\n  # capabilities (e.g. TLS termination) and it is desirable for Pod-to-ExternalIP traffic to be sent to the\n  # external LoadBalancer instead of being load-balanced to an Endpoint directly by AntreaProxy.\n  # Note that setting ProxyLoadBalancerIPs to false usually only makes sense when proxyAll is set to true and\n  # kube-proxy is removed from the cluster, otherwise kube-proxy will still load-balance this traffic.\n  proxyLoadBalancerIPs: true\n  # The value of the \"service.kubernetes.io/service-proxy-name\" label for AntreaProxy to match. If it is set,\n  # then AntreaProxy will only handle Services with the label that equals the provided value. If it is not set,\n  # then AntreaProxy will only handle Services without the \"service.kubernetes.io/service-proxy-name\" label,\n  # but ignore Services with the label no matter what is the value.\n  serviceProxyName: \"\"\n  # Determines how external traffic is processed when it's load balanced across Nodes by default.\n  # It has the following options:\n  # - nat (default): External traffic is SNAT'd when it's load balanced across Nodes to ensure symmetric path.\n  # - dsr:           External traffic is never SNAT'd. Backend Pods running on Nodes that are not the ingress Node\n  #                  can reply to clients directly, bypassing the ingress Node.\n  # A Service's load balancer mode can be overridden by annotating it with `service.antrea.io/load-balancer-mode`.\n  defaultLoadBalancerMode: \"nat\"\n\n# IPsec tunnel related configurations.\nipsec:\n  # The authentication mode of IPsec tunnel. It has the following options:\n  # - psk (default): Use pre-shared key (PSK) for IKE authentication.\n  # - cert:          Use CA-signed certificates for IKE authentication. This option requires the `IPsecCertAuth`\n  #                  feature gate to be enabled.\n  authenticationMode: \"psk\"\n\nmulticluster:\n# Enable Antrea Multi-cluster Gateway to support cross-cluster traffic.\n# This feature is supported only with encap mode.\n  enableGateway: false\n# The Namespace where Antrea Multi-cluster Controller is running.\n# The default is antrea-agent's Namespace.\n  namespace: \"\"\n# Enable Multi-cluster NetworkPolicy (ingress rules).\n# Multi-cluster Gateway must be enabled to enable StretchedNetworkPolicy.\n  enableStretchedNetworkPolicy: false\n# Enable Pod to Pod connectivity.\n  enablePodToPodConnectivity: false\n# Determines how cross-cluster traffic is encrypted.\n# It has the following options:\n# - none (default):  Cross-cluster traffic will not be encrypted.\n# - wireGuard:       Use WireGuard to encrypt traffic.\n  trafficEncryptionMode: \"none\"\n# WireGuard tunnel configuration for cross-cluster traffic.\n# It only works when multicluster.trafficEncryptionMode is wireGuard.\n  wireGuard:\n    # WireGuard tunnel port for cross-cluster traffic.\n    port: 51821\n\n# Log rotation configuration for audit logs.\nauditLogging:\n  # MaxSize is the maximum size in MB of a log file before it gets rotated.\n  maxSize: 500\n  # MaxBackups is the maximum number of old log files to retain. If set to 0,\n  # all log files will be retained (unless MaxAge causes them to be deleted).\n  maxBackups: 3\n  # MaxAge is the maximum number of days to retain old log files based on the\n  # timestamp encoded in their filename. If set to 0, old log files are not\n  # removed based on age.\n  maxAge: 28\n  # Compress enables gzip compression on rotated files.\n  compress: true\n",
             "antreaCNIConfig": "{\n    \"cniVersion\":\"0.3.0\",\n    \"name\": \"antrea\",\n    \"plugins\": [\n        {\n            \"type\": \"antrea\",\n            \"ipam\": {\n                \"type\": \"host-local\"\n            }\n        }\n        ,\n        {\n            \"type\": \"portmap\",\n            \"capabilities\": {\"portMappings\": true}\n        }\n        ,\n        {\n            \"type\": \"bandwidth\",\n            \"capabilities\": {\"bandwidth\": true}\n        }\n    ]\n}\n",
-            "antreaControllerConfig": "# FeatureGates is a map of feature names to bools that enable or disable experimental features.\nfeatureGates:\n# AllAlpha is a global toggle for alpha features. Per-feature key values override the default set by AllAlpha.\n#  AllAlpha: false\n\n# AllBeta is a global toggle for beta features. Per-feature key values override the default set by AllBeta.\n#  AllBeta: false\n\n# Enable traceflow which provides packet tracing feature to diagnose network issue.\n#  Traceflow: true\n\n# Enable Antrea ClusterNetworkPolicy feature to complement K8s NetworkPolicy for cluster admins\n# to define security policies which apply to the entire cluster, and Antrea NetworkPolicy\n# feature that supports priorities, rule actions and externalEntities in the future.\n#  AntreaPolicy: true\n\n# Enable collecting and exposing NetworkPolicy statistics.\n#  NetworkPolicyStats: true\n\n# Enable multicast traffic.\n#  Multicast: false\n\n# Enable controlling SNAT IPs of Pod egress traffic.\n#  Egress: true\n\n# Run Kubernetes NodeIPAMController with Antrea.\n#  NodeIPAM: false\n\n# Enable AntreaIPAM, which can allocate IP addresses from IPPools. AntreaIPAM is required by the\n# bridging mode and allocates IPs to Pods in bridging mode. It is also required to use Antrea for\n# IPAM when configuring secondary network interfaces with Multus.\n#  AntreaIPAM: false\n\n# Enable managing external IPs of Services of LoadBalancer type.\n#  ServiceExternalIP: false\n\n# Enable certificated-based authentication for IPsec.\n#  IPsecCertAuth: false\n\n# Enable managing ExternalNode for unmanaged VM/BM.\n#  ExternalNode: false\n\n# Enable collecting support bundle files with SupportBundleCollection CRD.\n#  SupportBundleCollection: false\n\n# Enable multi-cluster features.\n#  Multicluster: false\n\n# Enable users to protect their applications by specifying how they are allowed to communicate with others, taking\n# into account application context.\n#  L7NetworkPolicy: false\n\n# The port for the antrea-controller APIServer to serve on.\n# Note that if it's set to another value, the `containerPort` of the `api` port of the\n# `antrea-controller` container must be set to the same value.\napiPort: 10349\n\n# Enable metrics exposure via Prometheus. Initializes Prometheus metrics listener.\nenablePrometheusMetrics: true\n\n# Indicates whether to use auto-generated self-signed TLS certificate.\n# If false, a Secret named \"antrea-controller-tls\" must be provided with the following keys:\n#   ca.crt: \u003cCA certificate\u003e\n#   tls.crt: \u003cTLS certificate\u003e\n#   tls.key: \u003cTLS private key\u003e\nselfSignedCert: true\n\n# Comma-separated list of Cipher Suites. If omitted, the default Go Cipher Suites will be used.\n# https://golang.org/pkg/crypto/tls/#pkg-constants\n# Note that TLS1.3 Cipher Suites cannot be added to the list. But the apiserver will always\n# prefer TLS1.3 Cipher Suites whenever possible.\ntlsCipherSuites: \"\"\n\n# TLS min version from: VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.\ntlsMinVersion: \"\"\n\nnodeIPAM:\n  # Enable the integrated Node IPAM controller within the Antrea controller.\n  enableNodeIPAM: false\n  # CIDR ranges for Pods in cluster. String array containing single CIDR range, or multiple ranges.\n  # The CIDRs could be either IPv4 or IPv6. At most one CIDR may be specified for each IP family.\n  # Value ignored when enableNodeIPAM is false.\n  clusterCIDRs:\n  # CIDR ranges for Services in cluster. It is not necessary to specify it when there is no overlap with clusterCIDRs.\n  # Value ignored when enableNodeIPAM is false.\n  serviceCIDR: \"\"\n  serviceCIDRv6: \"\"\n  # Mask size for IPv4 Node CIDR in IPv4 or dual-stack cluster. Value ignored when enableNodeIPAM is false\n  # or when IPv4 Pod CIDR is not configured. Valid range is 16 to 30.\n  nodeCIDRMaskSizeIPv4: 24\n  # Mask size for IPv6 Node CIDR in IPv6 or dual-stack cluster. Value ignored when enableNodeIPAM is false\n  # or when IPv6 Pod CIDR is not configured. Valid range is 64 to 126.\n  nodeCIDRMaskSizeIPv6: 64\n\nipsecCSRSigner:\n  # Determines the auto-approve policy of Antrea CSR signer for IPsec certificates management.\n  # If enabled, Antrea will auto-approve the CertificateSingingRequest (CSR) if its subject and x509 extensions\n  # are permitted, and the requestor can be validated. If K8s `BoundServiceAccountTokenVolume` feature is enabled,\n  # the Pod identity will also be validated to provide maximum security.\n  # If set to false, Antrea will not auto-approve CertificateSingingRequests and they need to be approved\n  # manually by `kubectl certificate approve`.\n  autoApprove: true\n  # Indicates whether to use auto-generated self-signed CA certificate.\n  # If false, a Secret named \"antrea-ipsec-ca\" must be provided with the following keys:\n  #   tls.crt: \u003cCA certificate\u003e\n  #   tls.key: \u003cCA private key\u003e\n  selfSignedCA: true\n\nmulticluster:\n  # Enable StretchedNetworkPolicy which allow Antrea-native policies to select peers\n  # from other clusters in a ClusterSet.\n  enableStretchedNetworkPolicy: false\n",
+            "antreaControllerConfig": "# FeatureGates is a map of feature names to bools that enable or disable experimental features.\nfeatureGates:\n# AllAlpha is a global toggle for alpha features. Per-feature key values override the default set by AllAlpha.\n#  AllAlpha: false\n\n# AllBeta is a global toggle for beta features. Per-feature key values override the default set by AllBeta.\n#  AllBeta: false\n\n# Enable traceflow which provides packet tracing feature to diagnose network issue.\n#  Traceflow: true\n\n# Enable Antrea ClusterNetworkPolicy feature to complement K8s NetworkPolicy for cluster admins\n# to define security policies which apply to the entire cluster, and Antrea NetworkPolicy\n# feature that supports priorities, ExternalEntities, FQDN rules and more.\n#  AntreaPolicy: true\n\n# Enable collecting and exposing NetworkPolicy statistics.\n#  NetworkPolicyStats: true\n\n# Enable multicast traffic.\n#  Multicast: true\n\n# Enable controlling SNAT IPs of Pod egress traffic.\n#  Egress: true\n\n# Run Kubernetes NodeIPAMController with Antrea.\n#  NodeIPAM: true\n\n# Enable AntreaIPAM, which can allocate IP addresses from IPPools. AntreaIPAM is required by the\n# bridging mode and allocates IPs to Pods in bridging mode. It is also required to use Antrea for\n# IPAM when configuring secondary network interfaces with Multus.\n#  AntreaIPAM: false\n\n# Enable managing external IPs of Services of LoadBalancer type.\n#  ServiceExternalIP: false\n\n# Enable certificate-based authentication for IPSec tunnel.\n#  IPsecCertAuth: false\n\n# Enable managing ExternalNode for unmanaged VM/BM.\n#  ExternalNode: false\n\n# Enable collecting support bundle files with SupportBundleCollection CRD.\n#  SupportBundleCollection: false\n\n# Enable Antrea Multi-cluster features.\n#  Multicluster: false\n\n# Enable users to protect their applications by specifying how they are allowed to communicate with others, taking\n# into account application context.\n#  L7NetworkPolicy: false\n\n# Enable the use of Network Policy APIs (https://network-policy-api.sigs.k8s.io/api-overview) which helps administrators\n# set security postures for their clusters.\n#  AdminNetworkPolicy: false\n\n# The port for the antrea-controller APIServer to serve on.\n# Note that if it's set to another value, the `containerPort` of the `api` port of the\n# `antrea-controller` container must be set to the same value.\napiPort: 10349\n\n# Enable metrics exposure via Prometheus. Initializes Prometheus metrics listener.\nenablePrometheusMetrics: true\n\n# Indicates whether to use auto-generated self-signed TLS certificate.\n# If false, a Secret named \"antrea-controller-tls\" must be provided with the following keys:\n#   ca.crt: \u003cCA certificate\u003e\n#   tls.crt: \u003cTLS certificate\u003e\n#   tls.key: \u003cTLS private key\u003e\nselfSignedCert: true\n\n# Comma-separated list of Cipher Suites. If omitted, the default Go Cipher Suites will be used.\n# https://golang.org/pkg/crypto/tls/#pkg-constants\n# Note that TLS1.3 Cipher Suites cannot be added to the list. But the apiserver will always\n# prefer TLS1.3 Cipher Suites whenever possible.\ntlsCipherSuites: \"\"\n\n# TLS min version from: VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.\ntlsMinVersion: \"\"\n\n# File path of the certificate bundle for all the signers that is recognized for incoming client\n# certificates.\nclientCAFile: \"\"\n\n# Provide the address of Kubernetes apiserver, to override any value provided in kubeconfig or InClusterConfig.\n# It is typically used when kube-proxy is not deployed (replaced by AntreaProxy) and kube-controller-manager\n# does not run NodeIPAMController (replaced by Antrea NodeIPAM).\n# Defaults to \"\". It must be a host string, a host:port pair, or a URL to the base of the apiserver.\nkubeAPIServerOverride: \"\"\n\nnodeIPAM:\n  # Enable the integrated Node IPAM controller within the Antrea controller.\n  enableNodeIPAM: false\n  # CIDR ranges for Pods in cluster. String array containing single CIDR range, or multiple ranges.\n  # The CIDRs could be either IPv4 or IPv6. At most one CIDR may be specified for each IP family.\n  # Value ignored when enableNodeIPAM is false.\n  clusterCIDRs:\n  # CIDR ranges for Services in cluster. It is not necessary to specify it when there is no overlap with clusterCIDRs.\n  # Value ignored when enableNodeIPAM is false.\n  serviceCIDR: \"\"\n  serviceCIDRv6: \"\"\n  # Mask size for IPv4 Node CIDR in IPv4 or dual-stack cluster. Value ignored when enableNodeIPAM is false\n  # or when IPv4 Pod CIDR is not configured. Valid range is 16 to 30.\n  nodeCIDRMaskSizeIPv4: 24\n  # Mask size for IPv6 Node CIDR in IPv6 or dual-stack cluster. Value ignored when enableNodeIPAM is false\n  # or when IPv6 Pod CIDR is not configured. Valid range is 64 to 126.\n  nodeCIDRMaskSizeIPv6: 64\n\nipsecCSRSigner:\n  # Determines the auto-approve policy of Antrea CSR signer for IPsec certificates management.\n  # If enabled, Antrea will auto-approve the CertificateSingingRequest (CSR) if its subject and x509 extensions\n  # are permitted, and the requestor can be validated. If K8s `BoundServiceAccountTokenVolume` feature is enabled,\n  # the Pod identity will also be validated to provide maximum security.\n  # If set to false, Antrea will not auto-approve CertificateSingingRequests and they need to be approved\n  # manually by `kubectl certificate approve`.\n  autoApprove: true\n  # Indicates whether to use auto-generated self-signed CA certificate.\n  # If false, a Secret named \"antrea-ipsec-ca\" must be provided with the following keys:\n  #   tls.crt: \u003cCA certificate\u003e\n  #   tls.key: \u003cCA private key\u003e\n  selfSignedCA: true\n\nmulticluster:\n  # Enable Multi-cluster NetworkPolicy.\n  enableStretchedNetworkPolicy: false\n\n# Indicates whether to enable usage reporting or not.\nenableUsageReporting: false\n",
             "antreaImage": "antrea/antrea-ubi:v1.10.0",
             "antreaPlatform": "openshift"
           }
         }
       ]
     capabilities: Basic Install
+    createdAt: "2025-01-07T23:49:13Z"
     description: An operator which installs Antrea network CNI plugin on the Kubernetes
       cluster.
-    operators.operatorframework.io/builder: operator-sdk-v1.19.0+git
+    operators.operatorframework.io/builder: operator-sdk-v1.36.1-ocp
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v2
-  name: antrea-operator-for-kubernetes.v1.10.0
+  name: antrea-operator-for-kubernetes.v0.0.1
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -52,19 +53,46 @@ spec:
       - description: AntreaAgentConfig holds the configurations for antrea-agent.
         displayName: Antrea Agent Config
         path: antreaAgentConfig
+      - description: AntreaAgentImage is the Docker image name used by antrea-agent.
+        displayName: Antrea Agent Image
+        path: antreaAgentImage
       - description: AntreaCNIConfig holds the configuration of CNI.
         displayName: Antrea CNIConfig
         path: antreaCNIConfig
       - description: AntreaControllerConfig holds the configurations for antrea-controller.
         displayName: Antrea Controller Config
         path: antreaControllerConfig
-      - description: AntreaImage is the Docker image name used by antrea-agent and
-          antrea-controller.
+      - description: AntreaControllerImage is the Docker image name used by antrea-controller.
+        displayName: Antrea Controller Image
+        path: antreaControllerImage
+      - description: '@Deprecated AntreaImage is the Docker image name used by antrea-agent
+          and antrea-controller.'
         displayName: Antrea Image
         path: antreaImage
       - description: AntreaPlatform is the platform on which antrea will be deployed.
         displayName: Antrea Platform
         path: antreaPlatform
+      - description: BootstrapConfig holds the configurations for bootstrap.
+        displayName: Bootstrap Config
+        path: bootstrapConfig
+      - description: CCPAdapterConfig holds the configurations for ccp-adapter.
+        displayName: CCPAdapter Config
+        path: ccpAdapterConfig
+      - description: Whether to enable interworking.
+        displayName: Enable Interworking
+        path: enableInterworking
+      - description: The image used by interworking.
+        displayName: Interworking Image
+        path: interworkingImage
+      - description: MPAdapterConfig holds the configurations for mp-adapter.
+        displayName: MPAdapter Config
+        path: mpAdapterConfig
+      - description: PSK Pre-shared key for IPsec IKE.
+        displayName: PSK
+        path: psk
+      - description: TrafficEncryptionMode specifies encryption mode.
+        displayName: Traffic Encryption Mode
+        path: trafficEncryptionMode
       statusDescriptors:
       - description: Conditions describes the state of Antrea installation.
         displayName: Conditions
@@ -116,12 +144,12 @@ spec:
           - list
           - watch
         - apiGroups:
-          - admissionregistration.k8s.io
+          - ""
           resources:
-          - mutatingwebhookconfigurations
-          - validatingwebhookconfigurations
+          - pods/log
           verbs:
-          - create
+          - get
+          - list
         - apiGroups:
           - apiextensions.k8s.io
           resources:
@@ -157,6 +185,12 @@ spec:
           - update
           - watch
         - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          verbs:
+          - list
+        - apiGroups:
           - authentication.k8s.io
           resources:
           - tokenreviews
@@ -168,6 +202,40 @@ spec:
           - subjectaccessreviews
           verbs:
           - create
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - clusterinformation.antrea-interworking.tanzu.vmware.com
+          resources:
+          - antreaccpadapterinfos
+          - antreampadapterinfos
+          verbs:
+          - create
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - clusterinformation.antrea.tanzu.vmware.com
+          resources:
+          - antreaagentinfos
+          - antreacontrollerinfos
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
         - apiGroups:
           - config.openshift.io
           resources:
@@ -202,6 +270,46 @@ spec:
         - apiGroups:
           - controlplane.antrea.io
           resources:
+          - clustergroupmembers
+          - groupassociations
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - controlplane.antrea.tanzu.vmware.com
+          resources:
+          - clustergroupmembers
+          - groupassociations
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - '*'
+        - apiGroups:
+          - crd.antrea.io
+          resources:
+          - antreaagentinfos
+          - antreacontrollerinfos
+          verbs:
+          - list
+          - watch
+        - apiGroups:
+          - crd.antrea.tanzu.vmware.com
+          resources:
+          - tierentitlementbindings
+          - tierentitlements
+          verbs:
+          - create
+          - delete
+          - patch
+          - update
+        - apiGroups:
+          - networking.antrea.tanzu.vmware.com
+          resources:
           - addressgroups
           - appliedtogroups
           - networkpolicies
@@ -211,37 +319,12 @@ spec:
           - list
           - watch
         - apiGroups:
-          - crd.antrea.io
+          - networking.k8s.io
           resources:
-          - antreaagentinfos
-          - antreacontrollerinfos
+          - ingresses
           verbs:
-          - create
-          - delete
           - get
           - list
-          - update
-        - apiGroups:
-          - crd.antrea.io
-          resources:
-          - clusternetworkpolicies
-          verbs:
-          - delete
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - crd.antrea.io
-          resources:
-          - traceflows
-          - traceflows/status
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
           - watch
         - apiGroups:
           - networking.k8s.io
@@ -282,6 +365,19 @@ spec:
           - update
           - watch
         - apiGroups:
+          - ops.antrea.tanzu.vmware.com
+          resources:
+          - traceflows
+          - traceflows/status
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
           - rbac.authorization.k8s.io
           resources:
           - clusterrolebindings
@@ -297,6 +393,15 @@ spec:
           - update
           - watch
         - apiGroups:
+          - security.antrea.tanzu.vmware.com
+          resources:
+          - clusternetworkpolicies
+          verbs:
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
           - security.openshift.io
           resourceNames:
           - hostnetwork
@@ -307,7 +412,14 @@ spec:
         - apiGroups:
           - system.antrea.io
           resources:
+          - supportbundles
+          verbs:
+          - create
+        - apiGroups:
+          - system.antrea.tanzu.vmware.com
+          resources:
           - agentinfos
+          - controllerinfos
           - supportbundles
           - supportbundles/download
           verbs:
@@ -346,7 +458,7 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: antrea-operator
-                image: antrea/antrea-operator@sha256:8ca4bc4eaa32d48e0019c24ee375a8ed80344410620b0307994d64cded68df5e
+                image: antrea/antrea-operator-bundle:v1.10.0
                 imagePullPolicy: IfNotPresent
                 name: antrea-operator
                 resources: {}
@@ -407,7 +519,6 @@ spec:
   - email: projectantrea-maintainers@googlegroups.com
     name: Project Antrea Maintainers
   maturity: alpha
-  minKubeVersion: 1.20.0
   provider:
     name: antrea.io
-  version: 1.10.0
+  version: 0.0.0

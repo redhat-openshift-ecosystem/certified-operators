@@ -206,13 +206,47 @@ spec:
                         - linux
               containers:
               - args:
-                - --metrics-require-rbac
-                - --metrics-secure
-                - --metrics-bind-address=:8443
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:38ee3484ba60bb474e7231e9d0718157386716cea7ffd6da6f32ddd551a5243d
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
                 - --leader-elect
                 - --leader-election-id=redteamobile-entitlement
-                - --health-probe-bind-address=:8081
-                image: quay.io/redtea-ops/operator/redteamobile-entitlement:3.1.0@sha256:3d1ee656477c934ef5cc6bc8767c08a9e22fcf7250135a91e03ba5f45a3199cf
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: redteamobile-entitlement
+                - name: RELATED_IMAGE_REDTEAMOBILE-ENTITLEMENT
+                  quay.io/redtea-ops/redteamobile/redteamobile-entitlement@sha256:3d1ee656477c934ef5cc6bc8767c08a9e22fcf7250135a91e03ba5f45a3199cf
+                image: quay.io/redtea-ops/operator/redteamobile-entitlement@sha256:9f34bda5ee5f06498120205fd631797f321fb0252b38a1c724c9da48071317f3
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -335,4 +369,8 @@ spec:
   relatedImages:
   - image: quay.io/redtea-ops/operator/redteamobile-entitlement:3.1.0@sha256:3d1ee656477c934ef5cc6bc8767c08a9e22fcf7250135a91e03ba5f45a3199cf
     name: redteamobile-entitlement
+  - image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:38ee3484ba60bb474e7231e9d0718157386716cea7ffd6da6f32ddd551a5243d
+    name: kube-rbac-proxy
+  - image: quay.io/redtea-ops/operator/redteamobile-entitlement@sha256:9f34bda5ee5f06498120205fd631797f321fb0252b38a1c724c9da48071317f3
+    name: redteamobile-entitlement-operator
   version: 3.1.0

@@ -3,7 +3,6 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.16.1
-  creationTimestamp: null
   name: hybridcontrolplanes.edbpgai.edb.com
 spec:
   group: edbpgai.edb.com
@@ -46,21 +45,31 @@ spec:
             properties:
               beaconAgent:
                 properties:
-                  loadBalancersEnabled:
-                    type: boolean
                   location:
                     type: string
-                  nodePortDomain:
-                    type: string
-                  provider:
-                    type: string
-                  spiffeTrustDomain:
-                    type: string
+                  provisioning:
+                    properties:
+                      loadBalancersEnabled:
+                        type: boolean
+                      nodePortDomain:
+                        type: string
+                      provider:
+                        type: string
+                      resourceLimitOverrides:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: ResourceList is a set of (resource name, quantity)
+                          pairs.
+                        type: object
+                    type: object
+                required:
+                - provisioning
                 type: object
               beaconServer:
-                properties:
-                  spiffeTrustDomain:
-                    type: string
                 type: object
               componentsParameters:
                 additionalProperties:
@@ -72,6 +81,8 @@ spec:
                 items:
                   type: string
                 type: array
+              dryRun:
+                type: boolean
               flavour:
                 enum:
                 - eks
@@ -84,7 +95,20 @@ spec:
                 type: object
               imagePullSecrets:
                 items:
-                  type: string
+                  description: |-
+                    SecretReference represents a Secret Reference. It has enough information to retrieve secret
+                    in any namespace
+                  properties:
+                    name:
+                      description: name is unique within a namespace to reference
+                        a secret resource.
+                      type: string
+                    namespace:
+                      description: namespace defines the space within which the secret
+                        name must be unique.
+                      type: string
+                  type: object
+                  x-kubernetes-map-type: atomic
                 type: array
               imageRegistry:
                 type: string
@@ -118,6 +142,22 @@ spec:
                         type: object
                     type: object
                 type: object
+              portalAllowedSrcRanges:
+                description: 'PortalAllowedSrcRanges: Comma-separated listString of
+                  allowed source ranges for the HCP portal.'
+                type: string
+              scenarios:
+                items:
+                  type: string
+                type: array
+              source:
+                description: Source defines the source of manifests
+                properties:
+                  useLocalKustomizations:
+                    description: UseLocalKustomizations is a flag to indicate whether
+                      to use local kustomizations embedded in the operator image
+                    type: boolean
+                type: object
               version:
                 type: string
             required:
@@ -129,10 +169,20 @@ spec:
           status:
             description: HybridControlPlaneStatus defines the observed state of HybridControlPlane
             properties:
+              commitHash:
+                type: string
               components:
-                additionalProperties:
+                items:
                   properties:
+                    hash:
+                      type: string
+                    keep:
+                      description: Keep is a flag to indicate whether to keep the
+                        component during deletion
+                      type: boolean
                     message:
+                      type: string
+                    name:
                       type: string
                     state:
                       type: string
@@ -140,10 +190,7 @@ spec:
                       format: date-time
                       type: string
                   type: object
-                type: object
-              observedGeneration:
-                format: int64
-                type: integer
+                type: array
               phase:
                 type: string
               specHash:
@@ -154,9 +201,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: null
-  storedVersions: null

@@ -9,53 +9,40 @@ metadata:
           "kind": "HybridControlPlane",
           "metadata": {
             "labels": {
-              "app.kubernetes.io/managed-by": "kustomize",
-              "app.kubernetes.io/name": "edb-hcp-operator"
+              "app.kubernetes.io/name": "edb-hcp-operator",
+              "app.kubernetes.io/managed-by": "kustomize"
             },
             "name": "edbpgai-hybridcontrolplane"
           },
           "spec": {
-            "beaconAgent": {
-              "location": "devspatcher",
-              "nodePortDomain": "pgai.com",
-              "spiffeTrustDomain": "pgai.com"
+            "source": {
+              "useLocalKustomizations": true
             },
-            "beaconServer": {
-              "spiffeTrustDomain": "pgai.com"
-            },
-            "componentsParameters": {
-              "upm-api-pnxt-metric": {
-                "log_level": "info",
-                "tsdb_host": "thanos-query.monitoring.svc.cluster.local",
-                "tsdb_port": "9090"
-              },
-              "upm-api-pnxt-pd": {
-                "log_level": "info"
-              },
-              "upm-beaco-ff-base": {
-                "usage_generator_interval": "5m"
-              },
-              "upm-beaco-usages": {
-                "usage_generator_interval": "5m"
-              },
-              "upm-istio": {
-                "cookie_aeskey": "rzkutHl8NJNztPMEJYykZouHslNiA7xmIXH+58ISUVo=",
-                "openshift_console_domain_name": "console-openshift-console.apps.customer.aroapp.io"
-              },
-              "upm-trust-manager": {
-                "cert_manager_namespace": "cert-manager"
-              }
-            },
+            "scenarios": [
+              "cluster",
+              "monitoringLogging"
+            ],
             "flavour": "kind",
+            "version": "v1.0.3+appl",
+            "imageRegistry": "upmdev.azurecr.io",
+            "imagePullSecrets": [
+              {
+                "name": "edb-cred",
+                "namespace": "edb-hcp-operator-system"
+              }
+            ],
             "globalParameters": {
               "internal_backup_folder": "a7462dbc7106",
               "portal_domain_name": "portal.pgai.customer.aroapp.io",
+              "portal_port": "443",
               "storage_class": "standard"
             },
-            "imagePullSecrets": [
-              "edb-cred"
-            ],
-            "imageRegistry": "upmdev.azurecr.io",
+            "componentsParameters": {
+              "upm-istio": {
+                "openshift_console_domain_name": "console-openshift-console.apps.customer.aroapp.io",
+                "cookie_aeskey": "rzkutHl8NJNztPMEJYykZouHslNiA7xmIXH+58ISUVo="
+              }
+            },
             "pgai": {
               "portal": {
                 "authentication": {
@@ -65,14 +52,19 @@ metadata:
                     {
                       "email": "owner@mycompany.com",
                       "hash": "$2y$10$STTzuGJa3PydqHvlzi2z6OgDU1G/JLTqiuGblH.RemIutWxkztN5m",
-                      "userID": "c5998173-a605-449a-a9a5-4a9c33e26df7",
-                      "username": "Owner MyCompany"
+                      "username": "Owner MyCompany",
+                      "userID": "c5998173-a605-449a-a9a5-4a9c33e26df7"
                     }
                   ]
                 }
               }
             },
-            "version": "v1.0.3+appl"
+            "beaconAgent": {
+              "location": "devspatcher",
+              "provisioning": {
+                "nodePortDomain": "pgai.com"
+              }
+            }
           }
         }
       ]
@@ -82,7 +74,7 @@ metadata:
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     categories: Database
     description: Operator to deploy edb hybrid control plane.
-    containerImage: upmdev.azurecr.io/edb-hcp-operator/manager:v1.0.2
+    containerImage: upmdev.azurecr.io/edb-hcp-operator/manager:v1.0.19
     support: EDB Support Team
     repository: https://github.com/EnterpriseDB/edb-hcp-operator
   name: edb-hcp-operator.v0.0.1
@@ -129,6 +121,25 @@ spec:
       - path: imagePullSecrets
         description: ImagePullSecrets is the secret for pulling images from the registry
         displayName: Image Pull Secrets
+      - path: disabledComponents
+        description: DisabledComponents is the list of components to be disabled
+        displayName: Disabled Components
+      - path: scenarios
+        description: |
+          Scenarios is the list of scenarios to be enabled, e.g. cluster, monitoringLogging,
+          If not provided, all scenarios are enabled
+        displayName: Scenarios
+      - path: source
+        description: |
+          Source is the store which keeps kustomizations of HybridControlPlane,
+          currently we support kustomizations embedded in the operator image
+        displayName: Source
+      - path: dryRun
+        description: DryRun is the flag to enable dry run
+        displayName: Dry Run
+      - path: portalAllowedSrcRanges
+        description: Comma-separated listString of allowed source ranges for the HCP portal.
+        displayName: Portal Allowed Source Ranges
       statusDescriptors:
       - path: phase
         description: Phase is the current lifecycle phase of the HybridControlPlane
@@ -212,7 +223,7 @@ spec:
                 - --health-probe-bind-address=:8081
                 command:
                 - /manager
-                image: upmdev.azurecr.io/edb-hcp-operator/manager:v1.0.2
+                image: upmdev.azurecr.io/edb-hcp-operator/manager:v1.0.19
                 imagePullPolicy: Always
                 livenessProbe:
                   httpGet:

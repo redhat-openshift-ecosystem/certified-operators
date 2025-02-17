@@ -242,6 +242,10 @@ spec:
                   initialDelaySeconds: 15
                   periodSeconds: 20
                 name: manager
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
                 readinessProbe:
                   httpGet:
                     path: /readyz
@@ -313,6 +317,7 @@ spec:
   - hybrid-control-plane
   - hcp
   - database
+  - postgres
   links:
   - name: Edb Hcp Operator
     url: https://edb-hcp-operator.domain
@@ -320,3 +325,45 @@ spec:
   provider:
     name: edb-hcp
   version: 0.0.1
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: edb-hcp-operator-controller-manager
+    failurePolicy: Fail
+    generateName: mhybridcontrolplane.kb.io
+    rules:
+    - apiGroups:
+      - edbpgai.edb.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - hybridcontrolplanes
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-edbpgai-edb-com-v1alpha1-hybridcontrolplane
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: edb-hcp-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vhybridcontrolplane.kb.io
+    rules:
+    - apiGroups:
+      - edbpgai.edb.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      - DELETE
+      resources:
+      - hybridcontrolplanes
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-edbpgai-edb-com-v1alpha1-hybridcontrolplane

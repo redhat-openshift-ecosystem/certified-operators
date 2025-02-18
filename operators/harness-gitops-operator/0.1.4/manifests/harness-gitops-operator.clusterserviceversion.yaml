@@ -1,0 +1,890 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "gitops.harness.io/v1alpha1",
+          "kind": "GitopsAgent",
+          "metadata": {
+            "annotations": {
+              "containerImage": "harness/gitops-agent-controller@sha256:966145fa4b373911edbb458b4ec97612cee8041f8ab51f7299c247faddc568fe",
+              "createdAt": "2025-02-17T13:51:29Z"
+            },
+            "name": "gitops-agent-sample"
+          },
+          "spec": {
+            "identity": {
+              "accountIdentifier": "accountIdentifier",
+              "agentIdentifier": "agentIdentifier",
+              "agentName": "agentName"
+            },
+            "replicas": 1,
+            "secrets": {
+              "agentSecret": "agentSecret"
+            },
+            "target": {
+              "http": "https://app.harness.io/gitops/",
+              "protocol": "HTTP1"
+            },
+            "upgrade": {
+              "enabled": true
+            }
+          }
+        }
+      ]
+    capabilities: Full Lifecycle
+    categories: Integration & Delivery
+    containerImage: harness/gitops-agent-controller@sha256:966145fa4b373911edbb458b4ec97612cee8041f8ab51f7299c247faddc568fe
+    createdAt: "2025-02-17T11:51:29Z"
+    description: Harness operator to manage and provision GitOps Agent
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "true"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/valid-subscription: Not required
+    operators.operatorframework.io/builder: operator-sdk-v1.38.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    support: Harness Inc.
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+  name: harness-gitops-operator.v0.1.4
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: Schema for the Gitops Agents API
+        displayName: Gitops Agent
+        kind: GitopsAgent
+        name: gitopsagents.gitops.harness.io
+        resources:
+          - kind: GitopsAgent
+            name: ""
+            version: v1alpha1
+          - kind: GitopsAgent
+            name: ""
+            version: v1alpha1
+        specDescriptors:
+          - description: ArgoCD Configuration
+            displayName: ArgoCD
+            path: argocd
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: |-
+              ArgoCD instance to connect to. If not defined, agent will look into the cluster to discovery an active ArgoCD instance
+              Instance could be either name prefix (for example in argocd-repo-server, instance will be argocd) or app.kubernetes.io/managed-by label
+            displayName: ArgoCD Instance
+            path: argocd.instance
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:UpgraderConfig
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Specify environment for agent server container
+            displayName: Environment Variables
+            path: env
+          - displayName: Agent Identity
+            path: identity
+          - description: User account identifier in Harness platform
+            displayName: Account Identifier
+            path: identity.accountIdentifier
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Identity
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Unique agent identifier in Harness platform
+            displayName: Agent Identifier
+            path: identity.agentIdentifier
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Identity
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Agent display name in Harness platform
+            displayName: Agent Name
+            path: identity.agentName
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Identity
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: User org identifier in Harness platform. Used for agents installed at org or project scope (optional)
+            displayName: Organization Identifier
+            path: identity.orgIdentifier
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Identity
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: User project identifier in Harness platform. Used for agents installed at project scope (optional)
+            displayName: Project Identifier
+            path: identity.projectIdentifier
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Identity
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Agent image. If not defined, it defaults to operator defined image or image configured in environment DEFAULT_AGENT_IMAGE
+            displayName: Agent Image
+            path: image
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: ImagePullPolicy is the image pull policy. One of `Always`, `Never` or `IfNotPresent`. If not defined, it defaults to `Always`.
+            displayName: Image Pull Policy
+            path: imagePullPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Specific log level for agent logs
+            displayName: Log Level
+            path: logLevel
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:select:TRACE
+              - urn:alm:descriptor:com.tectonic.ui:select:DEBUG
+              - urn:alm:descriptor:com.tectonic.ui:select:INFO
+              - urn:alm:descriptor:com.tectonic.ui:select:WARN
+              - urn:alm:descriptor:com.tectonic.ui:select:ERROR
+          - description: Specify agent metrics export details
+            displayName: Metrics
+            path: metrics
+          - displayName: Alerts
+            path: metrics.alerts
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:metrics.enabled:true
+          - description: Enable Alerts for Gitops Agent
+            displayName: Create Prometheus Alerts
+            path: metrics.alerts.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:MetricsAlerts
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Export gitops agent metrics (optional)
+            displayName: Enable Metrics
+            path: metrics.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - displayName: Metrics Service
+            path: metrics.service
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:metrics.enabled:true
+          - description: Additional service labels
+            displayName: Labels
+            path: metrics.service.labels
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ServiceMetrics
+          - description: Set metrics service port (optional)
+            displayName: Port
+            path: metrics.service.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ServiceMetrics
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Set metrics service port name (optional)
+            displayName: Port Name
+            path: metrics.service.portName
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ServiceMetrics
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - displayName: Service Monitor
+            path: metrics.serviceMonitor
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:metrics.enabled:true
+          - description: Enable Prometheus service monitor (optional)
+            displayName: Create Service Montior
+            path: metrics.serviceMonitor.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ServiceMonitor
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Prometheus ServiceMonitor interval (optional)
+            displayName: Serivce Monitor Pull Interval
+            path: metrics.serviceMonitor.interval
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ServiceMonitor
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:metrics.serviceMonitor.enabled:true
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Additional service monitor labels
+            displayName: Service Monitor Labels
+            path: metrics.serviceMonitor.labels
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ServiceMonitor
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:metrics.serviceMonitor.enabled:true
+          - description: NetworkPolicies Configuration
+            displayName: Network Policy
+            path: networkPolicy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Create network policy
+            displayName: Create for All
+            path: networkPolicy.create
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:NetworkPolicy
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Specify agent proxy connection details
+            displayName: Proxy
+            path: proxy
+          - description: HTTP Proxy server url to estabilish connections
+            displayName: HTTP_PROXY
+            path: proxy.http
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: HTTPS Proxy server url to estabilish connections
+            displayName: HTTPS_PROXY
+            path: proxy.https
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Comma-separated values specifying hosts that should be excluded from proxying. It supports IP address, CIDR annotation, domain name, or a special DNS label (*)
+            displayName: NO_PROXY
+            path: proxy.noProxy
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Proxy
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Reconcile Configuration
+            displayName: Reconcile
+            path: reconcile
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Enable reconcile GitOps entities from Agent's Cluster. If not defined, enabled by default
+            displayName: Enable Reconcile
+            path: reconcile.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ReconcileConfig
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Interval for periodic reconcile (seconds). If not defined, it defaults to 100
+            displayName: Reconcile Interval
+            path: reconcile.interval
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ReconcileConfig
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: Interval to discover Pods for Instance Sync (seconds). If not defined, it defaults to 120
+            displayName: Pod Discovery Interval
+            path: reconcile.podDiscovery
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ReconcileConfig
+              - urn:alm:descriptor:com.tectonic.ui:number
+          - description: External redis configuration
+            displayName: External Redis
+            path: redis
+          - description: |-
+              The name of an existing secret with Redis (must contain key `redis-password`) and Sentinel credentials.
+              When it's set, the `redis.password` parameter is ignored
+            displayName: Existing Redis Secret
+            path: redis.existingSecret
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Redis
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Redis server host
+            displayName: Redis Host
+            path: redis.host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Redis
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Redis password (optional)
+            displayName: Redis Username
+            path: redis.password
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Redis
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: Redis server port
+            displayName: Redis Port
+            path: redis.port
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Redis
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Redis username (optional)
+            displayName: Redis Username
+            path: redis.username
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Redis
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Agent replicas count (optional)
+            displayName: Replicas
+            path: replicas
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:podCount
+              - urn:alm:descriptor:io.kubernetes:custom
+          - description: Resources defines the Compute Resources required by the container for the Agent. (optional)
+            displayName: Resource Requirements
+            path: resources
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:resourceRequirements
+          - displayName: Agent Secrets
+            path: secrets
+          - description: Harness agent secret value
+            displayName: Agent Secret
+            path: secrets.agentSecret
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Secrets
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: CA Bundle certificate (optional)
+            displayName: CA Certificate
+            path: secrets.caCertificate
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Secrets
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: mTLS client certificate (optional)
+            displayName: mTLS Client Certificate
+            path: secrets.mtlsClientCert
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Secrets
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - description: mTLS client key (optional)
+            displayName: mTLS Client Key
+            path: secrets.mtlsClientKey
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Secrets
+              - urn:alm:descriptor:com.tectonic.ui:password
+          - displayName: Agent Target
+            path: target
+          - displayName: Grpc Target
+            path: target.grpc
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Target
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - displayName: Grpc Authority
+            path: target.grpcAuthority
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Target
+              - urn:alm:descriptor:com.tectonic.ui:text
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - displayName: Insecure GRPC Connection
+            path: target.grpcInsecure
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Target
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - displayName: HTTP Target
+            path: target.http
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Target
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - displayName: Protocol
+            path: target.protocol
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Target
+              - urn:alm:descriptor:com.tectonic.ui:select:HTTP1
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Agent Upgrader
+            displayName: Upgrader
+            path: upgrader
+          - description: Upgrader config
+            displayName: Upgrader Config
+            path: upgrader.config
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Upgrader
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:upgrader.enabled:true
+          - description: Certificate file path for upgrader mTLS. If not defined, it defaults to /etc/mtls/client.crt
+            displayName: mTLS Certificate File Path
+            path: upgrader.config.clientCertificateFilePath
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:UpgraderConfig
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Certificate Key file path for upgrader mTLS. If not defined, it defaults to /etc/mtls/client.key
+            displayName: mTLS Certificate Key File Path
+            path: upgrader.config.clientCertificateKeyFilePath
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:UpgraderConfig
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Registry mirror for images to pulled from instead of public registry
+            displayName: Upgrade All
+            path: upgrader.config.registryMirror
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:UpgraderConfig
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:UpgraderConfig
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Enable Harness upgrader. Is enabled by default
+            displayName: Enable Upgrader
+            path: upgrader.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Upgrader
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - description: Docker image for upgrader. If not defined, it defaults to operator defined image or image configured in environment DEFAULT_AGENT_IMAGE
+            displayName: Upgrader Image
+            path: upgrader.image
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Upgrader
+              - urn:alm:descriptor:com.tectonic.ui:text
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:upgrader.enabled:true
+          - description: Frequency of upgrader cron job. If not defined, it defaults to "0 */4 * * *"
+            displayName: Schedule
+            path: upgrader.schedule
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Upgrader
+              - urn:alm:descriptor:com.tectonic.ui:text
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:upgrader.enabled:true
+          - description: Starting deadline for cron job. If not defined, it defaults to 20
+            displayName: Start Deadline
+            path: upgrader.startDeadline
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Upgrader
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:fieldDependency:upgrader.enabled:true
+        statusDescriptors:
+          - description: Represents the status of discovered dependencies
+            displayName: Discovery
+            path: discovery
+          - description: Discovered Application Controller status
+            displayName: Application Controller
+            path: discovery.applicationController
+          - description: Additional details of the component
+            displayName: Details
+            path: discovery.applicationController.data
+          - description: Record name
+            displayName: Name
+            path: discovery.applicationController.data[0].name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Record value
+            displayName: Value
+            path: discovery.applicationController.data[0].value
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Status of component
+            displayName: Found
+            path: discovery.applicationController.found
+          - description: Host of component
+            displayName: Component Host
+            path: discovery.applicationController.host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Name of the component workload
+            displayName: Workload Name
+            path: discovery.applicationController.name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Discovered Application Set Controller status
+            displayName: ApplicationSet Controller
+            path: discovery.appsetController
+          - description: Additional details of the component
+            displayName: Details
+            path: discovery.appsetController.data
+          - description: Record name
+            displayName: Name
+            path: discovery.appsetController.data[0].name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Record value
+            displayName: Value
+            path: discovery.appsetController.data[0].value
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Status of component
+            displayName: Found
+            path: discovery.appsetController.found
+          - description: Host of component
+            displayName: Component Host
+            path: discovery.appsetController.host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Name of the component workload
+            displayName: Workload Name
+            path: discovery.appsetController.name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Discovered argocd instance
+            displayName: ArgoCD Instance
+            path: discovery.argoInstance
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Discovered Redis status
+            displayName: Redis
+            path: discovery.redis
+          - description: Additional details of the component
+            displayName: Details
+            path: discovery.redis.data
+          - description: Record name
+            displayName: Name
+            path: discovery.redis.data[0].name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Record value
+            displayName: Value
+            path: discovery.redis.data[0].value
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Status of component
+            displayName: Found
+            path: discovery.redis.found
+          - description: Host of component
+            displayName: Component Host
+            path: discovery.redis.host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Name of the component workload
+            displayName: Workload Name
+            path: discovery.redis.name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Discovered Argo RepoServer status
+            displayName: Repo server
+            path: discovery.repoServer
+          - description: Additional details of the component
+            displayName: Details
+            path: discovery.repoServer.data
+          - description: Record name
+            displayName: Name
+            path: discovery.repoServer.data[0].name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Record value
+            displayName: Value
+            path: discovery.repoServer.data[0].value
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Status of component
+            displayName: Found
+            path: discovery.repoServer.found
+          - description: Host of component
+            displayName: Component Host
+            path: discovery.repoServer.host
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: Name of the component workload
+            displayName: Workload Name
+            path: discovery.repoServer.name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+        version: v1alpha1
+  description: |-
+    ## Overview
+    Harness Gitops Operator manages the full lifecycle for [Gitops Agent](https://developer.harness.io/docs/continuous-delivery/gitops/connect-and-manage/install-a-harness-git-ops-agent/)
+
+    The operator aims to provide the following:
+
+      * Easy configuration and installation of Harness GitOps Agent.
+      * Provide seamless upgrades for Harness GitOps Agent.
+      * Monitoring and autorecovery for GitOps Agent.
+
+    ## Usage
+    Deploy gitops-agent in namespace where operator is installed with basic setup.
+
+    ### Prerequisites:
+      * Go to your Harness account and create a new gitops agent
+      * Copy account, org and project identifiers
+      * Retrieve the agent secret key
+
+    ```
+    apiVersion: gitops.harness.io/v1alpha1
+    kind: GitopsAgent
+    metadata:
+      name: gitops-agent-sample
+    spec:
+      identity:
+        accountIdentifier: accountIdentifier
+        agentIdentifier: agentIdentifier
+        agentName: agentName
+      secrets:
+        agentSecret: agentSecret
+      target:
+        http: https://app.harness.io/gitops/
+        protocol: HTTP1
+      replicas: 1
+      upgrade:
+        enabled: true
+    ```
+    **Note:** Gitops Agent require an active ArgoCD instance running in the same namespace where agent is installed.
+
+    See [Harness Documentation](https://developer.harness.io/) for more information.
+  displayName: Harness GitOps Operator
+  icon:
+    - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhRE9DVFlQRSBzdmcgUFVCTElDICItLy9XM0MvL0RURCBTVkcgMS4xLy9FTiIgImh0dHA6Ly93d3cudzMub3JnL0dyYXBoaWNzL1NWRy8xLjEvRFREL3N2ZzExLmR0ZCI+Cjxzdmcgdmlld0JveD0iMCAwIDI0IDI1IiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2NCIgaGVpZ2h0PSI2NCI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMy4xNzMgMy40NzVhMS4xNSAxLjE1IDAgMCAwLTEuOTIuMDZsLS4wNzcuMTI0LTMuOTQgMy40ODNhMS4yIDEuMiAwIDAgMC0uMDY0IDEuNzM3bDEuMjEgMS4yNDJhNC4yOTYgNC4yOTYgMCAwIDAtLjAwMy4wNUg4LjM3VjEzLjExN2MwIC41Mi4zMzIuOTYzLjc5NSAxLjEzbC0uNzU2Ljc1NmMtLjUyOS40NjItMS4xNjUuNDYtMS41ODYuNDZoLS4wNTVjLS42ODYgMC0xLjMxLS42Ni0xLjI1MS0xLjU4MWEuNi42IDAgMCAwLTEuMTk4LS4wNzdjLS4wOTMgMS40NTQuOTIxIDIuODU4IDIuNDUgMi44NThoLjA3MmMuNDI0LjAwNCAxLjQ5Mi4wMTQgMi4zNzgtLjc3NWEuNTM0LjUzNCAwIDAgMCAuMDI1LS4wMjRsLjkxNi0uOTE1LjYzMi0uNjMyaC44Mzh2MS43NTlhLjYuNiAwIDAgMCAxLjIgMHYtMS43NmguODI4bDEuNDIgMS40MjFhLjUxLjUxIDAgMCAwIC4wMjYuMDI0Yy44ODYuNzkgMS45NTMuNzggMi4zNzcuNzc1aC4wNzNjMS41MjkgMCAyLjU0My0xLjQwNCAyLjQ1LTIuODU4YS42LjYgMCAxIDAtMS4xOTguMDc3Yy4wNi45Mi0uNTY1IDEuNTgtMS4yNTIgMS41OEgxNy41Yy0uNDIyLjAwMi0xLjA1OC4wMDMtMS41ODYtLjQ2bC0uNjQzLS42NDJhMS4yIDEuMiAwIDAgMCAuNzYtMS4xMTZWMTAuMjVsMS4zMTQtMS4zNDlhMS4yIDEuMiAwIDAgMC0uMDY0LTEuNzM2bC00LTMuNTM3YTIxLjUxNSAyMS41MTUgMCAwIDAtLjEwOC0uMTUzWk03LjIzNiA3LjE0MmwuNzk1LjkgMS40MTYtMS4yNTNhMTUuMTUzIDE1LjE1MyAwIDAgMC0uNzY4IDEuOTE3bC0uNjQ4LS42NjUtLjc5NS0uODk5Wm05LjI1LjkyMi0uNjc2LjY5M2ExMS41MSAxMS41MSAwIDAgMC0uNjU4LTEuODczbDEuMzM0IDEuMThaTTEyLjM3OCA0LjQzbC0uMTMyLS4xMTctLjE0My4xMjdhMzAuOTIgMzAuOTIgMCAwIDAtMS41MjcgMi43NjlDOS45ODkgOC40MzcgOS41NyA5LjYxOSA5LjU3IDEwLjQyM3YyLjY5NGg1LjI2di0yLjY5NGMwLTEuMDktLjQxNi0yLjMyOC0uOTc1LTMuNDgzYTE5LjQzOCAxOS40MzggMCAwIDAtMS40NzctMi41MDlabTEuNTc2IDcuMTNhLjU2My41NjMgMCAxIDEtMS4xMjUgMCAuNTYzLjU2MyAwIDAgMSAxLjEyNSAwWm0tMi44ODcuNTYyYS41NjMuNTYzIDAgMSAwIDAtMS4xMjUuNTYzLjU2MyAwIDAgMCAwIDEuMTI1Wm0uNDkyIDcuNTZhLjYuNiAwIDEgMSAxLjIgMCAuNi42IDAgMCAxLTEuMiAwWm0uNi0xLjhhMS44IDEuOCAwIDEgMCAwIDMuNiAxLjggMS44IDAgMCAwIDAtMy42Wm03LjQ4NSAxLjJhLjYuNiAwIDEgMCAwIDEuMi42LjYgMCAwIDAgMC0xLjJabS0xLjguNmExLjggMS44IDAgMSAxIDMuNiAwIDEuOCAxLjggMCAwIDEtMy42IDBabS0xNC4wODggMGEuNi42IDAgMSAxIDEuMiAwIC42LjYgMCAwIDEtMS4yIDBabS42LTEuOGExLjggMS44IDAgMSAwIDAgMy42IDEuOCAxLjggMCAwIDAgMC0zLjZaIiBmaWxsPSIjNEY1MTYyIj48L3BhdGg+PC9zdmc+
+      mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - events
+                - pods
+                - secrets
+                - serviceaccounts
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - statefulsets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - argoproj.io
+              resources:
+                - applications
+                - appprojects
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - batch
+              resources:
+                - cronjobs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - external-secrets.io
+              resources:
+                - externalsecrets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - generators.external-secrets.io
+              resources:
+                - ecrauthorizationtokens
+                - gcraccesstokens
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - gitops.harness.io
+              resources:
+                - gitopsagents
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - gitops.harness.io
+              resources:
+                - gitopsagents/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - gitops.harness.io
+              resources:
+                - gitopsagents/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - prometheusrules
+                - servicemonitors
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - networkpolicies
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - rolebindings
+                - roles
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: harness-gitops-operator-controller-manager
+      deployments:
+        - label:
+            app.kubernetes.io/managed-by: kustomize
+            app.kubernetes.io/name: gitops-operator
+            control-plane: harness-gitops-operator
+          name: harness-gitops-operator-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: harness-gitops-operator
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  containerImage: harness/gitops-agent-controller@sha256:966145fa4b373911edbb458b4ec97612cee8041f8ab51f7299c247faddc568fe
+                  createdAt: "2025-02-17T13:51:29Z"
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  control-plane: harness-gitops-operator
+              spec:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: kubernetes.io/arch
+                              operator: In
+                              values:
+                                - amd64
+                                - arm64
+                            - key: kubernetes.io/os
+                              operator: In
+                              values:
+                                - linux
+                containers:
+                  - args:
+                      - --metrics-bind-address=:8443
+                      - --leader-elect
+                      - --health-probe-bind-address=:8081
+                    command:
+                      - /manager
+                    env:
+                      - name: RELATED_IMAGE_GITOPSAGENT
+                        value: docker.io/harness/gitops-agent@sha256:c9f57338be294d32a73a4cbecf90dfff50f5d36a699f3ec32d962dcb64d8d085
+                    image: harness/gitops-agent-controller@sha256:966145fa4b373911edbb458b4ec97612cee8041f8ab51f7299c247faddc568fe
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 256Mi
+                      requests:
+                        cpu: 100m
+                        memory: 128Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: harness-gitops-operator-controller-manager
+                terminationGracePeriodSeconds: 10
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: harness-gitops-operator-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - gitops
+    - harness
+    - agent
+    - cd
+    - argocd
+    - kubernetes
+  links:
+    - name: Harness Gitops Operator
+      url: https://harness-gitops-operator.domain
+  maintainers:
+    - email: alexandru.bosii@harness.io
+      name: Alexandru Bosii
+  maturity: alpha
+  minKubeVersion: 1.22.0
+  provider:
+    name: Harness Inc.
+    url: https://harness.io
+  relatedImages:
+    - image: harness/gitops-agent-controller@sha256:966145fa4b373911edbb458b4ec97612cee8041f8ab51f7299c247faddc568fe
+      name: manager
+    - image: docker.io/harness/gitops-agent@sha256:c9f57338be294d32a73a4cbecf90dfff50f5d36a699f3ec32d962dcb64d8d085
+      name: gitopsagent
+  version: 0.1.4

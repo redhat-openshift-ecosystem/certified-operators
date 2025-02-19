@@ -2,14 +2,28 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: edb-hcp-operator-system/edb-hcp-operator-serving-cert
     controller-gen.kubebuilder.io/version: v0.16.1
+  creationTimestamp: null
   name: hybridcontrolplanes.edbpgai.edb.com
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: edb-hcp-operator-webhook-service
+          namespace: edb-hcp-operator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: edbpgai.edb.com
   names:
     kind: HybridControlPlane
     listKind: HybridControlPlaneList
     plural: hybridcontrolplanes
+    shortNames:
+    - hcp
     singular: hybridcontrolplane
   scope: Cluster
   versions:
@@ -142,10 +156,23 @@ spec:
                         type: object
                     type: object
                 type: object
-              portalAllowedSrcRanges:
-                description: 'PortalAllowedSrcRanges: Comma-separated listString of
-                  allowed source ranges for the HCP portal.'
-                type: string
+              resourceAnnotations:
+                items:
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    kind:
+                      type: string
+                    name:
+                      type: string
+                  required:
+                  - annotations
+                  - kind
+                  - name
+                  type: object
+                type: array
               scenarios:
                 items:
                   type: string
@@ -201,3 +228,9 @@ spec:
     storage: true
     subresources:
       status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

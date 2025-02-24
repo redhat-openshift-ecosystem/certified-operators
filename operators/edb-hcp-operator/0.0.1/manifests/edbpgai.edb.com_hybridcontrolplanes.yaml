@@ -58,16 +58,26 @@ spec:
             description: HybridControlPlaneSpec defines the desired state of HybridControlPlane
             properties:
               beaconAgent:
+                description: BeaconAgent is the configurations for the k8s beacon
+                  agent supplied on the appliance.
                 properties:
                   location:
+                    description: The id of the location with which this agent is associated.
                     type: string
                   provisioning:
+                    description: Provisioning is the configurations for the PG provisioning.
                     properties:
                       loadBalancersEnabled:
+                        description: LoadBalancersEnabled is a flag to indicate if
+                          the agent environment supports load balancer services.
                         type: boolean
                       nodePortDomain:
+                        description: NodePortDomain is used by the node port if load
+                          balancers are not enabled.
                         type: string
                       provider:
+                        description: Provider is the provider of the environment in
+                          which this agent is running if relevant.
                         type: string
                       resourceLimitOverrides:
                         additionalProperties:
@@ -76,28 +86,37 @@ spec:
                           - type: string
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
-                        description: ResourceList is a set of (resource name, quantity)
-                          pairs.
+                        description: ResourceLimitOverrides is a list of resource
+                          limits that can be used when provisioning a cluster.
                         type: object
                     type: object
                 required:
                 - provisioning
                 type: object
               beaconServer:
+                description: BeaconServer is the configurations for the k8s beacon
+                  server supplied on the appliance.
                 type: object
               componentsParameters:
                 additionalProperties:
                   additionalProperties:
                     type: string
                   type: object
+                description: ComponentsParameters is a map of parameters that will
+                  be used by specific components.
                 type: object
               disabledComponents:
+                description: DisabledComponents is a list of components that will
+                  not be deployed.
                 items:
                   type: string
                 type: array
               dryRun:
+                description: DryRun is a flag to indicate whether to dry-run the HCP
+                  deployment.
                 type: boolean
               flavour:
+                description: The environment where the HCP will be deployed.
                 enum:
                 - eks
                 - rhos
@@ -106,8 +125,13 @@ spec:
               globalParameters:
                 additionalProperties:
                   type: string
+                description: GlobalParameters is a list of parameters that will be
+                  used by all components.
                 type: object
               imagePullSecrets:
+                description: |-
+                  ImagePullSecrets is a list of references to secrets
+                  which point to the registry where the HCP images are stored.
                 items:
                   description: |-
                     SecretReference represents a Secret Reference. It has enough information to retrieve secret
@@ -125,29 +149,51 @@ spec:
                   x-kubernetes-map-type: atomic
                 type: array
               imageRegistry:
+                description: ImageRegistry is the registry where the HCP images are
+                  stored.
                 type: string
               pgai:
+                description: PGAI is the configurations for Postgres AI (pgAI) portal
+                  authentication.
                 properties:
                   portal:
+                    description: Portal is the configurations for the Postgres AI.
                     properties:
                       authentication:
+                        description: Authentication is the authentication configurations
+                          for the portal.
                         properties:
                           clientSecret:
+                            description: ClientSecret is the client secret for the
+                              portal.
                             type: string
                           idpConnectors:
+                            description: IDPConnectors is a list of IDP connectors
+                              for the portal.
                             items:
                               x-kubernetes-preserve-unknown-fields: true
                             type: array
                           staticPasswords:
+                            description: StaticPasswords is a list of static passwords
+                              for the portal.
                             items:
                               properties:
                                 email:
+                                  description: Email is the email address of the user.
                                   type: string
                                 hash:
+                                  description: |-
+                                    Hash is the hash of the password.
+                                    Generated using the following command:
+                                    echo "password" | htpasswd -BinC 10 admin | cut -d: -f2
                                   type: string
                                 userID:
+                                  description: |-
+                                    A unique identifier for the user must not be changed since
+                                    the first time installation.
                                   type: string
                                 username:
+                                  description: Username is the username of the user.
                                   type: string
                               type: object
                             type: array
@@ -157,15 +203,21 @@ spec:
                     type: object
                 type: object
               resourceAnnotations:
+                description: ResourceAnnotations is a list of annotations that will
+                  be added to the resources.
                 items:
                   properties:
                     annotations:
                       additionalProperties:
                         type: string
+                      description: Annotations is the annotations to add or overwrite
+                        to the resource.
                       type: object
                     kind:
+                      description: Kind is the kind of the resource.
                       type: string
                     name:
+                      description: Name is the name of the resource.
                       type: string
                   required:
                   - annotations
@@ -174,11 +226,18 @@ spec:
                   type: object
                 type: array
               scenarios:
+                description: |-
+                  Scenarios is a list of scenarios that will be used to deploy the HCP.
+                  When set, only the components relevant to the specified scenarios will be deployed.
                 items:
+                  enum:
+                  - cluster
+                  - monitoringLogging
+                  - migration
                   type: string
                 type: array
               source:
-                description: Source defines the source of manifests
+                description: Source is the configuration for the source of manifests.
                 properties:
                   useLocalKustomizations:
                     description: UseLocalKustomizations is a flag to indicate whether
@@ -186,41 +245,58 @@ spec:
                     type: boolean
                 type: object
               version:
+                description: |-
+                  The version of the HCP, currently we use the HCP configurations
+                  embedded in the operator image. In other words, the version does not
+                  have any effect on the HCP deployment temporarily.
                 type: string
             required:
             - flavour
             - imagePullSecrets
             - imageRegistry
-            - version
             type: object
           status:
             description: HybridControlPlaneStatus defines the observed state of HybridControlPlane
             properties:
               commitHash:
+                description: CommitHash is the hash of the commit that the HCP is
+                  deployed from.
                 type: string
               components:
+                description: Components is a list of components and their statuses.
                 items:
                   properties:
                     hash:
+                      description: Hash is the hash of the component manifests.
                       type: string
                     keep:
                       description: Keep is a flag to indicate whether to keep the
                         component during deletion
                       type: boolean
                     message:
+                      description: |-
+                        Message only set when the component state is failed, it
+                        contains the error message.
                       type: string
                     name:
+                      description: Name is the name of the component.
                       type: string
                     state:
+                      description: State is the state of the component, it can be
+                        success, failed, or deleted.
                       type: string
                     timestamp:
+                      description: Timestamp is the time when the component status
+                        was updated.
                       format: date-time
                       type: string
                   type: object
                 type: array
               phase:
+                description: Phase is the current phase of the HCP.
                 type: string
               specHash:
+                description: SpecHash is the hash of the HCP spec.
                 type: string
             type: object
         type: object

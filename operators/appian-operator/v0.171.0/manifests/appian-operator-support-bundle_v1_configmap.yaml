@@ -1,0 +1,115 @@
+apiVersion: v1
+data:
+  support-bundle-spec: "apiVersion: troubleshoot.sh/v1beta2\nkind: SupportBundle\nmetadata:\n
+    \ name: appian-operator\nspec:\n  collectors:\n    - clusterResources:\n        namespaces:\n
+    \         - \"appian-operator\"\n    - configMap:\n        namespace: \"appian-operator\"\n
+    \       name: appian-operator-support-bundle\n        includeAllData: true\n    -
+    logs:\n        selector:\n          - app.kubernetes.io/component=webhooks\n          -
+    app.kubernetes.io/instance=appian-operator\n        namespace: \"appian-operator\"\n
+    \       name: pods/logs/webhooks\n    - logs:\n        selector:\n          -
+    app.kubernetes.io/component=controllers\n          - app.kubernetes.io/instance=appian-operator\n
+    \       namespace: \"appian-operator\"\n        name: pods/logs/controllers\n
+    \   \n    - secret:\n        namespace: \"appian-operator\"\n        name: \"foobar\"\n
+    \       key: tls.crt\n        includeValue: false\n    - secret:\n        namespace:
+    \"appian-operator\"\n        name: \"foobar\"\n        key: tls.key\n        includeValue:
+    false\n    - secret:\n        namespace: \"appian-operator\"\n        name: \"appian-pull-secret\"\n
+    \       key: .dockerconfigjson\n        includeValue: false\n    - data:\n        name:
+    helm/values.yaml\n        data: |\n          controllers:\n            additionalArgs:
+    []\n            affinity: {}\n            nodeSelector: {}\n            rbac:\n
+    \             bind:\n                clusterRoles: []\n                roles:
+    []\n              clusterRoles: []\n              clusterWideAccess: true\n              roles:
+    []\n            resources: {}\n            tolerations: []\n            vpa:\n
+    \             controlledResources: []\n              controlledValues: \"\"\n
+    \             enabled: false\n              maxAllowed: {}\n              minAllowed:
+    {}\n              updateMode: \"\"\n          crd:\n            update:\n              affinity:
+    {}\n              annotations: {}\n              enabled: false\n              nodeSelector:
+    {}\n              resources: {}\n              tolerations: []\n          fullnameOverride:
+    \"\"\n          image:\n            pullPolicy: \"\"\n            repository:
+    registry.gitlab.appian-stratus.com/appian/prod/appian-operator\n            tag:
+    \"\"\n          imagePullSecrets:\n          - appian-pull-secret\n          nameOverride:
+    \"\"\n          rbac:\n            aggregatedClusterRoles:\n              enabled:
+    false\n          webhooks:\n            affinity: {}\n            caBundle: \"\"\n
+    \           enabled: true\n            hpa:\n              apiVersion: \"\"\n
+    \             behavior: {}\n              enabled: false\n              maxReplicas:
+    null\n              metrics: []\n              minReplicas: 1\n              targetCPUUtilizationPercentage:
+    null\n            nodeSelector: {}\n            podDisruptionBudget:\n              enabled:
+    false\n              maxUnavailable: null\n              minAvailable: null\n
+    \           rbac:\n              clusterRoles: []\n              roles: []\n            replicas:
+    1\n            resources: {}\n            secret: foobar\n            tolerations:
+    []\n            webhookConfiguration:\n              annotations: {}\n              caBundle:
+    \"\"\n    - data:\n        name: helm/release.yaml\n        data: |\n          IsInstall:
+    true\n          IsUpgrade: false\n          Name: appian-operator\n          Namespace:
+    appian-operator\n          Revision: 1\n          Service: Helm\n    - data:\n
+    \       name: helm/chart.yaml\n        data: |\n          IsRoot: true\n          apiVersion:
+    v2\n          appVersion: v0.171.0\n          description: A Helm chart for the
+    Appian operator\n          home: https://gitlab.appian-stratus.com/appian/prod/appian-operator\n
+    \         icon: https://www.appian.com/content/dam/appian-aem/logo-appian-rebrand.svg\n
+    \         keywords:\n          - appian\n          - operator\n          maintainers:\n
+    \         - email: squad-appian-on-kubernetes@appian.com\n            name: Appian\n
+    \         name: appian-operator\n          sources:\n          - https://gitlab.appian-stratus.com/appian/prod/appian-operator\n
+    \         version: v0.171.0\n  analyzers:\n    - jsonCompare:\n        checkName:
+    Appian CRD version\n        fileName: cluster-resources/custom-resource-definitions.json\n
+    \       jsonPath: '{$.items[?(@.metadata.name==\"appians.crd.k8s.appian.com\")].metadata.labels.app\\.kubernetes\\.io/version}'\n
+    \       value: |\n          \"v0.171.0\"\n        outcomes:\n          - fail:\n
+    \             when: \"false\"\n              message: Appian CRD version is not
+    v0.171.0\n          - pass:\n              message: Appian CRD version is v0.171.0\n
+    \   - textAnalyze:\n        checkName: Network connection to API Server\n        fileName:
+    pods/logs/controllers/*/*.log\n        regex: \"dial tcp .+: connect: operation
+    timed out\"\n        outcomes:\n          - fail:\n              when: \"true\"\n
+    \             message: Verify NetworkPolicies allow the operator to connect to
+    the API server\n              uri: |\n                https://kubernetes.io/docs/concepts/services-networking/network-policies/\n
+    \         - pass:\n              when: \"false\"\n              message: The operator
+    can connect to the API server\n    - textAnalyze:\n        checkName: Network
+    connection to webhooks\n        fileName: pods/logs/controllers/*/*.log\n        regex:
+    \"Timeout: request did not complete within requested timeout - context deadline
+    exceeded\"\n        outcomes:\n          - fail:\n              when: \"true\"\n
+    \             message: Verify NetworkPolicies allow the API server to connect
+    to the webhooks\n              uri: |\n                https://kubernetes.io/docs/concepts/services-networking/network-policies/\n
+    \         - pass:\n              when: \"false\"\n              message: The API
+    server can connect to the webhooks\n    - textAnalyze:\n        checkName: Valid
+    webhooks certificate - webhooks logs\n        fileName: pods/logs/webhooks/*/*.log\n
+    \       regex: \"TLS handshake error from .+: remote error: tls: bad certificate\"\n
+    \       outcomes:\n          - fail:\n              when: \"true\"\n              title:
+    Verify webhooks certificate is valid for appian-operator-webhooks.appian-operator.svc\n
+    \             message: |\n                Please verify the following:\n                1.
+    The webhooks certificate is valid for appian-operator-webhooks.appian-operator.svc\n
+    \               2. The CA bundle is set correctly in the Appian CRD\n                3.
+    The CA bundle is set correctly in the appian-operator MutatingWebhookConfiguration
+    and ValidatingWebhookConfiguration objects\n              uri: |\n                https://docs.appian.com/suite/help/latest/k8s-0.171.0/certs.html\n
+    \         - pass:\n              when: \"false\"\n              message: Webhooks
+    certificate is valid for appian-operator-webhooks.appian-operator.svc\n    - textAnalyze:\n
+    \       checkName: Valid webhooks certificate - controller logs\n        fileName:
+    pods/logs/controllers/*/*.log\n        regexGroups: \"x509: certificate is valid
+    for (?P<San>.+), not appian-operator-webhooks.appian-operator.svc\"\n        outcomes:\n
+    \         - fail:\n              when: \"true\"\n              title: Verify webhooks
+    certificate is valid for appian-operator-webhooks.appian-operator.svc\n              message:
+    Current webhooks certificate is valid for {{ .San }}\n              uri: |\n                https://docs.appian.com/suite/help/latest/k8s-0.171.0/certs.html\n
+    \         - pass:\n              when: \"false\"\n              message: Webhooks
+    certificate is valid for appian-operator-webhooks.appian-operator.svc\n    - secret:\n
+    \       checkName: Webhooks certificate secret \"foobar\" \"tls.crt\"\n        secretName:
+    \"foobar\"\n        namespace: \"appian-operator\"\n        key: tls.crt\n        outcomes:\n
+    \         - fail:\n              message: Webhooks certificate secret \"foobar\"
+    does not exist or the \"tls.crt\" key was not found.\n              uri: |\n                https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets\n
+    \         - pass:\n              message: Webhooks certificate secret \"foobar\"
+    exists and contains \"tls.crt\" key\n    - secret:\n        checkName: Webhooks
+    certificate secret \"foobar\" \"tls.key\"\n        secretName: \"foobar\"\n        namespace:
+    \"appian-operator\"\n        key: tls.key\n        outcomes:\n          - fail:\n
+    \             message: Webhooks certificate secret \"foobar\" does not exist or
+    the \"tls.key\" key was not found.\n              uri: |\n                https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets\n
+    \         - pass:\n              message: Webhooks certificate secret \"foobar\"
+    exists and contains \"tls.key\" key\n    - secret:\n        checkName: Image pull
+    secret \"appian-pull-secret\"\n        secretName: \"appian-pull-secret\"\n        namespace:
+    \"appian-operator\"\n        key: .dockerconfigjson\n        outcomes:\n          -
+    fail:\n              message: Image pull secret \"appian-pull-secret\" does not
+    exist or the \".dockerconfigjson\" key was not found.\n              uri: |\n
+    \               https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/\n"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/instance: appian-operator
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: appian-operator
+    app.kubernetes.io/version: v0.171.0
+    helm.sh/chart: appian-operator-v0.171.0
+    troubleshoot.sh/kind: support-bundle
+  name: appian-operator-support-bundle

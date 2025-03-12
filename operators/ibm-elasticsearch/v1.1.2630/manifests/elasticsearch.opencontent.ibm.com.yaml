@@ -1,0 +1,765 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: elasticsearchclusters.elasticsearch.opencontent.ibm.com
+spec:
+  group: elasticsearch.opencontent.ibm.com
+  names:
+    kind: ElasticsearchCluster
+    listKind: ElasticsearchClusterList
+    plural: elasticsearchclusters
+    singular: elasticsearchcluster
+  scope: Namespaced
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          description: Elasticsearchcluster is the Schema for the elasticsearchclusters API
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: Spec defines the desired state of Elasticsearchcluster
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              properties:
+                haproxyImage:
+                  description: HaProxy image to use for security side car
+                  type: string
+                  default: ""
+                fipsVersion:
+                  description: Indicate FIPS 140 version compatibility
+                  type: integer
+                  default: 2
+                patchServiceAccounts:
+                  description: Collection of existing service accounts that need permission to patch this CR
+                  type: array
+                  x-kubernetes-preserve-unknown-fields: true
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        description: Name of the service account
+                        type: string
+                        default: ""
+                      namespace:
+                        description: Namespace of the service account
+                        type: string
+                        default: ""
+                ignoreForMaintenance:
+                  description: Informs the Operator to not perform any actions on the operand.
+                  type: boolean
+                  default: false
+                useResourceRequestLimitsForJVMHeap:
+                  description: Use esResource.requests and limits to set minimal and max Java Heap size based on memory values. When set do not set java heap values or ES/OS bootstrap.memory_lock value in jvmOpts.
+                  type: boolean
+                  default: false
+                useResourceRequestLimitsForJVMHeapRatio:
+                  description: The ratio to apply to esResource.requests and limits to set minimal and max Java Heap size based on memory values. By default it is 0.5 based on OpenSearch's guidance.
+                  type: number
+                  default: 0.5
+                cpdbr:
+                  description: Configuration for CP4D backup and restore
+                  type: object
+                  properties:
+                    br:
+                      description: Backup and restore hook configuration
+                      type: object
+                      properties:
+                        priority:
+                          description: Priority of backup and restore hook
+                          type: integer
+                          default: 100
+                    checkpoint:
+                      description: Checkpoint hook configuration
+                      type: object
+                      properties:
+                        priority:
+                          description: Priority of checkpoint hook
+                          type: integer
+                          default: 100
+                        preBackupSnapshot:
+                          type: object
+                          description: Configuration for snapshot in pre-backup hook
+                          properties:
+                            enabled:
+                              description: Enable snapshot in pre-backup hook
+                              default: false
+                              type: boolean
+                    addIgnoreLabels:
+                      description: Add labels to deployment resources which exclude them from non-disruptive backup. It is very important you don't disable these labels. It will cause things to break. Only the snapshot repo will be backed up. Everything else should be regenerated.
+                      type: boolean
+                      default: true
+                sessionAffinity:
+                  description: Override default value used for session affinity of services
+                  default: "ClientIP"
+                  type: string
+                metrics:
+                  description: Prometheus metrics configuration
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: false
+                      description: Enable Prometheus metrics
+                    perfEnabled:
+                      type: boolean
+                      default: false
+                      description: Enable fio based perfromance metrics
+                    directory:
+                      type: string
+                      default: "/workdir/apps/"
+                      description: target directory to use
+                    wait:
+                      type: integer
+                      default: 30
+                      description: Number of seconds between metrics refresh
+                    size:
+                      type: string
+                      default: "22m"
+                      description: Size of FIO file to sync write
+                    buffer:
+                      type: string
+                      default: "2300"
+                      description: FIO buffer size
+                    resources:
+                      type: object
+                      description: resources for the performance sidecar.
+                      properties:
+                        requests:
+                          type: object
+                          properties:
+                            cpu:
+                              type: string
+                              description: minimal CPU needed
+                              default: "50m"
+                            memory:
+                              type: string
+                              description: minimal memory needed
+                              default: "10Mi"
+                            ephemeral-storage:
+                              description: minimal temporary storage  needed
+                              type: string
+                              default: "10Mi"
+                        limits:
+                          type: object
+                          properties:
+                            cpu:
+                              type: string
+                              description: max CPU needed
+                              default: "100m"
+                            memory:
+                              type: string
+                              description: max memory needed
+                              default: "64Mi"
+                            ephemeral-storage:
+                              type: string
+                              description: max temporary storage needed
+                              default: "50Mi"
+                snapshotRepo:
+                  description: Provide an elasticsearch snapshot repo via a shared volume
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                      default: false
+                      description: Enable/disable the elasticsearch dnapshot repo. Changing this value may require a restart/rebuild of the Elasticsearch cluster. If disabled it should not be deployed to a namespace which is baked up by valero CSI snapshots.
+                    storageClass:
+                      type: string
+                      default: ""
+                      description: Storage class to use for the shared volume used by the snapshot repo
+                    size:
+                      type: string
+                      default: "5Gi"
+                      description: Size of the snapshot volume
+                    snapshotActivity:
+                      type: string
+                      default: "none"
+                      description: Indicate a backup or restore activity should be performend. Between multiple backup or restore activies the values should be set to none to reset.
+                      pattern: '^(none|backup|restore)'
+                    seLinuxOptionsLevels:
+                      type: string
+                      default: ""
+                      description: user, role, type, and an optional field level in the format user:role:type:level for selinux
+                imagePullPolicy:
+                  type: string
+                  default: IfNotPresent
+                  description: Container pull policy.
+                elasticsearchConfig:
+                  type: object
+                  description: Override default values used for Proxying Elasticsearch
+                  properties:
+                    cluster:
+                      type: object
+                      description: Override Elasticsearch Cluster specific settings
+                      properties:
+                        name:
+                          type: string
+                          default: "es-cluster"
+                          description: Override the default name of the Elasticsearch cluster.
+                    transport:
+                      type: object
+                      description: Override values used for managing the Elasticsearch TRANSPORT protocol
+                      properties:
+                        port:
+                          type: integer
+                          default: 19300
+                          description: Port to use for the Elasticsearch TRANSPORT protocol. Defaults to 19300 and should not be set to anything less than 10000.
+                    network:
+                      type: object
+                      description: Ovverride network specific settings for Elasticsearch
+                      properties:
+                        publishHost:
+                          type: string
+                          default: "127.0.0.1"
+                          description: hostname to use foe access. This should be set to 127.0.0.1 to ensure no external unauthenticated access.
+                    http:
+                      type: object
+                      properties:
+                        log:
+                          type: object
+                          properties:
+                            frontend:
+                              type: boolean
+                              default: false
+                              description: Enable HAPRoxy Http Log.  default to false
+                        port:
+                          type: integer
+                          default: 19200
+                          description: Elasticsearch http port. Defaults to 19200 and should not be set to anything less than 10000.
+                        timeout:
+                          type: object
+                          description: internal default timeouts. This is overridden by the proxytimeouts.
+                          properties:
+                            connect:
+                              type: string
+                              default: "30000"
+                              description: Default connect timeout used between http and transport proxy
+                            client:
+                              type: string
+                              default: "30000"
+                              description: Default client timeout used only for http proxy
+                            server:
+                              type: string
+                              default: "30000"
+                              description: Default server timeout used only for  http proxy
+                storageCheckSidecar:
+                  type: object
+                  description: A side car to test storage performance
+                  properties:
+                    enabled:
+                      type: boolean
+                      description: Enable a side car to test storage performance
+                      default: false
+                    directory:
+                      type: string
+                      default: "/workdir/apps/"
+                      description: Directory to test against. Typically /workdir/apps/ is used for testing the local disk and /workdir/apps/elasticsearch/data for PV data storage
+                    wait:
+                      type: integer
+                      default: 5
+                      description: How long to wait between test runs.
+                    limit:
+                      type: integer
+                      default: 10
+                      description: The numnber of ms to indicate good storage
+                    size:
+                      type: string
+                      default: "22m"
+                      description: The size of the file to write for the test.
+                    buffer:
+                      type: integer
+                      default: 2300
+                      description: FIO Buffer Size
+                    resources:
+                      type: object
+                      description: resources for the performance sidecar.
+                      properties:
+                        requests:
+                          type: object
+                          properties:
+                            cpu:
+                              type: string
+                              description: minimal CPU needed
+                              default: "100m"
+                            memory:
+                              type: string
+                              description: minimal memory needed
+                              default: "100Mi"
+                            ephemeral-storage:
+                              description: minimal temporary storage  needed
+                              type: string
+                              default: "10Mi"
+                        limits:
+                          type: object
+                          properties:
+                            cpu:
+                              type: string
+                              description: max CPU needed
+                              default: "1000m"
+                            memory:
+                              type: string
+                              description: max memory needed
+                              default: "512Mi"
+                            ephemeral-storage:
+                              type: string
+                              description: max temporary storage needed
+                              default: "5Gi"
+                allowRebuildOnChange:
+                  type: boolean
+                  description: Some changes may require a disruptive rebuild of the Elasticsearch cluster such as recreating a statefuleset to allow for updated label match criteria. If set to true the cluster will quiesce and resources will be recreated when these changes are needed. This is recommended but not on by default. If set to false these changes will not be made and the reqruiesRebuild status will be set to true.
+                  default: false
+                quiesce:
+                  type: boolean
+                  description: Disable the service and scale the pods to 0. Setting this option to false will restore replicas. The success of the quiesce is defined by the `status.quiesce` value. Any snapshot should not occur while `status.quiesce` is true.
+                  default: false
+                image:
+                  type: string
+                  description: The single docker image to use for the operand. This overrides the default image based on the version syntax. If this value is set then version needs to indicate 6 or 7.
+                  default: ""
+                imagePrefix:
+                  description: Image registry prefix used for elasticsearch images.
+                  type: string
+                  default: "cp.icr.io/cp"
+                imagePullSecret:
+                  description: Kubernetes secret for accessing images in external private registries
+                  type: string
+                  default: ""
+                serviceAccount:
+                  description: Kubernetes service account which has get & list permissions for configmaps and secrets.
+                  type: string
+                  default: ""
+                maxUnavailable:
+                  description: PodDisruptionBudget - number of pods from that set that can be unavailable after the eviction. It can be either an absolute number or a percentage. You can prevent all voluntary evictions by specifying 0.
+                  type: integer
+                  minimum: -1
+                  default: 1
+                credentialSecret:
+                  description: Kubernetes secret containing credentials for authenticating against the application.  The format is simple <user>:<password> and multiple users are allowed.
+                  type: string
+                  default: ""
+                tlsSecret:
+                  description: Secret containing tls certificate information. Must match the same format as certificate manager.
+                  type: string
+                  default: ""
+                useCertificateManager:
+                  description: When set to true a certificate manager will be used to generate and maintain self-signed certificates
+                  type: boolean
+                  default: false
+                useODLM:
+                  description: When set to true ODLM will be used to install any dependencies
+                  type: boolean
+                  default: true
+                odlmRegistry:
+                  description: Name of the OperandRegistry which is for internal management of the services.
+                  type: string
+                  default: "common-service"
+                odlmRegistryNamespace:
+                  description: namespace of tthe OperandRegistry
+                  type: string
+                  default: "ibm-common-services"
+                sharedStoragePVC:
+                  description: Shared RWX PVC storage available to all Elasticsearch containers only in each pod. It will be mounted in the "/workdir/shared_storage" directory
+                  type: string
+                  default: ""
+                enableNetworkPolicy:
+                  description: Enable the default NetworkPolicy restricting access to the TRANSPORT protocol ports.
+                  type: boolean
+                  default: true
+                enableDataNodeService:
+                  description: Enable the Data Node Service if data node exists. This may improve indexing performance.
+                  type: boolean
+                  default: false
+                tlsIssuer:
+                  description: Provided Certificate Manager issuer. If not provided it will be generated.
+                  type: string
+                  default: ""
+                proxyHttpPort:
+                  description: Elasticsearch http port to proxy
+                  type: integer
+                  minimum: 0
+                  default: 9200
+                proxyTransportPort:
+                  description: Elasticsearch transport port to proxy
+                  type: integer
+                  minimum: 0
+                  default: 9300
+                proxyTimeout:
+                  type: object
+                  description: HAProxy timeout configurations.
+                  properties:
+                    connect:
+                      type: string
+                      description: Connection timeout value of HAProxy. Defaults to 30000
+                      default: "30000"
+                    client:
+                      type: string
+                      default: "30000"
+                      description: Default client timeout used only for http proxy
+                    server:
+                      type: string
+                      default: "30000"
+                      description: Default server timeout used only for  http proxy
+                updateStrategy:
+                  type: string
+                  description: method used for applying updates. This is also used for applying haproxy updates including scaling nodes. Defaults to RollingUpdate.
+                  default: RollingUpdate
+                minimumMasterNodes:
+                  type: integer
+                  description: Minimum number of master nodes required to function as a cluster. Defaults to 2. (ES6 only setting)
+                  default: 2
+                nodes:
+                  type: array
+                  description: Definition of different Elastic search node types
+                  x-kubernetes-preserve-unknown-fields: true
+                  items:
+                    type: object
+                    properties:
+                      disableSecuritySidecar:
+                        description: BETA feature - Disables SSL Tunnel and reverse proxy.
+                        type: boolean
+                        default: false
+                      vpa:
+                        description: Vertical Pod Autoscaler settings
+                        type: object
+                        properties:
+                          enabled:
+                            type: boolean
+                            default: false
+                            description: Enable the vertical pod autoscaler configuration. This should only be enabled on OCP 4.10+ release with the vertical pod autoscaler operator installed
+                          cpu:
+                            type: boolean
+                            default: false
+                            description: Enable VPA for CPU scaling. This is based on the requests & limits resource values. We recommend not setting this too low as it may cause operations to be too slow for TLS handshaking (100m).
+                          memory:
+                            type: boolean
+                            default: false
+                            description: Enable VPA for Memory scaling. This is based on the resource requests & limits values. Please consider any JVM memory configuration values set (-Xmx, -Xms, -XX:MaxPermSize, etc...).
+                      topologySpreadConstraints:
+                        type: array
+                        description: Sets the topologySpreadConstraints for the node group
+                        default: []
+                        x-kubernetes-preserve-unknown-fields: true
+                        items:
+                          type: object
+                      name:
+                        type: string
+                        description: Name given to a set of nodes
+                        default: ""
+                      description:
+                        type: string
+                        description: Description given to a set of nodes
+                        default: ""
+                      schedulerName:
+                        type: string
+                        description: Define a custom kubernetes scheduler for elasticsearch node group.
+                        default: ""
+                      data:
+                        type: boolean
+                        deprecated: true
+                        description: Should the set of nodes be given a data node role. DEPRECATED in Opensearch 2.x
+                        default: true
+                      ingest:
+                        type: boolean
+                        deprecated: true
+                        description: Should the set of nodes be given ingest node role. DEPRECATED in Opensearch 2.x
+                        default: true
+                      master:
+                        type: boolean
+                        deprecated: true
+                        description: Should the set of nodes be given a master node role. DEPRECATED in Opensearch 2.x
+                        default: true
+                      roles:
+                        type: array
+                        description: The node types. See https://opensearch.org/docs/latest/tuning-your-cluster/cluster/#nodes
+                        default:
+                          - data
+                          - ingest
+                          - cluster_manager
+                        items:
+                          type: string
+                      replicas:
+                        type: integer
+                        description: Number of replicas. Should not be less than 3 and for elasticsearch 6 should be an odd number to prevent split brain.
+                        default: 3
+                      pvcSizeSelector:
+                        type: string
+                        description: Selector to use when resizing the node's PVCs. By default it uses the statefulset's `app.kubernetes.io/component`. However as this value can be overridden by the CR you can use this value as an alternative.
+                      additionalConfiguration:
+                        type: array
+                        description: Additional values to include in elasticsearch.yml
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              description: elasticsearch.yml key
+                              default: ""
+                            value:
+                              type: string
+                              description: elasticsearch.yml value
+                              default: ""
+                      jvmOpts:
+                        type: string
+                        description: JVM options to set for the set of nodes. For elasticsearch 6 set -Dlog4j2.disable.jmx=true due to https://github.com/elastic/elasticsearch/issues/21932#issuecomment-264435034
+                        default: ""
+                      storageClass:
+                        type: string
+                        description: A RWO storage class.
+                        default: ""
+                      storageSize:
+                        type: string
+                        description: Size of the storage to provision
+                        default: ""
+                      nodeGroupLabels:
+                        type: object
+                        description: elastic node group specific labels
+                        x-kubernetes-preserve-unknown-fields: true
+                      podAffinity:
+                        type: object
+                        description: Set the pod affinity for the elasticsearch node groups
+                        x-kubernetes-preserve-unknown-fields: true
+                      podAntiAffinity:
+                        type: object
+                        description: Set the pod anti-affinity for the elasticsearch node groups
+                        x-kubernetes-preserve-unknown-fields: true
+                      nodeAffinity:
+                        type: object
+                        description: Set the node affinity for the elasticsearch node groups
+                        x-kubernetes-preserve-unknown-fields: true
+                      nodeSelector:
+                        type: object
+                        description: Set the node selector for the elasticsearch node groups
+                        x-kubernetes-preserve-unknown-fields: true
+                      environmentVariables:
+                        type: object
+                        description: key/value Environmnet variables to pass to the elasticsearch container
+                        x-kubernetes-preserve-unknown-fields: true
+                      secureEnvironmentVariables:
+                        type: array
+                        description: Environment variables to pass to the elasticsearch container from a secure secret.
+                        items:
+                          type: object
+                          properties:
+                            envVar:
+                              type: string
+                              description: Environment Variable to be set
+                            secretName:
+                              type: string
+                            secretKey:
+                              type: string
+                      mountSecrets:
+                        type: array
+                        description: Collection of kubernetes secrets to mount in the elasticsearch container
+                        items:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                              description: Secret name to mount. Will be named as user-<name> in the CR
+                            path:
+                              type: string
+                              description: path to mount the secret to.
+                      addKeys:
+                        type: array
+                        description: An array of keys that will be passed to the elasticsearch key store from a secret.
+                        items:
+                          type: object
+                          properties:
+                            secret:
+                              type: string
+                              description: kubernetes secret name
+                            esKeys:
+                              type: array
+                              desciprtion: An Array or secret key to elasticsearch keystore mappings
+                              items:
+                                type: object
+                                properties:
+                                  envVar:
+                                    type: string
+                                    description: Kubernetes secret key
+                                  esKey:
+                                    type: string
+                                    description: Elasticsearch keystore key
+                      esResources:
+                        type: object
+                        description: Elasticsearch specific resource requests and limits
+                        properties:
+                          requests:
+                            type: object
+                            properties:
+                              cpu:
+                                type: string
+                              memory:
+                                type: string
+                              ephemeral-storage:
+                                type: string
+                                default: "10Mi"
+                          limits:
+                            type: object
+                            properties:
+                              cpu:
+                                type: string
+                              memory:
+                                type: string
+                              ephemeral-storage:
+                                type: string
+                                default: "5Gi"
+                      haResources:
+                        type: object
+                        description: HAproxy TLS sidecar specific resource requests and limits
+                        properties:
+                          requests:
+                            type: object
+                            properties:
+                              cpu:
+                                type: string
+                              memory:
+                                type: string
+                              ephemeral-storage:
+                                type: string
+                                default: "10Mi"
+                          limits:
+                            type: object
+                            properties:
+                              cpu:
+                                type: string
+                              memory:
+                                type: string
+                              ephemeral-storage:
+                                type: string
+                                default: "6Gi"
+                plugins:
+                  type: array
+                  description: A list of plugins to load from a docker image
+                  items:
+                    type: object
+                    properties:
+                      image:
+                        type: string
+                        description: Docker image containing the plugins
+                      directory:
+                        type: string
+                        description: Location on the docker image containing the docker images
+                addDefaultPlugins:
+                  type: boolean
+                  description: Add mapper-size, ingest-attachment, analysis-ukrainian, analysis-nori, nalysis-kuromoji, analysis-icu, analysis-smartcn, analysis-stempel, analysis-phonetic, ingest-attachment, &  repository-s3 plugins.
+                  default: false
+                version:
+                  type: string
+                  description: |
+                    Opensearch version. The current versions supported as of CP4D Release 5.1
+                    - 2 -> Opensearch
+                  default: "2"
+                livenessProbe:
+                  type: object
+                  properties:
+                    failureThreshold:
+                      type: integer
+                    initialDelaySeconds:
+                      type: integer
+                    periodSeconds:
+                      type: integer
+                    successThreshold:
+                      type: integer
+                    timeoutSeconds:
+                      type: integer
+                readinessProbe:
+                  type: object
+                  properties:
+                    failureThreshold:
+                      type: integer
+                    initialDelaySeconds:
+                      type: integer
+                    periodSeconds:
+                      type: integer
+                    successThreshold:
+                      type: integer
+                    timeoutSeconds:
+                      type: integer
+                clusterHealthCheckParams:
+                  type: string
+                  description: parameters to pass to the curl command verifying the pod health.
+
+            status:
+              description: Status defines the observed state of Elasticsearchcluster
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+              properties:
+                version:
+                  description: Version of the operator
+                  type: string
+                versions:
+                  type: object
+                  properties:
+                    reconciled:
+                      type: string
+                      description: Version of the operand deployed
+                    available:
+                      type: object
+                      properties:
+                        versions:
+                          description: List of supported Elasticsearch versions
+                          type: array
+                          items:
+                            type: string
+                url:
+                  description: Elasticsearch service url
+                  type: string
+                phase:
+                  type: string
+                  description: high-level summary of where the CR is in its lifecycle.
+                quiesce:
+                  type: boolean
+                  description: Indicate that the service is disabled and replicas have been scaled the pods to 0. Any filesystem snapshot should not occur until status.quiesce is true.
+                requiresRebuild:
+                  type: boolean
+                  description: a disruptive rebuild of the elasticsearch cluster is required to apply changes.
+                snapshotPVCName:
+                  description: Name of Snapshot PVC.
+                  type: string
+                nodes:
+                  type: array
+                  description: Statuses related to each Elastic search node types
+                  x-kubernetes-preserve-unknown-fields: true
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                        description: Name of the node group
+                      pvcLabelSelectors:
+                        type: string
+                        description: The Label Selector used to query the PVCs owned by the nodegroup.
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Version
+          type: string
+          description: Elasticsearch version
+          jsonPath: .spec.version
+        - name: Phase
+          type: string
+          description: Elasticsearch CR phase
+          jsonPath: .status.phase
+        - name: Quiesce
+          type: boolean
+          description: Service is in a state of quiesce
+          jsonPath: .status.quiesce
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp

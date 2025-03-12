@@ -1,0 +1,326 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/instance: operand-deployment-lifecycle-manager
+    app.kubernetes.io/managed-by: operand-deployment-lifecycle-manager
+    app.kubernetes.io/name: operand-deployment-lifecycle-manager
+  name: operandrequests.operator.ibm.com
+spec:
+  group: operator.ibm.com
+  names:
+    kind: OperandRequest
+    listKind: OperandRequestList
+    plural: operandrequests
+    shortNames:
+    - opreq
+    singular: operandrequest
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Current Phase
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Created At
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: OperandRequest is the Schema for the operandrequests API. Documentation
+          For additional details regarding install parameters check https://ibm.biz/icpfs39install.
+          License By installing this product you accept the license terms https://ibm.biz/icpfs39license
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: The OperandRequestSpec identifies one or more specific operands
+              (from a specific Registry) that should actually be installed.
+            properties:
+              requests:
+                description: Requests defines a list of operands installation.
+                items:
+                  description: Request identifies a operand detail.
+                  properties:
+                    description:
+                      description: Description is an optional description for the
+                        request.
+                      type: string
+                    operands:
+                      description: Operands defines a list of the OperandRegistry
+                        entry for the operand to be deployed.
+                      items:
+                        description: Operand defines the name and binding information
+                          for one operator.
+                        properties:
+                          apiVersion:
+                            description: APIVersion defines the versioned schema of
+                              this representation of an object.
+                            type: string
+                          bindings:
+                            additionalProperties:
+                              description: |-
+                                Bindable is a Kubernetes resources to be shared from one namespace to another.
+                                List of supported resources are Secrets, Configmaps, Services, and Routes.
+                                Secrets and Configmaps will be copied such that a new Secret/Configmap with
+                                exactly the same data will be created in the target namespace.
+                                Services and Routes data will be copied into a configmap in the target
+                                namespace.
+                              properties:
+                                configmap:
+                                  description: The configmap identifies an existing
+                                    configmap object. if it exists, the ODLM will
+                                    share to the namespace of the OperandRequest.
+                                  type: string
+                                route:
+                                  description: |-
+                                    Route data will be shared by copying it into a configmap which is then
+                                    created in the target namespace
+                                  properties:
+                                    data:
+                                      additionalProperties:
+                                        type: string
+                                      description: |-
+                                        Data is a key-value pair where the value is a YAML path to a value in the
+                                        OpenShift Route, e.g. .spec.host or .spec.tls.termination
+                                      type: object
+                                    name:
+                                      description: Name is the name of the OpenShift
+                                        Route resource
+                                      type: string
+                                  type: object
+                                secret:
+                                  description: The secret identifies an existing secret.
+                                    if it exists, the ODLM will share to the namespace
+                                    of the OperandRequest.
+                                  type: string
+                                service:
+                                  description: |-
+                                    Service data will be shared by copying it into a configmap which is then
+                                    created in the target namespace
+                                  properties:
+                                    data:
+                                      additionalProperties:
+                                        type: string
+                                      description: |-
+                                        Data is a key-value pair where the value is a YAML path to a value in the
+                                        Kubernetes Service, e.g. .spec.ports[0]port
+                                      type: object
+                                    name:
+                                      description: Name is the name of the Kubernetes
+                                        Service resource
+                                      type: string
+                                  type: object
+                              type: object
+                            description: The bindings section is used to specify names
+                              of secret and/or configmap.
+                            type: object
+                          instanceName:
+                            description: |-
+                              InstanceName is used when users want to deploy multiple custom resources.
+                              It is the name of the custom resource.
+                            type: string
+                          kind:
+                            description: |-
+                              Kind is used when users want to deploy multiple custom resources.
+                              Kind identifies the kind of the custom resource.
+                            type: string
+                          name:
+                            description: Name of the operand to be deployed.
+                            type: string
+                          spec:
+                            description: |-
+                              Spec is used when users want to deploy multiple custom resources.
+                              It is the configuration map of custom resource.
+                            nullable: true
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                        required:
+                        - name
+                        type: object
+                      type: array
+                    registry:
+                      description: Specifies the name in which the OperandRegistry
+                        reside.
+                      type: string
+                    registryNamespace:
+                      description: |-
+                        Specifies the namespace in which the OperandRegistry reside.
+                        The default is the current namespace in which the request is defined.
+                      type: string
+                  required:
+                  - operands
+                  - registry
+                  type: object
+                type: array
+            required:
+            - requests
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: OperandRequestStatus defines the observed state of OperandRequest.
+            properties:
+              conditions:
+                description: Conditions represents the current state of the Request
+                  Service.
+                items:
+                  description: |-
+                    Condition represents the current state of the Request Service.
+                    A condition might not show up if it is not happening.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      type: string
+                    lastUpdateTime:
+                      description: The last time this condition was updated.
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              members:
+                description: Members represnets the current operand status of the
+                  set.
+                items:
+                  description: MemberStatus shows if the Operator is ready.
+                  properties:
+                    name:
+                      description: The member name are the same as the subscription
+                        name.
+                      type: string
+                    operandCRList:
+                      description: OperandCRList shows the list of custom resource
+                        created by OperandRequest.
+                      items:
+                        description: OperandCRMember defines a custom resource created
+                          by OperandRequest.
+                        properties:
+                          apiVersion:
+                            description: APIVersion is the APIVersion of the custom
+                              resource.
+                            type: string
+                          kind:
+                            description: Kind is the kind of the custom resource.
+                            type: string
+                          name:
+                            description: Name is the name of the custom resource.
+                            type: string
+                        type: object
+                      type: array
+                    phase:
+                      description: The operand phase include None, Creating, Running,
+                        Failed.
+                      properties:
+                        operandPhase:
+                          description: OperandPhase shows the deploy phase of the
+                            operator instance.
+                          type: string
+                        operatorPhase:
+                          description: OperatorPhase shows the deploy phase of the
+                            operator.
+                          type: string
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+              phase:
+                description: Phase is the cluster running phase.
+                type: string
+              services:
+                description: Services reflect the status of operands beyond whether
+                  they have been created
+                items:
+                  properties:
+                    namespace:
+                      type: string
+                    operatorName:
+                      type: string
+                    resources:
+                      description: LastUpdateTime string `json:"lastTransitionTime,omitempty"`
+                      items:
+                        properties:
+                          apiVersion:
+                            type: string
+                          kind:
+                            type: string
+                          managedResources:
+                            description: Message string `json:"message,omitempty"`
+                            items:
+                              properties:
+                                apiVersion:
+                                  type: string
+                                kind:
+                                  type: string
+                                namespace:
+                                  type: string
+                                objectName:
+                                  type: string
+                                status:
+                                  description: Type string `json:"type,omitempty"`
+                                  type: string
+                              type: object
+                            type: array
+                          namespace:
+                            type: string
+                          objectName:
+                            type: string
+                          status:
+                            type: string
+                        type: object
+                      type: array
+                    status:
+                      description: Type string `json:"type,omitempty"`
+                      type: string
+                  type: object
+                type: array
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

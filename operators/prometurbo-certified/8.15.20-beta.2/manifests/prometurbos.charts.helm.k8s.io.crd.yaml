@@ -1,0 +1,245 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    api-approved.kubernetes.io: https://github.com/operator-framework/operator-sdk/pull/2703
+    controller-gen.kubebuilder.io/version: v0.15.0
+  name: prometurbos.charts.helm.k8s.io
+spec:
+  group: charts.helm.k8s.io
+  names:
+    kind: Prometurbo
+    listKind: PrometurboList
+    plural: prometurbos
+    singular: prometurbo
+  scope: Namespaced
+  versions:
+    - name: v1
+      schema:
+        openAPIV3Schema:
+          description: Prometurbo is the Schema for the prometurbos API
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              default: {}
+              description: Spec is default to {} to ensure the api server will attach
+                default values for sub-fields
+              properties:
+                args:
+                  default:
+                    logginglevel: 2
+                  description: Prometurbo command line arguments
+                  properties:
+                    discoveryIntervalSec:
+                      default: 600
+                      description: The discovery interval in seconds
+                      type: integer
+                    ignoreCommodityIfPresent:
+                      description: Ignore merging a commodity if a commodity of the
+                        same type already exists
+                      type: boolean
+                    logginglevel:
+                      default: 2
+                      description: Define logging level, default is info = 2
+                      type: integer
+                  type: object
+                image:
+                  default:
+                    prometurboRepository: icr.io/cpopen/turbonomic/prometurbo
+                    pullPolicy: IfNotPresent
+                    turbodifRepository: icr.io/cpopen/turbonomic/turbodif
+                  description: Prometurbo image details for deployments outside of RH
+                    Operator Hub
+                  properties:
+                    imagePullSecret:
+                      description: Define the secret used to authenticate to the container
+                        image registry
+                      type: string
+                    prometurboRepository:
+                      default: icr.io/cpopen/turbonomic/prometurbo
+                      description: Container repository. default is docker hub
+                      type: string
+                    prometurboTag:
+                      description: Prometurbo container image tag
+                      type: string
+                    pullPolicy:
+                      default: IfNotPresent
+                      description: Define pull policy, Always is default
+                      type: string
+                    turbodifRepository:
+                      default: icr.io/cpopen/turbonomic/turbodif
+                      description: Container repository. default is docker hub
+                      type: string
+                    turbodifTag:
+                      description: Turbodif container image tag
+                      type: string
+                  type: object
+                logging:
+                  default:
+                    level: 2
+                  description: Logging level. Changing this value does not require restart
+                    of Prometurbo but takes about 1 minute to take effect
+                  properties:
+                    level:
+                      default: 2
+                      description: Define logging level, default is info = 2
+                      type: integer
+                  type: object
+                replicaCount:
+                  default: 1
+                  description: Prometurbo replicaCount
+                  format: int32
+                  type: integer
+                resources:
+                  description: Prometurbo resource configuration
+                  properties:
+                    limits:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description: Define limits
+                      type: object
+                    requests:
+                      additionalProperties:
+                        anyOf:
+                          - type: integer
+                          - type: string
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      description: Define requests
+                      type: object
+                  type: object
+                restAPIConfig:
+                  default:
+                    turbonomicCredentialsSecretName: turbonomic-credentials
+                  description: Configurations to register probe with Turbo Server
+                  properties:
+                    opsManagerPassword:
+                      description: Turbo admin user password
+                      type: string
+                    opsManagerUserName:
+                      description: Turbo admin user id
+                      type: string
+                    turbonomicCredentialsSecretName:
+                      default: turbonomic-credentials
+                      description: Name of k8s secret that contains the turbo credentials
+                      type: string
+                  type: object
+                roleBinding:
+                  default: prometurbo-binding
+                  description: The name of ClusterRoleBinding.
+                  type: string
+                roleName:
+                  default: prometurbo
+                  description: The name of ClusterRole.
+                  type: string
+                sdkProtocolConfig:
+                  default:
+                    registrationTimeoutSec: 300
+                  description: Configurations to register probe with Turbo Server
+                  properties:
+                    registrationTimeoutSec:
+                      default: 300
+                      description: Time in seconds to wait for registration response
+                        from the Turbo Server
+                      type: integer
+                    restartOnRegistrationTimeout:
+                      description: Restart probe container on registration timeout
+                      type: boolean
+                  type: object
+                serverMeta:
+                  default:
+                    turboServer: https://Turbo_server_URL
+                  description: Configuration for Turbo Server
+                  properties:
+                    turboServer:
+                      default: https://Turbo_server_URL
+                      description: URL for Turbo Server endpoint
+                      type: string
+                    version:
+                      description: Turbo Server major version
+                      type: string
+                  type: object
+                serviceAccountName:
+                  default: prometurbo
+                  description: The name of the ServiceAccount.
+                  type: string
+                targetAddress:
+                  default: http://127.0.0.1:8081/metrics
+                  description: Optional target address for registration
+                  type: string
+                targetName:
+                  default: Prometheus
+                  description: Optional target name for registration
+                  type: string
+              type: object
+            status:
+              description: Status defines the observed state of Prometurbo
+              properties:
+                configHash:
+                  description: Hash of the constructed turbo.config file
+                  type: string
+                lastUpdatedTimestamp:
+                  description: Timestamp of the last sync up
+                  type: string
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: Prometurbo is the Schema for the prometurbos API
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: Spec defines the desired state of Prometurbo
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              description: Status defines the observed state of Prometurbo
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+          type: object
+      served: true
+      storage: false
+      subresources:
+        status: {}

@@ -3,18 +3,27 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: '[]'
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "raftt.io/v1beta1",
+          "kind": "Raftt",
+          "metadata": {
+            "name": "raftt-operator-raftt",
+            "namespace": "raftt"
+          },
+          "spec": {
+            "s3": {
+              "bucketName": "raftt-bucket"
+            }
+          }
+        }
+      ]
     capabilities: Basic Install
-    createdAt: "2025-04-14T20:44:08Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.36.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-    containerImage: quay.io/raftt/raftt-operator@sha256:4e8ab30216b5d69f1d772734f0f4d8783014a5b629945890bfe308f9092496f4
+    categories: Developer Tools
+    createdAt: "2025-04-20T23:12:43Z"
     description: This operator installs and configures a Raftt instance
-    marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/raftt-operator/pricing?utm_source=openshift_console
-    marketplace.openshift.io/support-workflow: https://marketplace.redhat.com/en-us/operators/raftt-operator/support?utm_source=openshift_console
-    categories: "Developer Tools"
-    support: "Raftt systems"
-    operators.openshift.io/valid-subscription: "Raftt commercial license"
+    containerImage: quay.io/raftt/raftt-operator@sha256:91374330f7692008f54b42addb29bd6f9a6b4956c45df5b1afe9e08c64d6ac33
     features.operators.openshift.io/disconnected: "true"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "false"
@@ -22,6 +31,14 @@ metadata:
     features.operators.openshift.io/token-auth-aws: "false"
     features.operators.openshift.io/token-auth-azure: "false"
     features.operators.openshift.io/token-auth-gcp: "false"
+    marketplace.openshift.io/remote-workflow: https://marketplace.redhat.com/en-us/operators/raftt-operator/pricing?utm_source=openshift_console
+    marketplace.openshift.io/support-workflow: https://marketplace.redhat.com/en-us/operators/raftt-operator/support?utm_source=openshift_console
+    operatorframework.io/initialization-resource: Raftt
+    operatorframework.io/suggested-namespace: raftt
+    operators.openshift.io/valid-subscription: Raftt commercial license
+    operators.operatorframework.io/builder: operator-sdk-v1.36.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    support: Raftt systems
   name: raftt-operator.v1.25.0
   namespace: placeholder
 spec:
@@ -34,7 +51,11 @@ spec:
       kind: Raftt
       name: raftts.raftt.io
       version: v1beta1
-  description: Description for raftt
+  description: |
+    Raftt allows fast code iterations and debugging over complex Kubernetes environments.
+    Raftt provides a localhost development experience for applications running on Kubernetes.
+    You can use Raftt to orchestrate the environments for you, so you get the optimal development experience -
+    iterations that take under a second, OOTB debugging of your code as it runs in the cluster, easy introspection, and more.
   displayName: Raftt
   icon:
   - base64data: |
@@ -400,6 +421,7 @@ spec:
           - watch
         - apiGroups:
           - apps
+          - route.openshift.io
           resources:
           - '*'
           verbs:
@@ -452,6 +474,7 @@ spec:
           - rbac.authorization.k8s.io
           resources:
           - clusterrolebindings
+          - rolebindings
           verbs:
           - create
           - delete
@@ -467,31 +490,6 @@ spec:
           - clusterroles
           verbs:
           - bind
-        - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
-          - rolebindings
-          verbs:
-          - create
-          - delete
-          - escalate
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - route.openshift.io
-          resources:
-          - '*'
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
         - apiGroups:
           - security.openshift.io
           resources:
@@ -520,7 +518,9 @@ spec:
             spec:
               containers:
               - args:
+                - --metrics-bind-address=:8443
                 - --leader-elect
+                - --health-probe-bind-address=:8081
                 command:
                 - /manager
                 env:
@@ -536,7 +536,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
-                image: quay.io/raftt/raftt-operator@sha256:4e8ab30216b5d69f1d772734f0f4d8783014a5b629945890bfe308f9092496f4
+                image: quay.io/raftt/raftt-operator@sha256:91374330f7692008f54b42addb29bd6f9a6b4956c45df5b1afe9e08c64d6ac33
                 livenessProbe:
                   httpGet:
                     path: /healthz

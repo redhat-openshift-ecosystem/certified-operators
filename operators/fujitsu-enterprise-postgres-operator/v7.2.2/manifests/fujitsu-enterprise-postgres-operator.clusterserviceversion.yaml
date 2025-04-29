@@ -1,0 +1,971 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "fep.fujitsu.io/v1",
+          "kind": "FEPAction",
+          "metadata": {
+            "name": "new-fep-action"
+          },
+          "spec": {
+            "fepAction": {
+              "args": [
+                "new-fep-sts-0",
+                "new-fep-sts-1"
+              ],
+              "type": "reload"
+            },
+            "sysExtraEvent": true,
+            "sysExtraLogging": false,
+            "targetClusterName": "new-fep"
+          }
+        },
+        {
+          "apiVersion": "fep.fujitsu.io/v1",
+          "kind": "FEPExporter",
+          "metadata": {
+            "name": "new-fep-exporter"
+          },
+          "spec": {
+            "fepExporter": {
+              "exporterLogLevel": "error",
+              "fepClusterList": [
+                "new-fep1"
+              ],
+              "image": {
+                "pullPolicy": "IfNotPresent"
+              },
+              "mcSpec": {
+                "limits": {
+                  "cpu": "500m",
+                  "memory": "700Mi"
+                },
+                "requests": {
+                  "cpu": "200m",
+                  "memory": "512Mi"
+                }
+              },
+              "restartRequired": false,
+              "sysExtraEvent": true,
+              "sysExtraLogging": false,
+              "userCustomQueries": "usr_example:\n  query: \"SELECT EXTRACT(EPOCH FROM (now() - pg_last_xact_replay_timestamp())) as lag\"\n  master: true\n  metrics:\n    - lag:\n        usage: \"GAUGE\"\n        description: \"Replication lag behind master in seconds\""
+            }
+          }
+        },
+        {
+          "apiVersion": "fep.fujitsu.io/v1",
+          "kind": "FEPLogging",
+          "metadata": {
+            "name": "new-fep-logging"
+          },
+          "spec": {
+            "fepLogging": {
+              "image": {
+                "pullPolicy": "IfNotPresent"
+              },
+              "mcSpec": {
+                "limits": {
+                  "cpu": "500m",
+                  "memory": "700Mi"
+                },
+                "requests": {
+                  "cpu": "200m",
+                  "memory": "512Mi"
+                }
+              },
+              "restartRequired": false,
+              "sysExtraEvent": true,
+              "sysExtraLogging": false
+            }
+          }
+        },
+        {
+          "apiVersion": "fep.fujitsu.io/v1",
+          "kind": "FEPPgpool2",
+          "metadata": {
+            "name": "new-fep-pgpool2"
+          },
+          "spec": {
+            "clientAuthMethod": "scram",
+            "count": 2,
+            "customhba": "local   all         all                               trust\nhost    all         all         127.0.0.1/32          trust\nhost    all         all         ::1/128               trust\n",
+            "customlogsize": "128Mi",
+            "customparams": "listen_addresses = '*'\npcp_listen_addresses = '*'\nnum_init_children = 32\nreserved_connections = 0\nenable_pool_hba = off\nallow_clear_text_frontend_auth = off\nauthentication_timeout = 80\nbackend_weight0 = 1\nbackend_weight1 = 1\nbackend_flag0 = 'ALWAYS_PRIMARY'\nbackend_flag1 = 'DISALLOW_TO_FAILOVER'\nconnection_cache = on\nmax_pool = 4\nlisten_backlog_multiplier = 2\nserialize_accept = off\nchild_life_time = 300\nclient_idle_limit = 0\nchild_max_connections = 0\nconnection_life_time = 0\nreset_query_list = 'ABORT; DISCARD ALL'\nclient_min_messages = info\nlog_min_messages = debug1\nlog_statement = on\nlog_per_node_statement = on\nlog_client_messages = on\nlog_hostname = on\nlog_connections = on\nlog_line_prefix = '%t: pid %p: '\nload_balance_mode = on\nignore_leading_white_space = on\nwhite_function_list = ''\nblack_function_list = 'currval,lastval,nextval,setval'\nblack_query_pattern_list = ''\ndatabase_redirect_preference_list = ''\napp_name_redirect_preference_list = ''\nallow_sql_comments = off\ndisable_load_balance_on_write = 'transaction'\nstatement_level_load_balance = on\nsr_check_period = 0\nsr_check_user = 'postgres'\ndelay_threshold = 0\nlog_standby_delay = 'none'\nssl = on\nssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL'\nssl_prefer_server_ciphers = off\nssl_ecdh_curve = 'prime256v1'\nssl_dh_params_file = ''\nrelcache_expire = 0\nrelcache_size = 256\ncheck_temp_table = catalog\ncheck_unlogged_table = on\nenable_shared_relcache = off\nrelcache_query_target = primary\nwd_port0 = 9000\nfailover_on_backend_error = off\n",
+            "custompcp": "none",
+            "customsslcacert": "none",
+            "customsslcert": "-----BEGIN CERTIFICATE-----\nMIIDTzCCAjegAwIBAgIUYssQ8I74US5g+1+Z7CHuaDgkZnEwDQYJKoZIhvcNAQEL\nBQAwNzEQMA4GA1UECgwHRnVqaXRzdTEjMCEGA1UEAwwaRkVQIFJvb3QgQ0EgZm9y\nIEt1YmVybmV0ZXMwHhcNMjEwMjA2MDM1MjI4WhcNMzEwMjA0MDM1MjI4WjA3MRAw\nDgYDVQQKDAdGdWppdHN1MSMwIQYDVQQDDBpGRVAgUm9vdCBDQSBmb3IgS3ViZXJu\nZXRlczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMs97gUF0xkUzCgL\n7MiiDju9ySr/ziwjvcYU7jA9ML+SLmftMs3HtcYbAmSntqI+MDBSR/FAJTOoytuT\npV+mCFcGj2YAjDpliHPeNcUpbryy4YMChF3+MovkIwGCksxo5rhiWhGmoBYpA48P\n4Xe8SPlzqMzhFvNeKzyiUhvjutS2Y1Ss38lsTaurFPx64vQ2PaC54XzdwMptXtpb\ntYmWSzCpJWwxZ6lF3vitdA2w0tnBWNyctAd0+RIM/fvArxiIqseAux9t0uogm5to\nlRIhvekuxOpXBPEqtIYQ4j9XUW2JH8vUDnzPkPvjrq+A3Ug8OyyfGVrW7+VYXozu\nc4aP7P0CAwEAAaNTMFEwHQYDVR0OBBYEFBzCutQ7S74WEhS5V2sNEJBGyLpmMB8G\nA1UdIwQYMBaAFBzCutQ7S74WEhS5V2sNEJBGyLpmMA8GA1UdEwEB/wQFMAMBAf8w\nDQYJKoZIhvcNAQELBQADggEBAMDwD85RAaWEBptFgLzKw+9xEUy1vcZaonAuA1qc\nT342XTueyAugxkC11HwdCGgGS34VyctfMGqj4AW6pA2ez4tLrbOps4DmV4sw8uBL\n8pgRDgfly3ob9FEg2wa0hmrwX9jH5Bt4vySUE2785uPAqaspT2UNtTBxS85BUi1T\nsKId2Rtil6an281Z81wyWVI6Jm2D4MG0mbsiGcTPlCtdg/UljvDYymXlAvd4vNhl\nk9hDa13TgDqJKgKdTIcmZoNQdpEVgFcO0h9AEUy5AuLqxHq60dLfZ6ESGPlMI7Lm\ni4PzYbCnBmOe+7TnHcPSyrnehs66Ik+oifRd82eYS7vKjFw=\n-----END CERTIFICATE-----",
+            "customsslkey": "none",
+            "fepclustername": "new-fep",
+            "imagePullPolicy": "IfNotPresent",
+            "limits": {
+              "cpu": "400m",
+              "memory": "512Mi"
+            },
+            "requests": {
+              "cpu": "200m",
+              "memory": "256Mi"
+            },
+            "serviceport": 9999,
+            "statusport": 9898
+          }
+        },
+        {
+          "apiVersion": "fep.fujitsu.io/v1",
+          "kind": "FEPRestore",
+          "metadata": {
+            "name": "new-fep-restore"
+          },
+          "spec": {
+            "fromFEPcluster": "new-fep",
+            "imagePullPolicy": "IfNotPresent",
+            "mcSpec": {
+              "limits": {
+                "cpu": "200m",
+                "memory": "300Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "200Mi"
+              }
+            },
+            "restoretype": "latest",
+            "sysExtraEvent": true,
+            "sysExtraLogging": false,
+            "toFEPcluster": "new-fep-2"
+          }
+        },
+        {
+          "apiVersion": "fep.fujitsu.io/v2",
+          "kind": "FEPCluster",
+          "metadata": {
+            "name": "new-fep"
+          },
+          "spec": {
+            "fep": {
+              "customAnnotations": {
+                "allDeployments": {}
+              },
+              "forceSsl": true,
+              "image": {
+                "pullPolicy": "IfNotPresent"
+              },
+              "instances": 1,
+              "mcSpec": {
+                "limits": {
+                  "cpu": "500m",
+                  "memory": "700Mi"
+                },
+                "requests": {
+                  "cpu": "200m",
+                  "memory": "512Mi"
+                }
+              },
+              "podAntiAffinity": false,
+              "podDisruptionBudget": false,
+              "servicePort": 27500,
+              "syncMode": "off",
+              "sysExtraEvent": true,
+              "sysExtraLogging": false,
+              "usePodName": true
+            },
+            "fepChildCrVal": {
+              "backup": {
+                "image": {
+                  "pullPolicy": "IfNotPresent"
+                },
+                "mcSpec": {
+                  "limits": {
+                    "cpu": "200m",
+                    "memory": "300Mi"
+                  },
+                  "requests": {
+                    "cpu": "100m",
+                    "memory": "200Mi"
+                  }
+                },
+                "pgbackrestParams": "# if log volume is not defined, log_directory should be\n# changed to '/database/userdata/data/log'\n[global]\nrepo1-retention-full=7\nrepo1-retention-full-type=time\nlog-path=/database/log/backup\n",
+                "postScript": " ",
+                "preScript": " ",
+                "schedule": {
+                  "num": 2
+                },
+                "schedule1": {
+                  "schedule": "15 0 * * 0",
+                  "type": "full"
+                },
+                "schedule2": {
+                  "schedule": "15 0 * * 1-6",
+                  "type": "incr"
+                },
+                "schedule3": {
+                  "schedule": " ",
+                  "type": " "
+                },
+                "schedule4": {
+                  "schedule": " ",
+                  "type": " "
+                },
+                "schedule5": {
+                  "schedule": " ",
+                  "type": " "
+                }
+              },
+              "customPgAudit": "# define pg audit custom params here to override defaults.\n# if log volume is not defined, log_directory should be\n# changed to '/database/userdata/data/log'\n[output]\nlogger = 'auditlog'\nlog_directory = '/database/log/audit'\nlog_truncate_on_rotation = on\nlog_filename = 'pgaudit-%a.log'\nlog_rotation_age = 1d\nlog_rotation_size = 0\n[rule]\n",
+              "customPgHba": "# define pg_hba custom rules here to be merged with default rules.\n# TYPE     DATABASE        USER        ADDRESS        METHOD\n",
+              "customPgParams": "# define custom postgresql.conf parameters below to override defaults.\n# Current values are as per default FEP deployment\n# If you add a library to shared_preload_libraries, add it after the default value.\n# fsep_operator_security is available in FEP15 and later container images.\nshared_preload_libraries='pgx_datamasking,pg_prewarm,pg_stat_statements,fsep_operator_security'\nsession_preload_libraries='pg_prewarm'\nmax_prepared_transactions = 100\nmax_worker_processes = 30\nmax_connections = 100\nwork_mem = 1MB\nmaintenance_work_mem = 12MB\nshared_buffers = 128MB\neffective_cache_size = 384MB\ncheckpoint_completion_target = 0.8\n# tcp parameters\ntcp_keepalives_idle = 30\ntcp_keepalives_interval = 10\ntcp_keepalives_count = 3\n# logging parameters in default fep installation\n# if log volume is not defined, log_directory should be\n# changed to '/database/userdata/data/log'\nlog_directory = '/database/log'\nlog_filename = 'logfile-%a.log'\nlog_file_mode = 0600\nlog_truncate_on_rotation = on\nlog_rotation_age = 1d\nlog_rotation_size = 0\nlog_checkpoints = on\nlog_line_prefix = '%e %t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h'\nlog_lock_waits = on\nlog_autovacuum_min_duration = 60s\nlogging_collector = on\npgaudit.config_file='/opt/app-root/src/pgaudit-cfg/pgaudit.conf'\nlog_replication_commands = on\nlog_min_messages = WARNING\nlog_destination = csvlog\n# wal_archive parameters in default fep installation\narchive_mode = on\narchive_command = 'pgbackrest --stanza=backupstanza --config=/database/userdata/pgbackrest.conf archive-push %p'\nwal_level = replica\nmax_wal_senders = 12\nwal_keep_segments = 64\ntrack_activities = on\ntrack_counts = on\npassword_encryption = 'scram-sha-256'\n",
+              "storage": {
+                "archivewalVol": {
+                  "size": "1Gi"
+                },
+                "backupVol": {
+                  "size": "2Gi"
+                },
+                "dataVol": {
+                  "size": "2Gi"
+                },
+                "logVol": {
+                  "size": "1Gi"
+                },
+                "tablespaceVol": {
+                  "size": "512Mi"
+                },
+                "walVol": {
+                  "size": "1200Mi"
+                }
+              },
+              "sysUsers": {
+                "pgRewindPassword": "rewind_password",
+                "pgRewindUser": "rewind_user",
+                "pgdb": "mydb",
+                "pgpassword": "mydbpassword",
+                "pgreplpassword": "repluserpwd",
+                "pgrepluser": "repluser",
+                "pguser": "mydbuser",
+                "tdepassphrase": "tde-passphrase"
+              },
+              "systemCertificates": {
+                "cacrt": "-----BEGIN CERTIFICATE-----\nMIIDTzCCAjegAwIBAgIUYssQ8I74US5g+1+Z7CHuaDgkZnEwDQYJKoZIhvcNAQEL\nBQAwNzEQMA4GA1UECgwHRnVqaXRzdTEjMCEGA1UEAwwaRkVQIFJvb3QgQ0EgZm9y\nIEt1YmVybmV0ZXMwHhcNMjEwMjA2MDM1MjI4WhcNMzEwMjA0MDM1MjI4WjA3MRAw\nDgYDVQQKDAdGdWppdHN1MSMwIQYDVQQDDBpGRVAgUm9vdCBDQSBmb3IgS3ViZXJu\nZXRlczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAMs97gUF0xkUzCgL\n7MiiDju9ySr/ziwjvcYU7jA9ML+SLmftMs3HtcYbAmSntqI+MDBSR/FAJTOoytuT\npV+mCFcGj2YAjDpliHPeNcUpbryy4YMChF3+MovkIwGCksxo5rhiWhGmoBYpA48P\n4Xe8SPlzqMzhFvNeKzyiUhvjutS2Y1Ss38lsTaurFPx64vQ2PaC54XzdwMptXtpb\ntYmWSzCpJWwxZ6lF3vitdA2w0tnBWNyctAd0+RIM/fvArxiIqseAux9t0uogm5to\nlRIhvekuxOpXBPEqtIYQ4j9XUW2JH8vUDnzPkPvjrq+A3Ug8OyyfGVrW7+VYXozu\nc4aP7P0CAwEAAaNTMFEwHQYDVR0OBBYEFBzCutQ7S74WEhS5V2sNEJBGyLpmMB8G\nA1UdIwQYMBaAFBzCutQ7S74WEhS5V2sNEJBGyLpmMA8GA1UdEwEB/wQFMAMBAf8w\nDQYJKoZIhvcNAQELBQADggEBAMDwD85RAaWEBptFgLzKw+9xEUy1vcZaonAuA1qc\nT342XTueyAugxkC11HwdCGgGS34VyctfMGqj4AW6pA2ez4tLrbOps4DmV4sw8uBL\n8pgRDgfly3ob9FEg2wa0hmrwX9jH5Bt4vySUE2785uPAqaspT2UNtTBxS85BUi1T\nsKId2Rtil6an281Z81wyWVI6Jm2D4MG0mbsiGcTPlCtdg/UljvDYymXlAvd4vNhl\nk9hDa13TgDqJKgKdTIcmZoNQdpEVgFcO0h9AEUy5AuLqxHq60dLfZ6ESGPlMI7Lm\ni4PzYbCnBmOe+7TnHcPSyrnehs66Ik+oifRd82eYS7vKjFw=\n-----END CERTIFICATE-----",
+                "crt": "-----BEGIN CERTIFICATE-----\nMIIDUTCCAjmgAwIBAgIRAMocW3qMoHrD6qRvMPppMkMwDQYJKoZIhvcNAQELBQAw\nNzEQMA4GA1UECgwHRnVqaXRzdTEjMCEGA1UEAwwaRkVQIFJvb3QgQ0EgZm9yIEt1\nYmVybmV0ZXMwHhcNMjEwMjA2MDQzMjM2WhcNMjYwMjA1MDQzMjM2WjA/MRAwDgYD\nVQQKEwdGdWppdHN1MSswKQYDVQQDEyJGVUpJVFNVIEVudGVycHJpc2UgUG9zdGdy\nZXMgU2VydmVyMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4AI33yvH\nZws+jta6qpV6wzJqF8odIfTIpCfbrVcUUtLFKJ1I2e4SceTKi6O3C/I1XuvWlpng\n5IO65+fQQLO06z1/AuQT78YUn/Wlm9x1aHVsv4ANB5JWWqDOjrRT3o7nRPGXfila\nbP0rGE2mJJcVR9nExJ3IeaktgT3sb8YlXvtchyYpmjdbfxabTz07ig0+6/cwKoRR\nxOK8Uf7f5euE0cI/490J6r5Rs4lgD8sIQNCUFlTFYvmAH7gcdssSFBt8NPlUATHE\nsoFmlW0DKCJWNhTLOht+s6L/1zwTHLjPG2pdkG6Wdgmu5H2pDml8CDNLDv98Aj7i\n+I5SRKKcVPlnuQIDAQABo1AwTjAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUH\nAwIwDAYDVR0TAQH/BAIwADAfBgNVHSMEGDAWgBQcwrrUO0u+FhIUuVdrDRCQRsi6\nZjANBgkqhkiG9w0BAQsFAAOCAQEAm5dxBoI9pScOCvRAchg4CprdRDSJb9K6yB3O\nnCAxnM47iHeXnY3WlnI388kHu8DU7O4ba1tJbGs3KY9KzioPk43pU12jWkO1onoF\n+mTDjx/Ef1cYWA9r5q/LtgTa6Q2sxV4O2x67QW82aAnaxO34dV5zWCPIvAoovZBV\nHRT+BgCg3r2vD1RGKK2nl1aYJtWhO1SZubam+VttdZ/vbM9oOJctxmImsEtBXjkY\nKteePdQtLL5o03JhyXWyRshCq+HMmKf2KgyY8gvydGcP4eLQdBWcW40LcnVq6UjT\n0kJycJEKngMVademq1ZWHGaiYB7hyT6GhgIcHUJ2cKrPgbEh1Q==\n-----END CERTIFICATE-----",
+                "key": "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA4AI33yvHZws+jta6qpV6wzJqF8odIfTIpCfbrVcUUtLFKJ1I\n2e4SceTKi6O3C/I1XuvWlpng5IO65+fQQLO06z1/AuQT78YUn/Wlm9x1aHVsv4AN\nB5JWWqDOjrRT3o7nRPGXfilabP0rGE2mJJcVR9nExJ3IeaktgT3sb8YlXvtchyYp\nmjdbfxabTz07ig0+6/cwKoRRxOK8Uf7f5euE0cI/490J6r5Rs4lgD8sIQNCUFlTF\nYvmAH7gcdssSFBt8NPlUATHEsoFmlW0DKCJWNhTLOht+s6L/1zwTHLjPG2pdkG6W\ndgmu5H2pDml8CDNLDv98Aj7i+I5SRKKcVPlnuQIDAQABAoIBAFPQYKlOzw/+BA0b\nyMIUpdctIMb/54CR/xR0mVw1DbSjigNVPjHUQvB8Y1B2FAITQObgJO06bAv0QdWN\nRb0/v/yYiNJDFjaLjaIAHlO/2+oWrXbFaZqgpVDJhB+e1xaZr2x7XGxm+p925k30\nl6pvIRY+I8JRKvZiV1VZHwL/R3JOtPr++xMZtLVjVOI+f+ySqJ+TZHuAjm49EKxj\ncEmmJ28b7QcziXsvKy00f+zbqLIBKXQdZAFU5eEr1BsDRXdRW+Kf0XIvftuy4BJZ\nvoKT+VGhEvF/qysswL4+6IAO6tpuYnnM0Y2d3sOGoWPkTcQK0MekYKzL/WmtCjNs\n9hodJtECgYEA5EWyhEOf4uOKe5TDp697UCUvXLoOR58FDe/S8XNvScn29jjOkqIg\nOMoqo9xAkJTNTzqn5UUdt1x/pgM2NxlPLFijrc0zQlX3SoOO2ryDd9WNi7YKtN16\nKJqa536WeZu2OEbuAZ+S3GALVy1RPeTNPnUOmKnF06DjDUGzLNCZy10CgYEA+zfw\n952DWuz1U0Z4wvAEqqcgUKXPKrkTXV/iUnjkDkrLYVr0ZofDNTXrdHl+UedFmaOC\ncieZn6DNhcdz5tKtyysGMH3g/qs9PfoGUngvcXsy0Egk04l3x1jc8TTCLqXZXYaQ\nHMsx51n+R58oncPtzYSUOr9qQ6PbC2CstTbFJA0CgYEAjGEsUliAB/jknfEzjXjG\nPdhQUxb8VyE864Az2lah9t/kJzFyIAziAeqZ5GE7t247AGFTBRTHHI8e1Qoemi3P\nWbc9GVIbFs1lIYbcIDpUIyrKPEP8O5QEXtoNLxXTFgAjRGKiVY87spjCAJ+W2ZhO\ne/1it5GYXfgQCYQA2yuBmOUCgYANRkR2YR1axaCk+NlSu6oTdmdPu6M5x7PNQE7O\nOtMaKjua9lppvIzFGAdMDUtueoEEAE7ZR1xnwfB6PDLUpJdIYAqgr1YfPt8qkjaZ\nTv56yZ7CwL0pbF8m6nwqRrZoDp1wwraEvvvxFKFKGY/k3kCHlpTakdjEoDjn3gDi\nRnWeVQKBgCEneMSzucei5LRppRtRaJw/Btll8qlPMlX3W7dxQ3cLwpmLOn0m51Fp\nPIZ44zYK8R6fu4+/sSrlfaIg86Ugeufp6YNxyNROKxUGza5vDIu5OftwWtBeg+UK\nZ8lLWNdX6pp7WMujmF3H1DrkBbauYMUKZ4UxUYtelgHERMePIxwb\n-----END RSA PRIVATE KEY-----"
+              }
+            }
+          }
+        }
+      ]
+    capabilities: Auto Pilot
+    categories: Database
+    certified: "false"
+    containerImage: quay.io/fujitsu/fujitsu-enterprise-postgres-operator@sha256:d68405bcbc64126e050bd2db0fce3b356c18c428b64c1e7d97394146ade98b90
+    createdAt: "2025-04-01T08:40:00Z"
+    description: OpenShift Operator for Fujitsu Enterprise Postgres
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "true"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    olm.skipRange: '>=4.1.0 <7.2.2'
+    operators.openshift.io/valid-subscription: '["Fujitsu Enterprise Postgres Advanced
+      Edition Annual Subscription License per Core 17 Operator for Kubernetes"]'
+    operators.operatorframework.io/builder: operator-sdk-v1.36.1-ocp
+    operators.operatorframework.io/internal-objects: '["fepautoscales.fep.fujitsu.io","fepconfigs.fep.fujitsu.io","fepusers.fep.fujitsu.io","fepcerts.fep.fujitsu.io","fepvolumes.fep.fujitsu.io","fepbackups.fep.fujitsu.io"]'
+    operators.operatorframework.io/project_layout: ansible.sdk.operatorframework.io/v1
+    support: fj-dbaas-tec@dl.jp.fujitsu.com
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.ppc64le: supported
+    operatorframework.io/arch.s390x: supported
+    operatorframework.io/os.linux: supported
+  name: fujitsu-enterprise-postgres-operator.v7.2.2
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: FEPAction
+      name: fepactions.fep.fujitsu.io
+      version: v1
+    - kind: FEPAutoscale
+      name: fepautoscales.fep.fujitsu.io
+      version: v1
+    - kind: FEPBackup
+      name: fepbackups.fep.fujitsu.io
+      version: v1
+    - kind: FEPCert
+      name: fepcerts.fep.fujitsu.io
+      version: v1
+    - kind: FEPCluster
+      name: fepclusters.fep.fujitsu.io
+      version: v2
+    - kind: FEPConfig
+      name: fepconfigs.fep.fujitsu.io
+      version: v1
+    - kind: FEPExporter
+      name: fepexporters.fep.fujitsu.io
+      version: v1
+    - kind: FEPLogging
+      name: feploggings.fep.fujitsu.io
+      version: v1
+    - kind: FEPPgpool2Cert
+      name: feppgpool2certs.fep.fujitsu.io
+      version: v1
+    - kind: FEPPgpool2
+      name: feppgpool2s.fep.fujitsu.io
+      version: v1
+    - kind: FEPRestore
+      name: feprestores.fep.fujitsu.io
+      version: v1
+    - kind: FEPUpgrade
+      name: fepupgrades.fep.fujitsu.io
+      version: v1
+    - kind: FEPUser
+      name: fepusers.fep.fujitsu.io
+      version: v1
+    - kind: FEPVolume
+      name: fepvolumes.fep.fujitsu.io
+      version: v1
+  description: "Fujitsu Enterprise Postgres 17 delivers an enterprise-grade PostgreSQL
+    on OpenShift Container Platform.\n\nThis solution provides the flexibility of
+    a hybrid cloud solution while delivering an enhanced distribution of PostgreSQL
+    to support enterprise-level workloads and provide improved deployment and management,
+    availability, performance, data governance and security.  \n\nAvailable as a multi-architecture
+    container built for both amd64, s390x and ppc64le.\n\nThe download and Use of
+    the Product is strictly subject to the terms of the End User License Agreement
+    with Fujitsu Limited found at https://www.fast.fujitsu.com/fujitsu-enterprise-postgres-license-agreements.
+    Where the Product that has been embedded as a whole or part into a third party
+    program, only Authorised Customers may download and use the Product.\n"
+  displayName: Fujitsu Enterprise Postgres Operator
+  icon:
+  - base64data: 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
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          - rbac.authorization.k8s.io
+          - authorization.openshift.io
+          resources:
+          - clusterroles
+          - clusterrolebindings
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          - namespaces
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - secrets-store.csi.x-k8s.io
+          resources:
+          - secretproviderclasses
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - clusterissuers
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - storageclasses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - get
+          - create
+          - update
+          - patch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - fep-restrictedv2-scc
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: fep-ansible-operator
+      deployments:
+      - label:
+          app.kubernetes.io/component: fep-ansible-operator
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: fujitsu-enterprise-postgres
+          app.kubernetes.io/part-of: fujitsu-enterprise-postgres
+          control-plane: controller-manager
+        name: fep-ansible-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+              name: fep-ansible-operator
+              vendor: Fujitsu
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: fep-ansible-operator
+              labels:
+                control-plane: controller-manager
+                name: fep-ansible-operator
+                vendor: Fujitsu
+            spec:
+              containers:
+              - args:
+                - --metrics-addr=0.0.0.0:8080
+                - --enable-leader-election
+                - --leader-election-id=fep-ansible-operator-metrics-exp
+                env:
+                - name: RELATED_IMAGE_FEP
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-17-server@sha256:39bc2fd697f30fde5a6e8e389764e760d4d49091aeb3d3a87ce220c553553133
+                - name: RELATED_IMAGE_FEPUTILS
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-17-utils@sha256:676bf082a8c4811f74011671493433e11ef368b20961d842b83a968ee0308d6d
+                - name: RELATED_IMAGE_BACKUP
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-17-backup@sha256:0927073759285a27a05131513e243d4d08cc254c1d420c21545c8f72b1b9122b
+                - name: RELATED_IMAGE_RESTORE
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-17-restore@sha256:c53f41c5b4410306e6aad1d9934e7be4b79de4fda11b41392c553120d1e0d5e9
+                - name: RELATED_IMAGE_PGPOOL2
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-17-pgpool2@sha256:8b705a954856949d9a4b4d7b2786c1be4a53dcb1cb25e20b5dbf93db48b3ebdd
+                - name: RELATED_IMAGE_FEPEXPORTER
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-exporter@sha256:468a9a45d3c113bf70980a1948273cfc8c7336dc2756d4108d4f54f53eb01b14
+                - name: RELATED_IMAGE_FEPLOGGING
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-fluentd@sha256:0de87606bc414bea819543c3b3209dfc5a9030e315f1e112207415433e61ac51
+                - name: RELATED_IMAGE_FEPLOGGING_FLUENTBIT
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-fluentbit@sha256:a256dd1be1d5e790849c72e489abe74af2a9a0e97d27def35e0c6ca3a3630144
+                - name: RELATED_IMAGE_CRONJOB
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-cronjob@sha256:723039ab3066f66d9c69dad7013685338daf69a48742e85e03895dc42cf23b69
+                - name: RELATED_IMAGE_UPGRADE
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-17-upgrade@sha256:d5f0c93fcbc1db6e32e1a17db0fc3a15ccae9174f8a30de13060987363b6c2c6
+                - name: RELATED_IMAGE_FEP_16
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-16-server@sha256:20ada2ce3d21b8cf38135f9bf0f31ed354dd683fbf30c202ca156186aca5b6c7
+                - name: RELATED_IMAGE_FEPUTILS_16
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-16-utils@sha256:b94f3f5a5dc98dd739faab08d24c4c5f29c35a857ec52e2523b9ca578cb91af0
+                - name: RELATED_IMAGE_BACKUP_16
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-16-backup@sha256:3d18f237e74df44cd225c18d7075799866f2320e8f5c38224e545eed6f04d033
+                - name: RELATED_IMAGE_RESTORE_16
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-16-restore@sha256:88617c30bc436a9ea47b720a690130655f122a9ef9a20caa35b5c765c2908560
+                - name: RELATED_IMAGE_PGPOOL2_16
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-16-pgpool2@sha256:d3cd2df3ac3a905d1ae65a5e3d0842fc44faf13314273c7aebc944ded70be457
+                - name: RELATED_IMAGE_UPGRADE_16
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-16-upgrade@sha256:79004a608e8cfbcc0fe1a377132a736159c5ae30ef16b8b214e5dce58f483a68
+                - name: RELATED_IMAGE_FEP_15
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-15-server@sha256:6596c54b0fdcd444ad0431e25e1c29085ea37c5b28db70ba783ca641cfaca452
+                - name: RELATED_IMAGE_FEPUTILS_15
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-utils@sha256:20db3104d58dcac17ce041612077aaa1eb7ecca0a9b0412f7b552a7d43211330
+                - name: RELATED_IMAGE_BACKUP_15
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-15-backup@sha256:d81073f6ec3e4c0443774eab5fed4131977856b8e84259312beb4197609b3342
+                - name: RELATED_IMAGE_RESTORE_15
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-15-restore@sha256:ddfa9a2798ba513ae92d62025c20e8faf15d2b7e2e59d6eff73c994ebc8baabf
+                - name: RELATED_IMAGE_PGPOOL2_15
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-15-pgpool2@sha256:7e21bd01a2a6949a388f45a97c35a47b3ad3bb243efaf11628b77036e249258e
+                - name: RELATED_IMAGE_UPGRADE_15
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-15-upgrade@sha256:67212694aec4ac4045a4247f5517cfbe4e7cfa8057c1fbdcb11cf79894c4c0dc
+                - name: RELATED_IMAGE_FEP_14
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-14-server@sha256:dab36320f839a4eef369d703a2832588af692df223744f669256449b02c87e76
+                - name: RELATED_IMAGE_BACKUP_14
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-14-backup@sha256:048567698aaefd5aa4272caae1e717658cafc8a25474c5fcf95aa33777cc99d1
+                - name: RELATED_IMAGE_RESTORE_14
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-14-restore@sha256:443298b10057886855b9f9c0b98440bf6fbcf8d707152bd8b2d865a53fe4c320
+                - name: RELATED_IMAGE_PGPOOL2_14
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-14-pgpool2@sha256:c1feeb4aabdb6cf07687124761b08b767437a111e5585bcc0dca2e541ccc6c30
+                - name: RELATED_IMAGE_UPGRADE_14
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-14-upgrade@sha256:869aa79f97ba212b53f37e9211b2aed1ce26806e0d74d722f86c993598d65033
+                - name: RELATED_IMAGE_OPERATOR
+                  value: quay.io/fujitsu/fujitsu-enterprise-postgres-operator@sha256:d68405bcbc64126e050bd2db0fce3b356c18c428b64c1e7d97394146ade98b90
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: fep-ansible-operator
+                - name: LATEST_FEP_VERSION_NUMBER
+                  value: "17"
+                - name: ANSIBLE_GATHERING
+                  value: explicit
+                - name: ANSIBLE_DEBUG_LOGS
+                  value: "true"
+                - name: ANSIBLE_VERBOSITY_FEPCLUSTER_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPCONFIG_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPVOLUME_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPUSER_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPCERT_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPACTION_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPAUTOSCALE_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPEXPORTER_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPLOGGING_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPPGPOOL2_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPBACKUP_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPRESTORE_FEP_FUJITSU_IO
+                  value: "4"
+                - name: ANSIBLE_VERBOSITY_FEPUPGRADE_FEP_FUJITSU_IO
+                  value: "4"
+                - name: KUBECTL_REMOTE_COMMAND_WEBSOCKETS
+                  value: "false"
+                image: quay.io/fujitsu/fujitsu-enterprise-postgres-operator@sha256:d68405bcbc64126e050bd2db0fce3b356c18c428b64c1e7d97394146ade98b90
+                imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 6789
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: fep-ansible-operator
+                ports:
+                - containerPort: 8080
+                  name: http
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 6789
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: "1"
+                    memory: 1536Mi
+                  requests:
+                    cpu: 500m
+                    memory: 768Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                volumeMounts:
+                - mountPath: /certs/
+                  name: ca-cert-volume
+                - mountPath: /certmethod/
+                  name: cert-method
+                - mountPath: /fepopr/cacert/
+                  name: fepopr-cacert
+                - mountPath: /fepopr/rootcert/
+                  name: rootsecret
+                - mountPath: /fepopr/clientsecret/
+                  name: clientsecret
+              - args:
+                - certmonitor
+                env:
+                - name: NAME_SPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: quay.io/fujitsu/fujitsu-enterprise-postgres-17-utils@sha256:676bf082a8c4811f74011671493433e11ef368b20961d842b83a968ee0308d6d
+                imagePullPolicy: Always
+                name: fep-utils-certmonitor
+                resources: {}
+                volumeMounts:
+                - mountPath: /certs/
+                  name: ca-cert-volume
+                - mountPath: /certmethod/
+                  name: cert-method
+                - mountPath: /fepopr/cacert/
+                  name: fepopr-cacert
+                - mountPath: /fepopr/rootcert/
+                  name: rootsecret
+                - mountPath: /fepopr/clientsecret/
+                  name: clientsecret
+              imagePullSecrets:
+              - name: fj-quay-pull-secret
+              - name: quay-pull-secret
+              initContainers:
+              - args:
+                - gencacert
+                env:
+                - name: NAME_SPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                image: quay.io/fujitsu/fujitsu-enterprise-postgres-17-utils@sha256:676bf082a8c4811f74011671493433e11ef368b20961d842b83a968ee0308d6d
+                imagePullPolicy: Always
+                name: fep-utils
+                resources: {}
+                volumeMounts:
+                - mountPath: /certs/
+                  name: ca-cert-volume
+                - mountPath: /certmethod/
+                  name: cert-method
+                - mountPath: /fepopr/cacert/
+                  name: fepopr-cacert
+                - mountPath: /fepopr/rootcert/
+                  name: rootsecret
+                - mountPath: /fepopr/clientsecret/
+                  name: clientsecret
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: fep-ansible-operator
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - emptyDir: {}
+                name: ca-cert-volume
+              - configMap:
+                  defaultMode: 420
+                  name: fepopr-cert-method
+                  optional: true
+                name: cert-method
+              - configMap:
+                  defaultMode: 420
+                  name: fepopr-root-cacert
+                  optional: true
+                name: fepopr-cacert
+              - name: rootsecret
+                secret:
+                  optional: true
+                  secretName: fepopr-root-secret
+              - name: clientsecret
+                secret:
+                  optional: true
+                  secretName: fepopr-client-cert
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          - v1
+          resources:
+          - namespaces
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          - policy
+          resources:
+          - pods
+          - pods/exec
+          - serviceaccounts
+          - services
+          - services/finalizers
+          - endpoints
+          - persistentvolumeclaims
+          - poddisruptionbudgets
+          - events
+          - configmaps
+          - secrets
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          - rbac.authorization.k8s.io
+          - authorization.openshift.io
+          resources:
+          - roles
+          - rolebindings
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          - prometheusrules
+          verbs:
+          - get
+          - create
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resourceNames:
+          - fep-ansible-operator
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          - deployments
+          verbs:
+          - get
+        - apiGroups:
+          - fep.fujitsu.io
+          resources:
+          - '*'
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - batch
+          resources:
+          - cronjobs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - autoscaling
+          resources:
+          - horizontalpodautoscalers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - secrets-store.csi.x-k8s.io
+          resources:
+          - secretproviderclasses
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - issuers
+          - certificates
+          - certificaterequests
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - acme.cert-manager.io
+          resources:
+          - orders
+          - challenges
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - get
+          - create
+          - update
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: fep-ansible-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: true
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  keywords:
+  - postgres
+  - postgresql
+  - database
+  - sql
+  - Fujitsu
+  - fep
+  links:
+  - name: Fujitsu Enterprise Postgres
+    url: https://www.postgresql.fastware.com/
+  maintainers:
+  - email: fj-dbaas-tec@dl.jp.fujitsu.com
+    name: Fujitsu
+  maturity: stable
+  provider:
+    name: Fujitsu
+    url: https://www.postgresql.fastware.com/
+  relatedImages:
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-17-server@sha256:39bc2fd697f30fde5a6e8e389764e760d4d49091aeb3d3a87ce220c553553133
+    name: fep
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-17-utils@sha256:676bf082a8c4811f74011671493433e11ef368b20961d842b83a968ee0308d6d
+    name: feputils
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-17-backup@sha256:0927073759285a27a05131513e243d4d08cc254c1d420c21545c8f72b1b9122b
+    name: backup
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-17-restore@sha256:c53f41c5b4410306e6aad1d9934e7be4b79de4fda11b41392c553120d1e0d5e9
+    name: restore
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-17-pgpool2@sha256:8b705a954856949d9a4b4d7b2786c1be4a53dcb1cb25e20b5dbf93db48b3ebdd
+    name: pgpool2
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-exporter@sha256:468a9a45d3c113bf70980a1948273cfc8c7336dc2756d4108d4f54f53eb01b14
+    name: fepexporter
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-fluentd@sha256:0de87606bc414bea819543c3b3209dfc5a9030e315f1e112207415433e61ac51
+    name: feplogging
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-fluentbit@sha256:a256dd1be1d5e790849c72e489abe74af2a9a0e97d27def35e0c6ca3a3630144
+    name: feplogging-fluentbit
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-cronjob@sha256:723039ab3066f66d9c69dad7013685338daf69a48742e85e03895dc42cf23b69
+    name: cronjob
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-17-upgrade@sha256:d5f0c93fcbc1db6e32e1a17db0fc3a15ccae9174f8a30de13060987363b6c2c6
+    name: upgrade
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-16-server@sha256:20ada2ce3d21b8cf38135f9bf0f31ed354dd683fbf30c202ca156186aca5b6c7
+    name: fep-16
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-16-utils@sha256:b94f3f5a5dc98dd739faab08d24c4c5f29c35a857ec52e2523b9ca578cb91af0
+    name: feputils-16
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-16-backup@sha256:3d18f237e74df44cd225c18d7075799866f2320e8f5c38224e545eed6f04d033
+    name: backup-16
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-16-restore@sha256:88617c30bc436a9ea47b720a690130655f122a9ef9a20caa35b5c765c2908560
+    name: restore-16
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-16-pgpool2@sha256:d3cd2df3ac3a905d1ae65a5e3d0842fc44faf13314273c7aebc944ded70be457
+    name: pgpool2-16
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-16-upgrade@sha256:79004a608e8cfbcc0fe1a377132a736159c5ae30ef16b8b214e5dce58f483a68
+    name: upgrade-16
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-15-server@sha256:6596c54b0fdcd444ad0431e25e1c29085ea37c5b28db70ba783ca641cfaca452
+    name: fep-15
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-utils@sha256:20db3104d58dcac17ce041612077aaa1eb7ecca0a9b0412f7b552a7d43211330
+    name: feputils-15
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-15-backup@sha256:d81073f6ec3e4c0443774eab5fed4131977856b8e84259312beb4197609b3342
+    name: backup-15
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-15-restore@sha256:ddfa9a2798ba513ae92d62025c20e8faf15d2b7e2e59d6eff73c994ebc8baabf
+    name: restore-15
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-15-pgpool2@sha256:7e21bd01a2a6949a388f45a97c35a47b3ad3bb243efaf11628b77036e249258e
+    name: pgpool2-15
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-15-upgrade@sha256:67212694aec4ac4045a4247f5517cfbe4e7cfa8057c1fbdcb11cf79894c4c0dc
+    name: upgrade-15
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-14-server@sha256:dab36320f839a4eef369d703a2832588af692df223744f669256449b02c87e76
+    name: fep-14
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-14-backup@sha256:048567698aaefd5aa4272caae1e717658cafc8a25474c5fcf95aa33777cc99d1
+    name: backup-14
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-14-restore@sha256:443298b10057886855b9f9c0b98440bf6fbcf8d707152bd8b2d865a53fe4c320
+    name: restore-14
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-14-pgpool2@sha256:c1feeb4aabdb6cf07687124761b08b767437a111e5585bcc0dca2e541ccc6c30
+    name: pgpool2-14
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-14-upgrade@sha256:869aa79f97ba212b53f37e9211b2aed1ce26806e0d74d722f86c993598d65033
+    name: upgrade-14
+  - image: quay.io/fujitsu/fujitsu-enterprise-postgres-operator@sha256:d68405bcbc64126e050bd2db0fce3b356c18c428b64c1e7d97394146ade98b90
+    name: operator
+  skips:
+  - fujitsu-enterprise-postgres-operator.v7.2.1
+  version: 7.2.2

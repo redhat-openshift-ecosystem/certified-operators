@@ -59,7 +59,7 @@ catalogs: ${BINDIR}/render_catalogs.sh ${BINDIR}/opm ${BINDIR}/yq clean
 	@${BINDIR}/render_catalogs.sh
 
 
-# validate-catalogs target illustrates FBC validation
+# validate-catalogs target illustrates FBC validation -
 # all FBC must pass opm validation in order to be able to be used in a catalog
 .PHONY: validate-catalogs
 validate-catalogs: ${BINDIR}/opm

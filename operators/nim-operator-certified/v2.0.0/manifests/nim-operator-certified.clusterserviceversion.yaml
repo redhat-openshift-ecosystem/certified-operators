@@ -99,6 +99,7 @@ metadata:
           }
         },
         {
+          "apiVersion": "apps.nvidia.com/v1alpha1",
           "kind": "NIMPipeline",
           "metadata": {
             "labels": {
@@ -143,6 +144,123 @@ metadata:
                 }
               }
             ]
+          }
+        },
+        {
+          "apiVersion": "apps.nvidia.com/v1alpha1",
+          "kind": "NemoCustomizer",
+          "metadata": {
+            "name": "nemocustomizer-sample",
+            "namespace": "nemo"
+          },
+          "spec": {
+            "scheduler": {
+              "type": "volcano"
+            },
+            "wandb": {
+              "secretName": "wandb-secret",
+              "apiKeyKey": "apiKey",
+              "encryptionKey": "encryptionKey"
+            },
+            "otel": {
+              "enabled": true,
+              "exporterOtlpEndpoint": "http://customizer-otel-opentelemetry-collector.nemo.svc.cluster.local:4317"
+            },
+            "databaseConfig": {
+              "credentials": {
+                "user": "ncsuser",
+                "secretName": "customizer-pg-existing-secret",
+                "passwordKey": "password"
+              },
+              "host": "customizer-pg-postgresql.nemo.svc.cluster.local",
+              "port": 5432,
+              "databaseName": "ncsdb"
+            },
+            "expose": {
+              "service": {
+                "type": "ClusterIP",
+                "port": 8000
+              }
+            },
+            "image": {
+              "repository": "nvcr.io/nvidia/nemo-microservices/customizer-api",
+              "tag": "25.04",
+              "pullPolicy": "IfNotPresent",
+              "pullSecrets": ["ngc-secret"]
+            },
+            "entitystore": {
+              "endpoint": "http://nemoentitystore-sample.nemo.svc.cluster.local:8000"
+            },
+            "datastore": {
+              "endpoint": "http://nemodatastore-sample.nemo.svc.cluster.local:8000"
+            },
+            "mlflow": {
+              "endpoint": "http://mlflow-tracking.nemo.svc.cluster.local:80"
+            },
+            "nemoDatastoreTools": {
+              "image": "nvcr.io/nvidia/nemo-microservices/nds-v2-huggingface-cli:25.04"
+            },
+            "modelDownloadJobs": {
+              "image": "nvcr.io/nvidia/nemo-microservices/customizer-api:25.04",
+              "ngcAPISecret": {
+                "name": "ngc-api-secret",
+                "key": "NGC_API_KEY"
+              },
+              "securityContext": {
+                "fsGroup": 1000,
+                "runAsNonRoot": true,
+                "runAsUser": 1000,
+                "runAsGroup": 1000
+              },
+              "ttlSecondsAfterFinished": 600,
+              "pollIntervalSeconds": 15
+            },
+            "modelConfig": {
+              "name": "nemo-model-config"
+            },
+            "trainingConfig": {
+              "configMap": {
+                "name": "nemo-training-config"
+              },
+              "modelPVC": {
+                "create": true,
+                "name": "finetuning-ms-models-pvc",
+                "storageClass": "",
+                "volumeAccessMode": "ReadWriteOnce",
+                "size": 50
+              },
+              "workspacePVC": {
+                "storageClass": "local-path",
+                "volumeAccessMode": "ReadWriteOnce",
+                "size": 10,
+                "mountPath": "/pvc/workspace"
+              },
+              "image": {
+                "repository": "nvcr.io/nvidia/nemo-microservices/customizer",
+                "tag": "25.04"
+              },
+              "env": [
+                { "name": "LOG_LEVEL", "value": "INFO" }
+              ],
+              "networkConfig": [
+                { "name": "NCCL_IB_SL", "value": "0" },
+                { "name": "NCCL_IB_TC", "value": "41" },
+                { "name": "NCCL_IB_QPS_PER_CONNECTION", "value": "4" },
+                { "name": "UCX_TLS", "value": "TCP" },
+                { "name": "UCX_NET_DEVICES", "value": "eth0" },
+                { "name": "HCOLL_ENABLE_MCAST_ALL", "value": "0" },
+                { "name": "NCCL_IB_GID_INDEX", "value": "3" }
+              ],
+              "ttlSecondsAfterFinished": 3600,
+              "timeout": 3600,
+              "tolerations": [
+                {
+                  "key": "nvidia.com/gpu",
+                  "operator": "Exists",
+                  "effect": "NoSchedule"
+                }
+              ]
+            }
           }
         },
         {
@@ -360,23 +478,30 @@ spec:
 
     The Operator manages the life cycle of the following microservices and the models they use:
 
-    NVIDIA NIM models, such as:
+    ### NVIDIA NIM models, such as:
 
     * Reasoning LLMs
+
     * Retrieval - Embedding, Reranking, etc.
+
     * Speech
+
     * Biology
 
-    NeMo core microservices:
+    ### NeMo core microservices:
 
     * NeMo Customizer
+
     * NeMo Evaluator
+
     * NeMo Guardrails
 
-    NeMo platform component microservices:
+    ### NeMo platform component microservices:
 
     * NeMo Data Store
+
     * NeMo Entity Store
+
   maturity: stable
   version: 2.0.0
   replaces: 'nim-operator-certified.v1.0.1'

@@ -1,0 +1,412 @@
+---
+# Source: abinitio-runtime-operator/templates/clusterserviceversion.yaml
+#NOTICE
+#COPYRIGHT © 2024 AB INITIO
+#UNPUBLISHED -- ALL RIGHTS RESERVED
+#USE AND DISCLOSURE IS RESTRICTED BY CONFIDENTIALITY & LICENSE CONDITIONS
+#
+# Relevant info about CSV composition could be found here: https://docs.openshift.com/container-platform/4.14/operators/operator_sdk/osdk-generating-csvs.html
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    capabilities: Basic Install
+    operators.operatorframework.io/builder: operator-sdk-v1.8.0-ocp
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    operatorframework.io/suggested-namespace: abinitio-system
+    operators.operatorframework.io/internal-objects: '["cooperatingsystemruntimepoolmetrics.cloud.abinitio.com", "cooperatingsystemruntimeprofiles.cloud.abinitio.com"]'
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+  name: abinitio-runtime-operator.v4.3.3-1
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: CoOperatingSystemRuntimeClaim
+      name: cooperatingsystemruntimeclaims.cloud.abinitio.com
+      displayName: Co>Operating System Runtime Claim
+      version: v1
+      description: |-
+        Defines a *runtime claim*, an interface for reserving a runtime object (CoOperatingSystemRuntime) in a runtime pool (CoOperatingSystemRuntimePool) in order to launch a job.
+    - kind: CoOperatingSystemRuntimePoolMetric
+      name: cooperatingsystemruntimepoolmetrics.cloud.abinitio.com
+      displayName: Co>Operating System Runtime Pool Metric
+      version: v1
+      description: |-
+        For internal use only.
+    - kind: CoOperatingSystemRuntimePool
+      name: cooperatingsystemruntimepools.cloud.abinitio.com
+      displayName: Co>Operating System Runtime Pool
+      version: v1
+      description: |-
+        Defines a *runtime pool*, a set of templated runtime objects (CoOperatingSystemRuntime) that are available on demand for running jobs. A runtime pool's capacity is configurable and can be scheduled in response to usage patterns.
+    - kind: CoOperatingSystemRuntimeProfile
+      name: cooperatingsystemruntimeprofiles.cloud.abinitio.com
+      displayName: Co>Operating System Runtime Profile
+      version: v1
+      description: |-
+        For internal use only.
+    - kind: CoOperatingSystemRuntime
+      name: cooperatingsystemruntimes.cloud.abinitio.com
+      displayName: Co>Operating System Runtime
+      version: v1
+      description: |-
+        Defines a *runtime object*, a set of coordinated resources used to run a data processing job in parallel across a launcher pod and a dynamically scaled set of worker pods. Such a job leverages the full power of the Co>Operating System for processing complex enterprise data.
+    - kind: CoOperatingSystemRuntimeTemplate
+      name: cooperatingsystemruntimetemplates.cloud.abinitio.com
+      displayName: Co>Operating System Runtime Template
+      version: v1
+      description: |-
+        Defines a *runtime template*, a reusable specification (CoOperatingSystemRuntimeSpec) that can be referenced and overridden by runtime objects as needed, making it possible to specify jobs concisely. The runtime objects in a runtime pool (CoOperatingSystemRuntimePool) are created from a runtime template.
+  relatedImages:
+    - name: runtime-operator
+      image: registry.connect.redhat.com/abinitio/cooperating-system-runtime-operator@sha256:665efa8cc2ba97ad31f219161cdd53e15c1aef16b6c05ac60506be9bbc9ffc9a
+  displayName: Co>Operating System Runtime Operator
+  description: |-
+    The Co>Operating System runtime operator brings the power of Ab Initio's Co>Operating
+    System to Kubernetes by defining a set of custom API resources for provisioning and
+    running data processing jobs.
+
+    The operator is installed along with the following custom resource definitions (CRDs):
+
+    - CoOperatingSystemRuntime
+    - CoOperatingSystemRuntimeClaim
+    - CoOperatingSystemRuntimePool
+    - CoOperatingSystemRuntimeTemplate
+
+    In combination, these resources give you significant flexibility in scheduling, running,
+    and monitoring your jobs, which can run in parallel across a dynamically scaled set of
+    containers. For reference documentation for these resources, see
+    ["Co>Operating System runtime operator API reference"](https://docs.abinitio.com/r/latest/Co-Operating-System/Co-Operating-System-Guide-to-Cloud-and-Container-Computing/PART-FOUR-Reference/Co-Operating-System-runtime-operator-API-reference)
+    in the Ab Initio Help.
+
+    The following topics describe the basic requirements and procedures for creating custom
+    resources for running jobs after you have installed the runtime operator.
+
+    ## Requirements for using custom resources
+
+    The runtime operator is fully configured when you install it in your OpenShift cluster
+    through OperatorHub. Importantly, the operator is installed in unrestricted mode,
+    which means it can manage the CoOperatingSystemRuntime family of CRDs in any namespace
+    in your cluster.
+
+    For creating custom resources in order to run jobs using the operator, you must meet
+    the requirements and configure the settings described in the following sections.
+
+    ### Container images for job agents
+
+    To run jobs of kind CoOperatingSystemRuntime, you must have a way to build the following
+    OCI container images:
+
+    - A *processing* image with the Co>Operating System server software installed in it.
+    - A *sandbox workspace* image with the graphs and other files needed to run your jobs.
+    This image is based on the Co>Operating System image and functions as the job's launcher
+    agent, which coordinates with a set of worker agents (processing containers) in order to
+    run a job in parallel.
+
+    For building and managing these container images, you need the following:
+
+    - A Co>Operating System installation package.
+    - Access to a technical repository containing the projects that make up your application.
+    - A container-building tool.
+    - Access to a private container registry for hosting the images you build. You need pull
+    and push access to this registry from your container build context and pull access from
+    your OpenShift cluster (for example, via a Kubernetes Secret).
+
+    > WARNING! Never push container images with Ab Initio software to a public registry. Push
+    them to a private container registry only.
+
+    The Co>Operating System includes reference Dockerfiles and example scripts for building
+    container images. Typically, you build these images as part of your CI/CD pipeline. For
+    more information, contact your Ab Initio administrator or Ab Initio Support.
+
+    ### Ab Initio key servers
+
+    The key servers that you use to enable jobs must be reachable from your cluster. You
+    specify these key servers via the `AB_HOSTNAME_KEYSERVER_URLS` configuration variable in
+    the pod specifications for launcher and worker agents in the CoOperatingSystemRuntime
+    resource.
+
+    To discuss the software activation key requirements for jobs that run in Kubernetes,
+    contact your key server administrator or Ab Initio Support.
+
+    ### Namespace and role considerations
+
+    The runtime operator is installed with the cluster-wide RBAC roles and role bindings that
+    it needs in order to manage custom resources and run jobs.
+
+    You typically use a separate namespace or namespaces for creating and managing custom
+    resources to run jobs. Each of these namespaces must be equipped with a service
+    account that can list pod limits and get and patch CoOperatingSystemRuntime resources.
+
+    For each namespace in which you intend to create custom resources, create the needed RBAC
+    role and role binding by applying the following Role and RoleBinding manifests:
+
+    ```yaml
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: cooperatingsystemruntime-role
+    rules:
+    - apiGroups:
+      - ""
+      resources:
+      - limitranges
+      verbs:
+      - list
+    - apiGroups:
+      - cloud.abinitio.com
+      resources:
+      - cooperatingsystemruntimes
+      verbs:
+      - get
+      - patch
+    ---
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: run-cooperatingsystemruntime-rolebinding
+    subjects:
+    - kind: ServiceAccount
+      name: default
+    roleRef:
+      kind: Role
+      name: cooperatingsystemruntime-role
+      apiGroup: rbac.authorization.k8s.io
+    ```
+
+    One way to do this is to save these manifests to a file and specify a namespace when
+    using `oc` to apply them to the cluster. In the following example, the manifests are
+    saved to a file named `runtime-rbac.yaml` and the role and role binding are to be created
+    for the `default` service account in the `hello-world` namespace:
+
+    ```
+    oc -n hello-world apply -f runtime-rbac.yaml
+    ```
+
+    To bind the role to a service account other than `default`, simply update the value of
+    `subjects[0].name` in the provided RoleBinding manifest.
+
+    ### Dynamic volume provisioning
+
+    The launcher and worker template sections of the CoOperatingSystemRuntime resource
+    require you to specify persistent volume claims (PVCs) for job recovery data. To ensure
+    that these PVCs can be bound to approriate storage volumes, dynamic volume provisioning
+    must be enabled in your cluster.
+
+    Work with your cluster administrator to identify the storage needs of your jobs and to
+    ensure that dynamic volume provisioning is enabled so that PVCs can be matched to
+    persistent volumes of the right storage class.
+
+    For more information about dynamic storage provisioning, see the
+    [OpenShift documentation](https://docs.openshift.com/container-platform/latest/storage/dynamic-provisioning.html).
+
+    ## Quick start and examples
+
+    For an overview of the key concepts associated with running jobs in Kubernetes, see
+    ["About running jobs in Kubernetes"](https://docs.abinitio.com/r/latest/Co-Operating-System/Co-Operating-System-Guide-to-Cloud-and-Container-Computing/PART-TWO-Running-jobs-in-Kubernetes/About-running-jobs-in-Kubernetes)
+    in the Ab Initio Help.
+
+    As described in this topic, you might begin by creating a CoOperatingSystemRuntime
+    manifest that defines the configuration and compute resources needed for a standalone test
+    job. You could then use the specification for this job to create a CoOperatingSystemRuntimeTemplate
+    resource, which would collect common settings and make it possible to concisely specify
+    CoOperatingSystemRuntime jobs.
+
+    You could also use a runtime pool (of kind CoOperatingSystemRuntime) to extend these basic
+    resources: such a pool consists of an actively running group of templated runtime objects whose
+    pods can be used to run jobs on demand. Finally, for reserving resources in a pool, you could
+    create a CoOperatingSystemRuntimeClaim resource.
+
+    For more information about these custom resources, refer to the
+    ["Co>Operating System runtime operator API reference"](https://docs.abinitio.com/r/latest/Co-Operating-System/Co-Operating-System-Guide-to-Cloud-and-Container-Computing/PART-FOUR-Reference/Co-Operating-System-runtime-operator-API-reference).
+
+    For a set of integrated examples (including complete YAML manifests) that show you how to
+    create and use the custom resources, see ["Example manifests for running jobs"](https://docs.abinitio.com/r/latest/Co-Operating-System/Co-Operating-System-Guide-to-Cloud-and-Container-Computing/PART-TWO-Running-jobs-in-Kubernetes/Configuring-and-running-Co-Operating-System-jobs-in-Kubernetes/Example-manifests-for-CoOperatingSystemRuntime-jobs).
+  icon:
+  - base64data: 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
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - cloud.abinitio.com
+          resources:
+          - cooperatingsystemruntimeclaims
+          - cooperatingsystemruntimepoolmetrics
+          - cooperatingsystemruntimepools
+          - cooperatingsystemruntimeprofiles
+          - cooperatingsystemruntimes
+          - cooperatingsystemruntimetemplates
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - cloud.abinitio.com
+          resources:
+          - cooperatingsystemruntimeclaims/status
+          - cooperatingsystemruntimeclaims/finalizers
+          - cooperatingsystemruntimepoolmetrics/status
+          - cooperatingsystemruntimepoolmetrics/finalizers
+          - cooperatingsystemruntimepools/status
+          - cooperatingsystemruntimepools/finalizers
+          - cooperatingsystemruntimeprofiles/status
+          - cooperatingsystemruntimeprofiles/finalizers
+          - cooperatingsystemruntimes/status
+          - cooperatingsystemruntimes/finalizers
+          - cooperatingsystemruntimetemplates/status
+          - cooperatingsystemruntimetemplates/finalizers
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - persistentvolumeclaims
+          - pods
+          - pods/finalizers
+          - secrets
+          - services
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - endpoints
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+          - update
+        - apiGroups:
+          - metrics.k8s.io
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - anyuid
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: abinitio-system-runtime-controller-manager
+      deployments:
+      - name: abinitio-runtime-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/instance: abinitio-runtime-operator
+              app.kubernetes.io/name: ab-runtime-operator
+              control-plane: runtime-controller-manager
+          strategy:
+            type: Recreate
+          template:
+            metadata:
+              annotations:
+                ab-software-version: 4.3.3.1
+              labels:
+                app.kubernetes.io/instance: abinitio-runtime-operator
+                app.kubernetes.io/managed-by: Helm
+                app.kubernetes.io/name: ab-runtime-operator
+                control-plane: runtime-controller-manager
+                helm.sh/chart: ab-runtime-operator-2.2.1
+            spec:
+              containers:
+              - args:
+                - --metrics-addr=0.0.0.0:8080
+                - --skip-installation-consistency-check
+                command:
+                - /manager
+                env:
+                - name: NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: NUMBER_OF_SHARDS
+                  value: "0"
+                image: registry.connect.redhat.com/abinitio/cooperating-system-runtime-operator@sha256:665efa8cc2ba97ad31f219161cdd53e15c1aef16b6c05ac60506be9bbc9ffc9a
+                imagePullPolicy: IfNotPresent
+                name: manager
+                ports:
+                - containerPort: 8080
+                  name: http
+                volumeMounts:
+                - mountPath: /disk1/conf/
+                  name: ab-runtime-operator-config
+                - mountPath: /abinitio
+                  name: abinitio-job-metrics-storage
+              serviceAccountName: abinitio-system-runtime-controller-manager
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - configMap:
+                  name: ab-runtime-operator-config
+                name: ab-runtime-operator-config
+              - emptyDir:
+                  sizeLimit: 200Mi
+                name: abinitio-job-metrics-storage
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - abinitio
+  - runtime
+  - operator
+  links:
+  - name: Ab Initio
+    url: https://www.abinitio.com/
+  maintainers:
+  - email: "support@abinitio.com"
+    name: Ab Initio Support
+  maturity: stable
+  minKubeVersion: 1.27.0
+  provider:
+    name: Ab Initio
+  replaces: abinitio-runtime-operator.v4.3.1-0
+  version: 4.3.3-1

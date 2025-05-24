@@ -1,0 +1,326 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+    createdAt: "2025-04-07T13:14:30Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.38.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "true"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+  name: eda-connect-k8s-controller.v1.0.0
+  namespace: eda-connect-k8s
+spec:
+  minKubeVersion: "1.29.0"
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: ConnectNetworkAttachmentStatus
+      name: connectnetworkattachmentstatuses.connect.eda.nokia.com
+      version: v1
+    - kind: ConnectNetworkDefinition
+      name: connectnetworkdefinitions.connect.eda.nokia.com
+      version: v1
+  description: K8s controller to configure EDA Connect.
+  displayName: EDA Connect K8s Controller
+  icon:
+  - base64data: iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAAhFBMVEUAWv9Xkv8dbP+FsP/m7/81fP/////1+f9Vkf/+/v98qv/t8/+jw/8HX/+Xu/9rn//7/P/F2f8WaP9HiP/w9f/e6v8rdv8qdf/e6f/x9v9Iif8VaP/E2f/7/f9tof+Vu/8EXP+50v8PZP9Wkf/2+f+Drv82ff/n7/9BhP9Jif8dbf9Yk/9usJlHAAAAAW9yTlQBz6J3mgAAAAFzUkdCAK7OHOkAAABmSURBVBjTZc9JFoJAFEPR0EWr6ETpewVUZP/7Y+b5FBneUR5wmmUb4LieAbxcDaDSR/DJIJQQxTcmdwl4pMxyCShKVrUENC27XgLCgBxGAYBWfL4kYJq5HADvjwPgq9f/hd92jt8B66kE7Zch/VkAAAAASUVORK5CYII=
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          - pods
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - nodes/status
+          - pods/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - connect.eda.nokia.com
+          resources:
+          - connectnetworkattachmentstatuses
+          - connectnetworkdefinitions
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - connect.eda.nokia.com
+          resources:
+          - connectnetworkattachmentstatuses/status
+          verbs:
+          - delete
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - connect.eda.nokia.com
+          resources:
+          - connectnetworkdefinitions/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - connect.eda.nokia.com
+          resources:
+          - connectnetworkdefinitions/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - k8s.cni.cncf.io
+          resources:
+          - network-attachment-definitions
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - k8s.cni.cncf.io
+          resources:
+          - network-attachment-definitions/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - nmstate.io
+          resources:
+          - nodenetworkstates
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - nmstate.io
+          resources:
+          - nodenetworkstates/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: eda-connect-k8s-controller
+      deployments:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: controller
+          app.kubernetes.io/instance: controller
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: controller
+          eda.nokia.com/app: connect-k8s-controller
+          eda.nokia.com/app-group: connect
+        name: eda-connect-k8s-controller
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              eda.nokia.com/app: connect-k8s-controller
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: connect-k8s-controller
+              labels:
+                eda.nokia.com/app: connect-k8s-controller
+                eda.nokia.com/app-group: connect
+            spec:
+              containers:
+              - args:
+                - --metrics-bind-address=:8443
+                - --leader-elect
+                - --health-probe-bind-address=:8081
+                command:
+                - /connect-k8s-controller
+                env:
+                - name: HEARTBEAT
+                  valueFrom:
+                    configMapKeyRef:
+                      key: HEARTBEAT
+                      name: eda-connect-k8s-controller-env-config
+                - name: SKIPTLSVERIFY
+                  valueFrom:
+                    configMapKeyRef:
+                      key: SKIPTLSVERIFY
+                      name: eda-connect-k8s-controller-env-config
+                - name: TLSENABLED
+                  valueFrom:
+                    configMapKeyRef:
+                      key: TLSENABLED
+                      name: eda-connect-k8s-controller-env-config
+                - name: LOGLEVEL
+                  valueFrom:
+                    configMapKeyRef:
+                      key: LOGLEVEL
+                      name: eda-connect-k8s-controller-env-config
+                - name: TLSCERTIFICATEDATA
+                  valueFrom:
+                    configMapKeyRef:
+                      key: TLSCERTIFICATEDATA
+                      name: eda-connect-k8s-controller-env-config
+                - name: CONNECTPLUGINNAME
+                  valueFrom:
+                    configMapKeyRef:
+                      key: CONNECTPLUGINNAME
+                      name: eda-connect-k8s-controller-env-config
+                - name: NAMESPACE
+                  valueFrom:
+                    configMapKeyRef:
+                      key: NAMESPACE
+                      name: eda-connect-k8s-controller-env-config
+                - name: CONNECTHOST
+                  valueFrom:
+                    secretKeyRef:
+                      key: CONNECT_HOST
+                      name: eda-connect-k8s-controller-env-secret
+                - name: CONNECTUSERNAME
+                  valueFrom:
+                    secretKeyRef:
+                      key: CONNECT_USERNAME
+                      name: eda-connect-k8s-controller-env-secret
+                - name: CONNECTPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      key: CONNECT_PASSWORD
+                      name: eda-connect-k8s-controller-env-secret
+                image: quay.io/nokia-ni/eda-connect-k8s-controller@sha256:e5514ce30559736d592f0d5a289d189d6b5d0fe7235e49e9b5da131c93fcb829
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: connect-k8s-controller
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              imagePullSecrets:
+              - name: regcred
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: eda-connect-k8s-controller
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: eda-connect-k8s-controller
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+    - EDA Connect
+    - K8s Controller
+  links:
+    - name: EDA Connect K8s Controller
+      url: https://docs.eda.dev/connect/openshift-plugin/
+  maintainers:
+    - email: support@nokia.com
+      name: Nokia
+  maturity: alpha
+  provider:
+    name: Nokia
+    url: https://docs.eda.dev
+  version: 1.0.0
+  relatedImages:
+    - name: eda-connect-k8s-controller
+      image: quay.io/nokia-ni/eda-connect-k8s-controller@sha256:e5514ce30559736d592f0d5a289d189d6b5d0fe7235e49e9b5da131c93fcb829

@@ -1,0 +1,1180 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.5
+  labels:
+    app.kubernetes.io/name: "ccs"
+    app.kubernetes.io/managed-by: "ccs-operator"
+    app.kubernetes.io/instance: "runtimeassemblies.runtimes.ibm.com"
+  name: runtimeassemblies.runtimes.ibm.com
+spec:
+  group: runtimes.ibm.com
+  names:
+    kind: RuntimeAssembly
+    listKind: RuntimeAssemblyList
+    plural: runtimeassemblies
+    singular: runtimeassembly
+    shortNames:
+      - rta
+      - rtas
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: RTA is the Schema for the runtimeassemblies API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RTASpec defines the desired state of RuntimeAssembly
+            properties:
+              annotations:
+                description: |-
+                  Optional array of annotations to apply to the runtime, where each annotation
+                  takes the form of "name=value". Annotation names and values must comply
+                  with k8s requirements.
+                items:
+                  type: string
+                type: array
+              augments:
+                additionalProperties:
+                  additionalProperties:
+                    type: string
+                  type: object
+                description: |-
+                  Optional "augment" configs to apply to a runtime when spawning. These
+                  configs will ultimately cause a runtime to spawn with behaviors or
+                  state that "augments" the normal behavior associated with a runtime
+                  definition. Augments are only allowed when spawning with 1) a CP4D
+                  system admin, or b) a "trusted" client (i.e. an RTA Spec with the
+                  correct ServiceAuthorization header provided), depending on which of
+                  the supported augments is being requested. The key to an augment entry
+                  in this map must match one of a fixed set of augment types; the values
+                  are specific to a particular augment type.
+                type: object
+              authorization:
+                description: Credentials for authorization checks, in the form of
+                  a JWT token.
+                type: string
+              clusterIPNone:
+                description: |-
+                  Optionally indicate that k8s "v1/Service" resources spawned by RTO
+                  for this RTA should have their "clusterIP" field set to the value
+                  "None", which tells k8s to *not* assign an IP address. If not
+                  specified, the default for this field is "false"--i.e. RTO
+                  will leave the clusterIP empty and k8s *will* assign a single IP
+                  address to the spawned "/v1/Service" resources. This field only
+                  applies when ResourceType is "service"; it is ignored for all other
+                  resource types.
+                type: boolean
+              component:
+                description: |-
+                  Name of a runtime definition (comes from the name of runtime definition
+                  file, minus the "-server.json" suffix).
+                type: string
+              customResources:
+                description: Optional info about custom resources to spawn for the
+                  runtime.
+                properties:
+                  resourceTemplateParams:
+                    description: |-
+                      Optional array of key/value pairs to plug into the CR templates before
+                      spawning. These params will be ignored if ResourcesList is nil or
+                      empty. Entries in this array should be key/value pairs of the form
+                      "key=value", where "key" maps to a placeholder of the form {{`"{{key}}"`}}
+                      in one or more of the relevant CR templates. Note that these params will
+                      be processed *after* any CR template params that are specified in the
+                      runtime definition, i.e. template params in the RTA will take precedent
+                      over the ones in the runtime definition.
+                    items:
+                      type: string
+                    type: array
+                  resourcesList:
+                    description: |-
+                      Optional array of GVR (GroupVersionResource) ids to spawn for the
+                      runtime. If non-nil and non-empty, the entries in this array must
+                      correlate to CR templates specified in the target runtime definition
+                      (otherwise spawning will fail). Entries in this array should be the
+                      fully-specifed GVR strings for the CRs to be spawned, ex:
+                      "serving.kserve.io/v1beta1/inferenceservice". If this array is nil or
+                      empty, the default set of kube resources for the RTA's "ResourceType"
+                      will be spawned.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              disableLookups:
+                description: |-
+                  Used internally for auto-triggered events; ignored if received from
+                  a client CR.
+                type: boolean
+              displayName:
+                description: Optional display name to associate with a runtime.
+                type: string
+              encryptedData:
+                description: |-
+                  Optional encrypted data. When decrypted it maps to an json object
+                  with possible overrides for various properties of the RTA Spec
+                type: string
+              environment:
+                description: |-
+                  Runtime environment overrides to use when creating a runtime.
+                  If specified along with a EnvironmentDefID then fields not provided
+                  in this spec will be pulled from the environment whose id is
+                  EnvironmentDefID. If specified and there is no EnvironmentDefID
+                  then fields not provided in this spec will be pulled from associated
+                  runtime definition (aka "component").
+                properties:
+                  args:
+                    description: List of arguments to be passed to the runtime start
+                      script.
+                    items:
+                      type: string
+                    type: array
+                  command:
+                    description: |-
+                      List of strings which together comprise an override command to be
+                      executed for the runtime.
+                    items:
+                      type: string
+                    type: array
+                  connectionVolumes:
+                    description: |-
+                      Optional list of connection-based volumes to be dynamically mounted into
+                      the spawned container, in addition to volumes that are specified in
+                      the associated runtime definition.
+                    items:
+                      properties:
+                        id:
+                          description: |-
+                            The id of the connection volume to be mounted. This is technically
+                            optional, but specifying it will lead to better performance when looking
+                            up information about the volume from other APIs.
+                          type: string
+                        mountPath:
+                          description: |-
+                            Path within the spawned container, to which the connection volume will
+                            be mounted. Required *unless* the volume instance referenced by ID or
+                            Name has its own mountPath defined.
+                          type: string
+                        name:
+                          description: The name of the connection volume to be mounted.
+                          type: string
+                        readOnly:
+                          description: |-
+                            Optional indication as to whether or not the connection volume should
+                            be mounted in read-only mode. If not specified, the read-only attribute
+                            will be set based on a combination of 1) whether or not the Service-
+                            Authorization field is specified (and valid) in the RTA spec; 2) the
+                            user's scope membership; and 3) the user's assigned role for the conn
+                            volume.
+
+                            If specified as "false", one of following two conditions must be true:
+                            1) the ServiceAuthorization field is specified and valid; or 2) the
+                            user's assigned role for the conn volume allows him/her to write. If
+                            neither condition is true and ReadOnly is specified as "false", spawning
+                            will fail with an auth error.
+                          type: boolean
+                        subPath:
+                          description: |-
+                            Optional sub-path, w.r.t. the connection volume's PVC, to mount, instead
+                            of mounting the entire claim.
+                          type: string
+                      type: object
+                    type: array
+                  definition:
+                    description: |-
+                      The name of the runtime definition component with which this runtime
+                      environment is associated.
+                    type: string
+                  displayName:
+                    description: The name of the Runtime Environment as saved by the
+                      user.
+                    type: string
+                  env:
+                    description: List of environment variables. format name=value
+                    items:
+                      type: string
+                    type: array
+                  envId:
+                    description: Optional id associated with the Runtime Environment.
+                    type: string
+                  includeSISources:
+                    description: |-
+                      Array of names of optional SI (sensitive info) sources to load
+                      into the main container. Source names in this array should
+                      correspond to SI sources declared with "optional" set to true in
+                      the runtime definition. If the name of a non-optional SI source
+                      is specified in this array, it is a no-op. If the name of a non-
+                      existent SI source is specified in this list, the runtime will
+                      fail to spawn.
+                    items:
+                      type: string
+                    type: array
+                  lastUpdated:
+                    description: |-
+                      Timestamp (as Unix time) of the last update to the runtime environment.
+                      This will be -1 if the runtime environment has never been updated (ex.
+                      for default environments).
+                    format: int64
+                    type: integer
+                  replicas:
+                    description: |-
+                      The number of container replicas to deploy. This number is used if
+                      there is no autoscaler.
+                    format: int32
+                    type: integer
+                  resources:
+                    description: The resource constraints of the runtime environment.
+                    properties:
+                      cpu:
+                        description: CPU resource specifications (in millicores)
+                        properties:
+                          limit:
+                            format: int64
+                            type: integer
+                          request:
+                            format: int64
+                            type: integer
+                        type: object
+                      ephemeral:
+                        description: Ephemeral storage specification (in mebibytes)
+                        properties:
+                          limit:
+                            format: int64
+                            type: integer
+                          request:
+                            format: int64
+                            type: integer
+                        type: object
+                      gpu:
+                        description: GPU resource specifications (in cores)
+                        properties:
+                          limit:
+                            format: int64
+                            type: integer
+                          request:
+                            format: int64
+                            type: integer
+                        type: object
+                      memory:
+                        description: Memory resource specifications (in mebibytes)
+                        properties:
+                          limit:
+                            format: int64
+                            type: integer
+                          request:
+                            format: int64
+                            type: integer
+                        type: object
+                      mountedSharedMemory:
+                        description: |-
+                          Resource specifications for mounted shared memory. If not specified
+                          the target pod will *not* include a shared memory volume mount.
+                          Instead, shared memory will be limited to what is included in the
+                          pod's image.
+                        properties:
+                          enabled:
+                            description: |-
+                              Whether or not to use an emptyDir volume mount for shared memory
+                              resources. If false the target pod will *not* include a shared
+                              memory volume mount. Instead, shared memory will be limited to
+                              what is included in the pod's image.
+                            type: boolean
+                          limit:
+                            description: |-
+                              Maximum amount of mounted shared memory (in megabytes) available
+                              to the runtime associated with this runtime environment. Note that
+                              mounted shared memory counts toward the total memory limit for the
+                              pod. If not specified, or specified as -1, the default limit is 50%
+                              of the assigned node's RAM. This field only applies if the sibling
+                              field 'enabled' is specified as 'true'.
+                            format: int64
+                            type: integer
+                        type: object
+                    type: object
+                  sidecars:
+                    description: |-
+                      Optional overrides for sidecar containers, keyed off sidecar container
+                      names. Sidecar names across the entries in this array must be unique.
+                    items:
+                      properties:
+                        env:
+                          description: |-
+                            List of environment variables to apply specifically to the target
+                            sidecar container (and not to any other container). If this list
+                            includes a SPAWNER_EVS_AS_SECRETS entry, the specified env vars
+                            will be mounted as files, loaded from a secret, into the target
+                            container (and not to any other container).
+                          items:
+                            type: string
+                          type: array
+                        includeSISources:
+                          description: |-
+                            Array of names of optional SI (sensitive info) sources to load
+                            into the target sidecar container. Source names in this array
+                            should correspond to SI sources declared with "optional" set to
+                            true in the runtime definition. If the name of a non-optional SI
+                            source is specified in this array, it is a no-op. If the name of
+                            a non-existent SI source is specified in this list, the runtime
+                            will fail to spawn.
+                          items:
+                            type: string
+                          type: array
+                        name:
+                          description: |-
+                            Name of a target sidecar container, defined in the associated runtime
+                            def, to which the overrides apply. If this name does not correspond
+                            to a defined sidecar, the RTA spec is deemed invalid (spawning will
+                            fail).
+                          type: string
+                        resources:
+                          description: |-
+                            The resource requests / constraints for the sidecar container.
+                            If not specified, the resources for the sidecar container as
+                            defined in the associated runtime definition will be used.
+                          properties:
+                            cpu:
+                              description: CPU resource specifications (in millicores)
+                              properties:
+                                limit:
+                                  format: int64
+                                  type: integer
+                                request:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            ephemeral:
+                              description: Ephemeral storage specification (in mebibytes)
+                              properties:
+                                limit:
+                                  format: int64
+                                  type: integer
+                                request:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            gpu:
+                              description: GPU resource specifications (in cores)
+                              properties:
+                                limit:
+                                  format: int64
+                                  type: integer
+                                request:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            memory:
+                              description: Memory resource specifications (in mebibytes)
+                              properties:
+                                limit:
+                                  format: int64
+                                  type: integer
+                                request:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            mountedSharedMemory:
+                              description: |-
+                                Resource specifications for mounted shared memory. If not specified
+                                the target pod will *not* include a shared memory volume mount.
+                                Instead, shared memory will be limited to what is included in the
+                                pod's image.
+                              properties:
+                                enabled:
+                                  description: |-
+                                    Whether or not to use an emptyDir volume mount for shared memory
+                                    resources. If false the target pod will *not* include a shared
+                                    memory volume mount. Instead, shared memory will be limited to
+                                    what is included in the pod's image.
+                                  type: boolean
+                                limit:
+                                  description: |-
+                                    Maximum amount of mounted shared memory (in megabytes) available
+                                    to the runtime associated with this runtime environment. Note that
+                                    mounted shared memory counts toward the total memory limit for the
+                                    pod. If not specified, or specified as -1, the default limit is 50%
+                                    of the assigned node's RAM. This field only applies if the sibling
+                                    field 'enabled' is specified as 'true'.
+                                  format: int64
+                                  type: integer
+                              type: object
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                type: object
+              environmentDefId:
+                description: |-
+                  Id of the runtime environment with which to associate a runtime.
+                  If not specified and no Environment is specified, either, then
+                  the environment specs will come from the associated runtime definition
+                  (aka. "component").
+                type: string
+              eventFilters:
+                description: |-
+                  Optional filters to determine how to handle certain k8s events
+                  when they occur for a runtime. These filters in the RTA spec will
+                  take precedent over those defined in the runtime def (if any),
+                  but filters defined on the RTA op deployment (if any) will take
+                  precedent over the one defined here, in the RTA spec.
+                items:
+                  properties:
+                    action:
+                      description: |-
+                        Type of action to perform if an event matches this filter's criteria.
+                        Must be one of "ignore", "report", or "kill"; if not specified, the
+                        default is "kill" for services, "report" for jobs / schedules. If
+                        specified as "kill", the events will also be reported.
+                      type: string
+                    eventTypes:
+                      description: |-
+                        Optional array of (non-normal) event "types" for which this filter
+                        should be applied. If not specified, the filter will be applied to all
+                        non-normal events. Event types come from k8s ("Normal" and "Warning" by
+                        default) but can also come from custom k8s schedulers and, in some
+                        cases, from EventInfo objects generated by RTA Op itself.
+                      items:
+                        type: string
+                      type: array
+                    kind:
+                      description: |-
+                        Optional array of runtime "kinds" for which this filter should be
+                        applied. If not specified, the filter will be applied to runtimes
+                        of all kinds. Supported runtime kinds are "service", "job", and
+                        "schedule".
+                      items:
+                        type: string
+                      type: array
+                    opTypes:
+                      description: |-
+                        Optional array of runtime operations for which this filter should be
+                        applied. If not specified, the filter will be applied to runtimes for
+                        all supported operations. Supported op types are "create", "update",
+                        "retrieve", and "delete". The operations in this filter will be
+                        compared to the most recent *client-initiated* action, i.e. the action
+                        from the RTA's current Spec.ResourceAction field.
+                      items:
+                        type: string
+                      type: array
+                    reasons:
+                      description: |-
+                        Optional array of event "reasons" for which this filter should be
+                        applied. If not specified, the filter will be applied for all reasons.
+                        Event reasons are short, machine understandable strings which give
+                        the reason for the transition into the object's current status. These
+                        come directly from k8s by default, but can also come from custom k8s
+                        schedulers, and in some cases, from EventInfo objects generated by RTA
+                        Op itself.
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                type: array
+              id:
+                description: |-
+                  For "service" and "job" resources, this is the unique id of a runtime
+                  instance, typically a GUID.
+                type: string
+              includeContainers:
+                description: |-
+                  Array of names of optional init or sidecar containers to spawn
+                  alongside the main runtime container. Container names in this array
+                  should correspond to init or sidecar containers declared with
+                  "optional" set to true in the runtime definition. If the name of a
+                  non-optional container is specified in this array, it is a no-op.
+                  If the name of a non-existent container is specified in this list,
+                  the runtime will fail to spawn.
+                items:
+                  type: string
+                type: array
+              includeVolumes:
+                description: |-
+                  Array of names of optional volumes to be mounted into the spawned
+                  container, in addition to the non-optional ones that are specified in
+                  the associated runtime definition. Volume names in this array should
+                  correspond to volumes declared with "optional" set to true in the runtime
+                  definition. If the name of a non-optional volume is specified in this
+                  list, it is ignored (no-op). If the name of a non-existent volume is
+                  specified in this list, the runtime will fail to spawn.
+
+                  Names in this array can optionally include overrides in the format
+                  "<volName>@<field-overrides>", where <field-overrides> is a comma-
+                  delimited list of key-value pairs (<mount-field>=<field-value-override>),
+                  each of which allows the <mount-field> of an already-defined volume spec
+                  in the runtime def to have its value changed to <field-value-override>
+                  for this RTA. Note, though, that the list of <mount-field>s whose values
+                  can be overridden is limited (currently only "claimName" and "subPath"
+                  can accept override values). If any of the entries in this array include
+                  overrides, this RTA must also have 1) a valid ServiceAuthorization field
+                  and 2) an Augments field with "includeVolumeOverrides" as a trusted op.
+                items:
+                  type: string
+                type: array
+              jobId:
+                description: |-
+                  For a "schedule" resource, this is the unique id of the (external)
+                  job to be scheduled; it maps to the job definition itself, *not* to a
+                  specific job run from that schedule.
+                type: string
+              labels:
+                description: |-
+                  Optional array of labels to apply to the runtime, where each label
+                  takes the form of "name=value". Label names and values must comply
+                  with k8s requirements.
+                items:
+                  type: string
+                type: array
+              pendingUpdate:
+                description: Whether or not this RTA spec has an update pending.
+                type: boolean
+              projectId:
+                description: |-
+                  Id of the project with which to associate a runtime. Can be null if
+                  the runtime is not associated with a project. At most one of ProjectID
+                  and SpaceID should be non-null (and non-empty); if both are specified,
+                  the RTA will fail to spawn.
+                type: string
+              resourceAction:
+                description: |-
+                  Optional "action" to perform on the RTA instance. Typically this
+                  should NOT be required and will be auto-calculated, but if specified
+                  it will be used instead of the auto-calculated action. Useful for
+                  testing the controller logic...
+                pattern: ((create)|(retrieve)|(update)|(delete))?
+                type: string
+              resourceType:
+                description: |-
+                  Type string associated with the resource on which to operate. This must
+                  be one of "service", "job", or "schedule".
+                enum:
+                - service
+                - job
+                - schedule
+                type: string
+              retainAfterComplete:
+                description: |-
+                  For a "job" resource this optional field indicates whether or not the
+                  job RTA should be retained after the job completes. If "true", the job
+                  RTA will remain in the system after completion, until or unless it is
+                  explicitly deleted. If "false", RTO will wait a configured amount of
+                  time after the job completes and then will automatically delete the job
+                  RTA (assuming the completion status is "Succeeded" or "Failed"). The
+                  amount of time to wait is the same as the RTA idle timeout value, which
+                  comes from RTA_IDLE_TIMEOUT_SECONDS as defined on the RTO deployment.
+                  If not specified, this field defaults to "false" behavior. This field
+                  is ignored for "service" and "schedule" RTAs.
+                type: boolean
+              runtimeDefId:
+                description: |-
+                  Id of the runtime definition to use when creating a runtime.
+                  Typically a GUID.
+                type: string
+              schedule:
+                description: |-
+                  For a "schedule" resource, this is a cron string representing the
+                  schedule to use for the job.
+                type: string
+              securityContext:
+                additionalProperties:
+                  type: string
+                description: |-
+                  Optional security-related overrides that can be specified to
+                  override values in the security context of the spawned runtime.
+                  Currently the only supported override is readOnlyRootFilesystem,
+                  which defaults to false (the less secure option; the default will
+                  likely change to true at some point in the future). If specified
+                  as "false", the readOnlyRootFilesystem override will require
+                  "trusted op" auth, meaning that the request to spawn must include
+                  the ServiceAuthorization field. If specified as "true" (the more
+                  secure option) or not specified at all, the ServiceAuthorization
+                  field is not required.
+                type: object
+              serviceAuthorization:
+                description: |-
+                  Access credentials in the form of a jwt token. This token is optional
+                  and if provided, it must match the system service-to-service token.
+                  When provided, this token grants operations done on behalf of this
+                  RTA the ability to access certain data that should only be accessed
+                  by "trusted" processes. I.e. Those processes which possess the (non-
+                  public, system-defined) service-to-service token are considered
+                  "trusted" processes that are allowed to do things a normal end-user
+                  process is not allowed to do (ex. read a secret from k8s and use that
+                  secret to access "connection volume" endpoints that are otherwise not
+                  available). Note, though, that all k8s objects, user-related state,
+                  and user-based authorization checks (ex. for project access) for this
+                  RTA will still use info from the user who owns the *normal* user
+                  token found in the "Authorization" field.
+                type: string
+              serviceName:
+                description: |-
+                  Optional name to use for the spawned k8s *service* when spawning
+                  a service runtime. Note that, if specified, this will be used exactly
+                  as-is (no suffixes appended) and it will *only* apply to the literal
+                  k8s "apiv1.Service" artifact; it will *not* apply to the deployment,
+                  secret, nor pods for that runtime.
+                type: string
+              serviceNameAlts:
+                description: |-
+                  Optional names of additional services to create when spawning a
+                  service runtime. All services will have the exact same config as
+                  the default service, and they will all point to the same (singular)
+                  deployment; the *only* difference between them will be name. As
+                  with ServiceName, these alt names will be used exactly as-are (no
+                  suffixes appended).
+                items:
+                  type: string
+                type: array
+              spaceId:
+                description: |-
+                  Id of the deployment space with which to associate a runtime. Can be
+                  null if the runtime is not associated with a space. At most one of
+                  ProjectID and SpaceID should be non-null (and non-empty); if both are
+                  specified, the RTA will fail to spawn.
+                type: string
+              targetNamespace:
+                description: |-
+                  Optional alternate namespace into which to spawn the runtime. This
+                  parameter is only accepted if a valid ServiceAuthorization value has
+                  been specified, as well, and the target namespace matches one of the
+                  allowed namespaces defined for the RTA Op deployment.
+                type: string
+              uid:
+                description: |-
+                  Optional id of a user on behalf of whom to operate. This is only required
+                  (and only allowed) if the user whose authentication credentials have been
+                  specified is authorized to operate on resources belonging to other users.
+                type: string
+              updateStrategy:
+                description: |-
+                  Optional update strategy to use when spawning services. This is ignored
+                  for "job" and "schedule" runtimes.
+                enum:
+                - Recreate
+                - RollingUpdate
+                type: string
+              withPodForceDelete:
+                description: |-
+                  Indicates whether or not pods associated with this runtime should
+                  be *force* deleted (no grace period) when they are terminated via
+                  a client-initiated "delete" action. If not specified, defaults to
+                  "false" behavior.
+                type: boolean
+            required:
+            - resourceType
+            type: object
+          status:
+            description: RTAStatus defines the observed state of RuntimeAssembly
+            properties:
+              action_queue:
+                description: |-
+                  Array of actions waiting to be performed on the RTA, where
+                  each action has its full form, <action>-...-<timestamp>.
+                items:
+                  type: string
+                type: array
+              artifact:
+                description: |-
+                  Sub-type for holding info about a spawned artifact: Either a Runtime or
+                  a Schedule.
+                properties:
+                  owner:
+                    description: |-
+                      Id of the user on behalf of whom this artifact was created. This should
+                      generally match the UID field of the RTA spec, but this value is here
+                      as a "backup" in case a CR specifies a Spec.UID field other than the one
+                      used when a runtime was created. In that case, RTA op will attempt to
+                      reset the Spec.UID field to equal the value of this Owner field. (Note,
+                      though, that the Owner field within a Status could technically be updated
+                      by a CR, as well, so having the value in the Spec and Status only adds
+                      a minor layer or protection.)
+                    type: string
+                  replicas:
+                    description: |-
+                      Number of replicas requested for the runtime. Defaults to 1 unless
+                      specified otherwise in the runtime definition or in env overrides.
+                      This only applies to service runtimes; it will be nil for jobs and
+                      schedules.
+                    format: int32
+                    type: integer
+                  runtimes:
+                    description: |-
+                      For schedules, we might have ScheduleInfo *and* one or more active
+                      runtimes that are currently running from the schedule.
+                    items:
+                      description: |-
+                        Sub-type for holding info about a spawned runtime: either for a job
+                        or a "service" started by the operator.
+                      properties:
+                        annotations:
+                          description: |-
+                            Custom annotations that have been applied to the runtime, where each annotation
+                            takes the form of "name=value".
+                          items:
+                            type: string
+                          type: array
+                        augmentTypes:
+                          description: |-
+                            If this runtime has applied "augments", this field will hold the
+                            augment types.
+                          items:
+                            enum:
+                            - remoteImageSave
+                            - trustedOps
+                            type: string
+                          type: array
+                        component:
+                          description: |-
+                            Name of a runtime component, aka runtime def name. This will match
+                            the "component" value provided when the runtime was created.
+                          type: string
+                        containerType:
+                          description: Type of runtime; must one of "service", "job",
+                            or "schedule".
+                          enum:
+                          - service
+                          - job
+                          - schedule
+                          type: string
+                        displayName:
+                          description: |-
+                            Display name for the runtime. Can be specified when the runtime is
+                            created, or else will come from the runtime definition.
+                          type: string
+                        endTime:
+                          description: |-
+                            Time at which the runtime completed. Milliseconds since epoch.
+                            Can be null if the runtime has not completed yet (ex. is pending or
+                            starting or running).
+                          format: int64
+                          type: integer
+                        environmentDefId:
+                          description: |-
+                            The GUID for the Runtime Environment Definition. Can be null if
+                            the runtime was started without an associated environment (in which
+                            case the resources come from the runtime def + optional overrrides).
+                          type: string
+                        id:
+                          description: |-
+                            Unique identifier of the runtime instance of the given type,
+                            typically a GUID.
+                          type: string
+                        imageId:
+                          description: Image id of the spawned runtime, pulled from
+                            the main container.
+                          type: string
+                        isHPA:
+                          description: |-
+                            Whether or not the pod comes from a deployment for which a
+                            HorizontalPodAutoscaler was defined. If nil, then the pod is
+                            *not* for HPA.
+                          type: boolean
+                        labels:
+                          description: |-
+                            Custom labels that have been applied to the runtime, where each label
+                            takes the form of "name=value".
+                          items:
+                            type: string
+                          type: array
+                        numEventsIgnored:
+                          description: |-
+                            Number of ignored events associated with this runtime. We do not
+                            track the full event info (that would defeat the purpose of "ignoring"
+                            them), but we do track the fact that events were ignored to help with
+                            other internal processing. To view details for ignored events in the
+                            RTA op logs, RTA Op needs to be running with DEBUG log level.
+                          format: int32
+                          type: integer
+                        podEvents:
+                          description: |-
+                            Array of non-normal events that have occurred for the runtime, with
+                            most recent events appearing first. These events can hold information
+                            about why a runtime is in its current state, ex. if it's stuck Pending
+                            or has failed to start.
+                          items:
+                            properties:
+                              action:
+                                description: |-
+                                  What action was taken/failed for the involved object.
+                                  Pulled directly from k8s.
+                                type: string
+                              eventType:
+                                description: |-
+                                  Event "type", currently one of "Warning" or "Normal", though other values
+                                  might exist in the future. Pulled directly from k8s.
+                                type: string
+                              firstTimestamp:
+                                description: The time at which the event was first
+                                  recorded. Pulled directly from k8s.
+                                format: int64
+                                type: integer
+                              lastTimestamp:
+                                description: |-
+                                  The time at which the most recent occurrence of this event was recorded.
+                                  Pulled directly from k8s.
+                                format: int64
+                                type: integer
+                              message:
+                                description: |-
+                                  A human-readable description of the status of this operation.
+                                  Pulled directly from k8s.
+                                type: string
+                              reason:
+                                description: |-
+                                  A short, machine understandable string that gives the reason for the
+                                  transition into the object's current status. Pulled directly from k8s.
+                                type: string
+                              uuid:
+                                description: |-
+                                  The k8s-generated unique id for the involved object. This is used
+                                  internally, never returned to the client.
+                                type: string
+                            type: object
+                          type: array
+                        ready:
+                          description: |-
+                            Whether or not the pod for the runtime is "ready" for use, i.e.
+                            "is able to service requests" (quoting golang k8s comment).
+                          type: boolean
+                        registrationId:
+                          description: |-
+                            Unique "registration" id associated with this runtime. This is the id
+                            with which active pods will be "registered" if a runtimes API is active
+                            for the RTA operator.
+                          type: string
+                        resources:
+                          description: |-
+                            Resources *requested* when the runtime was created. These are *not*
+                            the actual resources being used.
+                          properties:
+                            cpu:
+                              description: CPU resource specifications (in millicores)
+                              properties:
+                                limit:
+                                  format: int64
+                                  type: integer
+                                request:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            ephemeral:
+                              description: Ephemeral storage specification (in mebibytes)
+                              properties:
+                                limit:
+                                  format: int64
+                                  type: integer
+                                request:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            gpu:
+                              description: GPU resource specifications (in cores)
+                              properties:
+                                limit:
+                                  format: int64
+                                  type: integer
+                                request:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            memory:
+                              description: Memory resource specifications (in mebibytes)
+                              properties:
+                                limit:
+                                  format: int64
+                                  type: integer
+                                request:
+                                  format: int64
+                                  type: integer
+                              type: object
+                            mountedSharedMemory:
+                              description: |-
+                                Resource specifications for mounted shared memory. If not specified
+                                the target pod will *not* include a shared memory volume mount.
+                                Instead, shared memory will be limited to what is included in the
+                                pod's image.
+                              properties:
+                                enabled:
+                                  description: |-
+                                    Whether or not to use an emptyDir volume mount for shared memory
+                                    resources. If false the target pod will *not* include a shared
+                                    memory volume mount. Instead, shared memory will be limited to
+                                    what is included in the pod's image.
+                                  type: boolean
+                                limit:
+                                  description: |-
+                                    Maximum amount of mounted shared memory (in megabytes) available
+                                    to the runtime associated with this runtime environment. Note that
+                                    mounted shared memory counts toward the total memory limit for the
+                                    pod. If not specified, or specified as -1, the default limit is 50%
+                                    of the assigned node's RAM. This field only applies if the sibling
+                                    field 'enabled' is specified as 'true'.
+                                  format: int64
+                                  type: integer
+                              type: object
+                          type: object
+                        runtime:
+                          description: Runtime type of the runtime (pulled from runtime
+                            definition)
+                          type: string
+                        scopeId:
+                          description: |-
+                            Id of the scope with which the runtime is associated. Can be
+                            null if the runtime is not associated with any scope.
+                          type: string
+                        scopeName:
+                          description: |-
+                            Name of the scope with which the runtime is associated. Can be
+                            null if the runtime is not associated with any scope.
+                          type: string
+                        scopeType:
+                          description: |-
+                            Indicates the scope ("project" or "space") associated with the runtime,
+                            or nil if the runtime is not associated with any scope.
+                          type: string
+                        serviceName:
+                          description: |-
+                            Unique name that can be used to find the k8s artifacts (deployment,
+                            service, pod, job, cronjob, or secret) associated with the artifact.
+                            All of the k8s artifact names will equal or be prefixed by this name.
+                          type: string
+                        serviceNameAlts:
+                          description: |-
+                            Names of "alternate" services which point to the same underlying
+                            deployment, for runtimes of type "service". This will be nil for jobs
+                            and schedules, and will only be non-nil for services if the RTA spec
+                            includes at least one alternate service name.
+                          items:
+                            type: string
+                          type: array
+                        specHash:
+                          description: The RTA spec hash that is in effect for the
+                            pod.
+                          type: string
+                        startTime:
+                          description: |-
+                            Time at which the runtime started running. Milliseconds since epoch.
+                            Can be null if the runtime has not started yet (ex. is pending or
+                            starting).
+                          format: int64
+                          type: integer
+                        status:
+                          description: Status of the service. Comes directly from
+                            k8s Pod status.phase
+                          type: string
+                        uid:
+                          description: The ID of the user which owns the runtime.
+                          type: string
+                      required:
+                      - component
+                      - containerType
+                      - displayName
+                      - id
+                      - ready
+                      - registrationId
+                      - resources
+                      - runtime
+                      - serviceName
+                      - status
+                      - uid
+                      type: object
+                    type: array
+                  schedule:
+                    description: Sub-type for holding info about a cronjob created
+                      by the operator.
+                    properties:
+                      component:
+                        description: |-
+                          Name of a runtime component, aka runtime def name. This will match
+                          the "component" value provided when the runtime was created.
+                        type: string
+                      jobId:
+                        description: ID of the object (job) to which this schedule
+                          applies.
+                        type: string
+                      lastSchedule:
+                        description: |-
+                          Time the schedule last triggered. Milliseconds since epoch. Can be
+                          null if the schedule has not triggered yet.
+                        format: int64
+                        type: integer
+                      schedule:
+                        description: Cron job string defining the schedule on which
+                          the job will run
+                        type: string
+                      suspended:
+                        description: Whether or not the cronjob backing this schedule
+                          is currently suspended.
+                        type: boolean
+                    required:
+                    - component
+                    - jobId
+                    - schedule
+                    type: object
+                type: object
+              artifact_deletion_ts:
+                format: int64
+                type: integer
+              artifact_ids:
+                additionalProperties:
+                  type: string
+                type: object
+              cr_statuses:
+                additionalProperties:
+                  type: string
+                description: |-
+                  If this RTA spawned custom resources, and if any of the CR Templates
+                  included paths for retrieving top-level "status" values, this field
+                  will hold those extracted status values. The map is keyed off GVR id
+                  (same keys as the ArtifactIds map above).
+                type: object
+              last_action:
+                description: Sub-type for holding info about the last action taken
+                  on an RTA instance.
+                properties:
+                  action:
+                    description: |-
+                      ResourceAction from the RTASpec at the time of the last non-retrieve
+                      action, minus the action suffix (if one existed).
+                    type: string
+                  action_ts:
+                    format: int64
+                    type: integer
+                  error:
+                    type: string
+                  hash:
+                    description: Hash of the RTA spec at the time of the last non-retrieve
+                      action.
+                    type: string
+                  msg_key:
+                    type: string
+                  msg_params:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  pod_ids:
+                    additionalProperties:
+                      type: boolean
+                    description: |-
+                      Set of pod ids seen since the last action was completed. Ids in
+                      this map do *not* necessarily still exist; they may have been
+                      deleted by k8s or other external actions.
+                    type: object
+                  resource_action:
+                    description: |-
+                      ResourceAction from the RTASpec at the time of the last non-retrieve
+                      action, in its full form (including the suffix, if one was provided).
+                    type: string
+                  resource_version:
+                    description: |-
+                      The resource version of the RTA at the time this last action info
+                      struct was most recently updated. This is potentially useful for
+                      checking to see if the "LastAction" has changed between two different
+                      fetches of the RTA. That said, the ActionTS could serve the same
+                      purpose, so this field might be redundant. But it could also prove
+                      useful from a tracing / debugging point of view, so we include it...
+                    type: string
+                  user_id:
+                    description: |-
+                      Id of the user whose token was used for the last action on the RTA.
+                      This id can be different from that of the user who *created* the
+                      RTA, i.e. can be different from Spec.UID / Status.Artifact.Owner.
+                    type: string
+                type: object
+              message_id:
+                type: string
+              namespace:
+                type: string
+              numEventsIgnored:
+                format: int32
+                type: integer
+              pendingUpdate:
+                description: Whether or not this status has a pending update.
+                type: boolean
+              podEvents:
+                description: |-
+                  Copy of Events from the Artifact info, if applicable. We have this
+                  *outside* of Artifact, as well, because when non-normal events occur
+                  we will delete the k8s artifacts--but we still want the event info
+                  to be available in the RTA itself.
+                items:
+                  properties:
+                    action:
+                      description: |-
+                        What action was taken/failed for the involved object.
+                        Pulled directly from k8s.
+                      type: string
+                    eventType:
+                      description: |-
+                        Event "type", currently one of "Warning" or "Normal", though other values
+                        might exist in the future. Pulled directly from k8s.
+                      type: string
+                    firstTimestamp:
+                      description: The time at which the event was first recorded.
+                        Pulled directly from k8s.
+                      format: int64
+                      type: integer
+                    lastTimestamp:
+                      description: |-
+                        The time at which the most recent occurrence of this event was recorded.
+                        Pulled directly from k8s.
+                      format: int64
+                      type: integer
+                    message:
+                      description: |-
+                        A human-readable description of the status of this operation.
+                        Pulled directly from k8s.
+                      type: string
+                    reason:
+                      description: |-
+                        A short, machine understandable string that gives the reason for the
+                        transition into the object's current status. Pulled directly from k8s.
+                      type: string
+                    uuid:
+                      description: |-
+                        The k8s-generated unique id for the involved object. This is used
+                        internally, never returned to the client.
+                      type: string
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    additionalPrinterColumns:
+    - name: Type
+      description: The type of runtime (service, job, schedule)
+      jsonPath: .spec.resourceType
+      type: string
+    - name: DisplayName
+      description: The display name of the spawned runtime
+      jsonPath: .status.artifact.runtimes[0].displayName
+      type: string
+    - name: Status
+      description: The status of the spawned runtime
+      jsonPath: .status.artifact.runtimes[0].status
+      type: string
+    - name: Age
+      description: The age of the spawned runtime
+      jsonPath: .metadata.creationTimestamp
+      type: date

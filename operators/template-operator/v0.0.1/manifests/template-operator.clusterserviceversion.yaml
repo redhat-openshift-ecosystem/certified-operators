@@ -1,0 +1,731 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Seamless Upgrades
+    createdAt: "2025-07-04T00:40:36Z"
+    description: Operator to distribute plain kubernetes manifests, helm charts and, copy secrets and configmaps to multiple namespaces
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operatorframework.io/suggested-namespace: template-operator
+    operators.operatorframework.io/builder: operator-sdk-v1.37.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    olm.skipRange: <0.0.1
+  name: template-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: ClusterTemplateInstance is the Schema for the clustertemplateinstances API
+        displayName: Cluster Template Instance
+        kind: ClusterTemplateInstance
+        name: clustertemplateinstances.templates.stakater.com
+        version: v1alpha1
+      - description: TemplateGroupInstance is the Schema for the TemplateGroupInstances API
+        displayName: Template Group Instance
+        kind: TemplateGroupInstance
+        name: templategroupinstances.tenantoperator.stakater.com
+        version: v1alpha1
+      - description: TemplateInstance is the Schema for the templatesinstance API
+        displayName: Template Instance
+        kind: TemplateInstance
+        name: templateinstances.templates.stakater.com
+        version: v1alpha1
+      - description: TemplateInstance is the Schema for the templatesinstance API
+        displayName: Template Instance
+        kind: TemplateInstance
+        name: templateinstances.tenantoperator.stakater.com
+        version: v1alpha1
+      - description: Template is the Schema for the templates API
+        displayName: Template
+        kind: Template
+        name: templates.templates.stakater.com
+        version: v1alpha1
+      - description: Template is the Schema for the templates API
+        displayName: Template
+        kind: Template
+        name: templates.tenantoperator.stakater.com
+        version: v1alpha1
+  description: '"Operator to distribute plain kubernetes manifests, helm charts and, copy secrets and configmaps to multiple namespaces"'
+  displayName: Template Operator
+  icon:
+    - base64data: ""
+      mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - limitranges
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - kubernetes-client.io
+              resources:
+                - externalsecrets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - templates.stakater.com
+              resources:
+                - clustertemplateinstances
+                - templateinstances
+                - templates
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - templates.stakater.com
+              resources:
+                - clustertemplateinstances/finalizers
+                - templateinstances/finalizers
+                - templates/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - templates.stakater.com
+              resources:
+                - clustertemplateinstances/status
+                - templateinstances/status
+                - templates/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - tenantoperator.stakater.com
+              resources:
+                - templategroupinstances
+                - templateinstances
+                - templates
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - tenantoperator.stakater.com
+              resources:
+                - templategroupinstances/finalizers
+                - templateinstances/finalizers
+                - templates/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - tenantoperator.stakater.com
+              resources:
+                - templategroupinstances/status
+                - templateinstances/status
+                - templates/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: template-operator-controller-manager
+      deployments:
+        - label:
+            control-plane: old-controller-manager-template
+          name: template-operator-old-template-controller
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: old-controller-manager-template
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: template-controller
+                labels:
+                  control-plane: old-controller-manager-template
+              spec:
+                containers:
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=:6443
+                      - --metrics-tls-cert-dir=/secrets/tls/metrics
+                    command:
+                      - /manager
+                    env:
+                      - name: OLD_TEMPLATES_OPERATOR
+                        value: "true"
+                      - name: TEMPLATE_CONTROLLER
+                        value: "true"
+                    image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                      timeoutSeconds: 15
+                    name: template-controller
+                    ports:
+                      - containerPort: 6443
+                        name: https
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 15
+                    resources:
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                      requests:
+                        cpu: 100m
+                        memory: 20Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                    volumeMounts:
+                      - mountPath: /secrets/tls/metrics
+                        name: metrics-tls
+                  - args:
+                      - --health-probe-bind-address=:8082
+                      - --metrics-bind-address=:6444
+                      - --metrics-tls-cert-dir=/secrets/tls/metrics
+                    command:
+                      - /manager
+                    env:
+                      - name: OLD_TEMPLATES_OPERATOR
+                        value: "true"
+                      - name: TEMPLATEINSTANCE_CONTROLLER
+                        value: "true"
+                    image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8082
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                      timeoutSeconds: 15
+                    name: templateinstance-controller
+                    ports:
+                      - containerPort: 6444
+                        name: https
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8082
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 15
+                    resources:
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                      requests:
+                        cpu: 100m
+                        memory: 20Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                    volumeMounts:
+                      - mountPath: /secrets/tls/metrics
+                        name: metrics-tls
+                  - args:
+                      - --health-probe-bind-address=:8083
+                      - --metrics-bind-address=:6445
+                      - --metrics-tls-cert-dir=/secrets/tls/metrics
+                    command:
+                      - /manager
+                    env:
+                      - name: OLD_TEMPLATES_OPERATOR
+                        value: "true"
+                      - name: TEMPLATEGROUPINSTANCE_CONTROLLER
+                        value: "true"
+                    image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8083
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                      timeoutSeconds: 15
+                    name: templategroupinstance-controller
+                    ports:
+                      - containerPort: 6445
+                        name: https
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8083
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 15
+                    resources:
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                      requests:
+                        cpu: 100m
+                        memory: 20Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                    volumeMounts:
+                      - mountPath: /secrets/tls/metrics
+                        name: metrics-tls
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: template-operator-controller-manager
+                terminationGracePeriodSeconds: 10
+                volumes:
+                  - name: metrics-tls
+                    secret:
+                      defaultMode: 420
+                      secretName: controller-manager-metrics-tls
+        - label:
+            control-plane: controller-manager-template
+          name: template-operator-template-controller
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager-template
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: template-controller
+                labels:
+                  control-plane: controller-manager-template
+              spec:
+                containers:
+                  - args:
+                      - --metrics-bind-address=:8443
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=:6443
+                      - --metrics-tls-cert-dir=/secrets/tls/metrics
+                    command:
+                      - /manager
+                    env:
+                      - name: TEMPLATE_CONTROLLER
+                        value: "true"
+                    image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                      timeoutSeconds: 15
+                    name: template-controller
+                    ports:
+                      - containerPort: 6443
+                        name: https
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 15
+                    resources:
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                      requests:
+                        cpu: 100m
+                        memory: 20Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                    volumeMounts:
+                      - mountPath: /secrets/tls/metrics
+                        name: metrics-tls
+                  - args:
+                      - --metrics-bind-address=:8443
+                      - --health-probe-bind-address=:8082
+                      - --metrics-bind-address=:6444
+                      - --metrics-tls-cert-dir=/secrets/tls/metrics
+                    command:
+                      - /manager
+                    env:
+                      - name: TEMPLATEINSTANCE_CONTROLLER
+                        value: "true"
+                    image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8082
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                      timeoutSeconds: 15
+                    name: templateinstance-controller
+                    ports:
+                      - containerPort: 6444
+                        name: https
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8082
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 15
+                    resources:
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                      requests:
+                        cpu: 100m
+                        memory: 20Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                    volumeMounts:
+                      - mountPath: /secrets/tls/metrics
+                        name: metrics-tls
+                  - args:
+                      - --metrics-bind-address=:8443
+                      - --health-probe-bind-address=:8083
+                      - --metrics-bind-address=:6445
+                      - --metrics-tls-cert-dir=/secrets/tls/metrics
+                    command:
+                      - /manager
+                    env:
+                      - name: CLUSTERTEMPLATEINSTANCE_CONTROLLER
+                        value: "true"
+                    image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8083
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                      timeoutSeconds: 15
+                    name: clustertemplateinstance-controller
+                    ports:
+                      - containerPort: 6445
+                        name: https
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8083
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 15
+                    resources:
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                      requests:
+                        cpu: 100m
+                        memory: 20Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                    volumeMounts:
+                      - mountPath: /secrets/tls/metrics
+                        name: metrics-tls
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: template-operator-controller-manager
+                terminationGracePeriodSeconds: 10
+                volumes:
+                  - name: metrics-tls
+                    secret:
+                      defaultMode: 420
+                      secretName: controller-manager-metrics-tls
+        - label:
+            control-plane: controller-manager-webhook
+          name: template-operator-webhook
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager-webhook
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  control-plane: controller-manager-webhook
+              spec:
+                containers:
+                  - args:
+                      - --health-probe-bind-address=:8082
+                    command:
+                      - /manager
+                    env:
+                      - name: ENABLE_ADMISSION_WEBHOOKS
+                        value: "true"
+                      - name: ENABLE_WEBHOOKS
+                        value: "true"
+                    image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8082
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                      timeoutSeconds: 15
+                    name: webhook-manager
+                    ports:
+                      - containerPort: 9443
+                        name: webhook-server
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8082
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 15
+                    resources:
+                      limits:
+                        cpu: "2"
+                        memory: 2Gi
+                      requests:
+                        cpu: 100m
+                        memory: 20Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                    volumeMounts:
+                      - mountPath: /tmp/k8s-webhook-server/serving-certs
+                        name: cert
+                        readOnly: true
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: template-operator-controller-manager
+                terminationGracePeriodSeconds: 10
+                volumes:
+                  - name: cert
+                    secret:
+                      defaultMode: 420
+                      secretName: webhook-server-cert
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: template-operator-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - templates
+    - secrets
+    - configmaps
+    - distribution
+    - stakater
+  links:
+    - name: Stakater
+      url: https://stakater.com
+    - name: Support
+      url: https://docs.stakater.com/content/sre/support/support.html
+  maturity: alpha
+  provider:
+    name: Stakater
+    url: https://stakater.com
+  relatedImages:
+    - image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+      name: clustertemplateinstance-controller
+    - image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+      name: webhook-manager
+    - image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+      name: template-controller
+    - image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+      name: templateinstance-controller
+    - image: registry.connect.redhat.com/stakater/template-operator@sha256:ad8312417e4e9621b74d3ad03020516840feef9c4b52c4f0d894dbb6dc6f906a
+      name: templategroupinstance-controller
+  version: 0.0.1
+  webhookdefinitions:
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: template-operator-webhook
+      failurePolicy: Fail
+      generateName: vclustertemplateinstance.to.kb.io
+      rules:
+        - apiGroups:
+            - templates.stakater.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - clustertemplateinstances
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-templates-stakater-com-v1alpha1-clustertemplateinstance
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: template-operator-webhook
+      failurePolicy: Fail
+      generateName: vtemplate.kb.io
+      rules:
+        - apiGroups:
+            - tenantoperator.stakater.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - DELETE
+          resources:
+            - templates
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-tenantoperator-stakater-com-v1alpha1-template
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: template-operator-webhook
+      failurePolicy: Fail
+      generateName: vtemplate.to.kb.io
+      rules:
+        - apiGroups:
+            - templates.stakater.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - DELETE
+          resources:
+            - templates
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-templates-stakater-com-v1alpha1-template
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: template-operator-webhook
+      failurePolicy: Fail
+      generateName: vtemplategroupinstance.kb.io
+      rules:
+        - apiGroups:
+            - tenantoperator.stakater.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - templategroupinstances
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-tenantoperator-stakater-com-v1alpha1-templategroupinstance
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: template-operator-webhook
+      failurePolicy: Fail
+      generateName: vtemplateinstance.kb.io
+      rules:
+        - apiGroups:
+            - tenantoperator.stakater.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - templateinstances
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-tenantoperator-stakater-com-v1alpha1-templateinstance
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: template-operator-webhook
+      failurePolicy: Fail
+      generateName: vtemplateinstance.to.kb.io
+      rules:
+        - apiGroups:
+            - templates.stakater.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - templateinstances
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-templates-stakater-com-v1alpha1-templateinstance

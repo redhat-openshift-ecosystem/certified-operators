@@ -64,7 +64,7 @@ data:
                 runAsUser: 0
                 seLinuxOptions:
                   type: spc_t
-              image: "oci.stackable.tech/sdp/listener-operator:25.7.0"
+              image: "quay.io/stackable/listener-operator@sha256:2d65b37982d6a116ff3518b1858151e08284c50e2a2e75fb268874fd8b1912bf"
               imagePullPolicy: IfNotPresent
               resources:
                 limits:
@@ -91,7 +91,7 @@ data:
                 - name: mountpoint
                   mountPath: /var/lib/kubelet/pods
             - name: node-driver-registrar
-              image: "oci.stackable.tech/sdp/sig-storage/csi-node-driver-registrar:v2.13.0"
+              image: "quay.io/stackable/sig-storage/csi-node-driver-registrar@sha256:89a09e870909deb6125393e30f3dbcd1e0769d3c112b58622419f5c6490b7a1b"
               imagePullPolicy: IfNotPresent
               resources:
                 limits:
@@ -157,3 +157,46 @@ data:
       name: external-unstable
     spec:
       serviceType: NodePort
+
+  listener-scc.yaml: |
+    ---
+    apiVersion: security.openshift.io/v1
+    kind: SecurityContextConstraints
+    metadata:
+      name: stackable-listener-operator-scc
+      labels:
+        stackable.tech/vendor: Stackable
+      annotations:
+        kubernetes.io/description:
+          The stackable-listener-operator-scc includes the minimum required privileges to run the listener-operator.
+    allowHostDirVolumePlugin: true
+    allowHostIPC: false
+    allowHostNetwork: false
+    allowHostPID: false
+    allowHostPorts: false
+    allowPrivilegeEscalation: false
+    allowPrivilegedContainer: false
+    allowedCapabilities: []
+    defaultAddCapabilities: null
+    fsGroup:
+      type: MustRunAs
+    groups: []
+    priority: null
+    readOnlyRootFilesystem: true
+    requiredDropCapabilities:
+      - ALL
+    runAsUser:
+      type: MustRunAs
+      uid: 0
+    seLinuxContext:
+      # Permit access to the resources in all namespaces
+      type: RunAsAny
+    seccompProfiles:
+      - runtime/default
+    supplementalGroups:
+      type: RunAsAny
+    users: []
+    volumes:
+      - emptyDir
+      - hostPath
+      - projected

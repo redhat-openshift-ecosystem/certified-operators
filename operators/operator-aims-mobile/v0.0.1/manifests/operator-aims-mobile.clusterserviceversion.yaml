@@ -11,79 +11,158 @@ metadata:
             "name": "aimsmobile-sample"
           },
           "spec": {
-            "affinity": {},
-            "autoscaling": {
-              "enabled": false,
-              "maxReplicas": 100,
-              "minReplicas": 1,
-              "targetCPUUtilizationPercentage": 80
-            },
-            "fullnameOverride": "",
-            "image": {
-              "pullPolicy": "IfNotPresent",
-              "repository": "nginx",
-              "tag": ""
-            },
-            "imagePullSecrets": [],
-            "ingress": {
-              "annotations": {},
-              "className": "",
-              "enabled": false,
-              "hosts": [
-                {
-                  "host": "chart-example.local",
-                  "paths": [
-                    {
-                      "path": "/",
-                      "pathType": "ImplementationSpecific"
-                    }
-                  ]
+            "containers": [
+              {
+                "autoscaling": {
+                  "enabled": false
+                },
+                "config": {
+                  "NODE_ENV": "production",
+                  "VITE_EXPRESS_HOST": "aims-mob-service",
+                  "VITE_EXPRESS_PORT": "8080",
+                  "VITE_EXPRESS_PROTOCOL": "http",
+                  "VITE_KEYCLOAK_CLIENT_ID": "cliente_chapas_randomicas_qa",
+                  "VITE_KEYCLOAK_REALM": "reino_chapas_randomicas_qa",
+                  "VITE_KEYCLOAK_URL": "https://ap01107-rhbk.apps.qa-1.gcp-ocp.banorte.com",
+                  "VITE_VERSION": "1.0.0"
+                },
+                "image": {
+                  "repository": "quay.io/microsafe_app_ban/aims-mob-admin",
+                  "tag": "0.1"
+                },
+                "ingress": {
+                  "enabled": true,
+                  "isOpenshiftRoute": true
+                },
+                "name": "aims-mob-admin",
+                "replicas": 1,
+                "secrets": {
+                  "VITE_AIMS1_SECRET_KEY": "894d95b40108dd625a027e579267048b",
+                  "VITE_SECRET_KEY": "Microsafe01"
+                },
+                "service": {
+                  "enabled": true,
+                  "port": 8083,
+                  "targetPort": 8081
                 }
-              ],
-              "tls": []
-            },
-            "livenessProbe": {
-              "httpGet": {
-                "path": "/",
-                "port": "http"
+              },
+              {
+                "appContainer": {
+                  "image": {
+                    "repository": "quay.io/microsafe_app_ban/aims-mob-service",
+                    "tag": "0.1"
+                  },
+                  "name": "aims-mob-service-app"
+                },
+                "autoscaling": {
+                  "enabled": true,
+                  "maxReplicas": 10,
+                  "minReplicas": 2,
+                  "targetCPUUtilizationPercentage": 80
+                },
+                "config": {
+                  "AIMS1_API_URL": "http://aims-db-service:3000",
+                  "EXPRESS_PORT": "4000",
+                  "FRONTEND_EXPRESS_HOST": "aims-mob-admin",
+                  "FRONTEND_EXPRESS_PORT": "4000",
+                  "FRONTEND_EXPRESS_PROTOCOL": "http",
+                  "FRONTEND_IP": "aims-mob-admin",
+                  "FRONTEND_KEYCLOAK_CLIENT_ID": "cliente_chapas_randomicas_qa",
+                  "FRONTEND_KEYCLOAK_REALM": "reino_chapas_randomicas_qa",
+                  "FRONTEND_KEYCLOAK_URL": "https://ap01107-rhbk.apps.qa-1.gcp-ocp.banorte.com",
+                  "FRONTEND_PORT": "80",
+                  "FRONTEND_PROTOCOL": "http",
+                  "FRONTEND_VERSION": "1.0.0",
+                  "KEYCLOAK_CLIENT_ID": "cliente_chapas_randomicas_qa",
+                  "KEYCLOAK_REALM": "reino_chapas_randomicas_qa",
+                  "KEYCLOAK_URL": "https://ap01107-rhbk.apps.qa-1.gcp-ocp.banorte.com",
+                  "MSSQL_HOST": "15.128.107.213",
+                  "MSSQL_PORT": "1450",
+                  "NODE_ENV": "production",
+                  "OTLP_LOG_EXPORTER_URL": "http://localhost:4001/logs",
+                  "OTLP_METRIC_EXPORTER_URL": "http://localhost:4001/metrics",
+                  "OTLP_TRACE_EXPORTER_URL": "http://localhost:4001/traces",
+                  "REMEDY_API_URL": "https://15.128.69.239/arsys/WSDL/public/f5lbremedyatmwsq",
+                  "REMEDY_USER": "MAC_CHAPAS"
+                },
+                "ingress": {
+                  "enabled": true,
+                  "isOpenshiftRoute": true
+                },
+                "name": "aims-mob-service",
+                "proxyContainer": {
+                  "image": {
+                    "repository": "quay.io/microsafe_app_ban/aims-mob-proxy",
+                    "tag": "0.1"
+                  },
+                  "name": "aims-mob-service-proxy"
+                },
+                "replicas": 2,
+                "secrets": {
+                  "AIMS1_SECRET_KEY": "894d95b40108dd625a027e579267048b",
+                  "CRYPTO_IV": "065c915c0dc9465052c3235c3139dfc7",
+                  "CRYPTO_SALT": "9Uk1cojCpqh8qmdkHXQj8VyVo94M2khfx5sbk6jT1yrRWj3DI0IIOe6ZIKLnXPKo",
+                  "CRYPTO_SECRET": "mYwdpdEqREcdM9WN99YoqzFXNO0FXz6HmBiPef3dpHnPT7C6cUYWJa5KoDsh97T0",
+                  "FRONTEND_AIMS1_SECRET_KEY": "894d95b40108dd625a027e579267048b",
+                  "FRONTEND_SECRET_KEY": "Microsafe01",
+                  "JWT_SECRET": "0IIZx3pGRLZ5k1wsk5SPXC1SY665azcy",
+                  "MSSQL_DATABASE_NAME": "AimsMobile",
+                  "MSSQL_PASS": "Redertyu#6543",
+                  "MSSQL_USER": "UGAIMS",
+                  "REMEDY_PASSWORD": "123",
+                  "SECRET_IV": "Microsafe02",
+                  "SECRET_KEY": "Microsafe01",
+                  "USER_PASSWORD": "Banort3$"
+                },
+                "service": {
+                  "enabled": true,
+                  "port": 8085,
+                  "targetPort": 8080
+                }
+              },
+              {
+                "autoscaling": {
+                  "enabled": false
+                },
+                "config": {
+                  "MSSQL_HOST": "15.128.107.213",
+                  "MSSQL_PORT": "1450"
+                },
+                "image": {
+                  "repository": "quay.io/microsafe_app_ban/aims-db-service",
+                  "tag": "0.1"
+                },
+                "ingress": {
+                  "enabled": false
+                },
+                "name": "aims-db-service",
+                "replicas": 1,
+                "secrets": {
+                  "MSSQL_DATABASE_NAME": "Aims",
+                  "MSSQL_PASS": "Redertyu#6543",
+                  "MSSQL_USER": "UGAIMS"
+                },
+                "service": {
+                  "enabled": true,
+                  "port": 3000,
+                  "targetPort": 3000
+                }
               }
-            },
-            "nameOverride": "",
-            "nodeSelector": {},
-            "podAnnotations": {},
-            "podLabels": {},
-            "podSecurityContext": {},
-            "readinessProbe": {
-              "httpGet": {
-                "path": "/",
-                "port": "http"
-              }
-            },
-            "replicaCount": 1,
-            "resources": {},
-            "securityContext": {},
-            "service": {
-              "port": 80,
-              "type": "ClusterIP"
-            },
+            ],
             "serviceAccount": {
               "annotations": {},
-              "automount": true,
-              "create": true,
+              "create": false,
               "name": ""
-            },
-            "tolerations": [],
-            "volumeMounts": [],
-            "volumes": []
+            }
           }
         }
       ]
     capabilities: Basic Install
     categories: Developer Tools, Integration & Delivery
     certified: "true"
-    com.redhat.openshift.versions: v4.14-v4.17
-    createdAt: "2025-08-02T02:53:49Z"
-    description: Este operador despliega la aplicación AIMS Mobile.
+    com.redhat.openshift.versions: 4.14-4.18
+    createdAt: "2025-08-02T21:53:59Z"
+    description: Este operador despliega los servicios AIMS Mobile.
     features.operators.openshift.io/disconnected: "false"
     features.operators.openshift.io/fips-compliant: "false"
     features.operators.openshift.io/proxy-aware: "true"
@@ -295,39 +374,31 @@ spec:
                 - update
                 - watch
             - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - '*'
+            - apiGroups:
                 - ""
               resources:
-                - pods
-                - services
-                - services/finalizers
-                - endpoints
-                - persistentvolumeclaims
-                - events
                 - configmaps
                 - secrets
+                - services
               verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
+                - '*'
             - apiGroups:
                 - apps
               resources:
                 - deployments
-                - daemonsets
-                - replicasets
-                - statefulsets
               verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
+                - '*'
+            - apiGroups:
+                - autoscaling
+              resources:
+                - horizontalpodautoscalers
+              verbs:
+                - '*'
             - apiGroups:
                 - authentication.k8s.io
               resources:
@@ -372,16 +443,16 @@ spec:
                       - --health-probe-bind-address=:8081
                     env:
                       - name: RELATED_IMAGE_MANAGER
-                        value: quay.io/microsafe_app_ban/operador-aims-mobile@sha256:762a1c7276f753b26b2d86bf6353b30331fa909cd71491da9e42b894cd9f9fc9
-                      - name: RELATED_IMAGE_AIMS_DB_SERVICE
-                        value: quay.io/microsafe_app_ban/aims-db-service@sha256:3e4978da470680847f916f5e95b699ef68277b05f08c53fb0e7c1b4e7f85be62
-                      - name: RELATED_IMAGE_AIMS_MOB_SERVICE
-                        value: quay.io/microsafe_app_ban/aims-mob-service@sha256:7ac52ab4c5d54bf7ed174eb62b1fbba761f1da6ab51d49d4a636de7a2c051007
-                      - name: RELATED_IMAGE_AIMS_MOB_PROXY
-                        value: quay.io/microsafe_app_ban/aims-mob-proxy@sha256:4c4809b4bbd322e00d8d943d0f57426ac8f5ed7eab95691d9be0f5f55ab56e34
+                        value: quay.io/microsafe_app_ban/operador-aims-mobile@sha256:1e8d70941280bf9b024de06e1fd0a6641e4d9e55c8ea9b8bbdc8db4ae9ab5b9b
                       - name: RELATED_IMAGE_AIMS_MOB_ADMIN
-                        value: quay.io/microsafe_app_ban/aims-mob-admin@sha256:80113f5df7ebe55a62ea9566fcaac7a75ca749d6b4f655aa6a227bf407781d69
-                    image: quay.io/microsafe_app_ban/operador-aims-mobile@sha256:762a1c7276f753b26b2d86bf6353b30331fa909cd71491da9e42b894cd9f9fc9
+                        value: quay.io/microsafe_app_ban/aims-mob-admin@sha256:32dd2d6ffd700334ae8a54870704fea728e118eb03f56861aef9edceebc87796
+                      - name: RELATED_IMAGE_AIMS_MOB_PROXY
+                        value: quay.io/microsafe_app_ban/aims-mob-proxy@sha256:3d786f1d5542fc974d957ec5252203ec29832f9583782441d65f542dd5e1d2bb
+                      - name: RELATED_IMAGE_AIMS_MOB_SERVICE
+                        value: quay.io/microsafe_app_ban/aims-mob-service@sha256:2310c4b8b63aa4142b752688e20483c9277a742499394db6eb11d0a24fcaff24
+                      - name: RELATED_IMAGE_AIMS_DB_SERVICE
+                        value: quay.io/microsafe_app_ban/aims-db-service@sha256:1e304c234c44404c3f044092735d9fef64fe8942924a49c4ece610ff1a58b17a
+                    image: quay.io/microsafe_app_ban/operador-aims-mobile@sha256:1e8d70941280bf9b024de06e1fd0a6641e4d9e55c8ea9b8bbdc8db4ae9ab5b9b
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -469,14 +540,14 @@ spec:
     name: Microsafe
     url: https://microsafe.com.mx/
   relatedImages:
-    - image: quay.io/microsafe_app_ban/operador-aims-mobile@sha256:762a1c7276f753b26b2d86bf6353b30331fa909cd71491da9e42b894cd9f9fc9
-      name: manager
-    - image: quay.io/microsafe_app_ban/aims-db-service@sha256:3e4978da470680847f916f5e95b699ef68277b05f08c53fb0e7c1b4e7f85be62
-      name: aims-db-service
-    - image: quay.io/microsafe_app_ban/aims-mob-service@sha256:7ac52ab4c5d54bf7ed174eb62b1fbba761f1da6ab51d49d4a636de7a2c051007
-      name: aims-mob-service
-    - image: quay.io/microsafe_app_ban/aims-mob-admin@sha256:80113f5df7ebe55a62ea9566fcaac7a75ca749d6b4f655aa6a227bf407781d69
+    - image: quay.io/microsafe_app_ban/aims-mob-admin@sha256:32dd2d6ffd700334ae8a54870704fea728e118eb03f56861aef9edceebc87796
       name: aims-mob-admin
-    - image: quay.io/microsafe_app_ban/aims-mob-proxy@sha256:4c4809b4bbd322e00d8d943d0f57426ac8f5ed7eab95691d9be0f5f55ab56e34
+    - image: quay.io/microsafe_app_ban/aims-mob-proxy@sha256:3d786f1d5542fc974d957ec5252203ec29832f9583782441d65f542dd5e1d2bb
       name: aims-mob-proxy
+    - image: quay.io/microsafe_app_ban/aims-db-service@sha256:1e304c234c44404c3f044092735d9fef64fe8942924a49c4ece610ff1a58b17a
+      name: aims-db-service
+    - image: quay.io/microsafe_app_ban/aims-mob-service@sha256:2310c4b8b63aa4142b752688e20483c9277a742499394db6eb11d0a24fcaff24
+      name: aims-mob-service
+    - image: quay.io/microsafe_app_ban/operador-aims-mobile@sha256:1e8d70941280bf9b024de06e1fd0a6641e4d9e55c8ea9b8bbdc8db4ae9ab5b9b
+      name: manager
   version: 0.0.1

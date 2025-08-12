@@ -1,4 +1,3 @@
----
 apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
@@ -14,57 +13,47 @@ metadata:
     features.operators.openshift.io/token-auth-gcp: "false"
     operators.openshift.io/valid-subscription: "None"
     olm.skipRange: '>=0.1.0 <0.1.1'
+    operators.operatorframework.io/builder: operator-sdk-v1.35.0
+    operators.operatorframework.io/project_layout: unknown
+    operators.operatorframework.io.bundle.package.v1: myoperator
+    operators.operatorframework.io.bundle.channel.default.v1: alpha
+    operators.operatorframework.io.bundle.channels.v1: alpha
+    repository: https://github.com/dreamQAQC/myoperator
+    support: sjpark00@dreamsecurity.com
     alm-examples: |
       [
         {
           "apiVersion": "apps.psj.dev/v1",
           "kind": "MyApp",
-          "metadata": {
-            "name": "example-myapp"
-          },
-          "spec": {
-            "replicas": 1,
-            "message": "hello world"
-          }
+          "metadata": { "name": "myapp-sample" },
+          "spec": {}
         }
       ]
-    capabilities: Basic Install
-    createdAt: "2025-07-31T07:01:58Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.35.0
-    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
-    categories: "Security"
-    containerImage: "docker.io/sjpark00/myoperator-controller@sha256:a0341440af7fe26ee2b25ca428f244fb69fb88e2f0be2e21cf2aaabd483bc110"
-    repository: "https://github.com/dreamQAQC/myoperator"
-    support: "sjpark00@dreamsecurity.com"
-    description: "MyApps Operators that syncs spec to status."
-    operators.operatorframework.io.bundle.package.v1: myoperator
-    operators.operatorframework.io.bundle.channels.v1: "alpha"
-    operators.operatorframework.io.bundle.channel.default.v1: "alpha"
 spec:
   displayName: MyApp Operator
-  description: >
-    A lightweight Kubernetes Operator that syncs Spec input to Status output
-    for custom MyApps resources.
-  version: 0.1.2
+  description: |
+    A lightweight Kubernetes Operator that reconciles custom resources of kind MyApp (apps.psj.dev/v1).
   maturity: alpha
+  version: 0.1.2
+  minKubeVersion: "1.26.0"
+
+  provider:
+    name: DreamSecurity Co., Ltd.
+
   keywords:
     - kubernetes
     - operator
     - myapp
+
   links:
     - name: Myoperator
       url: https://myoperator.domain
-  provider:
-    name: DreamSecurity Co., Ltd.
-  maintainers:
-    - name: psj
-      email: sjpark00@dreamsecurity.com
+
   icon:
-    - base64data: >
-        iVBORw0KGgoAAAANSUhEUgAAADsAAAA0CAIAAAC7EdcxAAAACXBIWXMAAA7
-        EAAAOxAGVKw4bAAAN+ElEQVRo3tVafVRUR7Kv6hlg
-      mediatype: image/png
-  apiservicedefinitions: {}
+    - mediatype: image/png
+      base64data: |
+        iVBORw0KGgoAAAANSUhEUgAAADsAAAA0CAIAAAC7EdcxAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAN
+
   customresourcedefinitions:
     owned:
       - name: myapps.apps.psj.dev
@@ -72,119 +61,59 @@ spec:
         kind: MyApp
         displayName: My App
         description: A custom resource to manage MyApp instances
+
+  installModes:
+    - type: OwnNamespace
+      supported: false
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: true
+    - type: AllNamespaces
+      supported: true
+
   install:
     strategy: deployment
     spec:
-      serviceAccountName: myoperator-controller-manager
-      clusterPermissions:
-        - serviceAccountName: myoperator-controller-manager
-          rules:
-            - apiGroups: ["apps.psj.dev"]
-              resources: ["myapps"]
-              verbs:
-                - create
-                - delete
-                - get
-                - list
-                - patch
-                - update
-                - watch
-            - apiGroups: ["apps.psj.dev"]
-              resources: ["myapps/finalizers"]
-              verbs: ["update"]
-            - apiGroups: ["apps.psj.dev"]
-              resources: ["myapps/status"]
-              verbs: ["get", "patch", "update"]
-            - apiGroups: ["authentication.k8s.io"]
-              resources: ["tokenreviews"]
-              verbs: ["create"]
-            - apiGroups: ["authorization.k8s.io"]
-              resources: ["subjectaccessreviews"]
-              verbs: ["create"]
+      # 네임스페이스 스코프 권한 (최소 예시 – 필요에 맞게 조정 가능)
       permissions:
-        - serviceAccountName: myoperator-controller-manager
+        - serviceAccountName: myoperator-controller-sa
           rules:
-            - apiGroups: [""]
-              resources: ["configmaps"]
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
-            - apiGroups: ["coordination.k8s.io"]
-              resources: ["leases"]
-              verbs:
-                - get
-                - list
-                - watch
-                - create
-                - update
-                - patch
-                - delete
             - apiGroups: [""]
               resources: ["events"]
-              verbs: ["create", "patch"]
+              verbs: ["create","patch","update"]
+            - apiGroups: ["coordination.k8s.io"]
+              resources: ["leases"]
+              verbs: ["get","list","watch","create","update","patch"]
+            - apiGroups: ["apps.psj.dev"]
+              resources: ["myapps","myapps/status","myapps/finalizers"]
+              verbs: ["get","list","watch","update","patch"]
+
       deployments:
         - name: myoperator-controller-manager
-          label:
-            app.kubernetes.io/component: manager
-            app.kubernetes.io/created-by: myoperator
-            app.kubernetes.io/instance: controller-manager
-            app.kubernetes.io/managed-by: kustomize
-            app.kubernetes.io/name: deployment
-            app.kubernetes.io/part-of: myoperator
-            control-plane: controller-manager
           spec:
             replicas: 1
             selector:
               matchLabels:
-                control-plane: controller-manager
-            strategy: {}
+                app.kubernetes.io/name: myoperator-controller-manager
             template:
               metadata:
-                annotations:
-                  kubectl.kubernetes.io/default-container: manager
                 labels:
+                  app.kubernetes.io/name: myoperator-controller-manager
                   control-plane: controller-manager
               spec:
-                serviceAccountName: myoperator-controller-manager
+                serviceAccountName: myoperator-controller-sa
                 terminationGracePeriodSeconds: 10
-                securityContext:
-                  runAsNonRoot: true
                 containers:
-                  - name: kube-rbac-proxy
-                    image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:d8cc6ffb98190e8dd403bfe67ddcb454e6127d32b87acc237b3e5240f70a20fb
-                    args:
-                      - --secure-listen-address=0.0.0.0:8443
-                      - --upstream=http://127.0.0.1:8080/
-                      - --logtostderr=true
-                      - --v=0
-                    ports:
-                      - containerPort: 8443
-                        name: https
-                        protocol: TCP
-                    resources:
-                      limits:
-                        cpu: 500m
-                        memory: 128Mi
-                      requests:
-                        cpu: 5m
-                        memory: 64Mi
-                    securityContext:
-                      allowPrivilegeEscalation: false
-                      capabilities:
-                        drop: ["ALL"]
                   - name: manager
                     image: docker.io/sjpark00/myoperator-controller@sha256:a0341440af7fe26ee2b25ca428f244fb69fb88e2f0be2e21cf2aaabd483bc110
-                    command:
-                      - /manager
-                    args:
-                      - --health-probe-bind-address=:8081
-                      - --metrics-bind-address=127.0.0.1:8080
-                      - --leader-elect
+                    imagePullPolicy: IfNotPresent
+                    args: ["--leader-elect"]
+                    ports:
+                      - name: metrics
+                        containerPort: 8080
+                      - name: healthz
+                        containerPort: 8081
                     livenessProbe:
                       httpGet:
                         path: /healthz
@@ -197,30 +126,7 @@ spec:
                         port: 8081
                       initialDelaySeconds: 5
                       periodSeconds: 10
-                    resources:
-                      limits:
-                        cpu: 500m
-                        memory: 128Mi
-                      requests:
-                        cpu: 10m
-                        memory: 64Mi
-                    securityContext:
-                      allowPrivilegeEscalation: false
-                      capabilities:
-                        drop: ["ALL"]
-  installModes:
-    - type: OwnNamespace
-      supported: false
-    - type: SingleNamespace
-      supported: false
-    - type: MultiNamespace
-      supported: false
-    - type: AllNamespaces
-      supported: true
+
   relatedImages:
-  - name: kube-rbac-proxy
-    image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:d8cc6ffb98190e8dd403bfe67ddcb454e6127d32b87acc237b3e5240f70a20fb
-  - name: manager
-    image: docker.io/sjpark00/myoperator-controller@sha256:a0341440af7fe26ee2b25ca428f244fb69fb88e2f0be2e21cf2aaabd483bc110
-  - name: myoperator-bundle
-    image: docker.io/sjpark00/myoperator-bundle:v0.0.2@sha256:8db1c24ffec6ec501cde8e9aa30271f007e0f22130e761e6497bebd90951495e
+    - name: manager
+      image: docker.io/sjpark00/myoperator-controller@sha256:a0341440af7fe26ee2b25ca428f244fb69fb88e2f0be2e21cf2aaabd483bc110

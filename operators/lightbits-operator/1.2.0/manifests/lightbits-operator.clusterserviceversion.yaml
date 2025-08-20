@@ -1,0 +1,653 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "storage.lightbitslabs.com/v1alpha1",
+          "kind": "CSIDriver",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/created-by": "lightbits-operator",
+              "app.kubernetes.io/instance": "csidriver-sample",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "csidriver",
+              "app.kubernetes.io/part-of": "lightbits-operator"
+            },
+            "name": "csi.lightbitslabs.com",
+            "namespace": "lightbits-operator"
+          },
+          "spec": {
+            "controller": {
+              "registry": "docker.lightbitslabs.com",
+              "repository": "lightbits-operator/lb-csi-plugin",
+              "tag": "v1.21.0-ubi9"
+            },
+            "node": {
+              "registry": "docker.lightbitslabs.com",
+              "repository": "lightbits-operator/lb-csi-plugin",
+              "sidecars": {
+                "lb-nvme-discovery-client": {
+                  "registry": "docker.lightbitslabs.com",
+                  "repository": "lightbits-operator/lb-nvme-discovery-client",
+                  "tag": "v1.21.0-ubi9"
+                }
+              },
+              "tag": "v1.21.0-ubi9"
+            }
+          }
+        },
+        {
+          "apiVersion": "storage.lightbitslabs.com/v1alpha1",
+          "kind": "Cluster",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/created-by": "lightbits-operator",
+              "app.kubernetes.io/instance": "cluster1",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "cluster",
+              "app.kubernetes.io/part-of": "lightbits-operator"
+            },
+            "name": "cluster1",
+            "namespace": "lightbits-operator"
+          },
+          "spec": {
+            "addresses": "192.168.40.46,192.168.40.47,192.168.40.48",
+            "apiService": "192.168.40.46:443,192.168.40.47:443,192.168.40.48:443",
+            "clusterAdminSecretName": "lb-secret",
+            "clusterName": "cluster1"
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Storage
+    com.redhat.openshift.versions: v4.17
+    containerImage: docker.lightbitslabs.com/lightbits-operator/lightbits-operator:v1.2.0
+    createdAt: "2025-08-20T11:35:15Z"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/infrastructure-features: '["csi"]'
+    operators.openshift.io/supported-versions: v4.17
+    operators.operatorframework.io/builder: operator-sdk-v1.39.1
+    operators.operatorframework.io/internal-objects: '[]'
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    operators.operatorframework.io/suggested-namespace: lightbits-operator
+    repository: https://github.com/LightBitsLabs/lightbits-operator
+    support: Lightbits Labs <support@lightbitslabs.com>
+  labels:
+    operatorframework.io/os.linux: supported
+  name: lightbits-operator.v1.2.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Cluster is the Schema for the clusters API
+      displayName: Lightbits Cluster
+      kind: Cluster
+      name: clusters.storage.lightbitslabs.com
+      resources:
+      - kind: Service
+        name: lb-cluster-service
+        version: v1
+      specDescriptors:
+      - description: |-
+          The name of the secret object that stores the cluster-admin's JWT.
+          if not specified will not be able to manage projects.
+        displayName: Cluster Admin Secret Name
+        path: clusterAdminSecretName
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - displayName: Cluster Name
+        path: clusterName
+      statusDescriptors:
+      - displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      - displayName: Message
+        path: message
+      - description: |-
+          INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
+          Important: Run "make" to regenerate code after modifying this file
+          Conditions represent the latest available observations of an object's state
+        displayName: Phase
+        path: phase
+      version: v1alpha1
+    - description: CSIDriver is the Schema for the csidrivers API
+      displayName: Lightbits CSI Driver
+      kind: CSIDriver
+      name: csidrivers.storage.lightbitslabs.com
+      resources:
+      - kind: StatefulSet
+        name: lb-csi-controller
+        version: v1
+      - kind: DaemonSet
+        name: lb-csi-node
+        version: v1
+      specDescriptors:
+      - displayName: Controller
+        path: controller
+      - displayName: Container Image Pull Policy
+        path: controller.imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - displayName: Container Registry
+        path: controller.registry
+      - description: Full repository name of the image to use for the controller,
+          including the organization/repository
+        displayName: Container Full Repository Name
+        path: controller.repository
+      - displayName: Container Registry
+        path: controller.sidecars.registry
+      - description: |-
+          The repository of the csi sidecar image
+          Full repository name of the image to use for the controller, including the organization/repository
+          For example: sig-storage/csi-provisioner
+        displayName: Container Full Repository Name
+        path: controller.sidecars.repository
+      - description: The tag of the csi sidecar image
+        displayName: Container Image Tag
+        path: controller.sidecars.tag
+      - displayName: Container Image Tag
+        path: controller.tag
+      - displayName: Node
+        path: node
+      - description: |-
+          imagePullPolicy specifies the image pull policy. One of Always, Never, IfNotPresent. Defaults to Always if :latest tag is specified,
+          or IfNotPresent otherwise.
+        displayName: Container Image Pull Policy
+        path: node.imagePullPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:imagePullPolicy
+      - displayName: Container Registry
+        path: node.registry
+      - description: Full repository name of the image to use for the controller,
+          including the organization/repository
+        displayName: Container Full Repository Name
+        path: node.repository
+      - displayName: Container Registry
+        path: node.sidecars.registry
+      - description: |-
+          The repository of the csi sidecar image
+          Full repository name of the image to use for the controller, including the organization/repository
+          For example: sig-storage/csi-provisioner
+        displayName: Container Full Repository Name
+        path: node.sidecars.repository
+      - description: The tag of the csi sidecar image
+        displayName: Container Image Tag
+        path: node.sidecars.tag
+      - displayName: Container Image Tag
+        path: node.tag
+      - displayName: Tolerations
+        path: node.tolerations
+      statusDescriptors:
+      - description: Conditions represent the latest available observations of an
+          object's state
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      - description: |-
+          observedGeneration is the most recent generation observed for this CSIDriver.
+          It corresponds to the CSIDriver's generation, which is updated on mutation by the API Server.
+        displayName: Observed Generation
+        path: observedGeneration
+      version: v1alpha1
+  description: |-
+    Operator for deploying and managing Lightbits CSI driver.
+
+    By using the operator users can quickly and easily deploy and upgrade Lightbits CSI Driver.
+
+    ## Requirements
+
+    - Kernel support for NVMe-TCP
+    - Kernel support for NVMe Asymmetric Namespace Access (ANA)
+
+    ## CSI driver Supported Features
+
+    - Filesystem Volumes (xfs/ext4)
+    - Raw Block Volumes
+    - Dynamic/Static Provisioning
+    - Volume Snapshots
+    - Volume Clones
+    - Multi-Tenancy & Credentials
+    - Volume Expansion (Online/Offline)
+    - Storage Capacity Tracking
+    - Host-Side Encryption (LUKS)
+    - Publish ReadOnly volumes
+
+    ## How to install
+
+    See the official documentation [here](https://lightbitslabs.github.io/lightbits-operator/install_lightbits_operator.html#installation)
+
+    ## Documentation
+
+    See the official documentation [here](https://lightbitslabs.github.io/lightbits-operator/)
+  displayName: Lightbits Operator
+  icon:
+  - base64data: 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
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - endpoints
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          - persistentvolumeclaims
+          verbs:
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces/finalizers
+          - namespaces/status
+          - nodes
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims/status
+          verbs:
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumes
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
+          - csi.storage.k8s.io
+          resources:
+          - csidrivers
+          verbs:
+          - create
+          - list
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          - rolebindings
+          - roles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          - securitycontextconstraints/finalizers
+          - securitycontextconstraints/status
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotclasses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotcontents
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotcontents/status
+          verbs:
+          - patch
+          - update
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshots
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - csidrivers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - csinodes
+          - storageclasses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - volumeattachments
+          verbs:
+          - get
+          - list
+          - patch
+          - watch
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - volumeattachments/status
+          verbs:
+          - patch
+        - apiGroups:
+          - storage.lightbitslabs.com
+          resources:
+          - clusters
+          - csidrivers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - storage.lightbitslabs.com
+          resources:
+          - clusters/finalizers
+          - csidrivers/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - storage.lightbitslabs.com
+          resources:
+          - clusters/status
+          - csidrivers/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: lightbits-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: lightbits-operator
+          app.kubernetes.io/instance: controller-manager
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: lightbits-operator
+          control-plane: controller-manager
+        name: lightbits-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - arm64
+                        - ppc64le
+                        - s390x
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --config=controller_manager_config.yaml
+                command:
+                - /manager
+                image: docker.lightbitslabs.com/lightbits-operator/lightbits-operator:v1.2.0
+                imagePullPolicy: Always
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                volumeMounts:
+                - mountPath: /controller_manager_config.yaml
+                  name: manager-config
+                  subPath: controller_manager_config.yaml
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: gcr.io/kubebuilder/kube-rbac-proxy:v0.13.0
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: lightbits-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - configMap:
+                  name: lightbits-operator-manager-config
+                name: manager-config
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: lightbits-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - csi
+  - storage
+  - lightbits
+  links:
+  - name: Lightbits Operator
+    url: https://github.com/lightbitslabs/lightbits-operator
+  maintainers:
+  - email: k8s@lightbitslabs.com
+    name: Lightbits Labs
+  maturity: alpha
+  minKubeVersion: 1.28.0
+  provider:
+    name: Lightbits Labs
+    url: https://www.lightbitslabs.com
+  version: 1.2.0

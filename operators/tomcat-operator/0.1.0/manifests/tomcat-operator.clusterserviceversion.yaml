@@ -1,0 +1,327 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "web.jslee.com/v1alpha1",
+          "kind": "Tomcat",
+          "metadata": {
+            "name": "tomcat-sample"
+          },
+          "spec": {
+            "affinity": {},
+            "autoscaling": {
+              "enabled": false,
+              "maxReplicas": 100,
+              "minReplicas": 1,
+              "targetCPUUtilizationPercentage": 80
+            },
+            "fullnameOverride": "",
+            "image": {
+              "pullPolicy": "IfNotPresent",
+              "repository": "nginx",
+              "tag": ""
+            },
+            "imagePullSecrets": [],
+            "ingress": {
+              "annotations": {},
+              "className": "",
+              "enabled": false,
+              "hosts": [
+                {
+                  "host": "chart-example.local",
+                  "paths": [
+                    {
+                      "path": "/",
+                      "pathType": "ImplementationSpecific"
+                    }
+                  ]
+                }
+              ],
+              "tls": []
+            },
+            "livenessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              }
+            },
+            "nameOverride": "",
+            "nodeSelector": {},
+            "podAnnotations": {},
+            "podLabels": {},
+            "podSecurityContext": {},
+            "readinessProbe": {
+              "httpGet": {
+                "path": "/",
+                "port": "http"
+              }
+            },
+            "replicaCount": 1,
+            "resources": {},
+            "securityContext": {},
+            "service": {
+              "port": 80,
+              "type": "ClusterIP"
+            },
+            "serviceAccount": {
+              "annotations": {},
+              "automount": true,
+              "create": true,
+              "name": ""
+            },
+            "tolerations": [],
+            "volumeMounts": [],
+            "volumes": []
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2025-08-22T07:14:52Z"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.operatorframework.io/builder: operator-sdk-v1.36.1
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    containerImage: quay.io/jslee/tomcat-operator@sha256:632d801c3264a9293fcc9b943941e054c4d5a8bf405c8d271b1fb22f9c9fb98d
+  name: tomcat-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: Manage Apache Tomcat instances via CRD
+        displayName: Tomcat
+        kind: Tomcat
+        name: tomcats.web.jslee.com
+        version: v1alpha1
+  description: Manage Apache Tomcat on OpenShift/Kubernetes via a Helm-based Operator. Supports image/tag, replicas, service, non-root security context, and simple Day-2 ops.
+  displayName: Tomcat Operator by DreamSecurity
+  icon:
+    - base64data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABW8n8WQAAAABJRU5ErkJggg==
+      mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+              verbs:
+                - get
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+            - apiGroups:
+                - web.jslee.com
+              resources:
+                - tomcats
+                - tomcats/status
+                - tomcats/finalizers
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - services
+                - services/finalizers
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: tomcat-operator-controller-manager
+      deployments:
+        - label:
+            app.kubernetes.io/managed-by: kustomize
+            app.kubernetes.io/name: tomcat-operator
+            control-plane: controller-manager
+          name: tomcat-operator-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  control-plane: controller-manager
+              spec:
+                containers:
+                  - args:
+                      - --secure-listen-address=0.0.0.0:8443
+                      - --upstream=http://127.0.0.1:8080/
+                      - --logtostderr=true
+                      - --v=0
+                    image: gcr.io/kubebuilder/kube-rbac-proxy:v0.16.0
+                    name: kube-rbac-proxy
+                    ports:
+                      - containerPort: 8443
+                        name: https
+                        protocol: TCP
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 5m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=127.0.0.1:8080
+                      - --leader-elect
+                      - --leader-election-id=tomcat-operator
+                    image: quay.io/jslee/tomcat-operator@sha256:632d801c3264a9293fcc9b943941e054c4d5a8bf405c8d271b1fb22f9c9fb98d
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: tomcat-operator-controller-manager
+                terminationGracePeriodSeconds: 10
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: tomcat-operator-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - was
+  links:
+    - name: Tomcat Operator
+      url: https://tomcat-operator.domain
+  maturity: alpha
+  minKubeVersion: 1.24.0
+  provider:
+    name: DreamSecurity
+    url: http://dreamsecurity.com
+  version: 0.0.1
+  relatedImages:
+    - name: operator
+      image: quay.io/jslee/tomcat-operator@sha256:632d801c3264a9293fcc9b943941e054c4d5a8bf405c8d271b1fb22f9c9fb98d

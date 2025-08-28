@@ -1,0 +1,668 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    containerImage: harness/gitops-agent-controller@sha256:e4342fb1599538d2b6145e644f1e302b2783a48347c53a1da7ec8e2454df5fde
+    controller-gen.kubebuilder.io/version: v0.16.5
+    createdAt: "2025-07-31T12:11:18Z"
+  creationTimestamp: null
+  name: gitopsagents.gitops.harness.io
+spec:
+  group: gitops.harness.io
+  names:
+    kind: GitopsAgent
+    listKind: GitopsAgentList
+    plural: gitopsagents
+    singular: gitopsagent
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Schema for the Gitops Agents API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Defines the desired state of GitopsAgent
+            properties:
+              argocd:
+                description: ArgoCD Configuration
+                properties:
+                  instance:
+                    description: |-
+                      ArgoCD instance to connect to. If not defined, agent will look into the cluster to discovery an active ArgoCD instance
+                      Instance could be either name prefix (for example in argocd-repo-server, instance will be argocd) or app.kubernetes.io/managed-by label
+                    type: string
+                type: object
+              env:
+                description: Specify environment for agent server container
+                items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
+                  properties:
+                    name:
+                      description: Name of the environment variable. Must be a C_IDENTIFIER.
+                      type: string
+                    value:
+                      description: |-
+                        Variable references $(VAR_NAME) are expanded
+                        using the previously defined environment variables in the container and
+                        any service environment variables. If a variable cannot be resolved,
+                        the reference in the input string will be unchanged. Double $$ are reduced
+                        to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                        "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                        Escaped references will never be expanded, regardless of whether the variable
+                        exists or not.
+                        Defaults to "".
+                      type: string
+                    valueFrom:
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
+                      properties:
+                        configMapKeyRef:
+                          description: Selects a key of a ConfigMap.
+                          properties:
+                            key:
+                              description: The key to select.
+                              type: string
+                            name:
+                              default: ""
+                              description: |-
+                                Name of the referent.
+                                This field is effectively required, but due to backwards compatibility is
+                                allowed to be empty. Instances of this type with an empty value here are
+                                almost certainly wrong.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              type: string
+                            optional:
+                              description: Specify whether the ConfigMap or its key
+                                must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fieldRef:
+                          description: |-
+                            Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                            spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                          properties:
+                            apiVersion:
+                              description: Version of the schema the FieldPath is
+                                written in terms of, defaults to "v1".
+                              type: string
+                            fieldPath:
+                              description: Path of the field to select in the specified
+                                API version.
+                              type: string
+                          required:
+                          - fieldPath
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        resourceFieldRef:
+                          description: |-
+                            Selects a resource of the container: only resources limits and requests
+                            (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                          properties:
+                            containerName:
+                              description: 'Container name: required for volumes,
+                                optional for env vars'
+                              type: string
+                            divisor:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Specifies the output format of the exposed
+                                resources, defaults to "1"
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            resource:
+                              description: 'Required: resource to select'
+                              type: string
+                          required:
+                          - resource
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        secretKeyRef:
+                          description: Selects a key of a secret in the pod's namespace
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              default: ""
+                              description: |-
+                                Name of the referent.
+                                This field is effectively required, but due to backwards compatibility is
+                                allowed to be empty. Instances of this type with an empty value here are
+                                almost certainly wrong.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+              identity:
+                description: Defines identity of GitopsAgent
+                properties:
+                  accountIdentifier:
+                    description: User account identifier in Harness platform
+                    type: string
+                  agentIdentifier:
+                    description: Unique agent identifier in Harness platform
+                    type: string
+                  agentName:
+                    description: Agent display name in Harness platform
+                    type: string
+                  orgIdentifier:
+                    description: User org identifier in Harness platform. Used for
+                      agents installed at org or project scope (optional)
+                    type: string
+                  projectIdentifier:
+                    description: User project identifier in Harness platform. Used
+                      for agents installed at project scope (optional)
+                    type: string
+                required:
+                - accountIdentifier
+                - agentIdentifier
+                - agentName
+                type: object
+              image:
+                description: Agent image. If not defined, it defaults to operator
+                  defined image or image configured in environment DEFAULT_AGENT_IMAGE
+                type: string
+              imagePullPolicy:
+                description: ImagePullPolicy is the image pull policy. One of `Always`,
+                  `Never` or `IfNotPresent`. If not defined, it defaults to `Always`.
+                enum:
+                - Always
+                - Never
+                - IfNotPresent
+                type: string
+              logLevel:
+                description: Specific log level for agent logs
+                enum:
+                - TRACE
+                - DEBUG
+                - INFO
+                - WARN
+                - ERROR
+                type: string
+              metrics:
+                description: Specify agent metrics export details
+                properties:
+                  alerts:
+                    description: Config alert for gitops agent
+                    properties:
+                      enabled:
+                        description: Enable Alerts for Gitops Agent
+                        type: boolean
+                    type: object
+                  enabled:
+                    description: Export gitops agent metrics (optional)
+                    type: boolean
+                  service:
+                    properties:
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Additional service labels
+                        type: object
+                      port:
+                        default: 2112
+                        description: Set metrics service port (optional)
+                        format: int32
+                        type: integer
+                      portName:
+                        default: metrics
+                        description: Set metrics service port name (optional)
+                        type: string
+                    type: object
+                  serviceMonitor:
+                    description: Configure metrics service monitor
+                    properties:
+                      enabled:
+                        description: Enable Prometheus service monitor (optional)
+                        type: boolean
+                      interval:
+                        default: 30s
+                        description: Prometheus ServiceMonitor interval (optional)
+                        pattern: ^(0|(([0-9]+)y)?(([0-9]+)w)?(([0-9]+)d)?(([0-9]+)h)?(([0-9]+)m)?(([0-9]+)s)?(([0-9]+)ms)?)$
+                        type: string
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: Additional service monitor labels
+                        type: object
+                    type: object
+                type: object
+              networkPolicy:
+                description: NetworkPolicies Configuration
+                properties:
+                  create:
+                    default: true
+                    description: Create network policy
+                    type: boolean
+                required:
+                - create
+                type: object
+              proxy:
+                description: Specify agent proxy connection details
+                properties:
+                  http:
+                    description: HTTP Proxy server url to estabilish connections
+                    type: string
+                  https:
+                    description: HTTPS Proxy server url to estabilish connections
+                    type: string
+                  noProxy:
+                    description: Comma-separated values specifying hosts that should
+                      be excluded from proxying. It supports IP address, CIDR annotation,
+                      domain name, or a special DNS label (*)
+                    type: string
+                type: object
+              reconcile:
+                description: Reconcile Configuration
+                properties:
+                  enabled:
+                    default: true
+                    description: Enable reconcile GitOps entities from Agent's Cluster.
+                      If not defined, enabled by default
+                    type: boolean
+                  interval:
+                    default: 100
+                    description: Interval for periodic reconcile (seconds). If not
+                      defined, it defaults to 100
+                    type: integer
+                  podDiscovery:
+                    default: 120
+                    description: Interval to discover Pods for Instance Sync (seconds).
+                      If not defined, it defaults to 120
+                    type: integer
+                type: object
+              redis:
+                description: External redis configuration
+                properties:
+                  existingSecret:
+                    description: |-
+                      The name of an existing secret with Redis (must contain key `redis-password`) and Sentinel credentials.
+                      When it's set, the `redis.password` parameter is ignored
+                    type: string
+                  host:
+                    description: Redis server host
+                    type: string
+                  password:
+                    description: Redis password (optional)
+                    type: string
+                  port:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Redis server port
+                    x-kubernetes-int-or-string: true
+                  username:
+                    description: Redis username (optional)
+                    type: string
+                required:
+                - host
+                - port
+                type: object
+              replicas:
+                description: Agent replicas count (optional)
+                format: int32
+                type: integer
+              resources:
+                description: Resources defines the Compute Resources required by the
+                  container for the Agent. (optional)
+                properties:
+                  claims:
+                    description: |-
+                      Claims lists the names of resources, defined in spec.resourceClaims,
+                      that are used by this container.
+
+                      This is an alpha field and requires enabling the
+                      DynamicResourceAllocation feature gate.
+
+                      This field is immutable. It can only be set for containers.
+                    items:
+                      description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                      properties:
+                        name:
+                          description: |-
+                            Name must match the name of one entry in pod.spec.resourceClaims of
+                            the Pod where this field is used. It makes that resource available
+                            inside a container.
+                          type: string
+                        request:
+                          description: |-
+                            Request is the name chosen for a request in the referenced claim.
+                            If empty, everything from the claim is made available, otherwise
+                            only the result of this request.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Limits describes the maximum amount of compute resources allowed.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Requests describes the minimum amount of compute resources required.
+                      If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                      otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                type: object
+              secrets:
+                description: Defines agent secrets
+                properties:
+                  agentSecret:
+                    description: Harness agent secret value
+                    type: string
+                  caCertificate:
+                    description: CA Bundle certificate (optional)
+                    type: string
+                  mtlsClientCert:
+                    description: mTLS client certificate (optional)
+                    type: string
+                  mtlsClientKey:
+                    description: mTLS client key (optional)
+                    type: string
+                required:
+                - agentSecret
+                type: object
+              target:
+                description: Defines how to reach Harness Platform
+                properties:
+                  grpc:
+                    type: string
+                  grpcAuthority:
+                    type: string
+                  grpcInsecure:
+                    type: boolean
+                  http:
+                    type: string
+                  protocol:
+                    enum:
+                    - HTTP1
+                    type: string
+                required:
+                - http
+                type: object
+              upgrader:
+                description: Agent Upgrader
+                properties:
+                  config:
+                    description: Upgrader config
+                    properties:
+                      clientCertificateFilePath:
+                        default: /etc/mtls/client.crt
+                        description: Certificate file path for upgrader mTLS. If not
+                          defined, it defaults to /etc/mtls/client.crt
+                        type: string
+                      clientCertificateKeyFilePath:
+                        default: /etc/mtls/client.key
+                        description: Certificate Key file path for upgrader mTLS.
+                          If not defined, it defaults to /etc/mtls/client.key
+                        type: string
+                      registryMirror:
+                        description: Registry mirror for images to pulled from instead
+                          of public registry
+                        type: string
+                    type: object
+                  enabled:
+                    default: true
+                    description: Enable Harness upgrader. Is enabled by default
+                    type: boolean
+                  image:
+                    description: Docker image for upgrader. If not defined, it defaults
+                      to operator defined image or image configured in environment
+                      DEFAULT_AGENT_IMAGE
+                    type: string
+                  schedule:
+                    default: 0 */4 * * *
+                    description: Frequency of upgrader cron job. If not defined, it
+                      defaults to "0 */4 * * *"
+                    type: string
+                  startDeadline:
+                    default: 20
+                    description: Starting deadline for cron job. If not defined, it
+                      defaults to 20
+                    format: int64
+                    type: integer
+                required:
+                - enabled
+                type: object
+            required:
+            - identity
+            - secrets
+            - target
+            type: object
+          status:
+            description: Defines the observed state of Agent
+            properties:
+              conditions:
+                description: |-
+                  Represents the observations of a GitOps Agent's current state.
+                  Known .status.conditions.type are: "Available" and "Reconciled"
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              discovery:
+                description: Represents the status of discovered dependencies
+                properties:
+                  applicationController:
+                    description: Discovered Application Controller status
+                    properties:
+                      data:
+                        description: Additional details of the component
+                        items:
+                          properties:
+                            name:
+                              description: Record name
+                              type: string
+                            value:
+                              description: Record value
+                              type: string
+                          type: object
+                        type: array
+                      found:
+                        description: Status of component
+                        type: boolean
+                      host:
+                        description: Host of component
+                        type: string
+                      name:
+                        description: Name of the component workload
+                        type: string
+                    type: object
+                  appsetController:
+                    description: Discovered Application Set Controller status
+                    properties:
+                      data:
+                        description: Additional details of the component
+                        items:
+                          properties:
+                            name:
+                              description: Record name
+                              type: string
+                            value:
+                              description: Record value
+                              type: string
+                          type: object
+                        type: array
+                      found:
+                        description: Status of component
+                        type: boolean
+                      host:
+                        description: Host of component
+                        type: string
+                      name:
+                        description: Name of the component workload
+                        type: string
+                    type: object
+                  argoInstance:
+                    description: Discovered argocd instance
+                    type: string
+                  redis:
+                    description: Discovered Redis status
+                    properties:
+                      data:
+                        description: Additional details of the component
+                        items:
+                          properties:
+                            name:
+                              description: Record name
+                              type: string
+                            value:
+                              description: Record value
+                              type: string
+                          type: object
+                        type: array
+                      found:
+                        description: Status of component
+                        type: boolean
+                      host:
+                        description: Host of component
+                        type: string
+                      name:
+                        description: Name of the component workload
+                        type: string
+                    type: object
+                  repoServer:
+                    description: Discovered Argo RepoServer status
+                    properties:
+                      data:
+                        description: Additional details of the component
+                        items:
+                          properties:
+                            name:
+                              description: Record name
+                              type: string
+                            value:
+                              description: Record value
+                              type: string
+                          type: object
+                        type: array
+                      found:
+                        description: Status of component
+                        type: boolean
+                      host:
+                        description: Host of component
+                        type: string
+                      name:
+                        description: Name of the component workload
+                        type: string
+                    type: object
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

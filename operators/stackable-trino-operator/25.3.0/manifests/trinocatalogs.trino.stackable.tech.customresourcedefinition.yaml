@@ -1,0 +1,794 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations: {}
+  name: trinocatalogs.trino.stackable.tech
+spec:
+  group: trino.stackable.tech
+  names:
+    categories: []
+    kind: TrinoCatalog
+    plural: trinocatalogs
+    shortNames: []
+    singular: trinocatalog
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns: []
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for TrinoCatalogSpec via `CustomResource`
+        properties:
+          spec:
+            description: The TrinoCatalog resource can be used to define catalogs
+              in Kubernetes objects. Read more about it in the [Trino operator concept
+              docs](https://docs.stackable.tech/home/25.3/trino/concepts) and the
+              [Trino operator usage guide](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/).
+              The documentation also contains a list of all the supported backends.
+            properties:
+              configOverrides:
+                additionalProperties:
+                  type: string
+                default: {}
+                description: 'The `configOverrides` allow overriding arbitrary Trino
+                  settings. For example, for Hive you could add `hive.metastore.username:
+                  trino`.'
+                type: object
+              connector:
+                description: The `connector` defines which connector is used.
+                oneOf:
+                - required:
+                  - blackHole
+                - required:
+                  - deltaLake
+                - required:
+                  - googleSheet
+                - required:
+                  - generic
+                - required:
+                  - hive
+                - required:
+                  - iceberg
+                - required:
+                  - tpcds
+                - required:
+                  - tpch
+                properties:
+                  blackHole:
+                    description: A [Black Hole](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/black-hole)
+                      connector.
+                    type: object
+                  deltaLake:
+                    description: An [Delta Lake](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/delta-lake)
+                      connector.
+                    properties:
+                      hdfs:
+                        description: Connection to an HDFS cluster. Please make sure
+                          that the underlying Hive metastore also has access to the
+                          HDFS.
+                        nullable: true
+                        properties:
+                          configMap:
+                            description: Name of the [discovery ConfigMap](https://docs.stackable.tech/home/25.3/concepts/service_discovery)
+                              providing information about the HDFS cluster.
+                            type: string
+                        required:
+                        - configMap
+                        type: object
+                      metastore:
+                        description: Mandatory connection to a Hive Metastore, which
+                          will be used as a storage for metadata.
+                        properties:
+                          configMap:
+                            description: Name of the [discovery ConfigMap](https://docs.stackable.tech/home/25.3/concepts/service_discovery)
+                              providing information about the Hive metastore.
+                            type: string
+                        required:
+                        - configMap
+                        type: object
+                      s3:
+                        description: Connection to an S3 store. Please make sure that
+                          the underlying Hive metastore also has access to the S3
+                          store. Learn more about S3 configuration in the [S3 concept
+                          docs](https://docs.stackable.tech/home/25.3/concepts/s3).
+                        nullable: true
+                        oneOf:
+                        - required:
+                          - inline
+                        - required:
+                          - reference
+                        properties:
+                          inline:
+                            description: S3 connection definition as a resource. Learn
+                              more on the [S3 concept documentation](https://docs.stackable.tech/home/25.3/concepts/s3).
+                            properties:
+                              accessStyle:
+                                default: VirtualHosted
+                                description: Which access style to use. Defaults to
+                                  virtual hosted-style as most of the data products
+                                  out there. Have a look at the [AWS documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html).
+                                enum:
+                                - Path
+                                - VirtualHosted
+                                type: string
+                              credentials:
+                                description: If the S3 uses authentication you have
+                                  to specify you S3 credentials. In the most cases
+                                  a [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                  providing `accessKey` and `secretKey` is sufficient.
+                                nullable: true
+                                properties:
+                                  scope:
+                                    description: '[Scope](https://docs.stackable.tech/home/25.3/secret-operator/scope)
+                                      of the [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass).'
+                                    nullable: true
+                                    properties:
+                                      listenerVolumes:
+                                        default: []
+                                        description: The listener volume scope allows
+                                          Node and Service scopes to be inferred from
+                                          the applicable listeners. This must correspond
+                                          to Volume names in the Pod that mount Listeners.
+                                        items:
+                                          type: string
+                                        type: array
+                                      node:
+                                        default: false
+                                        description: The node scope is resolved to
+                                          the name of the Kubernetes Node object that
+                                          the Pod is running on. This will typically
+                                          be the DNS name of the node.
+                                        type: boolean
+                                      pod:
+                                        default: false
+                                        description: The pod scope is resolved to
+                                          the name of the Kubernetes Pod. This allows
+                                          the secret to differentiate between StatefulSet
+                                          replicas.
+                                        type: boolean
+                                      services:
+                                        default: []
+                                        description: The service scope allows Pod
+                                          objects to specify custom scopes. This should
+                                          typically correspond to Service objects
+                                          that the Pod participates in.
+                                        items:
+                                          type: string
+                                        type: array
+                                    type: object
+                                  secretClass:
+                                    description: '[SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                      containing the LDAP bind credentials.'
+                                    type: string
+                                required:
+                                - secretClass
+                                type: object
+                              host:
+                                description: 'Host of the S3 server without any protocol
+                                  or port. For example: `west1.my-cloud.com`.'
+                                type: string
+                              port:
+                                description: Port the S3 server listens on. If not
+                                  specified the product will determine the port to
+                                  use.
+                                format: uint16
+                                minimum: 0.0
+                                nullable: true
+                                type: integer
+                              region:
+                                default:
+                                  name: us-east-1
+                                description: 'Bucket region used for signing headers
+                                  (sigv4).
+
+
+                                  This defaults to `us-east-1` which is compatible
+                                  with other implementations such as Minio.
+
+
+                                  WARNING: Some products use the Hadoop S3 implementation
+                                  which falls back to us-east-2.'
+                                properties:
+                                  name:
+                                    default: us-east-1
+                                    type: string
+                                type: object
+                              tls:
+                                description: Use a TLS connection. If not specified
+                                  no TLS will be used.
+                                nullable: true
+                                properties:
+                                  verification:
+                                    description: The verification method used to verify
+                                      the certificates of the server and/or the client.
+                                    oneOf:
+                                    - required:
+                                      - none
+                                    - required:
+                                      - server
+                                    properties:
+                                      none:
+                                        description: Use TLS but don't verify certificates.
+                                        type: object
+                                      server:
+                                        description: Use TLS and a CA certificate
+                                          to verify the server.
+                                        properties:
+                                          caCert:
+                                            description: CA cert to verify the server.
+                                            oneOf:
+                                            - required:
+                                              - webPki
+                                            - required:
+                                              - secretClass
+                                            properties:
+                                              secretClass:
+                                                description: Name of the [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                                  which will provide the CA certificate.
+                                                  Note that a SecretClass does not
+                                                  need to have a key but can also
+                                                  work with just a CA certificate,
+                                                  so if you got provided with a CA
+                                                  cert but don't have access to the
+                                                  key you can still use this method.
+                                                type: string
+                                              webPki:
+                                                description: Use TLS and the CA certificates
+                                                  trusted by the common web browsers
+                                                  to verify the server. This can be
+                                                  useful when you e.g. use public
+                                                  AWS S3 or other public available
+                                                  services.
+                                                type: object
+                                            type: object
+                                        required:
+                                        - caCert
+                                        type: object
+                                    type: object
+                                required:
+                                - verification
+                                type: object
+                            required:
+                            - host
+                            type: object
+                          reference:
+                            type: string
+                        type: object
+                    required:
+                    - metastore
+                    type: object
+                  generic:
+                    description: A [generic](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/generic)
+                      connector.
+                    properties:
+                      connectorName:
+                        description: Name of the Trino connector. Will be passed to
+                          `connector.name`.
+                        type: string
+                      properties:
+                        additionalProperties:
+                          oneOf:
+                          - required:
+                            - value
+                          - required:
+                            - valueFromSecret
+                          - required:
+                            - valueFromConfigMap
+                          properties:
+                            value:
+                              type: string
+                            valueFromConfigMap:
+                              description: Selects a key from a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. This field is
+                                    effectively required, but due to backwards compatibility
+                                    is allowed to be empty. Instances of this type
+                                    with an empty value here are almost certainly
+                                    wrong. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              - name
+                              type: object
+                            valueFromSecret:
+                              description: SecretKeySelector selects a key of a Secret.
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. This field is
+                                    effectively required, but due to backwards compatibility
+                                    is allowed to be empty. Instances of this type
+                                    with an empty value here are almost certainly
+                                    wrong. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              - name
+                              type: object
+                          type: object
+                        default: {}
+                        description: A map of properties to put in the connector configuration
+                          file. They can be specified either as a raw value or be
+                          read from a Secret or ConfigMap.
+                        type: object
+                    required:
+                    - connectorName
+                    type: object
+                  googleSheet:
+                    description: A [Google sheets](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/google-sheets)
+                      connector.
+                    properties:
+                      cache:
+                        description: Cache the contents of sheets. This is used to
+                          reduce Google Sheets API usage and latency.
+                        nullable: true
+                        properties:
+                          sheetsDataExpireAfterWrite:
+                            description: How long to cache spreadsheet data or metadata,
+                              defaults to `5m`.
+                            nullable: true
+                            type: string
+                          sheetsDataMaxCacheSize:
+                            description: Maximum number of spreadsheets to cache,
+                              defaults to 1000.
+                            nullable: true
+                            type: string
+                        type: object
+                      credentialsSecret:
+                        description: The Secret containing the Google API JSON key
+                          file. The key used from the Secret is `credentials`.
+                        type: string
+                      metadataSheetId:
+                        description: Sheet ID of the spreadsheet, that contains the
+                          table mapping.
+                        type: string
+                    required:
+                    - credentialsSecret
+                    - metadataSheetId
+                    type: object
+                  hive:
+                    description: An [Apache Hive](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/hive)
+                      connector.
+                    properties:
+                      hdfs:
+                        description: Connection to an HDFS cluster. Please make sure
+                          that the underlying Hive metastore also has access to the
+                          HDFS.
+                        nullable: true
+                        properties:
+                          configMap:
+                            description: Name of the [discovery ConfigMap](https://docs.stackable.tech/home/25.3/concepts/service_discovery)
+                              providing information about the HDFS cluster.
+                            type: string
+                        required:
+                        - configMap
+                        type: object
+                      metastore:
+                        description: Mandatory connection to a Hive Metastore, which
+                          will be used as a storage for metadata.
+                        properties:
+                          configMap:
+                            description: Name of the [discovery ConfigMap](https://docs.stackable.tech/home/25.3/concepts/service_discovery)
+                              providing information about the Hive metastore.
+                            type: string
+                        required:
+                        - configMap
+                        type: object
+                      s3:
+                        description: Connection to an S3 store. Please make sure that
+                          the underlying Hive metastore also has access to the S3
+                          store. Learn more about S3 configuration in the [S3 concept
+                          docs](https://docs.stackable.tech/home/25.3/concepts/s3).
+                        nullable: true
+                        oneOf:
+                        - required:
+                          - inline
+                        - required:
+                          - reference
+                        properties:
+                          inline:
+                            description: S3 connection definition as a resource. Learn
+                              more on the [S3 concept documentation](https://docs.stackable.tech/home/25.3/concepts/s3).
+                            properties:
+                              accessStyle:
+                                default: VirtualHosted
+                                description: Which access style to use. Defaults to
+                                  virtual hosted-style as most of the data products
+                                  out there. Have a look at the [AWS documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html).
+                                enum:
+                                - Path
+                                - VirtualHosted
+                                type: string
+                              credentials:
+                                description: If the S3 uses authentication you have
+                                  to specify you S3 credentials. In the most cases
+                                  a [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                  providing `accessKey` and `secretKey` is sufficient.
+                                nullable: true
+                                properties:
+                                  scope:
+                                    description: '[Scope](https://docs.stackable.tech/home/25.3/secret-operator/scope)
+                                      of the [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass).'
+                                    nullable: true
+                                    properties:
+                                      listenerVolumes:
+                                        default: []
+                                        description: The listener volume scope allows
+                                          Node and Service scopes to be inferred from
+                                          the applicable listeners. This must correspond
+                                          to Volume names in the Pod that mount Listeners.
+                                        items:
+                                          type: string
+                                        type: array
+                                      node:
+                                        default: false
+                                        description: The node scope is resolved to
+                                          the name of the Kubernetes Node object that
+                                          the Pod is running on. This will typically
+                                          be the DNS name of the node.
+                                        type: boolean
+                                      pod:
+                                        default: false
+                                        description: The pod scope is resolved to
+                                          the name of the Kubernetes Pod. This allows
+                                          the secret to differentiate between StatefulSet
+                                          replicas.
+                                        type: boolean
+                                      services:
+                                        default: []
+                                        description: The service scope allows Pod
+                                          objects to specify custom scopes. This should
+                                          typically correspond to Service objects
+                                          that the Pod participates in.
+                                        items:
+                                          type: string
+                                        type: array
+                                    type: object
+                                  secretClass:
+                                    description: '[SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                      containing the LDAP bind credentials.'
+                                    type: string
+                                required:
+                                - secretClass
+                                type: object
+                              host:
+                                description: 'Host of the S3 server without any protocol
+                                  or port. For example: `west1.my-cloud.com`.'
+                                type: string
+                              port:
+                                description: Port the S3 server listens on. If not
+                                  specified the product will determine the port to
+                                  use.
+                                format: uint16
+                                minimum: 0.0
+                                nullable: true
+                                type: integer
+                              region:
+                                default:
+                                  name: us-east-1
+                                description: 'Bucket region used for signing headers
+                                  (sigv4).
+
+
+                                  This defaults to `us-east-1` which is compatible
+                                  with other implementations such as Minio.
+
+
+                                  WARNING: Some products use the Hadoop S3 implementation
+                                  which falls back to us-east-2.'
+                                properties:
+                                  name:
+                                    default: us-east-1
+                                    type: string
+                                type: object
+                              tls:
+                                description: Use a TLS connection. If not specified
+                                  no TLS will be used.
+                                nullable: true
+                                properties:
+                                  verification:
+                                    description: The verification method used to verify
+                                      the certificates of the server and/or the client.
+                                    oneOf:
+                                    - required:
+                                      - none
+                                    - required:
+                                      - server
+                                    properties:
+                                      none:
+                                        description: Use TLS but don't verify certificates.
+                                        type: object
+                                      server:
+                                        description: Use TLS and a CA certificate
+                                          to verify the server.
+                                        properties:
+                                          caCert:
+                                            description: CA cert to verify the server.
+                                            oneOf:
+                                            - required:
+                                              - webPki
+                                            - required:
+                                              - secretClass
+                                            properties:
+                                              secretClass:
+                                                description: Name of the [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                                  which will provide the CA certificate.
+                                                  Note that a SecretClass does not
+                                                  need to have a key but can also
+                                                  work with just a CA certificate,
+                                                  so if you got provided with a CA
+                                                  cert but don't have access to the
+                                                  key you can still use this method.
+                                                type: string
+                                              webPki:
+                                                description: Use TLS and the CA certificates
+                                                  trusted by the common web browsers
+                                                  to verify the server. This can be
+                                                  useful when you e.g. use public
+                                                  AWS S3 or other public available
+                                                  services.
+                                                type: object
+                                            type: object
+                                        required:
+                                        - caCert
+                                        type: object
+                                    type: object
+                                required:
+                                - verification
+                                type: object
+                            required:
+                            - host
+                            type: object
+                          reference:
+                            type: string
+                        type: object
+                    required:
+                    - metastore
+                    type: object
+                  iceberg:
+                    description: An [Apache Iceberg](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/iceberg)
+                      connector.
+                    properties:
+                      hdfs:
+                        description: Connection to an HDFS cluster. Please make sure
+                          that the underlying Hive metastore also has access to the
+                          HDFS.
+                        nullable: true
+                        properties:
+                          configMap:
+                            description: Name of the [discovery ConfigMap](https://docs.stackable.tech/home/25.3/concepts/service_discovery)
+                              providing information about the HDFS cluster.
+                            type: string
+                        required:
+                        - configMap
+                        type: object
+                      metastore:
+                        description: Mandatory connection to a Hive Metastore, which
+                          will be used as a storage for metadata.
+                        properties:
+                          configMap:
+                            description: Name of the [discovery ConfigMap](https://docs.stackable.tech/home/25.3/concepts/service_discovery)
+                              providing information about the Hive metastore.
+                            type: string
+                        required:
+                        - configMap
+                        type: object
+                      s3:
+                        description: Connection to an S3 store. Please make sure that
+                          the underlying Hive metastore also has access to the S3
+                          store. Learn more about S3 configuration in the [S3 concept
+                          docs](https://docs.stackable.tech/home/25.3/concepts/s3).
+                        nullable: true
+                        oneOf:
+                        - required:
+                          - inline
+                        - required:
+                          - reference
+                        properties:
+                          inline:
+                            description: S3 connection definition as a resource. Learn
+                              more on the [S3 concept documentation](https://docs.stackable.tech/home/25.3/concepts/s3).
+                            properties:
+                              accessStyle:
+                                default: VirtualHosted
+                                description: Which access style to use. Defaults to
+                                  virtual hosted-style as most of the data products
+                                  out there. Have a look at the [AWS documentation](https://docs.aws.amazon.com/AmazonS3/latest/userguide/VirtualHosting.html).
+                                enum:
+                                - Path
+                                - VirtualHosted
+                                type: string
+                              credentials:
+                                description: If the S3 uses authentication you have
+                                  to specify you S3 credentials. In the most cases
+                                  a [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                  providing `accessKey` and `secretKey` is sufficient.
+                                nullable: true
+                                properties:
+                                  scope:
+                                    description: '[Scope](https://docs.stackable.tech/home/25.3/secret-operator/scope)
+                                      of the [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass).'
+                                    nullable: true
+                                    properties:
+                                      listenerVolumes:
+                                        default: []
+                                        description: The listener volume scope allows
+                                          Node and Service scopes to be inferred from
+                                          the applicable listeners. This must correspond
+                                          to Volume names in the Pod that mount Listeners.
+                                        items:
+                                          type: string
+                                        type: array
+                                      node:
+                                        default: false
+                                        description: The node scope is resolved to
+                                          the name of the Kubernetes Node object that
+                                          the Pod is running on. This will typically
+                                          be the DNS name of the node.
+                                        type: boolean
+                                      pod:
+                                        default: false
+                                        description: The pod scope is resolved to
+                                          the name of the Kubernetes Pod. This allows
+                                          the secret to differentiate between StatefulSet
+                                          replicas.
+                                        type: boolean
+                                      services:
+                                        default: []
+                                        description: The service scope allows Pod
+                                          objects to specify custom scopes. This should
+                                          typically correspond to Service objects
+                                          that the Pod participates in.
+                                        items:
+                                          type: string
+                                        type: array
+                                    type: object
+                                  secretClass:
+                                    description: '[SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                      containing the LDAP bind credentials.'
+                                    type: string
+                                required:
+                                - secretClass
+                                type: object
+                              host:
+                                description: 'Host of the S3 server without any protocol
+                                  or port. For example: `west1.my-cloud.com`.'
+                                type: string
+                              port:
+                                description: Port the S3 server listens on. If not
+                                  specified the product will determine the port to
+                                  use.
+                                format: uint16
+                                minimum: 0.0
+                                nullable: true
+                                type: integer
+                              region:
+                                default:
+                                  name: us-east-1
+                                description: 'Bucket region used for signing headers
+                                  (sigv4).
+
+
+                                  This defaults to `us-east-1` which is compatible
+                                  with other implementations such as Minio.
+
+
+                                  WARNING: Some products use the Hadoop S3 implementation
+                                  which falls back to us-east-2.'
+                                properties:
+                                  name:
+                                    default: us-east-1
+                                    type: string
+                                type: object
+                              tls:
+                                description: Use a TLS connection. If not specified
+                                  no TLS will be used.
+                                nullable: true
+                                properties:
+                                  verification:
+                                    description: The verification method used to verify
+                                      the certificates of the server and/or the client.
+                                    oneOf:
+                                    - required:
+                                      - none
+                                    - required:
+                                      - server
+                                    properties:
+                                      none:
+                                        description: Use TLS but don't verify certificates.
+                                        type: object
+                                      server:
+                                        description: Use TLS and a CA certificate
+                                          to verify the server.
+                                        properties:
+                                          caCert:
+                                            description: CA cert to verify the server.
+                                            oneOf:
+                                            - required:
+                                              - webPki
+                                            - required:
+                                              - secretClass
+                                            properties:
+                                              secretClass:
+                                                description: Name of the [SecretClass](https://docs.stackable.tech/home/25.3/secret-operator/secretclass)
+                                                  which will provide the CA certificate.
+                                                  Note that a SecretClass does not
+                                                  need to have a key but can also
+                                                  work with just a CA certificate,
+                                                  so if you got provided with a CA
+                                                  cert but don't have access to the
+                                                  key you can still use this method.
+                                                type: string
+                                              webPki:
+                                                description: Use TLS and the CA certificates
+                                                  trusted by the common web browsers
+                                                  to verify the server. This can be
+                                                  useful when you e.g. use public
+                                                  AWS S3 or other public available
+                                                  services.
+                                                type: object
+                                            type: object
+                                        required:
+                                        - caCert
+                                        type: object
+                                    type: object
+                                required:
+                                - verification
+                                type: object
+                            required:
+                            - host
+                            type: object
+                          reference:
+                            type: string
+                        type: object
+                    required:
+                    - metastore
+                    type: object
+                  tpcds:
+                    description: A [TPC-DS](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/tpcds)
+                      connector.
+                    type: object
+                  tpch:
+                    description: A [TPC-H](https://docs.stackable.tech/home/25.3/trino/usage-guide/catalogs/tpch)
+                      connector.
+                    type: object
+                type: object
+              experimentalConfigRemovals:
+                default: []
+                description: 'List of config properties which should be removed.
+
+
+                  This is helpful, because Trino fails to start in case you have any
+                  unused config properties. The removals are executed after the `configOverrides`.
+
+
+                  This field is experimental, and might be replaced by a more generic
+                  mechanism to edit config properties'
+                items:
+                  type: string
+                type: array
+            required:
+            - connector
+            type: object
+        required:
+        - spec
+        title: TrinoCatalog
+        type: object
+    served: true
+    storage: true
+    subresources: {}

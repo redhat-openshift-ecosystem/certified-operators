@@ -1,0 +1,135 @@
+---
+# yamllint disable rule:line-length
+# yamllint disable rule:line-length
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: myoperator.v0.1.2
+  namespace: placeholder
+  annotations:
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/valid-subscription: "None"
+    olm.skipRange: '>=0.1.0 <0.1.1'
+    operators.operatorframework.io/builder: operator-sdk-v1.35.0
+    operators.operatorframework.io/project_layout: unknown
+    operators.operatorframework.io.bundle.package.v1: myoperator
+    operators.operatorframework.io.bundle.channel.default.v1: alpha
+    operators.operatorframework.io.bundle.channels.v1: alpha
+    repository: https://github.com/dreamQAQC/myoperator
+    support: sjpark00@dreamsecurity.com
+    alm-examples: |
+      [
+        {
+          "apiVersion": "apps.psj.dev/v1",
+          "kind": "MyApp",
+          "metadata": { "name": "myapp-sample" },
+          "spec": {}
+        }
+      ]
+spec:
+  displayName: MyApp Operator
+  description: |
+    A lightweight Kubernetes Operator that reconciles custom resources of kind MyApp (apps.psj.dev/v1).
+  maturity: alpha
+  version: 0.1.2
+  minKubeVersion: "1.26.0"
+
+  provider:
+    name: DreamSecurity Co., Ltd.
+
+  keywords:
+    - kubernetes
+    - operator
+    - myapp
+
+  links:
+    - name: Myoperator
+      url: https://myoperator.domain
+
+  icon:
+    - mediatype: image/png
+      base64data: |
+        iVBORw0KGgoAAAANSUhEUgAAADsAAAA0CAIAAAC7EdcxAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAN
+
+  customresourcedefinitions:
+    owned:
+      - name: myapps.apps.psj.dev
+        version: v1
+        kind: MyApp
+        displayName: My App
+        description: A custom resource to manage MyApp instances
+
+  installModes:
+    - type: OwnNamespace
+      supported: false
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: true
+    - type: AllNamespaces
+      supported: true
+
+  install:
+    strategy: deployment
+    spec:
+      # 네임스페이스 스코프 권한 (최소 예시 – 필요에 맞게 조정 가능)
+      permissions:
+        - serviceAccountName: myoperator-controller-sa
+          rules:
+            - apiGroups: [""]
+              resources: ["events"]
+              verbs: ["create", "patch", "update"]
+            - apiGroups: ["coordination.k8s.io"]
+              resources: ["leases"]
+              verbs: ["get", "list", "watch", "create", "update", "patch"]
+            - apiGroups: ["apps.psj.dev"]
+              resources: ["myapps", "myapps/status", "myapps/finalizers"]
+              verbs: ["get", "list", "watch", "update", "patch"]
+
+      deployments:
+        - name: myoperator-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: myoperator-controller-manager
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: myoperator-controller-manager
+                  control-plane: controller-manager
+              spec:
+                serviceAccountName: myoperator-controller-sa
+                terminationGracePeriodSeconds: 10
+                containers:
+                  - name: manager
+                    image: docker.io/sjpark00/myoperator-controller@sha256:a0341440af7fe26ee2b25ca428f244fb69fb88e2f0be2e21cf2aaabd483bc110
+                    imagePullPolicy: IfNotPresent
+                    args: ["--leader-elect"]
+                    ports:
+                      - name: metrics
+                        containerPort: 8080
+                      - name: healthz
+                        containerPort: 8081
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+
+  relatedImages:
+    - name: manager
+      image: docker.io/sjpark00/myoperator-controller@sha256:a0341440af7fe26ee2b25ca428f244fb69fb88e2f0be2e21cf2aaabd483bc110

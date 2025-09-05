@@ -7,16 +7,21 @@ metadata:
     createdAt: "2025-09-05T19:57:25Z"
     operators.operatorframework.io/builder: operator-sdk-v1.41.0
     operators.operatorframework.io/project_layout: unknown
-    features.operators.openshift.io/cnf: "false"
-    features.operators.openshift.io/cni: "false"
-    features.operators.openshift.io/csi: "false"
     features.operators.openshift.io/disconnected: "false"
-    features.operators.openshift.io/fips: "false"
-    features.operators.openshift.io/proxy-aware: "false"
     features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
     features.operators.openshift.io/tls-profiles: "false"
     features.operators.openshift.io/token-auth-aws: "false"
     features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/cnf: "false"
+    categories: ""
+    description: Run Flink and SQL Stream Builder with Cloudera Streaming Analytics Kubernetes Operator.
+    containerImage: ""
+    support: Cloudera
+    operators.openshift.io/valid-subscription: Cloudera subscription and license required to enable full functionality.
+    features.operators.openshift.io/token-auth-gcp: "false"
   name: cloudera-streaming-analytics-kubernetes-operator.v1.3.0
   namespace: flink
 spec:
@@ -26,12 +31,15 @@ spec:
       - kind: FlinkDeployment
         name: flinkdeployments.flink.apache.org
         version: v1beta1
+        description: Custom resource managed by the CSA Operator.
       - kind: FlinkSessionJob
         name: flinksessionjobs.flink.apache.org
         version: v1beta1
+        description: Custom resource managed by the CSA Operator.
       - kind: FlinkStateSnapshot
         name: flinkstatesnapshots.flink.apache.org
         version: v1beta1
+        description: Custom resource managed by the CSA Operator.
   description: Run Flink and SQL Stream Builder with Cloudera Streaming Analytics Kubernetes Operator.
   displayName: CSA Operator
   icon:
@@ -136,7 +144,140 @@ spec:
                           path: log4j-console.properties
                   - name: flink-artifacts-volume
                     emptyDir: {}
-      permissions: []
+      permissions:
+        - serviceAccountName: flink-operator
+          rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - services
+                - events
+                - configmaps
+                - secrets
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+                - deletecollection
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - deployments/finalizers
+                - replicasets
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - apps
+              resources:
+                - deployments/scale
+              verbs:
+                - get
+                - update
+                - patch
+            - apiGroups:
+                - extensions
+              resources:
+                - deployments
+                - ingresses
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - flink.apache.org
+              resources:
+                - flinkdeployments
+                - flinkdeployments/finalizers
+                - flinksessionjobs
+                - flinksessionjobs/finalizers
+                - flinkstatesnapshots
+                - flinkstatesnapshots/finalizers
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - flink.apache.org
+              resources:
+                - flinkdeployments/status
+                - flinksessionjobs/status
+                - flinkstatesnapshots/status
+              verbs:
+                - get
+                - update
+                - patch
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+        - serviceAccountName: flink-operator
+          rules:
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - deployments/finalizers
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
       clusterPermissions: []
     strategy: deployment
   installModes:
@@ -149,7 +290,11 @@ spec:
     - type: AllNamespaces
       supported: true
   keywords:
-    - cloudera-streaming-analytics-kubernetes-operator
+    - cloudera
+    - streams
+    - analytics
+    - flink
+    - kafka
   links:
     - name: Cloudera Streaming Analytics (CSA)
       url: https://www.cloudera.com/products/stream-processing.html
@@ -162,6 +307,9 @@ spec:
     url: https://www.cloudera.com
   version: 1.3.0
   minKubeVersion: 1.24.0
+  labels:
+    app.kubernetes.io/name: csa-operator
+    app.kubernetes.io/part-of: cloudera-streaming-analytics
   relatedImages:
     - name: flink
       image: 327162129569.dkr.ecr.us-west-2.amazonaws.com/csaop/flink@sha256:3df7870bffc733b71a15af88be45ac8e4306e367d5d023662427f02540e128fd

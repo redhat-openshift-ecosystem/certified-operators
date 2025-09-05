@@ -2,50 +2,163 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: '[]'
+    alm-examples: "[\n  {\"apiVersion\":\"flink.apache.org/v1beta1\",\"kind\":\"FlinkDeployment\",\"metadata\":{\"name\":\"example-flink-deployment\"},\"spec\":{}},\n  {\"apiVersion\":\"flink.apache.org/v1beta1\",\"kind\":\"FlinkSessionJob\",\"metadata\":{\"name\":\"example-flink-sessionjob\"},\"spec\":{}},\n  {\"apiVersion\":\"flink.apache.org/v1beta1\",\"kind\":\"FlinkStateSnapshot\",\"metadata\":{\"name\":\"example-flink-statesnapshot\"},\"spec\":{}}\n]"
     capabilities: Basic Install
-    createdAt: "2025-08-21T07:57:22Z"
+    createdAt: "2025-09-05T16:00:03Z"
     operators.operatorframework.io/builder: operator-sdk-v1.41.0
     operators.operatorframework.io/project_layout: unknown
-  name: csa-operator.v1.3.0
-  namespace: placeholder
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+  name: cloudera-streaming-analytics-kubernetes-operator.v1.3.0
+  namespace: flink
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: FlinkDeployment
-      name: flinkdeployments.flink.apache.org
-      version: v1beta1
-    - kind: FlinkSessionJob
-      name: flinksessionjobs.flink.apache.org
-      version: v1beta1
-    - kind: FlinkStateSnapshot
-      name: flinkstatesnapshots.flink.apache.org
-      version: v1beta1
-  description: Cloudera Streaming Analytics Kubernetes Operator for Flink
-  displayName: Csa Operator
+      - kind: FlinkDeployment
+        name: flinkdeployments.flink.apache.org
+        version: v1beta1
+      - kind: FlinkSessionJob
+        name: flinksessionjobs.flink.apache.org
+        version: v1beta1
+      - kind: FlinkStateSnapshot
+        name: flinkstatesnapshots.flink.apache.org
+        version: v1beta1
+  description: Run Flink and SQL Stream Builder with Cloudera Streaming Analytics Kubernetes Operator.
+  displayName: CSA Operator
+  icon:
+    - base64data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2P4DwQACfsD/Qs8cYoAAAAASUVORK5CYII=
+      mediatype: image/png
   install:
     spec:
-      deployments: []
+      deployments:
+        - name: flink-kubernetes-operator
+          spec:
+            replicas: 1
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: flink-kubernetes-operator
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: flink-kubernetes-operator
+                annotations:
+                  kubectl.kubernetes.io/default-container: flink-kubernetes-operator
+              spec:
+                securityContext: null
+                serviceAccountName: flink-operator
+                containers:
+                  - name: flink-kubernetes-operator
+                    image: 327162129569.dkr.ecr.us-west-2.amazonaws.com/csaop/flink-kubernetes-operator@sha256:34126da96852391e2b4c647a3dfb4de82d7defc44166eb29d2f0d7aa1ac27e2c
+                    imagePullPolicy: IfNotPresent
+                    command: ["/docker-entrypoint.sh", "operator"]
+                    ports:
+                      - containerPort: 8085
+                        name: health-port
+                        protocol: TCP
+                    env:
+                      - name: OPERATOR_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: HOST_IP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: status.hostIP
+                      - name: POD_IP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: status.podIP
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: flink-kubernetes-operator
+                      - name: FLINK_CONF_DIR
+                        value: /opt/flink/conf
+                      - name: FLINK_PLUGINS_DIR
+                        value: /opt/flink/plugins
+                      - name: LOG_CONFIG
+                        value: -Dlog4j.configurationFile=/opt/flink/conf/log4j-operator.properties
+                      - name: JVM_ARGS
+                        value:
+                    resources:
+                      limits:
+                        cpu: "1"
+                        memory: 1024Mi
+                      requests:
+                        cpu: 200m
+                        memory: 1024Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      runAsNonRoot: true
+                      seccompProfile:
+                        type: RuntimeDefault
+                    volumeMounts:
+                      - name: flink-operator-config-volume
+                        mountPath: /opt/flink/conf
+                      - name: flink-artifacts-volume
+                        mountPath: /opt/flink/artifacts
+                    livenessProbe:
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      httpGet:
+                        path: /
+                        port: health-port
+                    startupProbe:
+                      failureThreshold: 30
+                      periodSeconds: 10
+                      httpGet:
+                        path: /
+                        port: health-port
+                volumes:
+                  - name: flink-operator-config-volume
+                    configMap:
+                      name: flink-operator-config
+                      items:
+                        - key: flink-conf.yaml
+                          path: flink-conf.yaml
+                        - key: log4j-operator.properties
+                          path: log4j-operator.properties
+                        - key: log4j-console.properties
+                          path: log4j-console.properties
+                  - name: flink-artifacts-volume
+                    emptyDir: {}
+      permissions: []
+      clusterPermissions: []
     strategy: deployment
   installModes:
-  - supported: false
-    type: OwnNamespace
-  - supported: false
-    type: SingleNamespace
-  - supported: false
-    type: MultiNamespace
-  - supported: true
-    type: AllNamespaces
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: false
+    - type: AllNamespaces
+      supported: true
   keywords:
-  - csa-operator
+    - cloudera-streaming-analytics-kubernetes-operator
   links:
-  - name: Cloudera Streaming Analytics Operator for Flink
-    url: https://www.cloudera.com
+    - name: Cloudera Streaming Analytics (CSA)
+      url: https://www.cloudera.com/products/stream-processing.html
   maintainers:
-  - email: support@cloudera.com
-    name: Cloudera
-  maturity: alpha
+    - name: Cloudera
+      email: support@cloudera.com
+  maturity: stable
   provider:
     name: Cloudera
     url: https://www.cloudera.com

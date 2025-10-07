@@ -1,0 +1,1024 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "marketplace.redhat.com/v1alpha1",
+          "kind": "MarketplaceConfig",
+          "metadata": {
+            "name": "marketplaceconfig"
+          },
+          "spec": {
+            "features": {
+              "deployment": true,
+              "meterDefinitionCatalogServer": false,
+              "registration": true
+            },
+            "installIBMCatalogSource": true,
+            "isDisconnected": false,
+            "license": {
+              "accept": false
+            }
+          }
+        },
+        {
+          "apiVersion": "marketplace.redhat.com/v1alpha1",
+          "kind": "MeterBase",
+          "metadata": {
+            "name": "meterbase"
+          },
+          "spec": {
+            "enabled": true,
+            "prometheus": {
+              "resources": {
+                "limits": {
+                  "cpu": "2",
+                  "memory": "2Gi"
+                },
+                "requests": {
+                  "cpu": "1",
+                  "memory": "1G"
+                }
+              },
+              "storage": {
+                "size": "20Gi"
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "marketplace.redhat.com/v1alpha1",
+          "kind": "MeterReport",
+          "metadata": {
+            "name": "example-meterreport"
+          },
+          "spec": {
+            "endTime": "2020-08-05T00:00:00Z",
+            "prometheusService": {
+              "name": "rhm-prometheus-meterbase",
+              "namespace": "openshift-redhat-marketplace",
+              "targetPort": "rbac"
+            },
+            "startTime": "2020-08-04T00:00:00Z"
+          }
+        },
+        {
+          "apiVersion": "marketplace.redhat.com/v1beta1",
+          "kind": "MeterDefinition",
+          "metadata": {
+            "name": "example-meterdefinition-4"
+          },
+          "spec": {
+            "group": "partner.metering.com",
+            "kind": "App",
+            "meters": [
+              {
+                "aggregation": "sum",
+                "metricId": "container_cpu_usage_core_avg",
+                "period": "1h",
+                "query": "rate(container_cpu_usage_seconds_total{cpu=\"total\",container=\"db\"}[5m])*100",
+                "workloadType": "Pod"
+              }
+            ],
+            "resourceFilters": [
+              {
+                "namespace": {
+                  "useOperatorGroup": true
+                },
+                "ownerCRD": {
+                  "apiVersion": "marketplace.redhat.com/v1alpha1",
+                  "kind": "RazeeDeployment"
+                },
+                "workloadType": "Pod"
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "marketplace.redhat.com/v1beta1",
+          "kind": "MeterDefinition",
+          "metadata": {
+            "name": "meterdefinition-sample"
+          },
+          "spec": {
+            "group": "partner.metering.com",
+            "kind": "App",
+            "meters": [
+              {
+                "aggregation": "sum",
+                "metricId": "container_cpu_usage_core_avg",
+                "period": "1h",
+                "query": "rate(container_cpu_usage_seconds_total{cpu=\"total\",container=\"db\"}[5m])*100",
+                "workloadType": "Pod"
+              }
+            ],
+            "resourceFilters": [
+              {
+                "namespace": {
+                  "useOperatorGroup": true
+                },
+                "ownerCRD": {
+                  "apiVersion": "marketplace.redhat.com/v1alpha1",
+                  "kind": "RazeeDeployment"
+                },
+                "workloadType": "Pod"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Developer Tools
+    certified: "true"
+    containerImage: quay.io/rh-marketplace/ibm-metrics-operator@sha256:556bbb9d1c66e9370573fccbaaa0e116ad5f9988c89beb4c1aedde3d8ca13c4e
+    createdAt: "2025-10-07T11:06:07Z"
+    description: The IBM Metrics Operator provides workload metering and reporting for IBM and Red Hat Marketplace customers.
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    olm.skipRange: '>=1.0.0 <2.20.0'
+    operatorframework.io/suggested-namespace: ibm-software-central
+    operators.operatorframework.io/builder: operator-sdk-v1.28.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    repository: https://github.com/redhat-marketplace/redhat-marketplace-operator
+    support: IBM Corporation
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.ppc64le: supported
+    operatorframework.io/arch.s390x: supported
+    operatorframework.io/os.linux: supported
+  name: ibm-metrics-operator.v2.20.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: MarketplaceConfig is configuration manager for our Red Hat Marketplace controllers By installing this product you accept the license terms https://ibm.biz/BdfaAY.
+        displayName: Marketplace Config
+        kind: MarketplaceConfig
+        name: marketplaceconfigs.marketplace.redhat.com
+        version: v1alpha1
+      - description: MeterBase is the resource that sets up Metering for Red Hat Marketplace. This is an internal resource not meant to be modified directly.
+        displayName: Meter Base
+        kind: MeterBase
+        name: meterbases.marketplace.redhat.com
+        version: v1alpha1
+      - description: MeterDefinition defines the meter workloads used to enable pay for use billing.
+        displayName: Meter Definition
+        kind: MeterDefinition
+        name: meterdefinitions.marketplace.redhat.com
+        version: v1beta1
+      - kind: MeterReport
+        name: meterreports.marketplace.redhat.com
+        version: v1alpha1
+  description: "The IBM Metrics Operator provides workload metering and reporting for IBM Software Central and Red Hat Marketplace customers.\n### **Important Note**\nA set of instructions for onboarding is provided here. For more detailed onboarding instructions or information about what is installed please visit [swc.saas.ibm.com](https://swc.saas.ibm.com).\n\nUsage metrics may be monitored through [https://swc.saas.ibm.com](https://swc.saas.ibm.com) with only IBM Metrics Operator and a Red Hat Marketplace account.\n\n### Upgrade Policy\n\nThe operator releases adhere to semantic versioning and provides a seamless upgrade path for minor and patch releases within the current stable channel.\n\n### Prerequisites\n1. Installations are required to [enable monitoring for user-defined projects](https://docs.openshift.com/container-platform/latest/monitoring/enabling-monitoring-for-user-defined-projects.html) as the Prometheus provider.\n2. Edit the cluster-monitoring-config ConfigMap object:\n\n   ```sh\n   $ oc -n openshift-monitoring edit configmap cluster-monitoring-config\n    ```\n\n3. Add enableUserWorkload: true under data/config.yaml:\n  \n    ```sh\n    apiVersion: v1\n    kind: ConfigMap\n    metadata:\n      name: cluster-monitoring-config\n        namespace: openshift-monitoring\n    data:\n      config.yaml: |\n        enableUserWorkload: true\n    ```\n\n4. Configure the user-workload-monitoring-config ConfigMap object:\n\n    ```sh\n    $ oc -n openshift-user-workload-monitoring edit configmap user-workload-monitoring-config\n    ```\n\n5. Configure a minimum retention time of 168h and minimum storage capacity of 40Gi\n  \n    ```sh\n    apiVersion: v1\n    kind: ConfigMap\n    metadata:\n      name: user-workload-monitoring-config\n      namespace: openshift-user-workload-monitoring\n\n    data:\n      config.yaml: |\n        prometheus:\n          retention: 168h\n          volumeClaimTemplate:\n            spec:\n              resources:\n                requests:\n                  storage: 40Gi\n    ```\n\n### Resources Required\n\nMinimum system resources required:\n\n| Operator                | Memory (MB) | CPU (cores) | Disk (GB) | Nodes |\n| ----------------------- | ----------- | ----------- | --------- | ----- |\n| **Metrics**   |        750  |     0.25    | 3x1       |    3  |\n| **Deployment** |        250  |     0.25    | -         |    1  |\n\n| Prometheus Provider  | Memory (GB) | CPU (cores) | Disk (GB) | Nodes |\n| --------- | ----------- | ----------- | --------- | ----- |\n| **[Openshift User Workload Monitoring](https://docs.openshift.com/container-platform/latest/monitoring/enabling-monitoring-for-user-defined-projects.html)** |          1  |     0.1       | 2x40        |   2    |\n\nMultiple nodes are required to provide pod scheduling for high availability for IBM Metrics Operator Data Service and Prometheus.\n\nThe IBM Metrics Operator automatically creates 3 x 1Gi PersistentVolumeClaims to store reports as part of the data service, with _ReadWriteOnce_ access mode. Te PersistentVolumeClaims are automatically created by the ibm-metrics-operator after creating a `redhat-marketplace-pull-secret` and accepting the license in `marketplaceconfig`.\n\n| NAME                                | CAPACITY | ACCESS MODES |\n| ----------------------------------- | -------- | ------------ |\n| rhm-data-service-rhm-data-service-0 | 1Gi | RWO |\n| rhm-data-service-rhm-data-service-1 | 1Gi | RWO |\n| rhm-data-service-rhm-data-service-2 | 1Gi | RWO |\n\n### Supported Storage Providers\n\n- OpenShift Container Storage / OpenShift Data Foundation version 4.x, from version 4.2 or higher\n- IBM Cloud Block storage and IBM Cloud File storage\n- IBM Storage Suite for IBM Cloud Paks:\n  - File storage from IBM Spectrum Fusion/Scale \n  - Block storage from IBM Spectrum Virtualize, FlashSystem or DS8K\n- Portworx Storage, version 2.5.5 or above\n- Amazon Elastic File Storage\n- Azure Disk Storage (disk.csi.azure.com)\n\n#### Known Problematic Storage Providers\n\n- Azure File Storage (file.csi.azure.com)\n\n### Access Modes required\n\n - ReadWriteOnce (RWO)\n\n### Provisioning Options supported\n\nChoose one of the following options to provision storage for the ibm-metrics-operator data-service\n\n#### Dynamic provisioning using a default StorageClass\n   - A StorageClass is defined with a `metadata.annotations: storageclass.kubernetes.io/is-default-class: \"true\"`\n   - PersistentVolumes will be provisioned automatically for the generated PersistentVolumeClaims\n--- \n#### Manually create each PersistentVolumeClaim with a specific StorageClass\n   - Must be performed before creating a `redhat-marketplace-pull-secret` or accepting the license in `marketplaceconfig`. Otherwise, the automatically generated PersistentVolumeClaims are immutable.\n```\napiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  labels:\n    app: rhm-data-service\n  name: rhm-data-service-rhm-data-service-0\n  namespace: ibm-software-central\nspec:\n  storageClassName: rook-cephfs\n  accessModes:\n  - ReadWriteOnce\n  resources:\n    requests:\n      storage: 1Gi\n```\n---\n#### Manually provision each PersistentVolume for the generated PersistentVolumeClaims with a specific StorageClass\n  - May be performed before or after creating a `redhat-marketplace-pull-secret` or accepting the license in `marketplaceconfig`.  \n```\napiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: rhm-data-service-rhm-data-service-0\nspec:\n  csi:\n    driver: rook-ceph.cephfs.csi.ceph.com\n    volumeHandle: rhm-data-service-rhm-data-service-0\n  capacity:\n    storage: 1Gi\n  accessModes:\n    - ReadWriteOnce\n  persistentVolumeReclaimPolicy: Delete\n  storageClassName: rook-cephfs\n  volumeMode: Filesystem\n  claimRef:\n    kind: PersistentVolumeClaim\n    namespace: ibm-software-central\n    name: rhm-data-service-rhm-data-service-0\n```\n\n### Kyverno Policies\n\nThe IBM Metrics Operator makes a best effort to comply with the Kyverno policies defined by [IBM MAS](https://github.com/ibm-mas/kyverno-policies)\n\nExceptions:\n- IBM Metrics Operator is not replicated\n  - Service uptime is not considered critial, and can be rescheduled\n- metric-state is not replicated\n  - Service uptime is not considered critial, and can be rescheduled\n\n### Installation\n1. Create or get your [pull secret](https://swc.saas.ibm.com/en-us/documentation/clusters#get-pull-secret).\n2. Install the IBM Metrics Operator\n3. Create a Kubernetes secret in the installed namespace with the name `redhat-marketplace-pull-secret` and key `PULL_SECRET` with the value of the pull secret.\n    ```sh\n    # Replace ${PULL_SECRET} with your pull secret\n    oc create secret generic redhat-marketplace-pull-secret -n ibm-software-central --from-literal=PULL_SECRET=${PULL_SECRET}\n    ```\n4. Use of the platform is governed by the:\n\n    [IBM Cloud Services Agreement](https://www.ibm.com/support/customer/csol/terms/?id=Z126-6304_WS&_ga=2.116312197.2046730452.1684328846-812467790.1684328846) (or other base agreement between you and IBM such as a [Passport Advantage Agreement](https://www.ibm.com/software/passportadvantage/pa_agreements.html?_ga=2.116312197.2046730452.1684328846-812467790.1684328846)) and the [Service Description for the Red Hat Marketplace](https://www.ibm.com/support/customer/csol/terms/?id=i126-8719&_ga=2.83289621.2046730452.1684328846-812467790.1684328846).\n    \n5. Update MarketplaceConfig to accept the license.\n    ```\n    oc patch marketplaceconfig marketplaceconfig -n ibm-software-central --type='merge' -p '{\"spec\": {\"license\": {\"accept\": true}}}'\n    ```\n6. Install the pull secret as a global pull secret on the cluster.\n\n    These steps require `oc`, `jq`, and `base64` to be available on your machine.\n\n    ```sh\n    # Create the docker pull secret file using your pull secret.\n    # Store it in a file called entitledregistryconfigjson.\n    oc create secret docker-registry entitled-registry --docker-server=registry.marketplace.redhat.com --docker-username \"cp\" --docker-password \"${PULL_SECRET}\" --dry-run=client --output=\"jsonpath={.data.\\.dockerconfigjson}\" | base64 --decode > entitledregistryconfigjson\n    # Get the current global secrets on the cluster and store it as a file named dockerconfigjson\n    oc get secret pull-secret -n openshift-config --output=\"jsonpath={.data.\\.dockerconfigjson}\" | base64 --decode > dockerconfigjson\n    # Merge the two dockerconfigs together into a file called dockerconfigjson-merged.\n    jq -s '.[0] * .[1]' dockerconfigjson entitledregistryconfigjson > dockerconfigjson-merged\n    # Set the cluster's dockerconfig file to the new merged version.\n    oc set data secret/pull-secret -n openshift-config --from-file=.dockerconfigjson=dockerconfigjson-merged\n    ```\n  7. (Optional) Your IBM product may have installed IBM Metrics Operator using an `ibm-entitlement-key` for authentication to IBM Software Central. To authorize the automatic creation of an IBM Software Central account for the IBM account owning the `ibm-entitlement-key`\n      ```\n      oc patch marketplaceconfig marketplaceconfig -n ibm-software-central --type='merge' -p '{\"spec\": {\"authorizeAccountCreation\": true}}'\n      ```\n\n### Why is a global pull secret required?\nIn order to successfully install the products hosted by the container image registry, you will need to make the pull secret available across the cluster. This can be achieved by applying the pull as a [global pull secret](https://docs.openshift.com/container-platform/latest/openshift_images/managing_images/using-image-pull-secrets.html#images-update-global-pull-secret_using-image-pull-secrets). For alternative approaches, please see the official OpenShift [documentation](https://docs.openshift.com/container-platform/latest/openshift_images/managing_images/using-image-pull-secrets.html).\n\n\n### SecurityContextConstraints requirements\n\nThe Operators and their components support running under the OpenShift Container Platform default restricted and restricted-v2 security context constraints.\n\n### Installation Namespace and ClusterRoleBinding requirements\n\nThe IBM Metrics Operator components require specific ClusterRoleBindings.\n- The metric-state component requires a ClusterRoleBinding for the the `view` ClusterRole.\n  - Ability to read non-sensitive CustomResources. \n  - The `view` ClusterRole dynamically adds new CustomResourceDefinitions.\n- The operator & reporter component requires a ClusterRoleBinding for the the `cluster-monitoring-view` ClusterRole.\n  - Ability to view Prometheus metrics. \n  - The underlying ClusterRole RBAC often updated between OpenShift versions.\n\nDue to limitations of Operator Lifecycle Manager (OLM), this ClusterRoleBinding can not be provided dynamically for arbitrary installation target namespaces.\n\nA static ClusterRoleBinding is included for installation to the default namespace of `ibm-software-central`, and namespaces `openshift-redhat-marketplace`,  `redhat-marketplace`, `ibm-common-services`.\n\nTo create the ClusterRoleBindings for installation to an alternate namespace\n```\noc project INSTALL-NAMESPACE\noc adm policy add-cluster-role-to-user view -z ibm-metrics-operator-metric-state\noc adm policy add-cluster-role-to-user cluster-monitoring-view -z ibm-metrics-operator-controller-manager,ibm-metrics-operator-reporter\n```\n\n### Metric State scoping requirements\nThe metric-state Deployment obtains `get/list/watch` access to metered resources via the `view` ClusterRole. For operators deployed using Operator Lifecycle Manager (OLM), permissions are added to `clusterrole/view` dynamically via a generated and annotated `-view` ClusterRole. If you wish to meter an operator, and its Custom Resource Definitions (CRDs) are not deployed through OLM, one of two options are required\n1. Add the following label to a clusterrole that has get/list/watch access to your CRD: `rbac.authorization.k8s.io/aggregate-to-view: \"true\"`, thereby dynamically adding it to `clusterrole/view`\n2. Create a ClusterRole that has get/list/watch access to your CRD, and create a ClusterRoleBinding for the metric-state ServiceAccount\n\nAttempting to meter a resource with a MeterDefinition without the required permissions will log an `AccessDeniedError` in metric-state.\n\n### Disaster Recovery\n\nTo plan for disaster recovery, note the PhysicalVolumeClaims `rhm-data-service-rhm-data-service-N`. \n- In connected environments, MeterReport data upload attempts occur hourly, and are then removed from data-service. There is a low risk of losing much unreported data.\n- In an airgap environment, MeterReport data must be pulled from data-service and uploaded manually using [datactl](https://github.com/redhat-marketplace/datactl/). To prevent data loss in a disaster scenario, the data-service volumes should be considered in a recovery plan.\n\n### Subscription Config\n\nIt is possible to [configure](https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/subscription-config.md) how OLM deploys an Operator via the `config` field in the [Subscription](https://github.com/operator-framework/olm-book/blob/master/docs/subscriptions.md) object.\n\nThe IBM Metrics Operator will also read the `config` and append it to the operands. The primary use case is to control scheduling using [Tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/) and [NodeSelectors](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node/).\n\nA limitation is that the `config` elements are only appended to the operands. The elements in the operands are not removed if the `config` is removed from the `Subscripion`. The operand must be modified manually, or deleted and recreated by the controller.\n\n### Cluster permission requirements\n\n|API group             |Resources              |Verbs                                     |\n|----------------------|-----------------------|------------------------------------------|\n|apps                  |statefulsets           |get;list;watch                            |\n|authentication.k8s.io |tokenreviews           |create                                    |\n|authorization.k8s.io  |subjectaccessreviews   |create                                    |\n|config.openshift.io   |clusterversions        |get;list;watch                            |\n|marketplace.redhat.com|meterdefinitions       |get;list;watch;create;update;patch;delete |\n|operators.coreos.com  |clusterserviceversions |get;list;watch                            |\n|operators.coreos.com  |subscriptions          |get;list;watch                            |\n|operators.coreos.com  |operatorgroups         |get;list                                  |\n|storage.k8s.io        |storageclasses         |get;list;watch                            |\n|                      |namespaces             |get;list;watch                            |\n|                      |configmaps             |get;list;watch                            |\n|                      |services               |get;list;watch                            |\n|                      |**clusterrole/view**   |                                          |\n\n\n### Documentation\nYou can find our documentation [here.](https://swc.saas.ibm.com/en-us/documentation/)\n\n### Getting help\nIf you encounter any issues while using the operators, you can create an issue on our [Github\nrepo](https://github.com/redhat-marketplace/redhat-marketplace-operator) for bugs, enhancements, or other requests. You can also visit our main page and\nreview our [support](https://swc.saas.ibm.com/en-us/support) and [documentation](https://swc.saas.ibm.com/en-us/documentation/).\n\n### Readme\nYou can find our readme [here.](https://github.com/redhat-marketplace/redhat-marketplace-operator/blob/develop/README.md)\n\n### License information\nYou can find our license information [here.](https://github.com/redhat-marketplace/redhat-marketplace-operator/blob/develop/LICENSE)\n"
+  displayName: IBM Metrics Operator
+  icon:
+    - base64data: PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1MS44IiBoZWlnaHQ9IjE5LjMzIiB2aWV3Qm94PSIwIDAgNTEuOCAxOS4zMyI+PGRlZnM+PHN0eWxlPi5jbHMtMXtmaWxsOiM0MjZhYjM7fTwvc3R5bGU+PC9kZWZzPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTM4Ljc2LDkuMiwzOC4zLDcuODZIMzAuNjFWOS4yWm0uOSwyLjU3LS40Ny0xLjM1SDMwLjYxdjEuMzVabTUuNzEsMTUuMzdoNi43MVYyNS44SDQ1LjM3djEuMzRabTAtMi41Nmg2LjcxVjIzLjIzSDQ1LjM3djEuMzVabTAtMi41N2g0VjIwLjY3aC00VjIyWm00LTMuOWgtNHYxLjM0aDRWMTguMTFabS00LTEuMjJoNFYxNS41NUg0MS43M2wtLjM4LDEuMDhMNDEsMTUuNTVIMzMuM3YxLjM0aDRWMTUuNjZsLjQ0LDEuMjNoNy4xOGwuNDMtMS4yM3YxLjIzWm00LTMuOUg0Mi42MmwtLjQ3LDEuMzRINDkuNFYxM1pNMzMuMywxOS40NWg0VjE4LjExaC00djEuMzRabTAsMi41Nmg0VjIwLjY3aC00VjIyWm0tMi42OSwyLjU3aDYuNzFWMjMuMjNIMzAuNjF2MS4zNVptMCwyLjU2aDYuNzFWMjUuOEgzMC42MXYxLjM0Wk00NC40LDcuODYsNDMuOTMsOS4yaDguMTVWNy44NlpNNDMsMTEuNzdoOVYxMC40Mkg0My41MUw0MywxMS43N1pNMzMuMywxNC4zM2g3LjI1TDQwLjA4LDEzSDMzLjN2MS4zNFptNS4zNSw1LjEySDQ0bC40Ny0xLjM0SDM4LjE4bC40NywxLjM0Wm0uOSwyLjU2aDMuNTlsLjQ3LTEuMzRIMzkuMDhMMzkuNTUsMjJabS45LDIuNTdoMS43OWwuNDctMS4zNUg0MGwuNDcsMS4zNVptLjksMi41Ni40Ni0xLjM0aC0uOTNsLjQ3LDEuMzRabS0yNi44NCwwaDkuODhhNS4xMSw1LjExLDAsMCwwLDMuNDYtMS4zNEgxNC41MXYxLjM0Wk0yNSwyMC42N1YyMmg0LjUxYTUuNDEsNS40MSwwLDAsMC0uMTctMS4zNFpNMTcuMTksMjJoNFYyMC42N2gtNFYyMlpNMjUsMTQuMzNoNC4zNEE1LjQxLDUuNDEsMCwwLDAsMjkuNTEsMTNIMjV2MS4zNFptLTcuODEsMGg0VjEzaC00djEuMzRabTcuMi02LjQ3SDE0LjUxVjkuMkgyNy44NWE1LjEzLDUuMTMsMCwwLDAtMy40Ni0xLjM0Wm00LjQ0LDIuNTZIMTQuNTF2MS4zNUgyOS4zN2E1LjMsNS4zLDAsMCwwLS41NC0xLjM1Wk0xNy4xOSwxNS41NXYxLjM0SDI3LjcxYTUuMzYsNS4zNiwwLDAsMCwxLjEyLTEuMzRabTEwLjUyLDIuNTZIMTcuMTl2MS4zNEgyOC44M2E1LjM2LDUuMzYsMCwwLDAtMS4xMi0xLjM0Wm0tMTMuMiw2LjQ3SDI4LjgzYTUuMyw1LjMsMCwwLDAsLjU0LTEuMzVIMTQuNTF2MS4zNVpNMy43Nyw5LjJoOS40VjcuODZIMy43N1Y5LjJabTAsMi41N2g5LjRWMTAuNDJIMy43N3YxLjM1Wk0xMC40OCwxM2gtNHYxLjM0aDRWMTNabS00LDMuOWg0VjE1LjU1aC00djEuMzRabTAsMi41Nmg0VjE4LjExaC00djEuMzRabTAsMi41Nmg0VjIwLjY3aC00VjIyWk0zLjc3LDI0LjU4aDkuNFYyMy4yM0gzLjc3djEuMzVabTAsMS4yMmg5LjR2MS4zNEgzLjc3VjI1LjhabTUwLjgyLjMyYy4wOSwwLC4xMywwLC4xMy0uMTJ2LS4wN2MwLS4wOCwwLS4xMi0uMTMtLjEySDU0LjR2LjMxWm0tLjE5LjU2aC0uMjZWMjUuNjFoLjQ5QS4zMi4zMiwwLDAsMSw1NSwyNmEuMzIuMzIsMCwwLDEtLjIuMzJsLjI1LjQxaC0uMjlsLS4yLS4zN0g1NC40di4zN1ptLjk0LS40OHYtLjEzYS43OS43OSwwLDAsMC0xLjU3LDB2LjEzYS43OS43OSwwLDAsMCwxLjU3LDBabS0xLjgxLS4wNmExLDEsMCwxLDEsMSwxLjA1LDEsMSwwLDAsMS0xLTEuMDVaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgtMy43NyAtNy44NikiLz48L3N2Zz4=
+      mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - nonResourceURLs:
+                - /api/v1/query
+                - /api/v1/query_range
+                - /api/v1/targets
+              verbs:
+                - create
+                - get
+            - nonResourceURLs:
+                - /metrics
+              verbs:
+                - get
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - namespaces
+                - services
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - nodes/metrics
+              verbs:
+                - get
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - config.openshift.io
+              resources:
+                - clusterversions
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - meterdefinitions
+                - meterdefinitions/status
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - catalogsources
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - operators.coreos.com
+              resourceNames:
+                - ibm-operator-catalog
+                - opencloud-operators
+              resources:
+                - catalogsources
+              verbs:
+                - delete
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - clusterserviceversions
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - storageclasses
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: ibm-metrics-operator-controller-manager
+        - rules:
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: ibm-metrics-operator-data-service
+        - rules:
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - meterreports
+              verbs:
+                - get
+                - list
+                - watch
+                - update
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - meterdefinitions
+                - meterdefinitions/status
+              verbs:
+                - get
+                - list
+                - watch
+                - update
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - operatorgroups
+              verbs:
+                - get
+                - list
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - get
+                - list
+                - watch
+                - update
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: ibm-metrics-operator-metric-state
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - services
+                - nodes
+              verbs:
+                - get
+                - watch
+                - list
+            - apiGroups:
+                - config.openshift.io
+              resources:
+                - clusterversions
+                - consoles
+                - infrastructures
+              verbs:
+                - get
+                - list
+                - watch
+            - nonResourceURLs:
+                - /api/v1/query
+                - /api/v1/query_range
+                - /api/v1/targets
+              verbs:
+                - create
+                - get
+            - nonResourceURLs:
+                - /dataservice.v1.fileserver.FileServer/*
+              verbs:
+                - create
+          serviceAccountName: ibm-metrics-operator-reporter
+        - rules:
+            - nonResourceURLs:
+                - /metrics
+              verbs:
+                - get
+          serviceAccountName: ibm-metrics-operator-servicemonitor-metrics-reader
+      deployments:
+        - label:
+            redhat.marketplace.com/name: ibm-metrics-operator
+          name: ibm-metrics-operator-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                redhat.marketplace.com/name: ibm-metrics-operator
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  authcheckImage: quay.io/rh-marketplace/redhat-marketplace-authcheck@sha256:76b9509f4cf6cb984fbcd3a57154df93f3157c6ea2509d1e50fb3ee3bb8ca7f8
+                  dqLiteImage: quay.io/rh-marketplace/redhat-marketplace-data-service@sha256:7881b2d86607a3c6b860e75836e7a553d6b2322c8467b6826596158e5ff8e0a3
+                  metricStateImage: quay.io/rh-marketplace/redhat-marketplace-metric-state@sha256:9d65604bd309667635f7f41864a752579669cfc9083a27b2832bed4d337a5ed5
+                  operatorImage: quay.io/rh-marketplace/ibm-metrics-operator@sha256:556bbb9d1c66e9370573fccbaaa0e116ad5f9988c89beb4c1aedde3d8ca13c4e
+                  productID: 36cdaba810c348c096b85800dd62bcf1
+                  productMetric: FREE
+                  productName: Red Hat Marketplace Operator
+                  rbacProxyImage: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9@sha256:a36dcad363fb9883a9c26ff37e63abf1dad533a7e8f11e8896a276b2bee1f02c
+                  reporterImage: quay.io/rh-marketplace/redhat-marketplace-reporter@sha256:c9cb941b439fdf6a098ea12b3845648b7b133e83e209ca9bfa321c77d7705f27
+                labels:
+                  app.kubernetes.io/instance: controller-manager
+                  app.kubernetes.io/managed-by: operator
+                  app.kubernetes.io/name: controller-manager
+                  app.kubernetes.io/part-of: ibm-metrics-operator
+                  control-plane: controller-manager
+                  redhat.marketplace.com/name: ibm-metrics-operator
+              spec:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: kubernetes.io/arch
+                              operator: In
+                              values:
+                                - amd64
+                                - ppc64le
+                                - s390x
+                            - key: kubernetes.io/os
+                              operator: In
+                              values:
+                                - linux
+                containers:
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-addr=:8443
+                      - --enable-leader-election
+                    env:
+                      - name: OPERATOR_NAME
+                        value: redhat-marketplace-operator
+                      - name: RELATED_IMAGE_AUTHCHECK
+                        value: quay.io/rh-marketplace/redhat-marketplace-authcheck@sha256:76b9509f4cf6cb984fbcd3a57154df93f3157c6ea2509d1e50fb3ee3bb8ca7f8
+                      - name: RELATED_IMAGE_DQLITE
+                        value: quay.io/rh-marketplace/redhat-marketplace-data-service@sha256:7881b2d86607a3c6b860e75836e7a553d6b2322c8467b6826596158e5ff8e0a3
+                      - name: RELATED_IMAGE_KUBE_RBAC_PROXY
+                        value: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9@sha256:a36dcad363fb9883a9c26ff37e63abf1dad533a7e8f11e8896a276b2bee1f02c
+                      - name: RELATED_IMAGE_METRIC_STATE
+                        value: quay.io/rh-marketplace/redhat-marketplace-metric-state@sha256:9d65604bd309667635f7f41864a752579669cfc9083a27b2832bed4d337a5ed5
+                      - name: RELATED_IMAGE_REPORTER
+                        value: quay.io/rh-marketplace/redhat-marketplace-reporter@sha256:c9cb941b439fdf6a098ea12b3845648b7b133e83e209ca9bfa321c77d7705f27
+                      - name: IBMCATALOGSOURCE
+                        value: "true"
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: POD_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OLM_OWNER_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.labels['olm.owner']
+                      - name: OLM_OWNER_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.labels['olm.owner.namespace']
+                      - name: OLM_OWNER_KIND
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.labels['olm.owner.kind']
+                      - name: OPERATOR_GROUP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.operatorGroup']
+                      - name: GOMEMLIMIT
+                        valueFrom:
+                          resourceFieldRef:
+                            containerName: manager
+                            divisor: "0"
+                            resource: limits.memory
+                    image: quay.io/rh-marketplace/ibm-metrics-operator@sha256:556bbb9d1c66e9370573fccbaaa0e116ad5f9988c89beb4c1aedde3d8ca13c4e
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    ports:
+                      - containerPort: 8443
+                        name: https
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 400m
+                        memory: 700Mi
+                      requests:
+                        cpu: 100m
+                        memory: 225Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      privileged: false
+                      readOnlyRootFilesystem: true
+                      runAsNonRoot: true
+                    volumeMounts:
+                      - mountPath: /etc/tls/private
+                        name: ibm-metrics-operator-controller-manager-metrics-service-tls
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: ibm-metrics-operator-controller-manager
+                terminationGracePeriodSeconds: 10
+                volumes:
+                  - name: ibm-metrics-operator-controller-manager-metrics-service-tls
+                    secret:
+                      secretName: ibm-metrics-operator-controller-manager-metrics-service-tls
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - ""
+              resourceNames:
+                - kubelet-serving-ca-bundle
+                - ibm-metrics-operator-serving-certs-ca-bundle
+              resources:
+                - configmaps
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - services
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+                - persistentvolumeclaims
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - delete
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resourceNames:
+                - rhm-data-service-mtls
+              resources:
+                - secrets
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resourceNames:
+                - ibm-entitlement-key
+                - redhat-marketplace-pull-secret
+                - rhm-operator-secret
+              resources:
+                - secrets
+                - secrets/finalizers
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - serviceaccounts/token
+              verbs:
+                - create
+                - get
+                - list
+                - update
+            - apiGroups:
+                - ""
+              resourceNames:
+                - kube-state-metrics
+                - rhm-metric-state-service
+              resources:
+                - services
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resourceNames:
+                - rhm-data-service
+              resources:
+                - services
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - apps
+              resourceNames:
+                - rhm-metric-state
+              resources:
+                - deployments
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - statefulsets
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - apps
+              resourceNames:
+                - ibm-metrics-operator-controller-manager
+              resources:
+                - deployments/finalizers
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resourceNames:
+                - redhat-marketplace-controller-manager
+              resources:
+                - deployments/finalizers
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments/finalizers
+                - replicasets
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - apps
+              resourceNames:
+                - rhm-data-service
+              resources:
+                - statefulsets
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - batch
+                - extensions
+              resources:
+                - cronjobs
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - batch
+                - extensions
+              resourceNames:
+                - rhm-meter-report-upload
+              resources:
+                - cronjobs
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - batch
+                - extensions
+              resources:
+                - jobs
+              verbs:
+                - delete
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - marketplaceconfigs
+                - marketplaceconfigs/finalizers
+                - marketplaceconfigs/status
+                - meterreports
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - meterbases
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - marketplace.redhat.com
+              resourceNames:
+                - rhm-marketplaceconfig-meterbase
+              resources:
+                - meterbases
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - meterbases/finalizers
+                - meterbases/status
+                - meterreports/finalizers
+                - meterreports/status
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - marketplace.redhat.com
+              resourceNames:
+                - rhm-marketplaceconfig-razeedeployment
+              resources:
+                - razeedeployments
+              verbs:
+                - delete
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - prometheuses
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - monitoring.coreos.com
+              resourceNames:
+                - rhm-marketplaceconfig-meterbase
+              resources:
+                - prometheuses
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - servicemonitors
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - monitoring.coreos.com
+              resourceNames:
+                - kube-state-metrics
+                - prometheus-user-workload
+                - redhat-marketplace-kube-state-metrics
+                - redhat-marketplace-kubelet
+                - rhm-metric-state
+              resources:
+                - servicemonitors
+              verbs:
+                - delete
+                - patch
+                - update
+            - apiGroups:
+                - operators.coreos.com
+              resources:
+                - clusterserviceversions
+                - subscriptions
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - policy
+              resources:
+                - poddisruptionbudgets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - route.openshift.io
+              resourceNames:
+                - rhm-data-service
+              resources:
+                - routes
+              verbs:
+                - delete
+                - patch
+                - update
+          serviceAccountName: ibm-metrics-operator-controller-manager
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - get
+                - watch
+                - list
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - get
+                - watch
+                - list
+                - create
+                - update
+                - patch
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - get
+                - watch
+                - list
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - meterreports
+                - marketplaceconfigs
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - marketplace.redhat.com
+              resources:
+                - meterreports
+                - meterreports/status
+              verbs:
+                - update
+                - patch
+          serviceAccountName: ibm-metrics-operator-reporter
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: false
+      type: AllNamespaces
+  keywords:
+    - red hat marketplace
+    - operators
+    - buy
+  links:
+    - name: Visit the marketplace!
+      url: https://marketplace.redhat.com
+    - name: About
+      url: https://marketplace.redhat.com/en-us/about
+    - name: Support
+      url: https://marketplace.redhat.com/en-us/support
+  maintainers:
+    - email: rhmoper@us.ibm.com
+      name: RHM Operator Team
+  maturity: stable
+  provider:
+    name: Red Hat Marketplace
+  relatedImages:
+    - image: quay.io/rh-marketplace/ibm-metrics-operator@sha256:556bbb9d1c66e9370573fccbaaa0e116ad5f9988c89beb4c1aedde3d8ca13c4e
+      name: manager
+    - image: quay.io/rh-marketplace/redhat-marketplace-data-service@sha256:7881b2d86607a3c6b860e75836e7a553d6b2322c8467b6826596158e5ff8e0a3
+      name: redhat-marketplace-data-service-7881b2d86607a3c6b860e75836e7a553d6b2322c8467b6826596158e5ff8e0a3-annotation
+    - image: quay.io/rh-marketplace/redhat-marketplace-reporter@sha256:c9cb941b439fdf6a098ea12b3845648b7b133e83e209ca9bfa321c77d7705f27
+      name: reporter
+    - image: quay.io/rh-marketplace/redhat-marketplace-metric-state@sha256:9d65604bd309667635f7f41864a752579669cfc9083a27b2832bed4d337a5ed5
+      name: redhat-marketplace-metric-state-9d65604bd309667635f7f41864a752579669cfc9083a27b2832bed4d337a5ed5-annotation
+    - image: quay.io/rh-marketplace/redhat-marketplace-reporter@sha256:c9cb941b439fdf6a098ea12b3845648b7b133e83e209ca9bfa321c77d7705f27
+      name: redhat-marketplace-reporter-c9cb941b439fdf6a098ea12b3845648b7b133e83e209ca9bfa321c77d7705f27-annotation
+    - image: quay.io/rh-marketplace/ibm-metrics-operator@sha256:556bbb9d1c66e9370573fccbaaa0e116ad5f9988c89beb4c1aedde3d8ca13c4e
+      name: ibm-metrics-operator-556bbb9d1c66e9370573fccbaaa0e116ad5f9988c89beb4c1aedde3d8ca13c4e-annotation
+    - image: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9@sha256:a36dcad363fb9883a9c26ff37e63abf1dad533a7e8f11e8896a276b2bee1f02c
+      name: ose-kube-rbac-proxy-rhel9-a36dcad363fb9883a9c26ff37e63abf1dad533a7e8f11e8896a276b2bee1f02c-annotation
+    - image: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9@sha256:a36dcad363fb9883a9c26ff37e63abf1dad533a7e8f11e8896a276b2bee1f02c
+      name: kube_rbac_proxy
+    - image: quay.io/rh-marketplace/redhat-marketplace-authcheck@sha256:76b9509f4cf6cb984fbcd3a57154df93f3157c6ea2509d1e50fb3ee3bb8ca7f8
+      name: redhat-marketplace-authcheck-76b9509f4cf6cb984fbcd3a57154df93f3157c6ea2509d1e50fb3ee3bb8ca7f8-annotation
+    - image: quay.io/rh-marketplace/redhat-marketplace-metric-state@sha256:9d65604bd309667635f7f41864a752579669cfc9083a27b2832bed4d337a5ed5
+      name: metric_state
+    - image: quay.io/rh-marketplace/redhat-marketplace-metric-state@sha256:9d65604bd309667635f7f41864a752579669cfc9083a27b2832bed4d337a5ed5
+      name: metric-state
+    - image: quay.io/rh-marketplace/redhat-marketplace-authcheck@sha256:76b9509f4cf6cb984fbcd3a57154df93f3157c6ea2509d1e50fb3ee3bb8ca7f8
+      name: authcheck
+    - image: quay.io/rh-marketplace/redhat-marketplace-data-service@sha256:7881b2d86607a3c6b860e75836e7a553d6b2322c8467b6826596158e5ff8e0a3
+      name: dqlite
+    - image: registry.redhat.io/openshift4/ose-kube-rbac-proxy-rhel9@sha256:a36dcad363fb9883a9c26ff37e63abf1dad533a7e8f11e8896a276b2bee1f02c
+      name: kube-rbac-proxy
+  version: 2.20.0

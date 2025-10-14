@@ -9,7 +9,7 @@ metadata:
           "apiVersion": "netscaler.com/v1",
           "kind": "AdmAgent",
           "metadata": {
-            "name": "nsadmao"
+            "name": "admagent"
           },
           "spec": {
             "accessSecret": "",
@@ -143,22 +143,35 @@ metadata:
         }
       ]
     capabilities: Basic Install
+    categories: Networking
     containerImage: registry.connect.redhat.com/citrix/netscaler-adm-agent-operator@sha256:c69e6422e3c0d4ffa190fa4a2bdcaebf764b2c2a485a148c790e0f500cfad3d3
     createdAt: "2025-09-24T10:37:44Z"
+    description: "This is an operator to install ADM Agent"
+    features.operators.openshift.io/disconnected: 'true'
+    features.operators.openshift.io/fips-compliant: 'false'
+    features.operators.openshift.io/proxy-aware: 'false'
+    features.operators.openshift.io/tls-profiles: 'false'
+    features.operators.openshift.io/token-auth-aws: 'false'
+    features.operators.openshift.io/token-auth-azure: 'false'
+    features.operators.openshift.io/token-auth-gcp: 'false'
     operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
-  name: adm-agent-operator.v141.55.40
+    repository: https://github.com/netscaler/netscaler-k8s-ingress-controller
+    support: NetScaler
+  name: netscaler-adm-agent-operator.v141.55.40
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: AdmAgent
+    - description: To install NetScaler ADM Agent Operator
+      displayName: NetScaler ADM Agent Operator
+      kind: AdmAgent
       name: admagents.netscaler.com
       version: v1
   description: This is an operator to deploy container-based ADM agent to connect
     NetScaler CPX with ADM Service for management and monitoring.
-  displayName: Adm Agent Operator
+  displayName: Netscaler ADM Agent Operator
   icon:
   - base64data: ""
     mediatype: ""
@@ -258,6 +271,8 @@ spec:
           - '*'
         - apiGroups:
           - autoscaling
+          apiVersions:
+          - v2
           resources:
           - horizontalpodautoscalers
           verbs:
@@ -300,18 +315,18 @@ spec:
           - subjectaccessreviews
           verbs:
           - create
-        serviceAccountName: adm-agent-operator-controller-manager
+        serviceAccountName: netscaler-adm-agent-operator-controller-manager
       deployments:
       - label:
           app.kubernetes.io/managed-by: kustomize
-          app.kubernetes.io/name: adm-agent-operator
+          app.kubernetes.io/name: netscaler-adm-agent-operator
           control-plane: controller-manager
-        name: adm-agent-operator-controller-manager
+        name: netscaler-adm-agent-operator-controller-manager
         spec:
           replicas: 1
           selector:
             matchLabels:
-              app.kubernetes.io/name: adm-agent-operator
+              app.kubernetes.io/name: netscaler-adm-agent-operator
               control-plane: controller-manager
           strategy: {}
           template:
@@ -319,17 +334,38 @@ spec:
               annotations:
                 kubectl.kubernetes.io/default-container: manager
               labels:
-                app.kubernetes.io/name: adm-agent-operator
+                app.kubernetes.io/name: netscaler-adm-agent-operator
                 control-plane: controller-manager
             spec:
               containers:
               - args:
-                - --metrics-require-rbac
-                - --metrics-secure
-                - --metrics-bind-address=:8443
-                - --leader-elect
-                - --leader-election-id=adm-agent-operator
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:65c052c60999ffb4fe611fb10ba620c248720e1a483313a623e61769228ddd85
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
                 - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=netscaler-adm-agent-operator
                 env:
                 - name: RELATED_IMAGE_ADM_AGENT
                   value: quay.io/citrix/adm-agent@sha256:65c052c60999ffb4fe611fb10ba620c248720e1a483313a623e61769228ddd85
@@ -337,25 +373,29 @@ spec:
                   value: "True"
                 image: registry.connect.redhat.com/citrix/netscaler-adm-agent-operator@sha256:c69e6422e3c0d4ffa190fa4a2bdcaebf764b2c2a485a148c790e0f500cfad3d3
                 livenessProbe:
+                  failureThreshold: 5
                   httpGet:
                     path: /healthz
                     port: 8081
                   initialDelaySeconds: 15
                   periodSeconds: 20
+                  successThreshold: 1
                 name: manager
                 readinessProbe:
+                  failureThreshold: 5
                   httpGet:
                     path: /readyz
                     port: 8081
                   initialDelaySeconds: 5
                   periodSeconds: 10
+                  successThreshold: 1
                 resources:
                   limits:
                     cpu: 500m
-                    memory: 128Mi
+                    memory: 500Mi
                   requests:
-                    cpu: 10m
-                    memory: 64Mi
+                    cpu: 200m
+                    memory: 200Mi
                 securityContext:
                   allowPrivilegeEscalation: false
                   capabilities:
@@ -365,7 +405,7 @@ spec:
                 runAsNonRoot: true
                 seccompProfile:
                   type: RuntimeDefault
-              serviceAccountName: adm-agent-operator-controller-manager
+              serviceAccountName: netscaler-adm-agent-operator-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
@@ -400,12 +440,12 @@ spec:
           verbs:
           - create
           - patch
-        serviceAccountName: adm-agent-operator-controller-manager
+        serviceAccountName: netscaler-adm-agent-operator-controller-manager
     strategy: deployment
   installModes:
-  - supported: false
+  - supported: true
     type: OwnNamespace
-  - supported: false
+  - supported: true
     type: SingleNamespace
   - supported: false
     type: MultiNamespace
@@ -421,8 +461,12 @@ spec:
   - Controller
   - Observability
   - Metrices
+  - adm
+  - agent
+  - monitoring
+  - proxy
   links:
-  - name: Adm Agent Operator
+  - name: Netscaler Adm Agent Operator
     url: https://adm-agent-operator.domain
   maintainers:
   - email: deepak.gupta@cloud.com

@@ -1,0 +1,377 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: kurrentdb-operator.v1.4.3
+  namespace: placeholder
+  annotations:
+    alm-examples: |
+      [
+        {
+          "apiVersion": "kubernetes.kurrent.io/v1",
+          "kind": "KurrentDB",
+          "metadata": {
+            "name": "insecure",
+            "namespace": "kurrent"
+          },
+          "spec": {
+            "replicas": 1,
+            "image": "registry.connect.redhat.com/kurrent-io/kurrentdb@sha256:cb732480820cc73572e152746b1f5f4eba1fa42229c6e0c3f3a51ee28e5965f2",
+            "resources": {
+              "requests": {
+                "cpu": "1000m",
+                "memory": "1Gi"
+              }
+            },
+            "storage": {
+              "volumeMode": "Filesystem",
+              "accessModes": [
+                "ReadWriteOnce"
+              ],
+              "resources": {
+                "requests": {
+                  "storage": "512Mi"
+                }
+              }
+            },
+            "volumeSnapshotClassName": "e2e",
+            "network": {
+              "domain": "kurrent.dev",
+              "fqdnTemplate": "{podName}.{domain}",
+              "loadBalancer": {
+                "enabled": true
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "kubernetes.kurrent.io/v1",
+          "kind": "KurrentDBBackup",
+          "metadata": {
+            "name": "insecure",
+            "namespace": "kurrent"
+          },
+          "spec": {
+            "clusterName": "insecure"
+          }
+        },
+        {
+          "apiVersion": "kubernetes.kurrent.io/v1",
+          "kind": "KurrentDBBackupSchedule",
+          "metadata": {
+            "name": "my-schedule",
+            "namespace": "kurrent"
+          },
+          "spec": {
+            "schedule": "* * * * *",
+            "template": {
+              "spec": {
+                "clusterName": "insecure"
+              }
+            },
+            "keep": 10
+          }
+        }
+      ]
+    capabilities: Full Lifecycle
+    categories: Database, Streaming & Messaging, OpenShift Optional
+    certified: 'true'
+    createdAt: '2025-09-25T00:00:00Z'
+    description: An operator to seamlessly deploy and manage KurrentDB clusters and
+      backups.
+    containerImage: registry.connect.redhat.com/kurrent-io/kurrentdb-operator@sha256:c917a5b506de698b678642a05f50211229e14f0ba4273dd8d89374b27dcfba7d
+    support: support@kurrent.io
+    repository: https://github.com/kurrent-io/kurrentdb
+    operators.openshift.io/valid-subscription: license required, contact us at https://www.kurrent.io/contact
+    features.operators.openshift.io/disconnected: 'false'
+    features.operators.openshift.io/fips-compliant: 'false'
+    features.operators.openshift.io/proxy-aware: 'false'
+    features.operators.openshift.io/tls-profiles: 'false'
+    features.operators.openshift.io/token-auth-aws: 'false'
+    features.operators.openshift.io/token-auth-azure: 'false'
+    features.operators.openshift.io/token-auth-gcp: 'false'
+  labels:
+    operatorframework.io/os.linux: supported
+    operatorframework.io/arch.amd64: supported
+spec:
+  version: 1.4.3
+  replaces: ''
+  skips: []
+  maturity: stable
+  description: An operator to seamlessly deploy and manage KurrentDB clusters and
+    backups.
+  displayName: KurrentDB Operator
+  keywords:
+    - kurrent
+    - event sourcing
+    - database
+  links:
+    - name: Website
+      url: https://kurrent.io
+    - name: Documentation
+      url: https://docs.kurrent.io/server/kubernetes-operator
+  maintainers:
+    - name: Kurrent, Inc
+      email: support@kurrent.io
+  provider:
+    name: Kurrent, Inc
+    url: https://kurrent.io
+  minKubeVersion: 1.30.0
+  relatedImages:
+    - name: operator
+      image: registry.connect.redhat.com/kurrent-io/kurrentdb-operator@sha256:c917a5b506de698b678642a05f50211229e14f0ba4273dd8d89374b27dcfba7d
+    - name: dns
+      image: registry.connect.redhat.com/kurrent-io/dns@sha256:07e8771886b4e4ab7393dee7a56c4a6d2c2225ba0aeca25e47199da616c903e4
+    - name: kurrentdb
+      image: registry.connect.redhat.com/kurrent-io/kurrentdb@sha256:cb732480820cc73572e152746b1f5f4eba1fa42229c6e0c3f3a51ee28e5965f2
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: true
+    - type: AllNamespaces
+      supported: true
+  customresourcedefinitions:
+    owned:
+      - kind: KurrentDB
+        name: kurrentdbs.kubernetes.kurrent.io
+        version: v1
+        description: A declarative representation of a KurrentDB cluster.
+        resources:
+          - kind: ConfigMap
+            version: v1
+          - kind: Service
+            version: v1
+          - kind: StatefulSet
+            version: v1
+          - kind: Pod
+            version: v1
+          - kind: PersistentVolumeClaim
+            version: v1
+          - kind: PersistentVolume
+            version: v1
+          - kind: VolumeSnapshot
+            name: snapshot.storage.k8s.io
+            version: v1
+      - kind: KurrentDBBackup
+        name: kurrentdbbackups.kubernetes.kurrent.io
+        version: v1
+        description: A VolumeSnapshot-based backup of a KurrentDB cluster.
+        resources:
+          - kind: VolumeSnapshot
+            name: snapshot.storage.k8s.io
+            version: v1
+      - kind: KurrentDBBackupSchedule
+        name: kurrentdbbackupschedules.kubernetes.kurrent.io
+        version: v1
+        description: A schedule for creating and retaining of KurrentDBBackup resources.
+        resources:
+          - kind: KurrentDBBackup
+            name: kurrentdbbackups.kubernetes.kurrent.io
+            version: v1
+          - kind: VolumeSnapshot
+            name: snapshot.storage.k8s.io
+            version: v1
+  nativeApis:
+    - kind: VolumeSnapshot
+      group: snapshot.storage.k8s.io
+      version: v1
+    - kind: VolumeSnapshotClass
+      group: snapshot.storage.k8s.io
+      version: v1
+  install:
+    strategy: deployment
+    spec:
+      deployments:
+        - labels:
+            control-plane: controller-manager
+            app.kubernetes.io/name: kurrentdb-operator
+            app.kubernetes.io/instance: kurrentdb-operator
+            app.kubernetes.io/component: kurrentdb-operator
+            app.kubernetes.io/created-by: kurrent
+            app.kubernetes.io/part-of: kurrentdb-operator
+          name: kurrentdb-operator
+          spec:
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                control-plane: controller-manager
+            replicas: 1
+            template:
+              metadata:
+                annotations:
+                  app.kubernetes.io/release-timestamp: '20251029104318'
+                  kubectl.kubernetes.io/default-container: controller
+                labels:
+                  control-plane: controller-manager
+                  app.kubernetes.io/name: kurrentdb-operator
+              spec:
+                securityContext:
+                  runAsNonRoot: true
+                containers:
+                  - command:
+                      - /kurrentdb-operator
+                    image: registry.connect.redhat.com/kurrent-io/kurrentdb-operator@sha256:c917a5b506de698b678642a05f50211229e14f0ba4273dd8d89374b27dcfba7d
+                    name: controller
+                    imagePullPolicy: IfNotPresent
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                    env:
+                      - name: XDG_CONFIG_HOME
+                        value: /tmp/workspace/helm/.config
+                      - name: XDG_CACHE_HOME
+                        value: /tmp/workspace/helm/.cache
+                      - name: NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                    volumeMounts:
+                      - name: config
+                        mountPath: config.yaml
+                        subPath: config.yaml
+                      - name: workspace
+                        mountPath: /tmp/workspace
+                      - name: annos
+                        mountPath: /etc/annos
+                    ports:
+                      - containerPort: 18080
+                        name: http-web-svc
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        memory: 128Mi
+                      requests:
+                        cpu: 1000m
+                        memory: 64Mi
+                volumes:
+                  - name: config
+                    configMap:
+                      defaultMode: 420
+                      name: kurrentdb-operator
+                  - name: workspace
+                    emptyDir: {}
+                  - name: annos
+                    downwardAPI:
+                      items:
+                        - path: annos
+                          fieldRef:
+                            fieldPath: metadata.annotations
+                serviceAccountName: kurrentdb-operator
+                terminationGracePeriodSeconds: 10
+                nodeSelector: null
+                nodeName: null
+                affinity: null
+                schedulerName: null
+                tolerations: null
+                topologySpreadConstraints: null
+                imagePullSecrets: null
+      permissions:
+        - serviceAccountName: kurrentdb-operator
+          rules:
+            - apiGroups:
+                - ''
+              resources:
+                - configmaps
+                - persistentvolumeclaims
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshots
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - events.k8s.io
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - kubernetes.kurrent.io
+              resources:
+                - kurrentdbbackups
+                - kurrentdbbackupschedules
+                - kurrentdbs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - kubernetes.kurrent.io
+              resources:
+                - kurrentdbbackups/finalizers
+                - kurrentdbbackupschedules/finalizers
+                - kurrentdbs/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - kubernetes.kurrent.io
+              resources:
+                - kurrentdbbackups/status
+                - kurrentdbbackupschedules/status
+                - kurrentdbs/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshotclasses
+              verbs:
+                - list
+            - apiGroups:
+                - ''
+              resources:
+                - pods
+              verbs:
+                - get
+                - list
+                - delete

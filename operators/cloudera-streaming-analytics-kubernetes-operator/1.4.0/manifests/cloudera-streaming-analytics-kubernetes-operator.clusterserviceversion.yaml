@@ -1,0 +1,529 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: "[\n  {\"apiVersion\":\"flink.apache.org/v1beta1\",\"kind\":\"FlinkDeployment\",\"metadata\":{\"name\":\"example-flink-deployment\"},\"spec\":{}},\n  {\"apiVersion\":\"flink.apache.org/v1beta1\",\"kind\":\"FlinkSessionJob\",\"metadata\":{\"name\":\"example-flink-sessionjob\"},\"spec\":{}},\n  {\"apiVersion\":\"flink.apache.org/v1beta1\",\"kind\":\"FlinkStateSnapshot\",\"metadata\":{\"name\":\"example-flink-statesnapshot\"},\"spec\":{}}\n]"
+    capabilities: Basic Install
+    createdAt: "2025-11-12T13:43:59Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.41.1
+    operators.operatorframework.io/project_layout: unknown
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    categories: Streaming & Messaging
+    description: Run Flink and SQL Stream Builder with Cloudera Streaming Analytics Kubernetes Operator.
+    support: Cloudera
+    operators.openshift.io/valid-subscription: A valid license and current subscription for Cloudera Streaming Analytics - Kubernetes Operator is required. Contact Cloudera sales to obtain a license. https://www.cloudera.com/contact-sales.html
+  name: cloudera-streaming-analytics-kubernetes-operator.v1.4.0
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: FlinkDeployment
+        name: flinkdeployments.flink.apache.org
+        version: v1beta1
+      - kind: FlinkSessionJob
+        name: flinksessionjobs.flink.apache.org
+        version: v1beta1
+      - kind: FlinkStateSnapshot
+        name: flinkstatesnapshots.flink.apache.org
+        version: v1beta1
+  description: |
+    Run Flink and SQL Stream Builder with Cloudera Streaming Analytics Kubernetes Operator.
+
+    ## Prerequisites
+
+    Before installing this operator, you must create the following resources in your target namespace. A helper script is available at https://github.com/cloudera/csa-operator/blob/master/olm-bundle/create-prerequisites.sh
+
+    ### Required Secrets
+
+    1. **License Secret**:
+       ```bash
+       oc create secret generic csa-license \
+         --from-file=license=/path/to/license.pgp \
+         -n <your-namespace>
+       ```
+
+    2. **Registry Pull Secret**:
+       ```bash
+       oc create secret docker-registry cloudera-registry-pull-secret \
+         --docker-server=container.repository.cloudera.com \
+         --docker-username=<username> \
+         --docker-password=<password> \
+         -n <your-namespace>
+       ```
+
+    3. **PostgreSQL Auth Secret** (default credentials for testing):
+       ```bash
+       kubectl create secret generic ssb-postgresql-auth \
+         --from-literal=username=ssb_admin \
+         --from-literal=password=cloudera \
+         --from-literal=postgres-password=cloudera \
+         -n <your-namespace>
+       ```
+
+    ### Required Resources
+
+    4. **PostgreSQL PVC**:
+       ```bash
+       kubectl apply -f - <<EOF
+       apiVersion: v1
+       kind: PersistentVolumeClaim
+       metadata:
+         name: ssb-postgresql-db
+         namespace: <your-namespace>
+       spec:
+         accessModes: [ReadWriteOnce]
+         resources:
+           requests:
+             storage: 100Mi
+       EOF
+       ```
+
+    5. **PostgreSQL Init Script**: Apply the ConfigMap from https://github.com/cloudera/csa-operator/blob/master/helm/csa-operator/charts/ssb/templates/postgres.yaml
+
+    6. **Services**: Apply services from the same template file
+
+    7. **cert-manager** (required for webhooks):
+       - Install cert-manager v1.13+ cluster-wide
+       - See: https://cert-manager.io/docs/installation/
+
+    ## Installation
+
+    After creating all prerequisites, install via Subscription:
+
+    \`\`\`yaml
+    apiVersion: operators.coreos.com/v1alpha1
+    kind: Subscription
+    metadata:
+      name: csa-operator
+      namespace: <your-namespace>
+    spec:
+      channel: stable
+      name: cloudera-streaming-analytics-kubernetes-operator
+      source: certified-operators
+      sourceNamespace: openshift-marketplace
+    \`\`\`
+
+    ## Security Note
+
+    Default PostgreSQL credentials (ssb_admin:cloudera) are for testing only. For production, create a custom ssb-postgresql-auth secret with strong passwords before installation.
+  displayName: CSA Operator
+  icon:
+    - base64data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQYV2P4DwQACfsD/Qs8cYoAAAAASUVORK5CYII=
+      mediatype: image/png
+  install:
+    spec:
+      deployments:
+        - name: flink-kubernetes-operator
+          spec:
+            replicas: 1
+            strategy:
+              type: Recreate
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: flink-kubernetes-operator
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: flink-kubernetes-operator
+                annotations:
+                  kubectl.kubernetes.io/default-container: flink-kubernetes-operator
+              spec:
+                securityContext: null
+                serviceAccountName: flink-operator
+                containers:
+                  - name: flink-kubernetes-operator
+                    image: container.repository.cloudera.com/cloudera/flink-kubernetes-operator@sha256:5a0e09557d5ae8c99fabc0ea79262cddd956a8762f5abc0a05bf4242694a2b2e
+                    imagePullPolicy: IfNotPresent
+                    command: ["/docker-entrypoint.sh", "operator"]
+                    ports:
+                      - containerPort: 8085
+                        name: health-port
+                        protocol: TCP
+                    env:
+                      - name: OPERATOR_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: HOST_IP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: status.hostIP
+                      - name: POD_IP
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: status.podIP
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: flink-kubernetes-operator
+                      - name: FLINK_CONF_DIR
+                        value: /opt/flink/conf
+                      - name: FLINK_PLUGINS_DIR
+                        value: /opt/flink/plugins
+                      - name: LOG_CONFIG
+                        value: -Dlog4j.configurationFile=/opt/flink/conf/log4j-operator.properties
+                    resources:
+                      limits:
+                        cpu: "1"
+                        memory: 1024Mi
+                      requests:
+                        cpu: 200m
+                        memory: 1024Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      runAsNonRoot: true
+                      seccompProfile:
+                        type: RuntimeDefault
+                    volumeMounts:
+                      - name: flink-operator-config-volume
+                        mountPath: /opt/flink/conf
+                      - name: flink-artifacts-volume
+                        mountPath: /opt/flink/artifacts
+                      - name: csa-op-license
+                        mountPath: /opt/flink/cloudera/license
+                        readOnly: true
+                    livenessProbe:
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      httpGet:
+                        path: /
+                        port: health-port
+                    startupProbe:
+                      failureThreshold: 30
+                      periodSeconds: 10
+                      httpGet:
+                        path: /
+                        port: health-port
+                  - name: flink-webhook
+                    image: container.repository.cloudera.com/cloudera/flink-kubernetes-operator@sha256:5a0e09557d5ae8c99fabc0ea79262cddd956a8762f5abc0a05bf4242694a2b2e
+                    imagePullPolicy: IfNotPresent
+                    command: ["/docker-entrypoint.sh", "webhook"]
+                    env:
+                      - name: WEBHOOK_KEYSTORE_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: flink-operator-webhook-secret
+                            key: password
+                      - name: WEBHOOK_KEYSTORE_FILE
+                        value: "/certs/keystore.p12"
+                      - name: WEBHOOK_KEYSTORE_TYPE
+                        value: "pkcs12"
+                      - name: WEBHOOK_SERVER_PORT
+                        value: "9443"
+                      - name: LOG_CONFIG
+                        value: -Dlog4j.configurationFile=/opt/flink/conf/log4j-operator.properties
+                      - name: FLINK_CONF_DIR
+                        value: /opt/flink/conf
+                      - name: FLINK_PLUGINS_DIR
+                        value: /opt/flink/plugins
+                      - name: OPERATOR_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 512Mi
+                      requests:
+                        cpu: 100m
+                        memory: 512Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      runAsNonRoot: true
+                      seccompProfile:
+                        type: RuntimeDefault
+                    volumeMounts:
+                      - name: keystore
+                        mountPath: "/certs"
+                        readOnly: true
+                      - name: flink-operator-config-volume
+                        mountPath: /opt/flink/conf
+                volumes:
+                  - name: flink-operator-config-volume
+                    configMap:
+                      name: flink-operator-config
+                      items:
+                        - key: flink-conf.yaml
+                          path: flink-conf.yaml
+                        - key: log4j-operator.properties
+                          path: log4j-operator.properties
+                        - key: log4j-console.properties
+                          path: log4j-console.properties
+                  - name: flink-artifacts-volume
+                    emptyDir: {}
+                  - name: keystore
+                    secret:
+                      secretName: webhook-server-cert
+                      items:
+                        - key: keystore.p12
+                          path: keystore.p12
+                  - name: csa-op-license
+                    secret:
+                      secretName: csa-license
+                      items:
+                        - key: license
+                          path: license.pgp
+                imagePullSecrets:
+                  - name: cloudera-registry-pull-secret
+        - name: ssb-sse
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                ssb.service: ssb
+            strategy:
+              type: Recreate
+            template:
+              metadata:
+                labels:
+                  helm.sh/chart: ssb-1.0.0
+                  app.kubernetes.io/name: ssb
+                  app.kubernetes.io/instance: csa-operator
+                  app.kubernetes.io/version: "1.0.0"
+                  app.kubernetes.io/managed-by: Helm
+                  ssb.service: ssb
+              spec:
+                volumes:
+                  - name: config-volume
+                    projected:
+                      sources:
+                        - configMap:
+                            name: ssb-config
+                            items:
+                              - key: application.properties
+                                path: application.properties
+                              - key: log4j.properties
+                                path: log4j.properties
+                              - key: security-context.yaml
+                                path: security-context.yaml
+                        - configMap:
+                            name: ssb-flink-config
+                            items:
+                              - key: flink-conf.yaml
+                                path: custom-flink-config/flink-conf.yaml
+                        - configMap:
+                            name: ssb-config-pod-volumes
+                            items:
+                              - key: pod-volumes.yaml
+                                path: pod-volumes.yaml
+                        - configMap:
+                            name: ssb-config-pod-volume-mounts
+                            items:
+                              - key: pod-volume-mounts.yaml
+                                path: pod-volume-mounts.yaml
+                  - name: tmp-volume
+                    emptyDir:
+                      sizeLimit: 1Gi
+                containers:
+                  - name: ssb
+                    resources:
+                      limits:
+                        cpu: 1500m
+                        memory: 2048Mi
+                      requests:
+                        cpu: "1"
+                        memory: 2048Mi
+                    env:
+                      - name: FERNET_KEY
+                        valueFrom:
+                          secretKeyRef:
+                            name: ssb-fernet-key
+                            key: fernetKey
+                      - name: SSB_USERS
+                        valueFrom:
+                          secretKeyRef:
+                            name: ssb-ssb-users-secret
+                            key: users
+                    envFrom:
+                      - secretRef:
+                          name: ssb-postgresql-auth
+                    image: container.repository.cloudera.com/cloudera/ssb-sse@sha256:39e86063a67715e81b91821140cf1b0bde205c0cae6709a723bd14ffbf48c47d
+                    imagePullPolicy: IfNotPresent
+                    ports:
+                      - containerPort: 18121
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /api/v2/heartbeat
+                        port: 18121
+                      periodSeconds: 5
+                    livenessProbe:
+                      httpGet:
+                        path: /api/v2/heartbeat
+                        port: 18121
+                      failureThreshold: 10
+                      periodSeconds: 5
+                    startupProbe:
+                      httpGet:
+                        path: /api/v2/heartbeat
+                        port: 18121
+                      failureThreshold: 60
+                      periodSeconds: 5
+                    volumeMounts:
+                      - name: config-volume
+                        mountPath: /opt/cloudera/ssb-sse/conf/
+                        readOnly: true
+                      - name: tmp-volume
+                        mountPath: /tmp/log/ssb
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      runAsNonRoot: true
+                      seccompProfile:
+                        type: RuntimeDefault
+                restartPolicy: Always
+                serviceAccountName: ssb
+                imagePullSecrets:
+                  - name: cloudera-registry-pull-secret
+        - name: ssb-postgresql
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                ssb.service: postgresql
+            strategy:
+              type: Recreate
+            template:
+              metadata:
+                labels:
+                  helm.sh/chart: ssb-1.0.0
+                  app.kubernetes.io/name: ssb
+                  app.kubernetes.io/instance: csa-operator
+                  app.kubernetes.io/version: "1.0.0"
+                  app.kubernetes.io/managed-by: Helm
+                  ssb.service: postgresql
+              spec:
+                containers:
+                  - env:
+                      - name: POSTGRES_DB
+                        valueFrom:
+                          secretKeyRef:
+                            name: ssb-postgresql-auth
+                            key: "SPRING_SB_DATASOURCE_USERNAME"
+                      - name: POSTGRES_USER
+                        valueFrom:
+                          secretKeyRef:
+                            name: ssb-postgresql-auth
+                            key: "SPRING_SB_DATASOURCE_USERNAME"
+                      - name: POSTGRES_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: ssb-postgresql-auth
+                            key: "SPRING_SB_DATASOURCE_PASSWORD"
+                      - name: PGDATA
+                        value: /var/lib/postgresql/data/pgdata
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 512Mi
+                      requests:
+                        cpu: 200m
+                        memory: 512Mi
+                    image: container.repository.cloudera.com/cloudera_thirdparty/hardened/postgres:16.6-r0-openshift-202411290828
+                    name: postgresql
+                    ports:
+                      - containerPort: 5432
+                        protocol: TCP
+                    readinessProbe:
+                      exec:
+                        command:
+                          - pg_isready
+                      periodSeconds: 5
+                      timeoutSeconds: 30
+                    livenessProbe:
+                      exec:
+                        command:
+                          - pg_isready
+                      periodSeconds: 5
+                      timeoutSeconds: 30
+                    volumeMounts:
+                      - mountPath: /var/lib/postgresql/data
+                        name: db-volume
+                      - mountPath: /var/lib/postgres/initdb/init-db.sh
+                        name: init-script-volume
+                        subPath: init-db.sh
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      runAsNonRoot: true
+                      seccompProfile:
+                        type: RuntimeDefault
+                restartPolicy: Always
+                securityContext: null
+                volumes:
+                  - name: db-volume
+                    persistentVolumeClaim:
+                      claimName: ssb-postgresql-db
+                  - name: init-script-volume
+                    configMap:
+                      name: postgres-init-script
+                imagePullSecrets:
+                  - name: cloudera-registry-pull-secret
+                serviceAccountName: default
+      permissions: []
+      clusterPermissions: []
+    strategy: deployment
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: false
+    - type: AllNamespaces
+      supported: true
+  keywords:
+    - cloudera-streaming-analytics-kubernetes-operator
+    - flink
+    - ssb
+    - csa-operator
+  links:
+    - name: Cloudera Streaming Analytics (CSA)
+      url: https://www.cloudera.com/products/stream-processing.html
+  maintainers:
+    - name: Cloudera
+      email: support@cloudera.com
+  maturity: stable
+  provider:
+    name: Cloudera
+    url: https://www.cloudera.com
+  version: 1.4.0
+  minKubeVersion: 1.24.0
+  labels:
+    name: cloudera-streaming-analytics-kubernetes-operator
+  relatedImages:
+    - name: flink
+      image: container.repository.cloudera.com/cloudera/flink@sha256:c6091d921f3031d45547356a45d6bdf3fb404b252272a7c026f8b2aefa96c231
+    - name: flink-kubernetes-operator
+      image: container.repository.cloudera.com/cloudera/flink-kubernetes-operator@sha256:5a0e09557d5ae8c99fabc0ea79262cddd956a8762f5abc0a05bf4242694a2b2e
+    - name: ssb-sse
+      image: container.repository.cloudera.com/cloudera/ssb-sse@sha256:39e86063a67715e81b91821140cf1b0bde205c0cae6709a723bd14ffbf48c47d
+    - name: ssb-sse-hadoop
+      image: container.repository.cloudera.com/cloudera/ssb-sse-hadoop@sha256:9486fccea9d6f31feda586f96f175616d452676c35f36d40ab3c4640a9b3bd6f
+    - name: flink-extended
+      image: container.repository.cloudera.com/cloudera/flink-extended@sha256:e3928e86b42bf31de04845d5fa1919fd6b0556e000e67a688a25df28814c20ce
+    - name: flink-extended-hadoop
+      image: container.repository.cloudera.com/cloudera/flink-extended-hadoop@sha256:e9858be1399b26b8856c34271cb490f367b562020d7e2cd5a76e8e3904585fe5
+    - name: postgres
+      image: container.repository.cloudera.com/cloudera_thirdparty/hardened/postgres:16.6-r0-openshift-202411290828

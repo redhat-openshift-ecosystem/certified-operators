@@ -61,6 +61,8 @@ fbc-onboarding: clean
 catalogs: render_catalogs.sh ${BINDIR}/opm ${BINDIR}/yq clean
 	@echo "Rendering catalogs from templates"
 	@${BINDIR}/render_catalogs.sh
+	@find ${TOPDIR}/catalogs -type d -name ${OPERATOR_NAME} -exec \
+		${BINDIR}/yq ea -i 'select(fi == 1) as $$icon | select(.schema == "olm.package").icon = $$icon | select(fi == 0)' {}/catalog.yaml catalog-templates/icon.yaml \;
 
 
 # validate-catalogs target illustrates FBC validation

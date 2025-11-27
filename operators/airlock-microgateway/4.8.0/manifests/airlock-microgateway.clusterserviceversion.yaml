@@ -1,0 +1,1178 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"APIProtection","metadata":{"name":"api-protection-example"},"spec":{"policies":[{"name":"My REST API exception","requestConditions":{"path":{"matcher":{"prefix":"/rest/no-validation"}}},"noValidation":{}},{"name":"My REST API","requestConditions":{"path":{"matcher":{"prefix":"/rest"}}},"openAPIRef":{"name":"open-api-example"}},{"name":"My GraphQL API","requestConditions":{"path":{"matcher":{"prefix":"/graphql"}}},"graphQLRef":{"name":"graphql-example"}}]}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"AccessControlPolicy","metadata":{"name":"access-control-policy-example"},"spec":{"targetRefs":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute","name":"backend"}],"policies":[{"requestConditions":{"path":{"matcher":{"prefix":"/secure"}}},"authorization":{"requireAll":[{"clientCertificate":{"hash":{"in":{"values":["69e4caf01b2b3490cd938b053274a2c9001c45c21b2cb58e3612c550568a42ca","df6ff72fe9116521268f6f2dd4966f51df479883fe7037b39f75916ac3049d1a"]}}}},{"clientCertificate":{"subject":{"field":"Organization","value":{"matcher":{"exact":"Company"}}}}},{"clientCertificate":{"san":{"type":"Email","value":{"matcher":{"suffix":"@company.com"}}}}}]}},{"authorization":{"deny":{}}}]}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"AccessControlPolicy","metadata":{"name":"access-control-policy-example"},"spec":{"targetRefs":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute","name":"backend"}],"policies":[{"requestConditions":{"path":{"matcher":{"prefix":"/api"}}},"authorization":{"requireAll":[{"jwt":{"claim":{"name":"sub","value":{"matcher":{"prefix":"/group/a/"}}}}}],"authentication":{"jwt":{"jwtRef":{"name":"test-jwt"}}}}},{"authorization":{"deny":{}}}]}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"AccessControlPolicy","metadata":{"name":"access-control-policy-example"},"spec":{"targetRefs":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute","name":"backend"}],"policies":[{"requestConditions":{"invert":true,"remoteIP":{"cidrRanges":["192.168.0.0/16"]}},"authorization":{"deny":{}}},{"requestConditions":{"path":{"matcher":{"regex":"^/partner/"}}},"authorization":{"requireAll":[{"tokenExchange":{"claim":{"name":"group","value":{"matcher":{"exact":"partner"}}}}}],"authentication":{"oidc":{"oidcRelyingPartyRef":{"name":"test-2"}}}},"tokenExchange":{"actions":[{"tokenExchangeRef":{"name":"token-exchange-example"}}]}},{"requestConditions":{"path":{"matcher":{"regex":"^/admin/"}}},"authorization":{"requireAll":[{"oidc":{"claim":{"name":"name","value":{"matcher":{"exact":"admin"}}}}},{"oidc":{"claim":{"name":"email","value":{"matcher":{"suffix":"@company.com"}}}}}],"authentication":{"oidc":{"oidcRelyingPartyRef":{"name":"test-2"},"introspection":{"strategy":{"random":{"probability":"0.1%"}}}}}},"identityPropagation":{"actions":[{"identityPropagationRef":{"name":"identity-propagation-example"}}],"onFailure":"Pass"}},{"authorization":{"deny":{}}}]}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"CSRFProtection","metadata":{"name":"csrf-protection-example"},"spec":{"settings":{"threatHandlingMode":"Block"},"exceptions":[{"requestConditions":{"path":{"matcher":{"regex":"^/member/","ignoreCase":true}},"invert":false,"remoteIP":{"cidrRanges":["192.168.1.0/24","10.0.0.0/16"],"invert":false},"method":["DELETE"]}}]}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"ContentSecurityPolicy","metadata":{"name":"content-security-policy-example"},"spec":{"targetRefs":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute","name":"backend"}],"secured":{"parserRef":{"name":"parser-example"},"limitsRef":{"name":"limits-example"},"headerRewritesRef":{"name":"header-rewrites-example"},"filter":{"denyRulesRef":{"name":"deny-rules-example"}},"apiProtectionRef":{"name":"api-protection-example"},"csrfProtectionRef":{"name":"csrf-protection-example"}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"CustomResponse","metadata":{"name":"custom-response-example"},"spec":{"statusCode":400,"content":[{"contentType":"application/json","headers":[{"name":"X-Request-Id","value":"%STREAM_ID%"},{"name":"X-Some-Header","value":"some-value"}],"body":{"value":"{\n  \"error\": \"something went wrong\"\n}"}},{"contentType":"text/html","body":{"value":"<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n<style>\n  body {\n    font-family: Arial, Helvetica, sans-serif;\n    background-color: #222222;\n  }\n  h1 {\n    color: #aaaaaa;\n  }\n</style>\n</head>\n<body>\n<h1>Something went wrong!</h1>\n<p>Request ID: %STREAM_ID%</p>\n</body>\n</html>"}},{"contentType":"application/xml","body":{"valueFrom":{"configMapKeyRef":{"name":"custom-response-example","key":"response.xml"}}}}]}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"CustomResponsePolicy","metadata":{"name":"custom-response-policy-example"},"spec":{"targetRefs":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute","name":"backend"}],"policies":{"local":[{"requestConditions":{"path":{"matcher":{"prefix":"/api"}}},"responses":[{"statusCodeCondition":{"matcher":{"exact":401}},"customResponseRef":{"name":"api-401"}}]},{"requestConditions":{"path":{"matcher":{"prefix":"/default"}}},"responses":[]},{"responses":[{"statusCodeCondition":{"matcher":{"exact":401}},"customResponseRef":{"name":"custom-401"}},{"statusCodeCondition":{"matcher":{"exact":404}},"customResponseRef":{"name":"custom-404"}},{"statusCodeCondition":{"matcher":{"range":{"start":400,"end":499}}},"customResponseRef":{"name":"custom-400"}},{"statusCodeCondition":{"matcher":{"range":{"start":500,"end":599}}},"customResponseRef":{"name":"custom-5xx"}}]}],"upstream":[{"requestConditions":{"path":{"matcher":{"prefix":"/api"}}},"responses":[]},{"responses":[{"responseConditions":{"statusCode":{"matcher":{"range":{"start":400,"end":499}}}},"customResponseRef":{"name":"upstream-4xx"}},{"responseConditions":{"statusCode":{"matcher":{"range":{"start":500,"end":599}}}},"customResponseRef":{"name":"upstream-5xx"}}]}]}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"CustomResponse","metadata":{"name":"custom-response-redirect-404-example"},"spec":{"statusCode":302,"content":[{"contentType":"none/none","headers":[{"name":"Location","value":"https://company.com/error/404.html?request_id=%STREAM_ID%"}]}]}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"DenyRules","metadata":{"name":"deny-rules-example"},"spec":{"request":{"builtIn":{"settings":{"level":"Strict","threatHandlingMode":"Block"},"overrides":[{"conditions":{"ruleKeys":["XSS"],"types":["Parameter"]},"settings":{"level":"Standard"}},{"conditions":{"types":["GraphQL"]},"settings":{"level":"Standard"}}],"exceptions":[{"blockedData":{"parameter":{"name":{"matcher":{"exact":"search"}},"source":"Query"}},"requestConditions":{"path":{"matcher":{"prefix":"/member/"}},"method":["GET"]},"ruleKeys":["SQL"]},{"blockedData":{"graphQL":{"field":{"matcher":{"exact":"films"}},"argument":{"matcher":{"exact":"search"}},"value":{"matcher":{"exact":"abc"}}}}}]},"custom":{"rules":[{"ruleKey":"CM_REFERRER_BLOCK","blockData":{"header":{"name":{"matcher":{"exact":"referer"}},"value":{"matcher":{"regex":".*bad.tv"}}}}}]}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"EnvoyCluster","metadata":{"name":"envoy-cluster-ext-authz","namespace":"default"},"spec":{"value":{"name":"envoycluster/default/envoy-cluster-ext-authz","connect_timeout":"1s","type":"LOGICAL_DNS","load_assignment":{"cluster_name":"ext-authz","endpoints":[{"lb_endpoints":[{"endpoint":{"address":{"socket_address":{"address":"opa.service.internal","port_value":8099}}}}]}]}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"EnvoyExtensionPolicy","metadata":{"name":"envoy-extension-policy-example"},"spec":{"targetRefs":[{"group":"gateway.networking.k8s.io","kind":"HTTPRoute","name":"backend"}],"envoyHTTPFilterRefs":{"prepend":[{"name":"envoy-httpfilter-ext-authz"}],"append":[{"name":"lua-transform-request"}]},"envoyClusterRefs":[{"name":"envoy-cluster-ext-authz"}]}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"EnvoyHTTPFilter","metadata":{"name":"envoy-httpfilter-ext-authz"},"spec":{"value":{"name":"envoy.filters.http.ext_authz","typed_config":{"@type":"type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz","http_service":{"path_prefix":"/auth/login","server_uri":{"uri":"http://opa.service.internal:8099","cluster":"envoycluster/default/envoy-cluster-ext-authz","timeout":"0.25s"}}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"GatewayParameters","metadata":{"name":"gateway-parameters-example"},"spec":{"logging":{"level":"debug"},"kubernetes":{"service":{"type":"LoadBalancer","annotations":{"service.beta.kubernetes.io/aws-load-balancer-type":"external","service.beta.kubernetes.io/aws-load-balancer-nlb-target-type":"ip","service.beta.kubernetes.io/aws-load-balancer-scheme":"internet-facing"}},"deployment":{"replicas":3,"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1}},"placement":{"nodeSelector":{"node.kubernetes.io/instance-type":"m3.medium"},"topologySpreadConstraints":[{"maxSkew":1,"topologyKey":"topology.kubernetes.io/zone","whenUnsatisfiable":"ScheduleAnyway"}]},"volumes":[{"name":"vol-1","emptyDir":{}}],"engineContainer":{"resources":{"limits":{"cpu":"500m","memory":"128Mi"},"requests":{"cpu":"10m","memory":"40Mi"}},"volumeMounts":[{"name":"vol-1","mountPath":"/tmp/data"}],"securityContext":{"capabilities":{"add":["BPF"]}}}}},"defaults":{"customResponses":{"local":[{"statusCodeCondition":{"matcher":{"exact":401}},"customResponseRef":{"name":"custom-401"}},{"statusCodeCondition":{"matcher":{"exact":404}},"customResponseRef":{"name":"custom-404"}},{"statusCodeCondition":{"matcher":{"range":{"start":400,"end":499}}},"customResponseRef":{"name":"custom-400"}},{"statusCodeCondition":{"matcher":{"range":{"start":500,"end":599}}},"customResponseRef":{"name":"custom-5xx"}}],"upstream":[{"responseConditions":{"statusCode":{"matcher":{"range":{"start":400,"end":499}}}},"customResponseRef":{"name":"upstream-4xx"}},{"responseConditions":{"statusCode":{"matcher":{"range":{"start":500,"end":599}}}},"customResponseRef":{"name":"upstream-5xx"}}]},"sessionHandlingRef":{"name":"session-handling-example"},"telemetryRef":{"name":"telemetry-example"},"downstream":{"remoteIP":{"xff":{"numTrustedHops":1}}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"GraphQL","metadata":{"name":"graphql-example"},"spec":{"settings":{"threatHandlingMode":"Block","allowMutations":true,"allowIntrospection":false,"schema":{"source":{"configMapRef":{"name":"graphql-schema"}}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"HeaderRewrites","metadata":{"name":"header-rewrites-example"},"spec":{"request":{"allow":{"matchingHeaders":{"builtIn":{"standardHeaders":true,"tracingHeaders":true},"custom":[{"name":"Allow X-CSRF-Token header","headers":[{"name":{"matcher":{"exact":"X-CSRF-TOKEN"}}}]}]}},"remove":{"builtIn":{"alternativeForwardedHeaders":true},"custom":[{"name":"Remove X-Forwarded-Host","headers":[{"name":{"matcher":{"exact":"X-Forwarded-Host"}}}]}]},"add":{"custom":[{"name":"Add headers with downstream TLS connection information to member requests","headers":[{"name":"X-TLS-DOWNSTREAM-PEER-CERT","value":"%DOWNSTREAM_PEER_CERT%"}],"mode":"OverwriteOrAdd","requestConditions":{"path":{"matcher":{"regex":"^/member/"}}}}]}},"response":{"allow":{"allHeaders":{}},"remove":{"builtIn":{"auth":{"basic":true}}},"add":{"custom":[{"name":"Add application version as header","headers":[{"name":"X-APP-VERSION","value":"3.7.4"}],"mode":"OverwriteOrAdd"}]}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"IdentityPropagation","metadata":{"name":"identity-propagation-example"},"spec":{"bearerToken":{"source":{"jwt":{}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"IdentityPropagation","metadata":{"name":"identity-propagation-example"},"spec":{"header":{"name":"X-USER-NAME","value":{"source":{"oidc":{"idToken":{"claim":"name"}}}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"JWKS","metadata":{"name":"jwks-example"},"spec":{"provider":{"remote":{"uri":"https://example.com/.well-known/jwks.json","timeouts":{"connect":"1s"}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"JWT","metadata":{"name":"jwt-example"},"spec":{"extractionSources":[{"bearerToken":{}},{"cookie":{"name":"creds"}}],"requireAny":[{"jwksRef":{"name":"example-jwks"},"issuer":"https://token.example.com","audiences":["bookstore_web.apps.example.com"],"subject":{"matcher":{"prefix":"spiffe://spiffe.example.com/"}}}],"expirationRequired":true,"maxLifetime":"24h","clockSkewTolerance":"10s"}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"Limits","metadata":{"name":"limits-example"},"spec":{"settings":{"threatHandlingMode":"Block"},"request":{"limited":{"general":{"bodySize":"10Mi","pathLength":"1Ki"},"parameter":{"bodySize":"10Ki","count":128,"nameLength":128,"valueLength":"1Ki"},"json":{"bodySize":"10Ki","nestingDepth":100,"keyCount":250,"elementCount":150000,"keyLength":128,"valueLength":"8Ki"},"multipart":{"bodySize":"10Mi"},"graphQL":{"querySize":512,"nestingDepth":5,"valueLength":128},"exceptions":[{"length":{"json":{"jsonPath":"$.logo"}},"requestConditions":{"path":{"matcher":{"prefix":"/project/"}}}},{"length":{"parameter":{"name":{"matcher":{"exact":"txtbdy"}},"source":"Post"}}},{"length":{"graphQL":{"field":{"matcher":{"exact":"search"}},"argument":{"matcher":{"exact":"text"}}}}}]}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"OIDCProvider","metadata":{"name":"oidc-provider-example"},"spec":{"static":{"issuer":"https://iam.airlock.com/","endpoints":{"authorization":{"uri":"https://iam.airlock.com/authorize"},"token":{"uri":"https://iam.airlock.com/token"},"introspection":{"uri":"https://iam.airlock.com/introspection"}},"tokenValidation":{"idToken":{"signatureVerification":{"jwksRef":{"name":"jwks-example"}}}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"OIDCRelyingParty","metadata":{"name":"oidc-rp-example"},"spec":{"oidcProviderRef":{"name":"example-provider"},"clientID":"my-id","scopes":["openid","profile","email","roles"],"credentials":{"clientSecret":{"method":"BasicAuth","secretRef":{"name":"client-password"}}},"pathMapping":{"logoutPath":{"matcher":{"exact":"/logout"}},"redirectPath":{"matcher":{"exact":"/callback"}}},"redirectURI":"%REQ(:x-forwarded-proto)%://%REQ(:authority)%/callback","flowTimeout":"7m"}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"OpenAPI","metadata":{"name":"open-api-example"},"spec":{"settings":{"schema":{"source":{"configMapRef":{"name":"openapi3-spec"}}},"threatHandlingMode":"Block","logging":{"maxFailedSubvalidations":10},"validation":{"authentication":{"oAuth2":{"allowedParameters":{"builtIn":{"standardParameters":true},"custom":["param1","param2"]}},"oidc":{"allowedParameters":{"builtIn":{"standardParameters":false},"custom":["param3","param4"]}}}}},"response":{"unsecured":{}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"Parser","metadata":{"name":"parser-example"},"spec":{"request":{"defaultContentType":"application/json","parsers":{"json":{"enable":true,"mediaTypePattern":".*json.*"},"form":{"enable":true,"mediaTypePattern":".*form-urlencoded.*"},"multipart":{"enable":true,"mediaTypePattern":".*multipart.*"}},"custom":{"rules":[{"requestConditions":{"method":["POST"],"path":{"matcher":{"exact":"/company/contact.php"}}},"action":{"parse":{"json":{}}}},{"requestConditions":{"path":{"matcher":{"exact":"/support/upload.php"}}},"action":{"skip":{}}}]}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"RedisProvider","metadata":{"name":"redis-provider-example"},"spec":{"mode":{"standalone":{"host":"redis.example.com","port":1111}},"tls":{"certificateVerification":{"custom":{"trustedCA":{"certificates":[{"secretRef":{"name":"ca"}}]}}},"clientCertificate":{"secretRef":{"name":"client-certificate"}}},"timeouts":{"connect":"10s"},"auth":{"username":"user1","password":{"secretRef":{"name":"redis-password"}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"SessionHandling","metadata":{"name":"session-handling-example"},"spec":{"mode":"Enforce","persistence":{"redisProviderRef":{"name":"redis-provider-example"}},"prefix":"session_prefix_example","agent":{"logging":{"level":"debug"}},"defaultTimeouts":{"idle":"30s","lifetime":"16h"},"cookie":{"name":"SESS","attributes":{"domain":"example.org","path":"/","sameSite":"Strict","secure":true}},"limits":{"sessionsPerIP":{"thresholds":{"logging":1000,"blocking":1500},"exceptions":[{"remoteIP":{"cidrRanges":["192.168.0.0/16"]}}]}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"Telemetry","metadata":{"name":"telemetry-example"},"spec":{"logging":{"accessLog":{"format":{"json":{"@timestamp":"%START_TIME(%Y-%m-%dT%T.%3f%z)%","ecs":{"version":"8.5"},"log":{"logger":"access","level":"info"},"event":{"kind":"event","category":["web"],"type":"%EVENT_TYPE%","module":"envoy","dataset":"envoy.access","outcome":"success","start":"%START_TIME(%Y-%m-%dT%T.%3f%z)%","end":"%END_TIME(%Y-%m-%dT%T.%3f%z)%","duration":"%DURATION_IN_NANOSECONDS%"},"airlock":{"access_control":"%ACCESS_CONTROL%","actions":{"block":"%BLOCK_ACTION%","header_rewrites":"%HEADER_REWRITES%","log_only":"%LOG_ONLY_ACTIONS%"},"http":{"request":{"accept_language":"%REQ(ACCEPT-LANGUAGE):100%","correlation_id":"%DYNAMIC_METADATA(com.airlock.microgateway.telemetry:correlation_id)%"},"response":{"redirect_url":"%RESP(LOCATION):1000%"},"session":{"id":"%SESSION_ID%"}},"log_correlation":"%LOG_CORRELATION%","summary":{"action":"%SUMMARY_ACTION%","details":"%RESPONSE_CODE_DETAILS%","flags":"%RESPONSE_FLAGS%"},"upstream":{"destination":{"ip":"%UPSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%","port":"%UPSTREAM_REMOTE_PORT%"},"http":{"version":"%UPSTREAM_HTTP_VERSION%"},"tls":{"peer":{"issuer":"%UPSTREAM_PEER_ISSUER%","subject":"%UPSTREAM_PEER_SUBJECT%"}}}},"destination":{"ip":"%DOWNSTREAM_LOCAL_ADDRESS_WITHOUT_PORT%","port":"%DOWNSTREAM_LOCAL_PORT%"},"http":{"request":{"body":{"bytes":"%BYTES_RECEIVED%"},"bytes":"%REQUEST_HEADERS_AND_BODY_BYTES%","id":"%STREAM_ID%","method":"%REQ(:METHOD):100%","mime_type":"%REQ_MIME_TYPE:500%","referrer":"%REQ(REFERER):1000%"},"response":{"body":{"bytes":"%BYTES_SENT%"},"bytes":"%RESPONSE_HEADERS_AND_BODY_BYTES%","mime_type":"%RESP_MIME_TYPE:500%","status_code":"%RESPONSE_CODE%"},"version":"%HTTP_VERSION%"},"network":{"forwarded_ip":"%DOWNSTREAM_REMOTE_ADDRESS_WITHOUT_PORT%"},"observer":{"product":"Airlock Microgateway","type":"waap","vendor":"Ergon Informatik AG","version":"%ENVIRONMENT(ENGINE_VERSION)%"},"source":{"ip":"%DOWNSTREAM_DIRECT_REMOTE_ADDRESS_WITHOUT_PORT%","port":"%DOWNSTREAM_DIRECT_REMOTE_PORT%"},"url":{"domain":"%HTTP_HOST:500%","path":"%REQ_WITHOUT_QUERY(:PATH):1000%","query":"%REQ_QUERY(:PATH):1000%"},"user_agent":{"original":"%REQ(USER-AGENT):500%"},"custom":{"downstream":{"tls":{"protocol":"%DOWNSTREAM_TLS_VERSION%","cipher":"%DOWNSTREAM_TLS_CIPHER%","session_id":"%DOWNSTREAM_TLS_SESSION_ID%"},"direct_remote_address":{"ip":"%DOWNSTREAM_DIRECT_REMOTE_ADDRESS_WITHOUT_PORT%","port":"%DOWNSTREAM_DIRECT_REMOTE_PORT%"}},"http":{"request":{"cookie":"%REQ(cookie):500%"}}}}}}},"correlation":{"idSource":{"header":{"name":"X-Request-Id"}}}}},{"apiVersion":"microgateway.airlock.com/v1alpha1","kind":"TokenExchange","metadata":{"name":"token-exchange-example"},"spec":{"tokenEndpoint":{"endpoint":{"uri":"https://iam.airlock.com/token","tls":{"protocol":{"minimum":"TLSv1_3"}},"timeouts":{"connect":"2s"}},"credentials":{"clientPassword":{"method":"BasicAuth","clientID":"my-id","clientSecret":{"secretRef":{"name":"client-password"}}}}},"requestedTokenType":"urn:ietf:params:oauth:token-type:jwt","audiences":["https://api.airlock.com/realms/a","my-audience"],"resources":["https://resource.airlock.com/"],"scopes":["db"]}}]'
+    capabilities: Seamless Upgrades
+    categories: Security
+    createdAt: "2025-11-27T13:04:27Z"
+    description: Airlock Microgateway is a Kubernetes native WAAP (Web Application and API Protection) solution to protect microservices.
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operatorframework.io/suggested-namespace: airlock-microgateway-system
+    operators.openshift.io/valid-subscription: '["Airlock Microgateway Community License", "Airlock Microgateway Premium License"]'
+    operators.operatorframework.io/builder: operator-sdk-unknown
+    operators.operatorframework.io/internal-objects: '["envoyconfigurations.microgateway.airlock.com"]'
+    operators.operatorframework.io/project_layout: unknown
+    repository: https://github.com/airlock/microgateway
+    support: Airlock
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/os.linux: supported
+  name: airlock-microgateway.v4.8.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: AccessControlPolicy
+        name: accesscontrolpolicies.microgateway.airlock.com
+        version: v1alpha1
+      - kind: APIProtection
+        name: apiprotections.microgateway.airlock.com
+        version: v1alpha1
+      - kind: ContentSecurityPolicy
+        name: contentsecuritypolicies.microgateway.airlock.com
+        version: v1alpha1
+      - kind: CSRFProtection
+        name: csrfprotections.microgateway.airlock.com
+        version: v1alpha1
+      - kind: CustomResponsePolicy
+        name: customresponsepolicies.microgateway.airlock.com
+        version: v1alpha1
+      - kind: CustomResponse
+        name: customresponses.microgateway.airlock.com
+        version: v1alpha1
+      - kind: DenyRules
+        name: denyrules.microgateway.airlock.com
+        version: v1alpha1
+      - kind: EnvoyCluster
+        name: envoyclusters.microgateway.airlock.com
+        version: v1alpha1
+      - kind: EnvoyConfiguration
+        name: envoyconfigurations.microgateway.airlock.com
+        version: v1alpha1
+      - kind: EnvoyExtensionPolicy
+        name: envoyextensionpolicies.microgateway.airlock.com
+        version: v1alpha1
+      - kind: EnvoyHTTPFilter
+        name: envoyhttpfilters.microgateway.airlock.com
+        version: v1alpha1
+      - kind: GatewayParameters
+        name: gatewayparameters.microgateway.airlock.com
+        version: v1alpha1
+      - kind: GraphQL
+        name: graphqls.microgateway.airlock.com
+        version: v1alpha1
+      - kind: HeaderRewrites
+        name: headerrewrites.microgateway.airlock.com
+        version: v1alpha1
+      - kind: IdentityPropagation
+        name: identitypropagations.microgateway.airlock.com
+        version: v1alpha1
+      - kind: JWKS
+        name: jwks.microgateway.airlock.com
+        version: v1alpha1
+      - kind: JWT
+        name: jwts.microgateway.airlock.com
+        version: v1alpha1
+      - kind: Limits
+        name: limits.microgateway.airlock.com
+        version: v1alpha1
+      - kind: OIDCProvider
+        name: oidcproviders.microgateway.airlock.com
+        version: v1alpha1
+      - kind: OIDCRelyingParty
+        name: oidcrelyingparties.microgateway.airlock.com
+        version: v1alpha1
+      - kind: OpenAPI
+        name: openapis.microgateway.airlock.com
+        version: v1alpha1
+      - kind: Parser
+        name: parsers.microgateway.airlock.com
+        version: v1alpha1
+      - kind: RedisProvider
+        name: redisproviders.microgateway.airlock.com
+        version: v1alpha1
+      - kind: SessionHandling
+        name: sessionhandlings.microgateway.airlock.com
+        version: v1alpha1
+      - kind: Telemetry
+        name: telemetries.microgateway.airlock.com
+        version: v1alpha1
+      - kind: TokenExchange
+        name: tokenexchanges.microgateway.airlock.com
+        version: v1alpha1
+  description: |-
+    Airlock Microgateway is a Kubernetes native WAAP (Web Application and API Protection) solution to protect microservices.
+
+    Modern application security is embedded in the development workflow and follows DevSecOps paradigms. Airlock Microgateway is the perfect fit for these requirements.
+    It is a lightweight WAAP solution (formerly known as WAF), optimized for Kubernetes environments.
+    Airlock Microgateway protects your applications and microservices with the tried-and-tested Airlock security features against attacks, while also providing a high degree of scalability.
+
+    For a list of all features, view the [comparison of the community and premium edition](https://docs.airlock.com/microgateway/4.8/?topic=MGW-00000056).
+
+    The instructions below provide a quick start guide.
+
+    ## Prerequisites
+
+    * [Airlock Microgateway License](https://docs.airlock.com/microgateway/4.8/?topic=MGW-00000056)
+    * [Gateway API](https://gateway-api.sigs.k8s.io/)
+
+    In order to use Airlock Microgateway you need a license. You may either request a community license free of charge or purchase a premium license.
+
+    ### Obtain Airlock Microgateway License
+    Airlock Microgateway requires a valid license. See [Community vs. Premium editions in detail](https://docs.airlock.com/microgateway/4.8/?topic=MGW-00000056) to choose the right license type.
+    1. Either request a community or premium license
+        * Community license: [airlock.com/microgateway-community](https://airlock.com/en/microgateway-community)
+          A license will be sent automatically within minutes.
+        * Premium license: [airlock.com/microgateway-premium](https://airlock.com/en/microgateway-premium)
+          Your sales partner will contact you for licensing.
+    2. Check your inbox and save the license file microgateway-license.txt locally.
+
+    ### Deploy Airlock Microgateway License
+    1. Create the `airlock-microgateway-system` namespace.
+
+    ```console
+    oc create project airlock-microgateway-system
+    ````
+    2. Create a Kubernetes secret with the name `airlock-microgateway-license` and the key `microgateway-license.txt` in the Microgateway Operator namespace to store the license.
+
+    ```console
+    oc create secret generic airlock-microgateway-license \
+      -n airlock-microgateway-system \
+      --from-file=microgateway-license.txt=<path-to-your-local-microgateway-license.txt>
+    ````
+
+    ### Install Gateway API standard channel
+    ***Note:*** *This step is only required for OpenShift versions below 4.19, as Gateway API is included by default in OpenShift 4.19+.*
+
+    ```console
+    kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+    ```
+
+    ## Configuring Airlock Microgateway Operator deployed by OLM
+    ***Note:*** *It is possible to configure how OLM deploys an Operator via the [Subscription Config](https://github.com/operator-framework/operator-lifecycle-manager/blob/master/doc/design/subscription-config.md).*
+
+    The following environment variables are supported:
+    | Name        | Default     | Example     | Description |
+    | ----------- | ----------- | ----------- | ----------- |
+    | LOG\_LEVEL   | "info"      | "debug"     | Operator application log level. Allowed Values: “error”, “warn”, “info”, “debug” |
+    | GATEWAY\_API\_ENABLED |  "true"  |  "true"    | Whether to enable the Kubernetes Gateway API related controllers. Requires that the gateway.networking.k8s.io/v1 resources are installed on the cluster. See [https://gateway-api.sigs.k8s.io/guides/#install-standard-channel](https://gateway-api.sigs.k8s.io/guides/#install-standard-channel). |
+    | GATEWAY\_API\_CONTROLLER\_NAME |  "microgateway.airlock.com/gatewayclass-controller" | "true" | Controller name referred in the GatewayClasses managed by this operator. The value must be a path prefixed by the domain microgateway.airlock.com. |
+    | GATEWAY\_API\_POD\_MONITOR\_CREATE | "true" | "true" | Whether to create a PodMonitor resource for monitoring the Gateway API resources. |
+    | GATEWAY\_API\_POD\_MONITOR\_ADDITIONAL\_LABELS | "" | "release=my-microgateway,env=dev" | Labels to add to the PodMonitor. Allowed Values: Comma-separated list of key=value pairs|
+  displayName: Airlock Microgateway
+  icon:
+    - base64data: PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCAwIDEwMCAxMDAiIGZpbGw9 Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjUw IiBjeT0iNTAiIHI9IjM1IiBmaWxsPSIjQURDQzE0Ii8+CjxwYXRoIGQ9Ik01MCAxNUM0NS40MDM3 IDE1IDQwLjg1MjUgMTUuOTA1MyAzNi42MDYxIDE3LjY2NDJDMzIuMzU5NyAxOS40MjMxIDI4LjUw MTMgMjIuMDAxMiAyNS4yNTEzIDI1LjI1MTNDMjIuMDAxMiAyOC41MDEzIDE5LjQyMzEgMzIuMzU5 NyAxNy42NjQyIDM2LjYwNjFDMTUuOTA1MyA0MC44NTI1IDE1IDQ1LjQwMzcgMTUgNTBMNTAgNTBM NTAgMTVaIiBmaWxsPSJ1cmwoI3BhaW50MF9yYWRpYWwpIi8+CjxwYXRoIGQ9Ik01MCA4NUM1NC41 OTYzIDg1IDU5LjE0NzUgODQuMDk0NyA2My4zOTM5IDgyLjMzNThDNjcuNjQwMyA4MC41NzY5IDcx LjQ5ODcgNzcuOTk4OCA3NC43NDg3IDc0Ljc0ODdDNzcuOTk4OCA3MS40OTg3IDgwLjU3NjkgNjcu NjQwMyA4Mi4zMzU4IDYzLjM5MzlDODQuMDk0NyA1OS4xNDc1IDg1IDU0LjU5NjMgODUgNTBMNTAg NTBMNTAgODVaIiBmaWxsPSJ1cmwoI3BhaW50MV9yYWRpYWwpIi8+CjxkZWZzPgo8cmFkaWFsR3Jh ZGllbnQgaWQ9InBhaW50MF9yYWRpYWwiIGN4PSIwIiBjeT0iMCIgcj0iMSIgZ3JhZGllbnRVbml0 cz0idXNlclNwYWNlT25Vc2UiIGdyYWRpZW50VHJhbnNmb3JtPSJ0cmFuc2xhdGUoNTAgNTApIHJv dGF0ZSg5MCkgc2NhbGUoMzUpIj4KPHN0b3Agc3RvcC1jb2xvcj0iIzcwOTkxRiIvPgo8c3RvcCBv ZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiMzODREMEYiLz4KPC9yYWRpYWxHcmFkaWVudD4KPHJhZGlh bEdyYWRpZW50IGlkPSJwYWludDFfcmFkaWFsIiBjeD0iMCIgY3k9IjAiIHI9IjEiIGdyYWRpZW50 VW5pdHM9InVzZXJTcGFjZU9uVXNlIiBncmFkaWVudFRyYW5zZm9ybT0idHJhbnNsYXRlKDUwIDUw KSByb3RhdGUoOTApIHNjYWxlKDM1KSI+CjxzdG9wIHN0b3AtY29sb3I9IiM3MDk5MUYiLz4KPHN0 b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSIjMzg0RDBGIi8+CjwvcmFkaWFsR3JhZGllbnQ+Cjwv ZGVmcz4KPC9zdmc+Cg==
+      mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - namespaces
+                - nodes
+                - replicasets
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - pods/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - services
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apiextensions.k8s.io
+              resources:
+                - customresourcedefinitions
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - replicasets
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - replicasets/finalizers
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - gateway.networking.k8s.io
+              resources:
+                - gatewayclasses
+              verbs:
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - gateway.networking.k8s.io
+              resources:
+                - gatewayclasses/finalizers
+                - gatewayclasses/status
+                - gateways/finalizers
+                - gateways/status
+                - httproutes/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - gateway.networking.k8s.io
+              resources:
+                - gateways
+                - httproutes
+                - referencegrants
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - gateway.networking.k8s.io
+                - x-openshift.microgateway.airlock.com
+              resources:
+                - backendtlspolicies
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - gateway.networking.k8s.io
+                - x-openshift.microgateway.airlock.com
+              resources:
+                - backendtlspolicies/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - microgateway.airlock.com
+              resources:
+                - accesscontrolpolicies
+                - accesscontrols
+                - apiprotections
+                - contentsecurities
+                - contentsecuritypolicies
+                - csrfprotections
+                - customresponsepolicies
+                - customresponses
+                - denyrules
+                - envoyclusters
+                - envoyextensionpolicies
+                - envoyhttpfilters
+                - gatewayparameters
+                - graphqls
+                - headerrewrites
+                - identitypropagations
+                - jwks
+                - jwts
+                - limits
+                - oidcproviders
+                - oidcrelyingparties
+                - openapis
+                - parsers
+                - redisproviders
+                - sessionhandlings
+                - telemetries
+                - tokenexchanges
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - microgateway.airlock.com
+              resources:
+                - accesscontrolpolicies/status
+                - contentsecuritypolicies/status
+                - customresponsepolicies/status
+                - envoyextensionpolicies/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - microgateway.airlock.com
+              resources:
+                - envoyconfigurations
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - microgateway.airlock.com
+              resources:
+                - envoyconfigurations/status
+                - sidecargateways/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - microgateway.airlock.com
+              resources:
+                - sidecargateways
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - microgateway.airlock.com
+              resources:
+                - sidecargateways/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - podmonitors
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+          serviceAccountName: airlock-microgateway-operator
+      deployments:
+        - label:
+            app.kubernetes.io/component: controller
+            app.kubernetes.io/instance: airlock-microgateway
+            app.kubernetes.io/name: microgateway-operator
+            app.kubernetes.io/part-of: microgateway
+            app.kubernetes.io/version: 4.8.0
+          name: airlock-microgateway-operator
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app.kubernetes.io/component: controller
+                app.kubernetes.io/instance: airlock-microgateway
+                app.kubernetes.io/name: microgateway-operator
+            strategy:
+              type: RollingUpdate
+            template:
+              metadata:
+                annotations:
+                  checksum/config: 928df2da4a5f5f1dab3bcedd088dbb2a0e78fd7d9582be7fe10dae239386e26c
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  app.kubernetes.io/component: controller
+                  app.kubernetes.io/instance: airlock-microgateway
+                  app.kubernetes.io/name: microgateway-operator
+                  app.kubernetes.io/part-of: microgateway
+                  app.kubernetes.io/version: 4.8.0
+              spec:
+                containers:
+                  - args:
+                      - --config=/app/config/operator_config.yaml
+                    env:
+                      - name: ENGINE_IMAGE
+                        value: quay.io/airlock/microgateway-engine@sha256:208ac2e5d6d420e18aed0bb520df8126c5dcb8cf1ad7e92f9ccf9e6a21dfefa9
+                      - name: SESSION_AGENT_IMAGE
+                        value: quay.io/airlock/microgateway-session-agent@sha256:0649b3095dc2dc8f3f167646cc3047c8c0540541da13e7767ee330f45031b705
+                      - name: OPERATOR_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: LOG_LEVEL
+                        value: info
+                      - name: SIDECAR_GATEWAY_ENABLED
+                        value: "false"
+                      - name: SIDECAR_GATEWAY_POD_MONITOR_CREATE
+                        value: "false"
+                      - name: GATEWAY_API_ENABLED
+                        value: "true"
+                      - name: GATEWAY_API_CONTROLLER_NAME
+                        value: microgateway.airlock.com/gatewayclass-controller
+                      - name: GATEWAY_API_POD_MONITOR_CREATE
+                        value: "true"
+                    image: quay.io/airlock/microgateway-operator@sha256:02115c32df6d841dd7f89bc7a1deb7537f3e4dad8fbd3b709b964a524e310fe8
+                    imagePullPolicy: IfNotPresent
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                      timeoutSeconds: 5
+                    name: manager
+                    ports:
+                      - containerPort: 9443
+                        name: webhook-server
+                        protocol: TCP
+                      - containerPort: 13377
+                        name: xds-server
+                        protocol: TCP
+                      - containerPort: 8080
+                        protocol: TCP
+                      - containerPort: 8081
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                      timeoutSeconds: 5
+                    resources:
+                      limits:
+                        cpu: 2500m
+                        memory: 512Mi
+                      requests:
+                        cpu: 250m
+                        memory: 512Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      privileged: false
+                      readOnlyRootFilesystem: true
+                      runAsNonRoot: true
+                      seccompProfile:
+                        type: RuntimeDefault
+                    terminationMessagePath: /dev/termination-log
+                    terminationMessagePolicy: FallbackToLogsOnError
+                    volumeMounts:
+                      - mountPath: /app/config/license/
+                        name: airlock-microgateway-license
+                        readOnly: true
+                      - mountPath: /app/config/operator_config.yaml
+                        name: operator-config
+                        subPath: operator_config.yaml
+                      - mountPath: /app/config/sidecar/engine_container_template.yaml
+                        name: operator-config
+                        subPath: engine_container_template.yaml
+                      - mountPath: /app/config/sidecar/network_validator_container_template.yaml
+                        name: operator-config
+                        subPath: network_validator_container_template.yaml
+                      - mountPath: /app/config/sidecar/session_agent_container_template.yaml
+                        name: operator-config
+                        subPath: session_agent_container_template.yaml
+                      - mountPath: /app/config/engine_bootstrap_config_template.yaml
+                        name: operator-config
+                        subPath: engine_bootstrap_config_template.yaml
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: airlock-microgateway-operator
+                terminationGracePeriodSeconds: 10
+                volumes:
+                  - name: airlock-microgateway-license
+                    secret:
+                      defaultMode: 292
+                      optional: true
+                      secretName: airlock-microgateway-license
+                  - configMap:
+                      name: airlock-microgateway-operator-config
+                    name: operator-config
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: airlock-microgateway-operator
+    strategy: deployment
+  installModes:
+    - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - Gateway API
+    - WAF
+    - Web Application Firewall
+    - WAAP
+    - Web Application and API protection
+    - OWASP
+    - Airlock
+    - Microgateway
+    - Security
+    - Filtering
+    - DevSecOps
+    - shift left
+    - control plane
+    - Operator
+  links:
+    - name: Airlock Microgateway Documentation
+      url: https://docs.airlock.com/microgateway/4.8/
+    - name: Airlock Microgateway Labs
+      url: https://airlock.instruqt.com/pages/airlock-microgateway-labs
+    - name: Airlock Microgateway Forum
+      url: https://forum.airlock.com/
+  maintainers:
+    - email: support@airlock.com
+      name: Airlock
+  maturity: stable
+  minKubeVersion: 1.29.0
+  provider:
+    name: Airlock
+  relatedImages:
+    - image: quay.io/airlock/microgateway-operator@sha256:02115c32df6d841dd7f89bc7a1deb7537f3e4dad8fbd3b709b964a524e310fe8
+      name: manager
+  replaces: airlock-microgateway.v4.7.4
+  version: 4.8.0
+  webhookdefinitions:
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-accesscontrol.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - accesscontrols
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-accesscontrol
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-accesscontrolpolicy.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - accesscontrolpolicies
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-accesscontrolpolicy
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-apiprotection.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - apiprotections
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-apiprotection
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-contentsecurity.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - contentsecurities
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-contentsecurity
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-contentsecuritypolicy.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - contentsecuritypolicies
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-contentsecuritypolicy
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-csrfprotection.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - csrfprotections
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-csrfprotection
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-customresponse.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - customresponses
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-customresponse
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-customresponsepolicy.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - customresponsepolicies
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-customresponsepolicy
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-denyrules.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - denyrules
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-denyrules
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-envoycluster.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - envoyclusters
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-envoycluster
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-envoyhttpfilter.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - envoyhttpfilters
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-envoyhttpfilter
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-gatewayparameters.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - gatewayparameters
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-gatewayparameters
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-graphql.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - graphqls
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-graphql
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-headerrewrites.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - headerrewrites
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-headerrewrites
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-identitypropagation.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - identitypropagations
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-identitypropagation
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-jwks.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - jwks
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-jwks
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-jwt.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - jwts
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-jwt
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-limits.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - limits
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-limits
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-oidcprovider.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - oidcproviders
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-oidcprovider
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-oidcrelyingparty.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - oidcrelyingparties
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-oidcrelyingparty
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-openapi.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - openapis
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-openapi
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-parser.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - parsers
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-parser
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-pod.microgateway.airlock.com
+      objectSelector:
+        matchLabels:
+          sidecar.microgateway.airlock.com/inject: "true"
+      rules:
+        - apiGroups:
+            - ""
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - pods
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-v1-pod
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-redisprovider.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - redisproviders
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-redisprovider
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-sessionhandling.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - sessionhandlings
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-sessionhandling
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-sidecargateway.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - sidecargateways
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-sidecargateway
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: airlock-microgateway-operator
+      failurePolicy: Fail
+      generateName: validate-tokenexchange.microgateway.airlock.com
+      rules:
+        - apiGroups:
+            - microgateway.airlock.com
+          apiVersions:
+            - v1alpha1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - tokenexchanges
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-microgateway-airlock-com-v1alpha1-tokenexchange

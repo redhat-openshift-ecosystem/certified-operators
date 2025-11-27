@@ -1,0 +1,361 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    app.kubernetes.io/name: airlock-microgateway-operator
+    app.kubernetes.io/version: 4.8.0
+  name: jwks.microgateway.airlock.com
+spec:
+  group: microgateway.airlock.com
+  names:
+    categories:
+    - airlock-microgateway
+    kind: JWKS
+    listKind: JWKSList
+    plural: jwks
+    singular: jwks
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: JWKS provides a JSON Web Key Set.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired JWKS.
+            properties:
+              provider:
+                description: provider configures the source from which to retrieve
+                  the JWKS.
+                properties:
+                  local:
+                    description: local specifies to retrieve the JWKS from a local
+                      secret.
+                    properties:
+                      secretRef:
+                        description: |-
+                          secretRef selects the secret containing the JWKS under the key 'jwks.json'.
+                          Note: If the provided JWKS is invalid (e.g., due to syntax errors), the Airlock Microgateway Engine will log an error, token validation will always fail, and requests will be blocked.
+                        properties:
+                          name:
+                            description: name of the resource
+                            maxLength: 253
+                            minLength: 1
+                            type: string
+                        required:
+                        - name
+                        type: object
+                    required:
+                    - secretRef
+                    type: object
+                  remote:
+                    description: remote specifies to retrieve the JWKS from a remote
+                      endpoint.
+                    properties:
+                      timeouts:
+                        description: timeouts specifies the timeouts when interacting
+                          with the Token endpoint.
+                        properties:
+                          connect:
+                            default: 5s
+                            description: connect specifies the timeout for establishing
+                              a connection.
+                            type: string
+                          maxDuration:
+                            default: 15s
+                            description: maxDuration specifies the response timeout.
+                            type: string
+                        type: object
+                      tls:
+                        description: tls defines TLS settings.
+                        properties:
+                          certificateVerification:
+                            description: certificateVerification specifies how the
+                              certificate presented by the server is verified.
+                            properties:
+                              custom:
+                                description: |-
+                                  custom explicitly specifies how the server certificate should be verified.
+                                  Typical use cases include specifying a custom CA and SAN match when working with self-signed certificates or pinning a specific public key.
+                                properties:
+                                  allowedSANs:
+                                    description: |-
+                                      allowedSANs is a list of matchers to verify the Subject Alternative name. If specified, it will verify that the
+                                      Subject Alternative Name of the presented certificate matches one of the specified matchers. The matching uses “any” semantics,
+                                      that is to say, the SAN is verified if at least one matcher is matched.
+                                      AllowedSANs requires trustedCA to be set.
+                                    items:
+                                      description: |-
+                                        TLSValidationContextSANMatcher is a list of matchers to verify the Subject Alternative name. If specified, it will verify that the
+                                        Subject Alternative Name of the presented certificate matches one of the specified matchers.
+                                      properties:
+                                        matcher:
+                                          description: matcher defines the string
+                                            matcher for the SAN value.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            ignoreCase:
+                                              default: false
+                                              description: ignoreCase indicates whether
+                                                the matching should be case-insensitive.
+                                                In case of a regex match, the regex
+                                                gets wrapped with a group `(?i:...)`.
+                                              type: boolean
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                        sanType:
+                                          description: sanType defines the type of
+                                            SAN matcher.
+                                          enum:
+                                          - DNS
+                                          - Email
+                                          - URI
+                                          - IPAddress
+                                          type: string
+                                      required:
+                                      - matcher
+                                      - sanType
+                                      type: object
+                                    maxItems: 32
+                                    minItems: 1
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  certificatePinning:
+                                    description: |-
+                                      certificatePinning defines constraints the presented certificate must fulfill.
+                                      If more than one constraint is configured only one must be satisfied.
+                                      At least one of allowedSPKIs and allowedHashes must be set.
+                                    properties:
+                                      allowedHashes:
+                                        description: |-
+                                          allowedHashes is a list of hex-encoded SHA-256 hashes.
+                                          If specified, it will verify that the SHA-256 of the DER-encoded presented certificate matches one of the specified values.
+                                        items:
+                                          maxLength: 95
+                                          minLength: 64
+                                          pattern: ^[0-9a-fA-F]{64}$|^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){31}$
+                                          type: string
+                                        maxItems: 64
+                                        minItems: 1
+                                        type: array
+                                        x-kubernetes-list-type: set
+                                      allowedSPKIs:
+                                        description: |-
+                                          allowedSPKIs is a list of base64-encoded SHA-256 hashes.
+                                          If specified, it will verify that the SHA-256 of the DER-encoded Subject Public Key Information (SPKI) of the presented certificate matches one of the specified values.
+                                        items:
+                                          format: byte
+                                          maxLength: 44
+                                          minLength: 44
+                                          pattern: '[^=]=$'
+                                          type: string
+                                        maxItems: 64
+                                        minItems: 1
+                                        type: array
+                                        x-kubernetes-list-type: set
+                                    type: object
+                                  crl:
+                                    description: crl defines the Certificate Revocation
+                                      List (CRL) settings.
+                                    properties:
+                                      lists:
+                                        description: lists defines the list of secretRefs
+                                          containing Certificate Revocation Lists.
+                                        items:
+                                          properties:
+                                            secretRef:
+                                              description: secretRef defines the reference
+                                                to a secret containing one or more
+                                                CRL's (in PEM format) under the key
+                                                'ca.crl'.
+                                              properties:
+                                                name:
+                                                  description: name of the resource
+                                                  maxLength: 253
+                                                  minLength: 1
+                                                  type: string
+                                              required:
+                                              - name
+                                              type: object
+                                          required:
+                                          - secretRef
+                                          type: object
+                                        maxItems: 32
+                                        minItems: 1
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      validationMode:
+                                        default: VerifyChain
+                                        description: validationMode defines whether
+                                          only the leaf certificate or also the CA
+                                          certs should be checked.
+                                        enum:
+                                        - VerifyLeafCertOnly
+                                        - VerifyChain
+                                        type: string
+                                    type: object
+                                  trustedCA:
+                                    description: trustedCA defines which CA certificates
+                                      are trusted.
+                                    properties:
+                                      certificates:
+                                        description: certificates defines the list
+                                          of secretRefs containing trusted CA certificates.
+                                        items:
+                                          properties:
+                                            secretRef:
+                                              description: secretRef defines the reference
+                                                to a secret containing one or more
+                                                CA certificates under the key 'ca.crt'.
+                                              properties:
+                                                name:
+                                                  description: name of the resource
+                                                  maxLength: 253
+                                                  minLength: 1
+                                                  type: string
+                                              required:
+                                              - name
+                                              type: object
+                                          required:
+                                          - secretRef
+                                          type: object
+                                        maxItems: 16
+                                        minItems: 1
+                                        type: array
+                                        x-kubernetes-list-type: atomic
+                                      verificationDepth:
+                                        default: 1
+                                        description: |-
+                                          verificationDepth specifies the hops in the certificate chain at which validation is performed.
+                                          1 means that either the leaf or the signing CA must be in the set of trusted certificates.
+                                        format: int32
+                                        minimum: 0
+                                        type: integer
+                                    required:
+                                    - certificates
+                                    type: object
+                                type: object
+                              disabled:
+                                description: |-
+                                  disabled specifies to trust any certificate without verification.
+                                  THIS IS INSECURE AND SHOULD ONLY BE USED FOR TESTING.
+                                type: object
+                              publicCAs:
+                                description: publicCAs specifies to only accept certificates
+                                  with a SAN matching "uri" and which are signed by
+                                  a CA which is either directly or indirectly trusted
+                                  by any of the root CA certificates shipped with
+                                  the Airlock Microgateway Engine's base image.
+                                type: object
+                            type: object
+                          ciphers:
+                            description: ciphers defines a list of the supported TLS
+                              cipher suites. For details on cipher list refer to the
+                              envoy documentation on cipher_suites in common tls configuration.
+                            items:
+                              maxLength: 256
+                              type: string
+                            maxItems: 32
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-type: set
+                          protocol:
+                            description: protocol defines the supported TLS protocol
+                              versions.
+                            properties:
+                              maximum:
+                                description: maximum supported TLS version.
+                                enum:
+                                - TLSv1_0
+                                - TLSv1_1
+                                - TLSv1_2
+                                - TLSv1_3
+                                type: string
+                              minimum:
+                                description: minimum supported TLS version.
+                                enum:
+                                - TLSv1_0
+                                - TLSv1_1
+                                - TLSv1_2
+                                - TLSv1_3
+                                type: string
+                            type: object
+                        type: object
+                      uri:
+                        description: uri specifies the endpoint address.
+                        format: uri
+                        maxLength: 2048
+                        minLength: 1
+                        pattern: ^(http|https)://.*$
+                        type: string
+                    required:
+                    - uri
+                    type: object
+                type: object
+            required:
+            - provider
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

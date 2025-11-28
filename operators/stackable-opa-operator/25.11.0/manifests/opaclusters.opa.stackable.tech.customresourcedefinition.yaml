@@ -1,0 +1,1188 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations: {}
+  name: opaclusters.opa.stackable.tech
+spec:
+  group: opa.stackable.tech
+  names:
+    categories: []
+    kind: OpaCluster
+    plural: opaclusters
+    shortNames:
+    - opa
+    singular: opacluster
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns: []
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for OpaClusterSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              clusterConfig:
+                default:
+                  listenerClass: cluster-internal
+                  tls: null
+                  userInfo: null
+                description: Global OPA cluster configuration that applies to all
+                  roles and role groups.
+                properties:
+                  listenerClass:
+                    default: cluster-internal
+                    description: 'This field controls which type of Service the operator
+                      creates for this OpaCluster:
+
+
+                      * cluster-internal: Use a ClusterIP service
+
+
+                      * external-unstable: Use a NodePort service
+
+
+                      * external-stable: Use a LoadBalancer service
+
+
+                      This is a temporary solution with the goal to keep yaml manifests
+                      forward compatible.
+
+                      In the future, this setting will control which ListenerClass
+                      <https://docs.stackable.tech/home/stable/listener-operator/listenerclass.html>
+
+                      will be used to expose the service, and ListenerClass names
+                      will stay the same, allowing for a non-breaking change.'
+                    enum:
+                    - cluster-internal
+                    - external-unstable
+                    - external-stable
+                    type: string
+                  tls:
+                    description: 'TLS encryption settings for the OPA server.
+
+                      When configured, OPA will use HTTPS (port 8443) instead of HTTP
+                      (port 8081).
+
+                      Clients must connect using HTTPS and trust the certificates
+                      provided by the configured SecretClass.'
+                    nullable: true
+                    properties:
+                      serverSecretClass:
+                        description: Name of the SecretClass which will provide TLS
+                          certificates for the OPA server.
+                        type: string
+                    required:
+                    - serverSecretClass
+                    type: object
+                  userInfo:
+                    description: 'Configures how to fetch additional metadata about
+                      users (such as group memberships)
+
+                      from an external directory service.'
+                    nullable: true
+                    properties:
+                      backend:
+                        default:
+                          none: {}
+                        description: The backend directory service to use.
+                        oneOf:
+                        - required:
+                          - none
+                        - required:
+                          - keycloak
+                        - required:
+                          - experimentalXfscAas
+                        - required:
+                          - experimentalActiveDirectory
+                        - required:
+                          - experimentalEntra
+                        properties:
+                          experimentalActiveDirectory:
+                            description: Backend that fetches user information from
+                              Active Directory
+                            properties:
+                              additionalGroupAttributeFilters:
+                                additionalProperties:
+                                  type: string
+                                default: {}
+                                description: 'Attributes that groups must have to
+                                  be returned.
+
+
+                                  These fields will be spliced into an LDAP Search
+                                  Query, so wildcards can be used,
+
+                                  but characters with a special meaning in LDAP will
+                                  need to be escaped.'
+                                type: object
+                              baseDistinguishedName:
+                                description: The root Distinguished Name (DN) where
+                                  users and groups are located.
+                                type: string
+                              customAttributeMappings:
+                                additionalProperties:
+                                  type: string
+                                default: {}
+                                description: Custom attributes, and their LDAP attribute
+                                  names.
+                                type: object
+                              kerberosSecretClassName:
+                                description: The name of the Kerberos SecretClass.
+                                type: string
+                              ldapServer:
+                                description: Hostname of the domain controller, e.g.
+                                  `ad-ds-1.contoso.com`.
+                                type: string
+                              tls:
+                                description: Use a TLS connection. If not specified
+                                  no TLS will be used.
+                                nullable: true
+                                properties:
+                                  verification:
+                                    description: The verification method used to verify
+                                      the certificates of the server and/or the client.
+                                    oneOf:
+                                    - required:
+                                      - none
+                                    - required:
+                                      - server
+                                    properties:
+                                      none:
+                                        description: Use TLS but don't verify certificates.
+                                        type: object
+                                      server:
+                                        description: Use TLS and a CA certificate
+                                          to verify the server.
+                                        properties:
+                                          caCert:
+                                            description: CA cert to verify the server.
+                                            oneOf:
+                                            - required:
+                                              - webPki
+                                            - required:
+                                              - secretClass
+                                            properties:
+                                              secretClass:
+                                                description: 'Name of the [SecretClass](https://docs.stackable.tech/home/25.11/secret-operator/secretclass)
+                                                  which will provide the CA certificate.
+
+                                                  Note that a SecretClass does not
+                                                  need to have a key but can also
+                                                  work with just a CA certificate,
+
+                                                  so if you got provided with a CA
+                                                  cert but don''t have access to the
+                                                  key you can still use this method.'
+                                                type: string
+                                              webPki:
+                                                description: 'Use TLS and the CA certificates
+                                                  trusted by the common web browsers
+                                                  to verify the server.
+
+                                                  This can be useful when you e.g.
+                                                  use public AWS S3 or other public
+                                                  available services.'
+                                                type: object
+                                            type: object
+                                        required:
+                                        - caCert
+                                        type: object
+                                    type: object
+                                required:
+                                - verification
+                                type: object
+                            required:
+                            - baseDistinguishedName
+                            - kerberosSecretClassName
+                            - ldapServer
+                            type: object
+                          experimentalEntra:
+                            description: Backend that fetches user information from
+                              Microsoft Entra
+                            properties:
+                              clientCredentialsSecret:
+                                description: 'Name of a Secret that contains client
+                                  credentials of an Entra account with
+
+                                  permissions `User.ReadAll` and `GroupMemberShip.ReadAll`.
+
+
+                                  Must contain the fields `clientId` and `clientSecret`.'
+                                type: string
+                              port:
+                                description: Port of the identity provider. If TLS
+                                  is used defaults to `443`, otherwise to `80`.
+                                format: uint16
+                                maximum: 65535.0
+                                minimum: 0.0
+                                nullable: true
+                                type: integer
+                              tenantId:
+                                description: The Microsoft Entra tenant ID.
+                                type: string
+                              tls:
+                                default:
+                                  verification:
+                                    server:
+                                      caCert:
+                                        webPki: {}
+                                description: Use a TLS connection. Should usually
+                                  be set to WebPki.
+                                nullable: true
+                                properties:
+                                  verification:
+                                    description: The verification method used to verify
+                                      the certificates of the server and/or the client.
+                                    oneOf:
+                                    - required:
+                                      - none
+                                    - required:
+                                      - server
+                                    properties:
+                                      none:
+                                        description: Use TLS but don't verify certificates.
+                                        type: object
+                                      server:
+                                        description: Use TLS and a CA certificate
+                                          to verify the server.
+                                        properties:
+                                          caCert:
+                                            description: CA cert to verify the server.
+                                            oneOf:
+                                            - required:
+                                              - webPki
+                                            - required:
+                                              - secretClass
+                                            properties:
+                                              secretClass:
+                                                description: 'Name of the [SecretClass](https://docs.stackable.tech/home/25.11/secret-operator/secretclass)
+                                                  which will provide the CA certificate.
+
+                                                  Note that a SecretClass does not
+                                                  need to have a key but can also
+                                                  work with just a CA certificate,
+
+                                                  so if you got provided with a CA
+                                                  cert but don''t have access to the
+                                                  key you can still use this method.'
+                                                type: string
+                                              webPki:
+                                                description: 'Use TLS and the CA certificates
+                                                  trusted by the common web browsers
+                                                  to verify the server.
+
+                                                  This can be useful when you e.g.
+                                                  use public AWS S3 or other public
+                                                  available services.'
+                                                type: object
+                                            type: object
+                                        required:
+                                        - caCert
+                                        type: object
+                                    type: object
+                                required:
+                                - verification
+                                type: object
+                              tokenHostname:
+                                default: login.microsoft.com
+                                description: Hostname of the token provider, defaults
+                                  to `login.microsoft.com`.
+                                type: string
+                              userInfoHostname:
+                                default: graph.microsoft.com
+                                description: Hostname of the user info provider, defaults
+                                  to `graph.microsoft.com`.
+                                type: string
+                            required:
+                            - clientCredentialsSecret
+                            - tenantId
+                            type: object
+                          experimentalXfscAas:
+                            description: 'Backend that fetches user information from
+                              the Gaia-X
+
+                              Cross Federation Services Components (XFSC) Authentication
+                              & Authorization Service.'
+                            properties:
+                              hostname:
+                                description: Hostname of the identity provider, e.g.
+                                  `my.aas.corp`.
+                                type: string
+                              port:
+                                default: 5000
+                                description: Port of the identity provider. Defaults
+                                  to port 5000.
+                                format: uint16
+                                maximum: 65535.0
+                                minimum: 0.0
+                                type: integer
+                            required:
+                            - hostname
+                            type: object
+                          keycloak:
+                            description: Backend that fetches user information from
+                              Keycloak.
+                            properties:
+                              adminRealm:
+                                description: 'The Keycloak realm that OPA''s Keycloak
+                                  account (as specified by `credentialsSecretName`
+                                  exists in).
+
+
+                                  Typically `master`.'
+                                type: string
+                              clientCredentialsSecret:
+                                description: 'Name of a Secret that contains client
+                                  credentials of a Keycloak account with permission
+                                  to read user metadata.
+
+
+                                  Must contain the fields `clientId` and `clientSecret`.'
+                                type: string
+                              hostname:
+                                description: Hostname of the identity provider, e.g.
+                                  `my.keycloak.corp`.
+                                type: string
+                              port:
+                                description: Port of the identity provider. If TLS
+                                  is used defaults to `443`, otherwise to `80`.
+                                format: uint16
+                                maximum: 65535.0
+                                minimum: 0.0
+                                nullable: true
+                                type: integer
+                              rootPath:
+                                default: /
+                                description: Root HTTP path of the identity provider.
+                                  Defaults to `/`.
+                                type: string
+                              tls:
+                                description: Use a TLS connection. If not specified
+                                  no TLS will be used.
+                                nullable: true
+                                properties:
+                                  verification:
+                                    description: The verification method used to verify
+                                      the certificates of the server and/or the client.
+                                    oneOf:
+                                    - required:
+                                      - none
+                                    - required:
+                                      - server
+                                    properties:
+                                      none:
+                                        description: Use TLS but don't verify certificates.
+                                        type: object
+                                      server:
+                                        description: Use TLS and a CA certificate
+                                          to verify the server.
+                                        properties:
+                                          caCert:
+                                            description: CA cert to verify the server.
+                                            oneOf:
+                                            - required:
+                                              - webPki
+                                            - required:
+                                              - secretClass
+                                            properties:
+                                              secretClass:
+                                                description: 'Name of the [SecretClass](https://docs.stackable.tech/home/25.11/secret-operator/secretclass)
+                                                  which will provide the CA certificate.
+
+                                                  Note that a SecretClass does not
+                                                  need to have a key but can also
+                                                  work with just a CA certificate,
+
+                                                  so if you got provided with a CA
+                                                  cert but don''t have access to the
+                                                  key you can still use this method.'
+                                                type: string
+                                              webPki:
+                                                description: 'Use TLS and the CA certificates
+                                                  trusted by the common web browsers
+                                                  to verify the server.
+
+                                                  This can be useful when you e.g.
+                                                  use public AWS S3 or other public
+                                                  available services.'
+                                                type: object
+                                            type: object
+                                        required:
+                                        - caCert
+                                        type: object
+                                    type: object
+                                required:
+                                - verification
+                                type: object
+                              userRealm:
+                                description: The Keycloak realm that user metadata
+                                  should be resolved from.
+                                type: string
+                            required:
+                            - adminRealm
+                            - clientCredentialsSecret
+                            - hostname
+                            - userRealm
+                            type: object
+                          none:
+                            description: Dummy backend that adds no extra user information.
+                            type: object
+                        type: object
+                      cache:
+                        default:
+                          entryTimeToLive: 1m
+                        description: Caching configuration.
+                        properties:
+                          entryTimeToLive:
+                            default: 1m
+                            description: How long metadata about each user should
+                              be cached for.
+                            type: string
+                        type: object
+                    type: object
+                  vectorAggregatorConfigMapName:
+                    description: 'Name of the Vector aggregator discovery ConfigMap.
+
+                      It must contain the key `ADDRESS` with the address of the Vector
+                      aggregator.'
+                    nullable: true
+                    type: string
+                type: object
+              clusterOperation:
+                default:
+                  reconciliationPaused: false
+                  stopped: false
+                description: Cluster operations like pause reconciliation or cluster
+                  stop.
+                properties:
+                  reconciliationPaused:
+                    default: false
+                    description: 'Flag to stop cluster reconciliation by the operator.
+                      This means that all changes in the
+
+                      custom resource spec are ignored until this flag is set to false
+                      or removed. The operator
+
+                      will however still watch the deployed resources at the time
+                      and update the custom resource
+
+                      status field.
+
+                      If applied at the same time with `stopped`, `reconciliationPaused`
+                      will take precedence over
+
+                      `stopped` and stop the reconciliation immediately.'
+                    type: boolean
+                  stopped:
+                    default: false
+                    description: 'Flag to stop the cluster. This means all deployed
+                      resources (e.g. Services, StatefulSets,
+
+                      ConfigMaps) are kept but all deployed Pods (e.g. replicas from
+                      a StatefulSet) are scaled to 0
+
+                      and therefore stopped and removed.
+
+                      If applied at the same time with `reconciliationPaused`, the
+                      latter will pause reconciliation
+
+                      and `stopped` will take no effect until `reconciliationPaused`
+                      is set to false or removed.'
+                    type: boolean
+                type: object
+              image:
+                anyOf:
+                - required:
+                  - custom
+                  - productVersion
+                - required:
+                  - productVersion
+                description: The OPA image to use
+                properties:
+                  custom:
+                    description: 'Overwrite the docker image.
+
+                      Specify the full docker image name, e.g. `oci.stackable.tech/sdp/superset:1.4.1-stackable2.1.0`'
+                    type: string
+                  productVersion:
+                    description: Version of the product, e.g. `1.4.1`.
+                    type: string
+                  pullPolicy:
+                    default: Always
+                    description: '[Pull policy](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
+                      used when pulling the image.'
+                    enum:
+                    - IfNotPresent
+                    - Always
+                    - Never
+                    type: string
+                  pullSecrets:
+                    description: '[Image pull secrets](https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod)
+                      to pull images from a private registry.'
+                    items:
+                      description: LocalObjectReference contains enough information
+                        to let you locate the referenced object inside the same namespace.
+                      properties:
+                        name:
+                          description: 'Name of the referent. This field is effectively
+                            required, but due to backwards compatibility is allowed
+                            to be empty. Instances of this type with an empty value
+                            here are almost certainly wrong. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    nullable: true
+                    type: array
+                  repo:
+                    description: Name of the docker repo, e.g. `oci.stackable.tech/sdp`
+                    nullable: true
+                    type: string
+                  stackableVersion:
+                    description: 'Stackable version of the product, e.g. `23.4`, `23.4.1`
+                      or `0.0.0-dev`.
+
+                      If not specified, the operator will use its own version, e.g.
+                      `23.4.1`.
+
+                      When using a nightly operator or a pr version, it will use the
+                      nightly `0.0.0-dev` image.'
+                    nullable: true
+                    type: string
+                type: object
+              servers:
+                description: OPA server configuration.
+                properties:
+                  cliOverrides:
+                    additionalProperties:
+                      type: string
+                    default: {}
+                    type: object
+                  config:
+                    default: {}
+                    properties:
+                      affinity:
+                        default:
+                          nodeAffinity: null
+                          nodeSelector: null
+                          podAffinity: null
+                          podAntiAffinity: null
+                        description: 'These configuration settings control
+
+                          [Pod placement](https://docs.stackable.tech/home/25.11/concepts/operations/pod_placement).'
+                        properties:
+                          nodeAffinity:
+                            description: Same as the `spec.affinity.nodeAffinity`
+                              field on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                            nullable: true
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          nodeSelector:
+                            additionalProperties:
+                              type: string
+                            description: Simple key-value pairs forming a nodeSelector,
+                              see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                            nullable: true
+                            type: object
+                          podAffinity:
+                            description: Same as the `spec.affinity.podAffinity` field
+                              on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                            nullable: true
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          podAntiAffinity:
+                            description: Same as the `spec.affinity.podAntiAffinity`
+                              field on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                            nullable: true
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                        type: object
+                      gracefulShutdownTimeout:
+                        description: Time period Pods have to gracefully shut down,
+                          e.g. `30m`, `1h` or `2d`. Consult the operator documentation
+                          for details.
+                        nullable: true
+                        type: string
+                      logging:
+                        default:
+                          containers: {}
+                          enableVectorAgent: null
+                        description: Logging configuration, learn more in the [logging
+                          concept documentation](https://docs.stackable.tech/home/25.11/concepts/logging).
+                        properties:
+                          containers:
+                            additionalProperties:
+                              anyOf:
+                              - required:
+                                - custom
+                              - {}
+                              description: Log configuration of the container
+                              properties:
+                                console:
+                                  description: Configuration for the console appender
+                                  nullable: true
+                                  properties:
+                                    level:
+                                      description: 'The log level threshold.
+
+                                        Log events with a lower log level are discarded.'
+                                      enum:
+                                      - TRACE
+                                      - DEBUG
+                                      - INFO
+                                      - WARN
+                                      - ERROR
+                                      - FATAL
+                                      - NONE
+                                      - null
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                custom:
+                                  description: Custom log configuration provided in
+                                    a ConfigMap
+                                  properties:
+                                    configMap:
+                                      description: ConfigMap containing the log configuration
+                                        files
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                file:
+                                  description: Configuration for the file appender
+                                  nullable: true
+                                  properties:
+                                    level:
+                                      description: 'The log level threshold.
+
+                                        Log events with a lower log level are discarded.'
+                                      enum:
+                                      - TRACE
+                                      - DEBUG
+                                      - INFO
+                                      - WARN
+                                      - ERROR
+                                      - FATAL
+                                      - NONE
+                                      - null
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                loggers:
+                                  additionalProperties:
+                                    description: Configuration of a logger
+                                    properties:
+                                      level:
+                                        description: 'The log level threshold.
+
+                                          Log events with a lower log level are discarded.'
+                                        enum:
+                                        - TRACE
+                                        - DEBUG
+                                        - INFO
+                                        - WARN
+                                        - ERROR
+                                        - FATAL
+                                        - NONE
+                                        - null
+                                        nullable: true
+                                        type: string
+                                    type: object
+                                  default: {}
+                                  description: Configuration per logger
+                                  type: object
+                              type: object
+                            description: Log configuration per container.
+                            type: object
+                          enableVectorAgent:
+                            description: Wether or not to deploy a container with
+                              the Vector log agent.
+                            nullable: true
+                            type: boolean
+                        type: object
+                      resources:
+                        default:
+                          cpu:
+                            max: null
+                            min: null
+                          memory:
+                            limit: null
+                            runtimeLimits: {}
+                          storage: {}
+                        description: 'Resource usage is configured here, this includes
+                          CPU usage, memory usage and disk storage
+
+                          usage, if this role needs any.'
+                        properties:
+                          cpu:
+                            default:
+                              max: null
+                              min: null
+                            properties:
+                              max:
+                                description: 'The maximum amount of CPU cores that
+                                  can be requested by Pods.
+
+                                  Equivalent to the `limit` for Pod resource configuration.
+
+                                  Cores are specified either as a decimal point number
+                                  or as milli units.
+
+                                  For example:`1.5` will be 1.5 cores, also written
+                                  as `1500m`.'
+                                nullable: true
+                                type: string
+                              min:
+                                description: 'The minimal amount of CPU cores that
+                                  Pods need to run.
+
+                                  Equivalent to the `request` for Pod resource configuration.
+
+                                  Cores are specified either as a decimal point number
+                                  or as milli units.
+
+                                  For example:`1.5` will be 1.5 cores, also written
+                                  as `1500m`.'
+                                nullable: true
+                                type: string
+                            type: object
+                          memory:
+                            properties:
+                              limit:
+                                description: 'The maximum amount of memory that should
+                                  be available to the Pod.
+
+                                  Specified as a byte [Quantity](https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/),
+
+                                  which means these suffixes are supported: E, P,
+                                  T, G, M, k.
+
+                                  You can also use the power-of-two equivalents: Ei,
+                                  Pi, Ti, Gi, Mi, Ki.
+
+                                  For example, the following represent roughly the
+                                  same value:
+
+                                  `128974848, 129e6, 129M,  128974848000m, 123Mi`'
+                                nullable: true
+                                type: string
+                              runtimeLimits:
+                                description: Additional options that can be specified.
+                                type: object
+                            type: object
+                          storage:
+                            type: object
+                        type: object
+                    type: object
+                  configOverrides:
+                    additionalProperties:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    default: {}
+                    description: 'The `configOverrides` can be used to configure properties
+                      in product config files
+
+                      that are not exposed in the CRD. Read the
+
+                      [config overrides documentation](https://docs.stackable.tech/home/25.11/concepts/overrides#config-overrides)
+
+                      and consult the operator specific usage guide documentation
+                      for details on the
+
+                      available config files and settings for the specific product.'
+                    type: object
+                  envOverrides:
+                    additionalProperties:
+                      type: string
+                    default: {}
+                    description: '`envOverrides` configure environment variables to
+                      be set in the Pods.
+
+                      It is a map from strings to strings - environment variables
+                      and the value to set.
+
+                      Read the
+
+                      [environment variable overrides documentation](https://docs.stackable.tech/home/25.11/concepts/overrides#env-overrides)
+
+                      for more information and consult the operator specific usage
+                      guide to find out about
+
+                      the product specific environment variables that are available.'
+                    type: object
+                  podOverrides:
+                    default: {}
+                    description: 'In the `podOverrides` property you can define a
+
+                      [PodTemplateSpec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#podtemplatespec-v1-core)
+
+                      to override any property that can be set on a Kubernetes Pod.
+
+                      Read the
+
+                      [Pod overrides documentation](https://docs.stackable.tech/home/25.11/concepts/overrides#pod-overrides)
+
+                      for more information.'
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  roleConfig:
+                    default: {}
+                    description: 'This is a product-agnostic RoleConfig, with nothing
+                      in it. It is used e.g. by products that have
+
+                      nothing configurable at role level.'
+                    type: object
+                  roleGroups:
+                    additionalProperties:
+                      properties:
+                        cliOverrides:
+                          additionalProperties:
+                            type: string
+                          default: {}
+                          type: object
+                        config:
+                          default: {}
+                          properties:
+                            affinity:
+                              default:
+                                nodeAffinity: null
+                                nodeSelector: null
+                                podAffinity: null
+                                podAntiAffinity: null
+                              description: 'These configuration settings control
+
+                                [Pod placement](https://docs.stackable.tech/home/25.11/concepts/operations/pod_placement).'
+                              properties:
+                                nodeAffinity:
+                                  description: Same as the `spec.affinity.nodeAffinity`
+                                    field on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                                  nullable: true
+                                  type: object
+                                  x-kubernetes-preserve-unknown-fields: true
+                                nodeSelector:
+                                  additionalProperties:
+                                    type: string
+                                  description: Simple key-value pairs forming a nodeSelector,
+                                    see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                                  nullable: true
+                                  type: object
+                                podAffinity:
+                                  description: Same as the `spec.affinity.podAffinity`
+                                    field on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                                  nullable: true
+                                  type: object
+                                  x-kubernetes-preserve-unknown-fields: true
+                                podAntiAffinity:
+                                  description: Same as the `spec.affinity.podAntiAffinity`
+                                    field on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                                  nullable: true
+                                  type: object
+                                  x-kubernetes-preserve-unknown-fields: true
+                              type: object
+                            gracefulShutdownTimeout:
+                              description: Time period Pods have to gracefully shut
+                                down, e.g. `30m`, `1h` or `2d`. Consult the operator
+                                documentation for details.
+                              nullable: true
+                              type: string
+                            logging:
+                              default:
+                                containers: {}
+                                enableVectorAgent: null
+                              description: Logging configuration, learn more in the
+                                [logging concept documentation](https://docs.stackable.tech/home/25.11/concepts/logging).
+                              properties:
+                                containers:
+                                  additionalProperties:
+                                    anyOf:
+                                    - required:
+                                      - custom
+                                    - {}
+                                    description: Log configuration of the container
+                                    properties:
+                                      console:
+                                        description: Configuration for the console
+                                          appender
+                                        nullable: true
+                                        properties:
+                                          level:
+                                            description: 'The log level threshold.
+
+                                              Log events with a lower log level are
+                                              discarded.'
+                                            enum:
+                                            - TRACE
+                                            - DEBUG
+                                            - INFO
+                                            - WARN
+                                            - ERROR
+                                            - FATAL
+                                            - NONE
+                                            - null
+                                            nullable: true
+                                            type: string
+                                        type: object
+                                      custom:
+                                        description: Custom log configuration provided
+                                          in a ConfigMap
+                                        properties:
+                                          configMap:
+                                            description: ConfigMap containing the
+                                              log configuration files
+                                            nullable: true
+                                            type: string
+                                        type: object
+                                      file:
+                                        description: Configuration for the file appender
+                                        nullable: true
+                                        properties:
+                                          level:
+                                            description: 'The log level threshold.
+
+                                              Log events with a lower log level are
+                                              discarded.'
+                                            enum:
+                                            - TRACE
+                                            - DEBUG
+                                            - INFO
+                                            - WARN
+                                            - ERROR
+                                            - FATAL
+                                            - NONE
+                                            - null
+                                            nullable: true
+                                            type: string
+                                        type: object
+                                      loggers:
+                                        additionalProperties:
+                                          description: Configuration of a logger
+                                          properties:
+                                            level:
+                                              description: 'The log level threshold.
+
+                                                Log events with a lower log level
+                                                are discarded.'
+                                              enum:
+                                              - TRACE
+                                              - DEBUG
+                                              - INFO
+                                              - WARN
+                                              - ERROR
+                                              - FATAL
+                                              - NONE
+                                              - null
+                                              nullable: true
+                                              type: string
+                                          type: object
+                                        default: {}
+                                        description: Configuration per logger
+                                        type: object
+                                    type: object
+                                  description: Log configuration per container.
+                                  type: object
+                                enableVectorAgent:
+                                  description: Wether or not to deploy a container
+                                    with the Vector log agent.
+                                  nullable: true
+                                  type: boolean
+                              type: object
+                            resources:
+                              default:
+                                cpu:
+                                  max: null
+                                  min: null
+                                memory:
+                                  limit: null
+                                  runtimeLimits: {}
+                                storage: {}
+                              description: 'Resource usage is configured here, this
+                                includes CPU usage, memory usage and disk storage
+
+                                usage, if this role needs any.'
+                              properties:
+                                cpu:
+                                  default:
+                                    max: null
+                                    min: null
+                                  properties:
+                                    max:
+                                      description: 'The maximum amount of CPU cores
+                                        that can be requested by Pods.
+
+                                        Equivalent to the `limit` for Pod resource
+                                        configuration.
+
+                                        Cores are specified either as a decimal point
+                                        number or as milli units.
+
+                                        For example:`1.5` will be 1.5 cores, also
+                                        written as `1500m`.'
+                                      nullable: true
+                                      type: string
+                                    min:
+                                      description: 'The minimal amount of CPU cores
+                                        that Pods need to run.
+
+                                        Equivalent to the `request` for Pod resource
+                                        configuration.
+
+                                        Cores are specified either as a decimal point
+                                        number or as milli units.
+
+                                        For example:`1.5` will be 1.5 cores, also
+                                        written as `1500m`.'
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                memory:
+                                  properties:
+                                    limit:
+                                      description: 'The maximum amount of memory that
+                                        should be available to the Pod.
+
+                                        Specified as a byte [Quantity](https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/),
+
+                                        which means these suffixes are supported:
+                                        E, P, T, G, M, k.
+
+                                        You can also use the power-of-two equivalents:
+                                        Ei, Pi, Ti, Gi, Mi, Ki.
+
+                                        For example, the following represent roughly
+                                        the same value:
+
+                                        `128974848, 129e6, 129M,  128974848000m, 123Mi`'
+                                      nullable: true
+                                      type: string
+                                    runtimeLimits:
+                                      description: Additional options that can be
+                                        specified.
+                                      type: object
+                                  type: object
+                                storage:
+                                  type: object
+                              type: object
+                          type: object
+                        configOverrides:
+                          additionalProperties:
+                            additionalProperties:
+                              type: string
+                            type: object
+                          default: {}
+                          description: 'The `configOverrides` can be used to configure
+                            properties in product config files
+
+                            that are not exposed in the CRD. Read the
+
+                            [config overrides documentation](https://docs.stackable.tech/home/25.11/concepts/overrides#config-overrides)
+
+                            and consult the operator specific usage guide documentation
+                            for details on the
+
+                            available config files and settings for the specific product.'
+                          type: object
+                        envOverrides:
+                          additionalProperties:
+                            type: string
+                          default: {}
+                          description: '`envOverrides` configure environment variables
+                            to be set in the Pods.
+
+                            It is a map from strings to strings - environment variables
+                            and the value to set.
+
+                            Read the
+
+                            [environment variable overrides documentation](https://docs.stackable.tech/home/25.11/concepts/overrides#env-overrides)
+
+                            for more information and consult the operator specific
+                            usage guide to find out about
+
+                            the product specific environment variables that are available.'
+                          type: object
+                        podOverrides:
+                          default: {}
+                          description: 'In the `podOverrides` property you can define
+                            a
+
+                            [PodTemplateSpec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#podtemplatespec-v1-core)
+
+                            to override any property that can be set on a Kubernetes
+                            Pod.
+
+                            Read the
+
+                            [Pod overrides documentation](https://docs.stackable.tech/home/25.11/concepts/overrides#pod-overrides)
+
+                            for more information.'
+                          type: object
+                          x-kubernetes-preserve-unknown-fields: true
+                        replicas:
+                          format: uint16
+                          maximum: 65535.0
+                          minimum: 0.0
+                          nullable: true
+                          type: integer
+                      type: object
+                    type: object
+                required:
+                - roleGroups
+                type: object
+            required:
+            - image
+            - servers
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      nullable: true
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition.
+                      nullable: true
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition.
+                      nullable: true
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      enum:
+                      - 'True'
+                      - 'False'
+                      - Unknown
+                      type: string
+                    type:
+                      description: Type of deployment condition.
+                      enum:
+                      - Available
+                      - Degraded
+                      - Progressing
+                      - ReconciliationPaused
+                      - Stopped
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        title: OpaCluster
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

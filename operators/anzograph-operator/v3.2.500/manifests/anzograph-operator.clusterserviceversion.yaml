@@ -1,0 +1,402 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "anzograph.clusters.cambridgesemantics.com/v2",
+          "kind": "AnzoGraph",
+          "metadata": {
+            "name": "azg01"
+          },
+          "spec": {
+            "db": {
+              "nodeConfig": {
+                "spec": {
+                  "replicas": 1,
+                  "selector": {
+                    "matchLabels": {
+                      "app_data": "anzograph-data-grpc",
+                      "app_mgmt": "anzograph-mgmt-grpc"
+                    }
+                  },
+                  "serviceName": "anzograph-azg01",
+                  "template": {
+                    "metadata": {
+                      "labels": {
+                        "app_data": "anzograph-data-grpc",
+                        "app_mgmt": "anzograph-mgmt-grpc"
+                      }
+                    },
+                    "spec": {
+                      "containers": [
+                        {
+                          "image": "registry.connect.redhat.com/cambridgesemantics/anzograph-db@sha256:30ed2ec337135701ab8b54e75bb48ad8928a2c48818643c23b9dba4484255a2e",
+                          "name": "db",
+                          "resources": {
+                            "limits": {
+                              "cpu": "8000m",
+                              "memory": "8Gi"
+                            },
+                            "requests": {
+                              "cpu": "8000m",
+                              "memory": "8Gi"
+                            }
+                          }
+                        }
+                      ],
+                      "securityContext": {
+                        "fsGroup": 1000,
+                        "runAsNonRoot": true,
+                        "runAsUser": 1000,
+                        "seccompProfile": {
+                          "type": "RuntimeDefault"
+                        }
+                      },
+                      "serviceAccountName": "anzograph-operator"
+                    }
+                  }
+                }
+              }
+            },
+            "deployFrontend": false,
+            "frontend": {
+              "nodeConfig": {
+                "spec": {
+                  "replicas": 1,
+                  "selector": {
+                    "matchLabels": {
+                      "app_mgmt": "anzograph-frontend"
+                    }
+                  },
+                  "serviceName": "anzograph-azg01",
+                  "template": {
+                    "metadata": {
+                      "labels": {
+                        "app_mgmt": "anzograph-frontend"
+                      }
+                    },
+                    "spec": {
+                      "containers": [
+                        {
+                          "image": "registry.connect.redhat.com/cambridgesemantics/anzograph-frontend@sha256:e5446b3c04889f2189e955702c4165eb243eb89f47ac797eb417b60b1459647f",
+                          "name": "frontend",
+                          "resources": {
+                            "limits": {
+                              "cpu": "2000m",
+                              "memory": "4Gi"
+                            },
+                            "requests": {
+                              "cpu": "2000m",
+                              "memory": "4Gi"
+                            }
+                          }
+                        }
+                      ],
+                      "securityContext": {
+                        "fsGroup": 1000,
+                        "runAsNonRoot": true,
+                        "runAsUser": 1000,
+                        "seccompProfile": {
+                          "type": "RuntimeDefault"
+                        }
+                      },
+                      "serviceAccountName": "anzograph-operator"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "status": {}
+        }
+      ]
+    capabilities: Basic Install
+    categories: Database, Big Data
+    certified: "true"
+    containerImage: registry.connect.redhat.com/cambridgesemantics/anzograph-operator@sha256:2333154a14ab7f3a03a601f00c017feeafb9d9814aff5e59c95cef615ab2abd6
+    createdAt: "2025-09-22T12:03:18Z"
+    description: kubernetes operator for Altair Graph Lakehouse DB
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.operatorframework.io/builder: operator-sdk-v1.38.0
+    operators.operatorframework.io/project_layout: unknown
+    repository: ""
+    support: Altair Engineering Inc.
+  name: anzograph-operator.v3.2.500
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: AnzoGraph is the Schema for the anzographs API
+      displayName: Altair Graph Lakehouse Operator
+      kind: AnzoGraph
+      name: anzographs.anzograph.clusters.cambridgesemantics.com
+      resources:
+      - kind: AnzoGraph
+        name: anzograph-cr
+        version: v2
+      - kind: ConfigMap
+        name: k8s-configmap
+        version: v1
+      - kind: Deployment
+        name: k8s-deployment
+        version: v1
+      - kind: Event
+        name: k8s-event
+        version: v1
+      - kind: Pod
+        name: k8s-pod
+        version: v1
+      - kind: PersistentVolumeClaim
+        name: k8s-pvc
+        version: v1
+      - kind: ReplicaSet
+        name: k8s-replicaset
+        version: v1
+      - kind: Secret
+        name: k8s-secret
+        version: v1
+      - kind: Service
+        name: k8s-service
+        version: v1
+      - kind: ServiceMonitors
+        name: k8s-servicemonitor
+        version: v1
+      - kind: StatefulSet
+        name: k8s-statefulset
+        version: v1
+      specDescriptors:
+      - description: Resource Specification for Altair Graph Lakehouse DB
+        displayName: DB Spec
+        path: db
+      - description: Is Altair Graph Lakehouse Frontend(UI) Selected For Deployment?
+        displayName: Frontend Enabled
+        path: deployFrontend
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Resource Specification for Altair Graph Lakehouse Frontend(UI)
+        displayName: Frontend Spec
+        path: frontend
+      statusDescriptors:
+      - description: Human readable message for current state of Altair Graph Lakehouse
+          cluster
+        displayName: Message
+        path: message
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:message
+      - description: Current phase of Altair Graph Lakehouse cluster like Creating/Running/Failed
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:phase
+      - description: Number of ready serving pods in Altair Graph Lakehouse cluster
+        displayName: Ready Replicas
+        path: readyReplicas
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:readyReplicas
+      - description: Event reason for deployed Altair Graph Lakehouse cluster
+        displayName: Reason
+        path: reason
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:reason
+      version: v2
+  description: |-
+    The Altair Graph Lakehouse Operator provides the way to install and configure an Altair Graph Lakehouse
+    cluster on Red Hat K8S environment.
+
+    ### Installation
+     Refer [installation instructions]( https://github.com/cambridgesemantics/csi-k8s-operator-anzograph/blob/v3.2.5/README_openshift_marketplace.md )
+
+    ### Documentation
+
+    You can find our documentation [here.]( https://docs.cambridgesemantics.com/anzograph/userdoc/ )
+
+    ### Support
+
+    We offer Support to our customers with the Altair Graph Lakehouse db Enterprise Edition License [here]( https://altair.com/customer-support ) or by emailing the Data Analytics Support team at dasupport@altair.com.
+  displayName: Altair Graph Lakehouse Operator
+  icon:
+  - base64data: iVBORw0KGgoAAAANSUhEUgAAANYAAAAsCAYAAAAZ6kZRAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAA7KSURBVHhe7Z1/VFNnmsc/EH4kOsxSdsqCsxVRa6FVF3Vtq3Nke+Jauzh2rLRdLdtZW1jHip31FLRaaddpYWp3paeuwmFqM3Im5cexSNkqrKyHDNUV2GEFjkZJfzCIHiBLt5ia4r2QhOwfN4Tkhh9BYKa693NODvc+z/OSvG/u932e970JBDidTicKCgpTSqDcoKCgMHkUYSkoTAOKsBQUpgFFWAoK04AiLAWFaUARloLCNKAIS0FhGlCEpaAwDQRM9Q1i+8X/wn6xQW4GIGjxowQtfkRuVlC465hSYdnO/Tu33n5ZbvZixt7DBK/6G7lZQeGuYkpLwYGacrnJB39iFBTudKZMWINfdWFvOic3+2BvOsfgV11ys4LCXcWUCcve9J9gt8vNvtjtUqyCwl3MFApr7Gw1Y++/uo/Hi1VQuNOZEmE5b94YMwtpdrxJ8KokgrUbwJXdnDdvyMMUFO4apkRYtvOncfZZ5WYAQv8+g5Ck5wAIefwZAJx9VmznT8siFRTuHiYvLNsAA6eK5FYAQpPTUP/tS+5zz3tYA6eKwDbgPldQuJuYtLD6TxXhaDfJzYQ8/gzq1D1yM8HLHwPA0W6ifxRBThdinxWzRUCUO/zGjqXPjw2aO4DJj4UfiFbMFiuiQ+4YDzsWixXzHTzWkxKW89tvGKj8UG4meMUaNDvflpsBCH78affxQOWHOL/9xss/aRwd5BXoSSvQk/eFt8vw62yit5Vi8Db7TX1hNvekZpPpO4/4IJpbyC2UXkdaYTVVXX5cJJYOysvLpDYFejLLG2m2yIOmhomMhflCJWkFenRX5Z6xaa/KJ3pbPnn/I/eMh5H0bdlE/9ood/xRGOp/WoGetDNGqkr15F4WABAvV5N2pkPeZHLC6j9VxGCX9y8NWvQwM3a/62XzJPhHT7iPB7s6pjxriXXV7Kg1oqs1klk7tgLEc+8TsOkYVXLHKMQvW07qE4kk3yf3eGKntfwQK08IaJ94miPbNnPwiRhajx1gZWkbo+nE0qgnOj2f5OON6C50UNliIvd4Bbrr8sg/PEKHNJ6Gr+Se/x9ELVvHB09GIkSu5YM1kbReMJJZ1YKIQLnhLEUm34242xbWYE8nA6e8s5VqbjyaXe9CqMbLLkf1wF+4jwdOfchgT6eX//YRKG9og5kJ7FsdhFhbT9VoZYjFRNYnbUAnuQV60kqNmPHNGlnne9zlkjgAiAI3bAAd6FyzuLmlmsyCSqosIF4oIVXYQNNTN0nJyCb2H7KJPdpB0p4Msr4qIb1Rmum8EFtILzBiJpJ9r2fhPJpFd0EOzsJfcHCRFNJ8Ri/NjF8ZyS3Uk3PBCrYeDFUVwxmuyoRlqL8WIzkFZRRft1JfJfXHsy9DiOZGsgr0pBVUUG72I6vKGWO85FguSTN/Vm2XFGPpQFfqygSljbTb5C1stJ939U/u92pb75HZrVSV6kkrOEuzy+KTcV1jmOaqJsp/79p4s/VQNdSXQgP1o82CxJEebqK8qxHDvcvZKHdPRlj9JUdw9va4zwP/7M+ZkXmQwB9EecWNRMia4XLQ2dtDf8kRL/9tI7ZQdAHUjy4hK2E+OEwUNcmDJAwVpeR1AQg0Xeygsq0XAaCzjvRPjDRZoPtzEzmHc1l3uhc8Zu7WWwA3MNQaySrIJf6AgdxaE62iQPkZgR3JMdKTzEqk7uir5AUbyG3RkJSykvaaFt8L7/IlivtA/dg6sh8KG7arg1C7DrtNRnQfl7H0NT2Zp42c6BLAaiLneAt1ZjtCZxu5vzlGbKErS9/qpKi2kZTXDqD9xERlg9GrLxImkndVoLvYhq62nuSM99GNejGNwhjj5cX1arQHzqK7GknKqlmo+1pI2ZVPWmUX3QjUVZYxd3sJ9Z4TYUMZc4+2UHnBhK6ijLkHzkqT31DbkyYqL7ZRdLKCpS+/T3EfgEDrBSO62ja6Xb/GK+M6TOzYoyezRnrepvNnOWiygaOL3NdzWXfCyBXRzpWGalamH0I3QlcAtI+qOfi2kahH58hdcLvCstWeZKD6I/d54PfD0bzyzwTOecArbjSGtt2HGKj+CFvtSS/b7SA2XKIK2JgQh3rRQjaqoLi20fdCBrRbtpM9C2A+RflZdO9LJBYgbjPdhftp2vM8lZmJxAOGL67Jm7sxX4fMX+bgLM0gI8pKN5HED6mhr4uqqjKyOxey8SEgIoLYr2+63/Ah2jukj3hp748BesjLySZ6u/RYd3p48qK3B9ZsRyh6h6b1kRCRSI1uP1f2v0DRWxt4DrCYOmgfbgFxP6a7IIvud9eyAjA0uDIzAEGk786hO38/TevDwNGBQbYuHRc/xku8Vs3SPQaa71tB3etriVeB+dynFFvhuZ+/SuW2rVxJjwNrC7oWj4bqBGp0++k+upV9EcDlNpqAdkMNxVZIejGL7vz9CHsSUNvayKjwXev4YO2htQ+Imk36hhdpOppD3doIMH1K1lWIT95O3c4XqNuXSLyji7zzrvGf8UO0MRpAQ/yyecQuWkn6oyvZMecetHH3yJ9l4sIatHztlWECVCrUP/8lQYse9oobk6AgAn8Y62XqLznCoOVrL9vEsFJU2wZoaG/Qk1bYTLsaaGmmfCRljULruWMs3fIqAZteJeAVA63yADnLE9k3N2j4/Osb3sK50cuNuCVo1YDDp9YBQDNDUmK31eNe4KCAuddK+61hE8SRlRyDWiWdWS5VsHrnPum1biqh2DPURXz8PMJxiRqgT5AyMwAxrLxfOgrXBLutE2H88bpJ9lEDzY4gNq5fy4qZkrXpC2kyKc51tX1PyrTCoEfT++ewUgWg4R5XO4DWqz1ABNp415LjT6W+mXt91zo+hC8nOykCrrewbuc+NLv0lPdC+2fXEIHW47nS69l1llZAHHrLwheSuiwMCCNpUyJLiCE1JYEoYkhd46pQPJiwsPpLjuC43uY+V+94i+CVj3vF+EPIX3tXpo7rbZMrCXsb0ZkABOrPS6VAcx/gaKOoYYR1zUhYzrKjwETzvSu4on8H57ta4uUxclSeF2QkSct6KRpaR82cRVLKZjKvVpD9e7Cca6Z5WZx0gXsQtSCGKKD5YhsWIknfl0X3G9LsL2dIVGAi6716DLfmc6LgHZylm5Fuw3vT2u2acUcUdTDhQ9n1dvBrvOyo5yxk4712yvP1rnINoiPCAA3pu7KkjOp65CV4NJ2pcZfCnkhtb9I+pCPHyGvDoW1+842bHlYNK376KkL+Vj54LALxupHkvLMERkhZR/vTDK/XU5cU6dHWfyYkLNv50wyc1LvP1S/uJmTts14x/hK8JlluYuCk/rY/kWFuuEQ9kLRtP87Sd6RHvlT+VNU2epQ/cnqoqmmkvKEDsygw9F6JfT0YfmscYQYem/j1q6HkGHk34jiSsohoIsnYvZnYi8fQlgZzcL3v7MbclWTOAS5VEJ9TQfF56fV4lXQ+2BFdmVgUrbTW/G7k3c26anbUNFJceJZiQB0X4yNsf6k/7VrwD232+DVeEWSlPs+J3VqW0EbKW9W0OmBJwjzCEcj7qIYrIiD2UHe6mVY/EueSHy0kFjt5+hKKzzeSW9pIK7Ax4QEgkvg5AF+SV1pPeU0J6QYP4ZkbySlvpHUgknUblpOEtCE1uDgOrQoMH1dQaQGwcqWuDsNE15wu/BaWw9iIcOg197l603ZCn97qFTMRAiMiCfi+b20qHHoNh7FRbh6Xot92AbPYmOCxIxmxUNoaNzVzwmcRGknKk/MIp5e8o2UkV5gQohLJXqWB6/Us3ZZLimUJ2a5SyW9mJlD0hhbxZCkpv/mI1IJjrM7Rk2OaRV7uCyR5lDTDRJLx+lYOJoRhvlRPyuEyko+3IQZriI8YbYd1IRmbIqHPRMrObB6siSFrlUdJ6iJqUQRNhWWknOmBWcup3BQnD/Gb9svSJoCu1ojuQufExuu+tRQlR8JVA+v0bYgPbaZuyzyiOutZvTOb6J3vk3y606NMHYM5G6jcMo+ozhZSDpeR2WJjxYat6FZJY5X0pJYVwXYMJytILryG9icLGd5SE6j8uIylO7OJ3llNlXoW+7YkEhuRyIk9y1liayNtTzbR2w6xusTksx72F7++Qey49iW33vyZ+55V6PrnUb/0T/KwCSN+8Db95Tq5mcBZMcx441eoZs+Xu6Yehx2LCOEzPS5K0YpFFUa4H7Pn2NixWGyow0cuaUbGjsUiwEw/n98mYHFofEu6rmoefMUAz2ZwZWMElj5ZH6eSSY6XaLUiqm+vvWgVIGzk8R3T12fFgoaoEcZE7LMiqsJ8x3QCjJuxnN/0Ihza6xZViHbDlIgKIGSEchDXjWPh0F6c3/ikmalHFeR7wd3mm+xLEOETEhWuNhN4/uARROXDCH2cSiY5Xuqw22+vHkU4jOebGTaiqHD5xh/TsRlXWMKhvThah261gWreg9iNv8PZP4GttlEIjFlAQKB7Ne6Fo7UZ4dBeuVnBXwI1xEaEETtD7lD4QzBmKSh+eIj+4sNyMwABM8NQxSWgWrCYoPsXo1qwiICIie+gCO/tZeA/hu+JyQl97mXUf/ePcrOCwneaMYVl/+9P6XsjVW4eFdWcB1AtXI5qwWLp4ccayWFs5Nvdm+VmNzPf1BH0l38lNysofKcZU1gAtw5mYDP8m9zsFwGaGagWPULQwodRPbgU1YLFBAT5FtPfJI0swGDtT5iRmSs3Kyh85xlXWI4vL/NtxjNT9qVE1ez5ktgWPUzQ4kcICP8Bt956CVv9Ge/A4BC+l/sRqvkPedsVFO4AxhUWgFj4L/Qf/5XcPDWEhKKKno2jw/tDaqHP/gz1ll1eNgWFO4VxdwUBQp9KJTB6ttw8NQz0+4gqMHo2oU/5v7ZTUPiu4VfGwvU3KoT84ftXgfdGEzgnDtXcOFSxcQTeGw2hGgLUGvfPALW01+sUb+EUBegX3D8H/9fM4NXPsV/9jMGOz72+MKnZ/gtCfpziPldQuNPwW1i4/uEBgGpuHAHf+xO5e3IM9OO4+hlOUVD+cYLCHc+EhKWgoOAffq2xFBQUJoYiLAWFaUARloLCNKAIS0FhGvg/LipLMFK2tBcAAAAASUVORK5CYII=
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumes
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - anzograph.clusters.cambridgesemantics.com
+          resources:
+          - anzographs
+          - anzographs/finalizers
+          verbs:
+          - '*'
+        serviceAccountName: anzograph-operator
+      deployments:
+      - label:
+          control-plane: controller-manager
+        name: anzograph-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --leader-elect
+                command:
+                - /manager
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: RELATED_IMAGE_ANZOGRAPH_DB
+                  value: registry.connect.redhat.com/cambridgesemantics/anzograph-db@sha256:30ed2ec337135701ab8b54e75bb48ad8928a2c48818643c23b9dba4484255a2e
+                - name: RELATED_IMAGE_ANZOGRAPH_FRONTEND
+                  value: registry.connect.redhat.com/cambridgesemantics/anzograph-frontend@sha256:e5446b3c04889f2189e955702c4165eb243eb89f47ac797eb417b60b1459647f
+                - name: RELATED_IMAGE_ANZOGRAPH_OPERATOR
+                  value: registry.connect.redhat.com/cambridgesemantics/anzograph-operator@sha256:2333154a14ab7f3a03a601f00c017feeafb9d9814aff5e59c95cef615ab2abd6
+                image: registry.connect.redhat.com/cambridgesemantics/anzograph-operator@sha256:2333154a14ab7f3a03a601f00c017feeafb9d9814aff5e59c95cef615ab2abd6
+                imagePullPolicy: Always
+                name: manager
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+              serviceAccountName: anzograph-operator
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - endpoints
+          - events
+          - persistentvolume
+          - persistentvolumeclaims
+          - pods
+          - secrets
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - '*'
+        - apiGroups:
+          - anzograph.clusters.cambridgesemantics.com
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - deployments
+          - replicasets
+          - statefulsets
+          verbs:
+          - '*'
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates
+          verbs:
+          - '*'
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+          - get
+          - list
+          - update
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - create
+          - get
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - anyuid
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: anzograph-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  keywords:
+  - Big Data
+  - Database
+  links:
+  - name: Anzograph Operator
+    url: https://github.com/cambridgesemantics/csi-k8s-operator-anzograph/blob/v3.2.5/README_openshift_marketplace.md
+  maintainers:
+  - email: fschwichtenberg@altair.com
+    name: Frank Schwichtenberg
+  maturity: stable
+  provider:
+    name: Altair Engineering Inc.
+  relatedImages:
+  - image: registry.connect.redhat.com/cambridgesemantics/anzograph-db@sha256:30ed2ec337135701ab8b54e75bb48ad8928a2c48818643c23b9dba4484255a2e
+    name: anzograph-db
+  - image: registry.connect.redhat.com/cambridgesemantics/anzograph-frontend@sha256:e5446b3c04889f2189e955702c4165eb243eb89f47ac797eb417b60b1459647f
+    name: anzograph-frontend
+  - image: registry.connect.redhat.com/cambridgesemantics/anzograph-operator@sha256:2333154a14ab7f3a03a601f00c017feeafb9d9814aff5e59c95cef615ab2abd6
+    name: anzograph-operator
+  version: 3.2.500
+  replaces: anzograph-operator.v3.2.300

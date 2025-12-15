@@ -1,0 +1,1916 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "tawon.mantisnet.com/v1alpha1",
+          "kind": "ClusterDirective",
+          "metadata": {
+            "name": "capture-coredns"
+          },
+          "spec": {
+            "condition": {
+              "equal": {
+                "field": "process.name",
+                "value": "coredns"
+              }
+            },
+            "debug": {
+              "logLevel": "debug"
+            },
+            "streams": [
+              {
+                "maxage": "6h0m0s",
+                "maxmsgs": 1000,
+                "name": "coredns",
+                "retentionPolicy": "Delete"
+              }
+            ],
+            "tasks": [
+              {
+                "config": {
+                  "filter": "port 53"
+                },
+                "task": "capture"
+              },
+              {
+                "config": {
+                  "name": "coredns",
+                  "type": "stream"
+                },
+                "task": "publish"
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "tawon.mantisnet.com/v1alpha1",
+          "kind": "Dashboard",
+          "metadata": {
+            "name": "tawon-dashboard"
+          },
+          "spec": null
+        },
+        {
+          "apiVersion": "tawon.mantisnet.com/v1alpha1",
+          "kind": "Directive",
+          "metadata": {
+            "name": "capture-coredns"
+          },
+          "spec": {
+            "condition": {
+              "equal": {
+                "field": "process.name",
+                "value": "coredns"
+              }
+            },
+            "debug": {
+              "logLevel": "debug"
+            },
+            "streams": [
+              {
+                "maxage": "6h0m0s",
+                "maxmsgs": 1000,
+                "name": "coredns",
+                "retentionPolicy": "Delete"
+              }
+            ],
+            "tasks": [
+              {
+                "config": {
+                  "filter": "port 53"
+                },
+                "task": "capture"
+              },
+              {
+                "config": {
+                  "name": "coredns",
+                  "type": "stream"
+                },
+                "task": "publish"
+              }
+            ]
+          }
+        },
+        {
+          "apiVersion": "tawon.mantisnet.com/v1alpha1",
+          "kind": "Stream",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/created-by": "tawon-operator",
+              "app.kubernetes.io/instance": "stream-sample",
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "stream",
+              "app.kubernetes.io/part-of": "tawon-operator"
+            },
+            "name": "stream-sample"
+          },
+          "spec": {
+            "maxage": "6h",
+            "maxbytes": "1G",
+            "maxmsgs": 100000,
+            "store": {
+              "name": "mystreamstore"
+            }
+          }
+        },
+        {
+          "apiVersion": "tawon.mantisnet.com/v1alpha1",
+          "kind": "StreamStore",
+          "metadata": {
+            "name": "mystreamstore"
+          },
+          "spec": {
+            "defaults": {
+              "maxage": "240h",
+              "maxbytes": "1Gi",
+              "maxsize": 1000000
+            },
+            "limits": {
+              "max": 10000000,
+              "maxage": "2400h",
+              "maxbytes": "2Gi"
+            },
+            "persistentVolumeClaimRetentionPolicy": {
+              "whenDeleted": "Delete"
+            },
+            "volumeClaimTemplate": {
+              "metadata": {
+                "name": "mypvclaim"
+              },
+              "spec": {
+                "accessModes": [
+                  "ReadWriteOnce"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "10Gi"
+                  }
+                },
+                "storageClassName": "ssd-csi"
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "tawon.mantisnet.com/v1alpha1",
+          "kind": "TopologyAggregator",
+          "metadata": {
+            "name": "topology-aggregator"
+          },
+          "spec": {
+            "messaging": {
+              "nats": {
+                "url": "nats://nats:4222"
+              }
+            },
+            "pod": {
+              "nodeSelector": {
+                "myNodeType": "nodeType1"
+              }
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Logging & Tracing, Monitoring, Networking
+    containerImage: quay.io/mantisnet/tawon-operator@sha256:b8a771120d492d757f0efaf1fd6036d8b9178e0cd8a158e9bf985718a4aa8c68
+    createdAt: "2025-01-31T12:52:56Z"
+    description: Tawon is a cloud-native observability fabric for deeply instrumenting microservice-based applications.
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    olm.skipRange: '>=2.23.0 <2.39.25-rc2'
+    operators.openshift.io/valid-subscription: Mantisnet Tawon Operator Subscription
+    operators.operatorframework.io/builder: operator-sdk-v1.27.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    support: MantisNet
+  name: tawon-operator.v2.39.25-rc2
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: ClusterDirective is the Schema for the clusterdirectives API.
+      displayName: Cluster Tawon Directive
+      kind: ClusterDirective
+      name: clusterdirectives.tawon.mantisnet.com
+      resources:
+      - kind: ConfigMap
+        name: tawon-directive
+        version: v1
+      - kind: DaemonSet
+        name: tawon-directive
+        version: v1
+      specDescriptors:
+      - description: Conditions are the conditions that must be met for the directive to be applied.
+        displayName: Condition
+        path: condition
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.and
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.and[0].and
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.and[0].and[0].and
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].and[0].and[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].and[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].and[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.and[0].and[0].or
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].and[0].or[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].and[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.and[0].or
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.and[0].or[0].and
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].or[0].and[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].or[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].or[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.and[0].or[0].or
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].or[0].or[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].or[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.or
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.or[0].and
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.or[0].and[0].and
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].and[0].and[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].and[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].and[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.or[0].and[0].or
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].and[0].or[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].and[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.or[0].or
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.or[0].or[0].and
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].or[0].and[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].or[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].or[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.or[0].or[0].or
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].or[0].or[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].or[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.regex
+      - description: Container options. See ContainerSpec.
+        displayName: Container
+        path: container
+      - description: Disable container. If enabled, this will cause the container to do nothing. It will not start tawon, it will just sleep indefinitely. Only useful for debugging.
+        displayName: Disabled
+        path: container.disabled
+      - description: Name of container.
+        displayName: Name
+        path: container.name
+      - description: 'Compute Resources required by the container. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+        displayName: Resources
+        path: container.resources
+      - description: 'SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
+        displayName: Security Context
+        path: container.securityContext
+      - description: DaemonSet options. See DaemonSetSpec.
+        displayName: Daemon Set
+        path: daemonSet
+      - description: Debugging configuration.
+        displayName: Debug
+        path: debug
+      - description: Enable Deadlock Detector
+        displayName: Deadlock Detector
+        path: debug.deadlockDetector
+      - description: Debug flags enable extra logging in different components. See DebugFlag for the list of available flags.
+        displayName: Debug
+        path: debug.debug
+      - description: Extra flags to pass to the executable.
+        displayName: Extra Flags
+        path: debug.extraFlags
+      - description: Logging level. One of "trace", "debug", "info", "warn", or "error".
+        displayName: Log Level
+        path: debug.logLevel
+      - description: Silent flags disable some non-critical logging in different components. See SilentFlag for the list of available flags.
+        displayName: Silent
+        path: debug.silent
+      - description: Enabled indicates whether the directive is enabled. If not specified, defaults to true.
+        displayName: Enabled
+        path: enabled
+      - description: Container image options.
+        displayName: Image
+        path: image
+      - description: Kernel Headers options.
+        displayName: Kernel Headers
+        path: kernelHeaders
+      - description: Container image options. This is the image used for the kernel headers container if the strategy is "Container". Container image is required if the strategy is "Container".
+        displayName: Image
+        path: kernelHeaders.image
+      - description: 'Compute Resources required by the kernel headers init container. Only valid with the "container" strategy. Resources required by the kernel headers init container are not very great, and it only runs for a few seconds. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+        displayName: Resources
+        path: kernelHeaders.resources
+      - description: Strategy to use for installing kernel headers.
+        displayName: Strategy
+        path: kernelHeaders.strategy
+      - description: Default messaging configuration. This is the default configuration for messaging tasks (subscribe & publish).
+        displayName: Messaging
+        path: messaging
+      - description: Message bus NATS configuration.
+        displayName: NATS
+        path: messaging.nats
+      - description: NATS Client name.
+        displayName: Client Name
+        path: messaging.nats.clientName
+      - description: NATS server URL.
+        displayName: URL
+        path: messaging.nats.url
+      - description: "Message bus type. \n Defaults to \"nats\". Currently only \"nats\" is supported."
+        displayName: Type
+        path: messaging.type
+      - description: Prometheus monitoring.
+        displayName: Monitoring
+        path: monitoring
+      - description: Disable monitoring. Monitoring is enabled by default.
+        displayName: Disabled
+        path: monitoring.disabled
+      - description: Namespace if the prefix added to the metrics.
+        displayName: Namespace
+        path: monitoring.namespace
+      - description: Path to expose metrics on.
+        displayName: Path
+        path: monitoring.path
+      - description: Port to expose metrics on.
+        displayName: Port
+        path: monitoring.port
+      - description: Exposed port name.
+        displayName: Port Name
+        path: monitoring.portName
+      - description: Pod options. See PodSpec.
+        displayName: Pod
+        path: pod
+      - description: If specified, the pod's scheduling constraints
+        displayName: Affinity
+        path: pod.affinity
+      - description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations'
+        displayName: Annotations
+        path: pod.annotations
+      - description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+        displayName: Labels
+        path: pod.labels
+      - description: Name of the pod.
+        displayName: Name
+        path: pod.name
+      - description: 'NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node''s labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/'
+        displayName: Node Selector
+        path: pod.nodeSelector
+      - description: 'If specified, the pod''s tolerations. More info: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/'
+        displayName: Tolerations
+        path: pod.tolerations
+      - description: StartAt is the time at which the directive should start being applied. If not specified, defaults to the current time.
+        displayName: Start At
+        path: startAt
+      - description: StopAt is the time at which the directive should stop being applied. If not specified, defaults to the current time.
+        displayName: Stop At
+        path: stopAt
+      - description: StreamStores refereces StreamStores that will be used by the Directive. The StreamStores referenced can already exist, in which case the Directive could use them, or they can be created/deleted by the Directive. If they are created by this Directive, they will use the limits specified, otherwise, the limits will be ignored. By default, StreamStores created by a Directive persist after the Directive is deleted. This can be changed by setting the autoManage option.
+        displayName: Stream Stores
+        path: streamStores
+      - description: Tasks pipeline.
+        displayName: Tasks
+        path: tasks
+      - description: Config is an opaque map for the task's configuration. Each task has its own configuration schema.
+        displayName: Config
+        path: tasks[0].config
+      - description: Task is the name of the task.
+        displayName: Task
+        path: tasks[0].task
+      statusDescriptors:
+      - description: Directive Conditions.
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1alpha1
+    - description: Dashboard is the Schema for the dashboards API
+      displayName: Dashboard
+      kind: Dashboard
+      name: dashboards.tawon.mantisnet.com
+      specDescriptors:
+      - description: Dashboard is the internal spec for the dashboard. This configuration use used by the dashboard itself. The container image and log level are examples of the internal spec.
+        displayName: Dashboard
+        path: dashboard
+      - description: Container is the container spec for the dashboard.
+        displayName: Container
+        path: dashboard.container
+      - description: Disable container. If enabled, this will cause the container to do nothing. It will not start tawon, it will just sleep indefinitely. Only useful for debugging.
+        displayName: Disabled
+        path: dashboard.container.disabled
+      - description: Name of container.
+        displayName: Name
+        path: dashboard.container.name
+      - description: 'Compute Resources required by the container. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+        displayName: Resources
+        path: dashboard.container.resources
+      - description: 'SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
+        displayName: Security Context
+        path: dashboard.container.securityContext
+      - description: Image is the container image for the dashboard.
+        displayName: Image
+        path: dashboard.image
+      - description: LogLevel is the log level for the dashboard.
+        displayName: Log Level
+        path: dashboard.logLevel
+      - description: Service is the service spec for the dashboard.
+        displayName: Service
+        path: dashboard.service
+      - description: Enable is the flag to enable the service creation.
+        displayName: Enable
+        path: dashboard.service.enable
+      - description: Port is the port for the service. Only applicable if the service is enabled.
+        displayName: Port
+        path: dashboard.service.port
+      - description: OAuth is the configuration for OAuth Openshift Proxy.
+        displayName: OAuth
+        path: oauth
+      - description: Container is the container spec for the OAuth.
+        displayName: Container
+        path: oauth.container
+      - description: Disable container. If enabled, this will cause the container to do nothing. It will not start tawon, it will just sleep indefinitely. Only useful for debugging.
+        displayName: Disabled
+        path: oauth.container.disabled
+      - description: Name of container.
+        displayName: Name
+        path: oauth.container.name
+      - description: 'Compute Resources required by the container. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+        displayName: Resources
+        path: oauth.container.resources
+      - description: 'SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
+        displayName: Security Context
+        path: oauth.container.securityContext
+      - description: Debug enables the debug mode for the OAuth. It adds `debug` in extraArgs. If you set to false, it will remove it.
+        displayName: Debug
+        path: oauth.debug
+      - description: Enabled is the flag to enable OAuth.
+        displayName: Enabled
+        path: oauth.enabled
+      - description: ExtraArgs are the arguments for the OAuth.
+        displayName: Extra Args
+        path: oauth.extraArgs
+      - description: Image is the container image for the OAuth.
+        displayName: Image
+        path: oauth.image
+      - description: PodSpec is the pod spec for the dashboard.
+        displayName: Pod Spec
+        path: pod
+      - description: If specified, the pod's scheduling constraints
+        displayName: Affinity
+        path: pod.affinity
+      - description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations'
+        displayName: Annotations
+        path: pod.annotations
+      - description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+        displayName: Labels
+        path: pod.labels
+      - description: Name of the pod.
+        displayName: Name
+        path: pod.name
+      - description: 'NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node''s labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/'
+        displayName: Node Selector
+        path: pod.nodeSelector
+      - description: 'If specified, the pod''s tolerations. More info: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/'
+        displayName: Tolerations
+        path: pod.tolerations
+      - description: Route is the configuration for the route in order to access the dashboard externally.
+        displayName: Route
+        path: route
+      - description: Domain is the fully qualified domain name for the route. If this is set, the SubDomain and IngressControllerName will be ignored.
+        displayName: Domain
+        path: route.domain
+      - description: Ingress controller for the route.
+        displayName: Ingress Controller Name
+        path: route.ingressControllerName
+      - description: SubDomain is the host for the route.
+        displayName: Sub Domain
+        path: route.subDomain
+      statusDescriptors:
+      - description: Conditions represent the latest available observations of an object's state.
+        displayName: Conditions
+        path: conditions
+      - description: Domain is the fully qualified domain name for the route.
+        displayName: Domain
+        path: domain
+      version: v1alpha1
+    - description: A Directive allows to define a Tawon task pipeline that will be applied to a Kubernetes cluster.
+      displayName: Tawon Directive
+      kind: Directive
+      name: directives.tawon.mantisnet.com
+      resources:
+      - kind: ConfigMap
+        name: tawon-directive
+        version: v1
+      - kind: DaemonSet
+        name: tawon-directive
+        version: v1
+      specDescriptors:
+      - description: Conditions are the conditions that must be met for the directive to be applied.
+        displayName: Condition
+        path: condition
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.and
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.and[0].and
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.and[0].and[0].and
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].and[0].and[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].and[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].and[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.and[0].and[0].or
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].and[0].or[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].and[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.and[0].or
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.and[0].or[0].and
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].or[0].and[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].or[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].or[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.and[0].or[0].or
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.and[0].or[0].or[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].or[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.or
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.or[0].and
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.or[0].and[0].and
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].and[0].and[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].and[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].and[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.or[0].and[0].or
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].and[0].or[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].and[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.or[0].or
+      - description: And is a list of conditions that must be met.
+        displayName: And
+        path: condition.or[0].or[0].and
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].or[0].and[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].or[0].and[0].regex
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].or[0].equal
+      - description: Or is a list of conditions, any of which must be met.
+        displayName: Or
+        path: condition.or[0].or[0].or
+      - description: Equal is a textual equality condition.
+        displayName: Equal
+        path: condition.or[0].or[0].or[0].equal
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].or[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.or[0].regex
+      - description: Regex is a regular expression condition.
+        displayName: Regex
+        path: condition.regex
+      - description: Container options. See ContainerSpec.
+        displayName: Container
+        path: container
+      - description: Disable container. If enabled, this will cause the container to do nothing. It will not start tawon, it will just sleep indefinitely. Only useful for debugging.
+        displayName: Disabled
+        path: container.disabled
+      - description: Name of container.
+        displayName: Name
+        path: container.name
+      - description: 'Compute Resources required by the container. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+        displayName: Resources
+        path: container.resources
+      - description: 'SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
+        displayName: Security Context
+        path: container.securityContext
+      - description: DaemonSet options. See DaemonSetSpec.
+        displayName: Daemon Set
+        path: daemonSet
+      - description: Debugging configuration.
+        displayName: Debug
+        path: debug
+      - description: Enable Deadlock Detector
+        displayName: Deadlock Detector
+        path: debug.deadlockDetector
+      - description: Debug flags enable extra logging in different components. See DebugFlag for the list of available flags.
+        displayName: Debug
+        path: debug.debug
+      - description: Extra flags to pass to the executable.
+        displayName: Extra Flags
+        path: debug.extraFlags
+      - description: Logging level. One of "trace", "debug", "info", "warn", or "error".
+        displayName: Log Level
+        path: debug.logLevel
+      - description: Silent flags disable some non-critical logging in different components. See SilentFlag for the list of available flags.
+        displayName: Silent
+        path: debug.silent
+      - description: Enabled indicates whether the directive is enabled. If not specified, defaults to true.
+        displayName: Enabled
+        path: enabled
+      - description: Container image options.
+        displayName: Image
+        path: image
+      - description: Kernel Headers options.
+        displayName: Kernel Headers
+        path: kernelHeaders
+      - description: Container image options. This is the image used for the kernel headers container if the strategy is "Container". Container image is required if the strategy is "Container".
+        displayName: Image
+        path: kernelHeaders.image
+      - description: 'Compute Resources required by the kernel headers init container. Only valid with the "container" strategy. Resources required by the kernel headers init container are not very great, and it only runs for a few seconds. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+        displayName: Resources
+        path: kernelHeaders.resources
+      - description: Strategy to use for installing kernel headers.
+        displayName: Strategy
+        path: kernelHeaders.strategy
+      - description: Default messaging configuration. This is the default configuration for messaging tasks (subscribe & publish).
+        displayName: Messaging
+        path: messaging
+      - description: Message bus NATS configuration.
+        displayName: NATS
+        path: messaging.nats
+      - description: NATS Client name.
+        displayName: Client Name
+        path: messaging.nats.clientName
+      - description: NATS server URL.
+        displayName: URL
+        path: messaging.nats.url
+      - description: "Message bus type. \n Defaults to \"nats\". Currently only \"nats\" is supported."
+        displayName: Type
+        path: messaging.type
+      - description: Prometheus monitoring.
+        displayName: Monitoring
+        path: monitoring
+      - description: Disable monitoring. Monitoring is enabled by default.
+        displayName: Disabled
+        path: monitoring.disabled
+      - description: Namespace if the prefix added to the metrics.
+        displayName: Namespace
+        path: monitoring.namespace
+      - description: Path to expose metrics on.
+        displayName: Path
+        path: monitoring.path
+      - description: Port to expose metrics on.
+        displayName: Port
+        path: monitoring.port
+      - description: Exposed port name.
+        displayName: Port Name
+        path: monitoring.portName
+      - description: Pod options. See PodSpec.
+        displayName: Pod
+        path: pod
+      - description: If specified, the pod's scheduling constraints
+        displayName: Affinity
+        path: pod.affinity
+      - description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations'
+        displayName: Annotations
+        path: pod.annotations
+      - description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+        displayName: Labels
+        path: pod.labels
+      - description: Name of the pod.
+        displayName: Name
+        path: pod.name
+      - description: 'NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node''s labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/'
+        displayName: Node Selector
+        path: pod.nodeSelector
+      - description: 'If specified, the pod''s tolerations. More info: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/'
+        displayName: Tolerations
+        path: pod.tolerations
+      - description: StartAt is the time at which the directive should start being applied. If not specified, defaults to the current time.
+        displayName: Start At
+        path: startAt
+      - description: StopAt is the time at which the directive should stop being applied. If not specified, defaults to the current time.
+        displayName: Stop At
+        path: stopAt
+      - description: StreamStores refereces StreamStores that will be used by the Directive. The StreamStores referenced can already exist, in which case the Directive could use them, or they can be created/deleted by the Directive. If they are created by this Directive, they will use the limits specified, otherwise, the limits will be ignored. By default, StreamStores created by a Directive persist after the Directive is deleted. This can be changed by setting the autoManage option.
+        displayName: Stream Stores
+        path: streamStores
+      - description: Tasks pipeline.
+        displayName: Tasks
+        path: tasks
+      - description: Config is an opaque map for the task's configuration. Each task has its own configuration schema.
+        displayName: Config
+        path: tasks[0].config
+      - description: Task is the name of the task.
+        displayName: Task
+        path: tasks[0].task
+      statusDescriptors:
+      - description: Directive Conditions.
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1alpha1
+    - description: Stream is a persistent Tawon data stream.
+      displayName: Stream
+      kind: Stream
+      name: streams.tawon.mantisnet.com
+      statusDescriptors:
+      - description: Stream Conditions.
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1alpha1
+    - description: StreamStore is the Schema for the streamstores API
+      displayName: Stream Store
+      kind: StreamStore
+      name: streamstores.tawon.mantisnet.com
+      specDescriptors:
+      - description: Container options.
+        displayName: Container
+        path: jetstream.container
+      - description: Disable container. If enabled, this will cause the container to do nothing. It will not start tawon, it will just sleep indefinitely. Only useful for debugging.
+        displayName: Disabled
+        path: jetstream.container.disabled
+      - description: Name of container.
+        displayName: Name
+        path: jetstream.container.name
+      - description: 'Compute Resources required by the container. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+        displayName: Resources
+        path: jetstream.container.resources
+      - description: 'SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
+        displayName: Security Context
+        path: jetstream.container.securityContext
+      - description: StatefulSet options.
+        displayName: Stateful Set
+        path: jetstream.daemonSet
+      - description: Container image options.
+        displayName: Image
+        path: jetstream.image
+      - description: NetworkPolicy enables or disables the creation of a NetworkPolicy for the JetStream.
+        displayName: Network Policy
+        path: jetstream.networkPolicy
+      - description: Pod options.
+        displayName: Pod
+        path: jetstream.pod
+      - description: If specified, the pod's scheduling constraints
+        displayName: Affinity
+        path: jetstream.pod.affinity
+      - description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations'
+        displayName: Annotations
+        path: jetstream.pod.annotations
+      - description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+        displayName: Labels
+        path: jetstream.pod.labels
+      - description: Name of the pod.
+        displayName: Name
+        path: jetstream.pod.name
+      - description: 'NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node''s labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/'
+        displayName: Node Selector
+        path: jetstream.pod.nodeSelector
+      - description: 'If specified, the pod''s tolerations. More info: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/'
+        displayName: Tolerations
+        path: jetstream.pod.tolerations
+      statusDescriptors:
+      - description: StreamStore Conditions.
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1alpha1
+    - description: TopologyAggregator is the Schema for the topologyaggregators API
+      displayName: Tawon Topology Aggregator
+      kind: TopologyAggregator
+      name: topologyaggregators.tawon.mantisnet.com
+      resources:
+      - kind: Deployment
+        name: tawon-topology
+        version: v1
+      - kind: Service
+        name: tawon-topology
+        version: v1
+      specDescriptors:
+      - description: Container options. See TawonContainerSpec.
+        displayName: Container
+        path: container
+      - description: Disable container. If enabled, this will cause the container to do nothing. It will not start tawon, it will just sleep indefinitely. Only useful for debugging.
+        displayName: Disabled
+        path: container.disabled
+      - description: Name of container.
+        displayName: Name
+        path: container.name
+      - description: 'Compute Resources required by the container. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+        displayName: Resources
+        path: container.resources
+      - description: 'SecurityContext defines the security options the container should be run with. If set, the fields of SecurityContext override the equivalent fields of PodSecurityContext. More info: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
+        displayName: Security Context
+        path: container.securityContext
+      - description: debugging configuration.
+        displayName: Debug
+        path: debug
+      - description: Enable Deadlock Detector
+        displayName: Deadlock Detector
+        path: debug.deadlockDetector
+      - description: Debug flags enable extra logging in different components. See DebugFlag for the list of available flags.
+        displayName: Debug
+        path: debug.debug
+      - description: Extra flags to pass to the executable.
+        displayName: Extra Flags
+        path: debug.extraFlags
+      - description: Logging level. One of "trace", "debug", "info", "warn", or "error".
+        displayName: Log Level
+        path: debug.logLevel
+      - description: Silent flags disable some non-critical logging in different components. See SilentFlag for the list of available flags.
+        displayName: Silent
+        path: debug.silent
+      - description: Deployment options. See TopologyDeploymentSpec.
+        displayName: Deployment
+        path: deployment
+      - description: "Container image options. \n Container image defaults to \"quay.io/mantisnet/tawon@sha256:370a1eefe4abd11bf1fc313126e315ca834dca14a7d8b2a8122c959bee7374b5\"."
+        displayName: Image
+        path: image
+      - description: Default messaging configuration. This is the default configuration for subscribing to the topology stream.
+        displayName: Messaging
+        path: messaging
+      - description: Message bus NATS configuration.
+        displayName: NATS
+        path: messaging.nats
+      - description: NATS Client name.
+        displayName: Client Name
+        path: messaging.nats.clientName
+      - description: NATS server URL.
+        displayName: URL
+        path: messaging.nats.url
+      - description: "Message bus type. \n Defaults to \"nats\". Currently only \"nats\" is supported."
+        displayName: Type
+        path: messaging.type
+      - description: Prometheus monitoring.
+        displayName: Monitoring
+        path: monitoring
+      - description: Disable monitoring. Monitoring is enabled by default.
+        displayName: Disabled
+        path: monitoring.disabled
+      - description: Namespace if the prefix added to the metrics.
+        displayName: Namespace
+        path: monitoring.namespace
+      - description: Path to expose metrics on.
+        displayName: Path
+        path: monitoring.path
+      - description: Port to expose metrics on.
+        displayName: Port
+        path: monitoring.port
+      - description: Exposed port name.
+        displayName: Port Name
+        path: monitoring.portName
+      - description: Pod options. See TawonPodSpec.
+        displayName: Pod
+        path: pod
+      - description: If specified, the pod's scheduling constraints
+        displayName: Affinity
+        path: pod.affinity
+      - description: 'Annotations is an unstructured key value map stored with a resource that may be set by external tools to store and retrieve arbitrary metadata. More info: http://kubernetes.io/docs/user-guide/annotations'
+        displayName: Annotations
+        path: pod.annotations
+      - description: 'Map of string keys and values that can be used to organize and categorize (scope and select) objects. May match selectors of replication controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+        displayName: Labels
+        path: pod.labels
+      - description: Name of the pod.
+        displayName: Name
+        path: pod.name
+      - description: 'NodeSelector is a selector which must be true for the pod to fit on a node. Selector which must match a node''s labels for the pod to be scheduled on that node. More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/'
+        displayName: Node Selector
+        path: pod.nodeSelector
+      - description: 'If specified, the pod''s tolerations. More info: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/'
+        displayName: Tolerations
+        path: pod.tolerations
+      - description: Controller service options.
+        displayName: Service
+        path: service
+      statusDescriptors:
+      - description: Represents the latest available observations of a deployment's current state.
+        displayName: Conditions
+        path: conditions
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes.conditions
+      version: v1alpha1
+  description: Tawon is a cloud-native observability fabric for deeply instrumenting microservice-based applications.
+  displayName: Tawon
+  icon:
+  - base64data: PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMF8yMTZfOTYpIj4KPHBhdGggZD0iTTI4OC4xMjEgMjY2LjQxN0MzMjAgMjY2LjQxNyAyNTYuNjIgNDMzLjA4MyA0NDQuNTA0IDM4OS4xMTVDMzE5LjYyMiA0OTUuNTgzIDIyNS4xMTggNDIyLjY2NyAxOTguOTA5IDM4Mi43NUMxNzEuMDQxIDM0MC4zMTMgMTYyLjExNSAyNjYuNDE3IDIxMy40OTQgMjQzLjI4MUMyMzQuODczIDIzMy42NTYgMjU2LjYxOSAyNjYuNDE3IDI4OC4xMjEgMjY2LjQxN1oiIGZpbGw9IiM5Q0M0NTgiLz4KPHBhdGggZD0iTTM4NC44NCAyMjYuMzMzQzM5Mi45MzYgMjMwLjA3MyAzOTMuMzU2IDIwMi42ODcgMzgxLjAwOCAxNzQuMjcxQzM4MS4wMDggMTc0LjI3MSAzNzIuMTI0IDE3Mi42NjcgMzYxLjYyNCAxOTMuNUMzNjEuNjI0IDE5My41IDM3Mi4xMjQgMjAzLjkxNyAzODQuODQgMjI2LjMzM1oiIGZpbGw9IiM5Q0M0NTgiLz4KPHBhdGggZD0iTTM3NC43OTIgNDMyLjU5NEMzNzQuNTE5IDQzMS4wOTQgMzc0LjQzNSA0MjkuNTYzIDM3NC4wOTkgNDI4LjA3M0MzNzEuODgzIDQxOC4zNjUgMzY4LjAyOSA0MDguNjg4IDM2MS42MjQgNDAxLjgyM0MzNjMuMTk5IDQxMC45NjkgMzYxLjIzNSA0MTkuNTIxIDM1OC4zNDggNDI3LjQ1OEMzNTYuODY3IDQzMS40MjcgMzU1LjEwMyA0MzUuMjYgMzUzLjExOSA0MzguOTQ4QzM1Mi45NzIgNDM5LjIwOCAzNTIuODA0IDQzOS40OSAzNTIuNjU3IDQzOS43NUMzNTkuODYgNDM3Ljk1OCAzNjcuMjQyIDQzNS41OTQgMzc0Ljc5MiA0MzIuNTk0WiIgZmlsbD0iIzQyNDI0MiIvPgo8cGF0aCBkPSJNMjEwLjE2NiAzMTAuMzg1QzIzMy4yMTQgMzEyLjIxOSAyNTYuNTc4IDMxMC41MSAyNzcuNjMxIDMwMy41MzFDMjU1LjQ0MyAzMDMuNTk0IDIzNC40MDEgMjk4LjE3NyAyMTQuOTg1IDI5MC4xMDRDMjA1LjI2MiAyODYuMDczIDE5NS45MjcgMjgxLjI4MSAxODYuOTgxIDI3Ni4wMUMxODUuNzg0IDI3NS4yOTIgMTg0LjU3NiAyNzQuNTMxIDE4My4zNjggMjczLjc4MUMxNzkuMTA1IDI4My4zNjUgMTc2Ljg2OSAyOTQuMDgzIDE3Ni41MjIgMzA1LjMxMkMxODcuNjc0IDMwNy43NCAxOTguOTA5IDMwOS41MSAyMTAuMTY2IDMxMC4zODVaIiBmaWxsPSIjNDI0MjQyIi8+CjxwYXRoIGQ9Ik0zMTkuNjIyIDQwMS44MzNDMzE2IDQxMy43NSAzMDguNDgxIDQyMi44NjUgMzAwLjI0OSA0MzAuNjg4QzI5Ni4wOTEgNDM0LjU1MiAyOTEuNjkxIDQzOC4wOTQgMjg3LjExMyA0NDEuMzIzQzI5Ni42ODkgNDQzLjM3NSAzMDYuODU0IDQ0NC41MSAzMTcuNTg1IDQ0NC40MDZDMzE3LjkzMiA0NDMuMTg4IDMxOC4zNDEgNDQxLjk2OSAzMTguNjU2IDQ0MC43MTlDMzIxLjg4IDQyNy43NzEgMzIzLjEyOSA0MTMuODc1IDMxOS42MjIgNDAxLjgzM1oiIGZpbGw9IiM0MjQyNDIiLz4KPHBhdGggZD0iTTI2Mi42MzYgNDE4Ljk2OUMyNzAuNTEyIDQxMi4yODEgMjc3LjkxNCA0MDUuMDEgMjg0LjI1NyAzOTYuOTQ4QzI5MC41NzggMzg4LjkxNyAyOTUuODQ5IDM3OS45OSAyOTguNjMyIDM3MC41OTRDMjg2LjUzNSAzODYuMTM1IDI2OS4yMiAzOTQuNjU2IDI1MS44ODQgNDAxLjA4M0MyNDMuMTE2IDQwNC4yMjkgMjM0LjE0OSA0MDYuNzQgMjI1LjA4NyA0MDguNzZDMjI0LjM2MiA0MDguOTI3IDIyMy41ODUgNDA5LjA0MiAyMjIuODUgNDA5LjE4OEMyMzAuODQxIDQxNi4wMjEgMjQwLjIzOSA0MjIuNTgzIDI1MC45MzkgNDI4LjE4OEMyNTQuOTE4IDQyNS4yMjkgMjU4LjgzNSA0MjIuMTY3IDI2Mi42MzYgNDE4Ljk2OVoiIGZpbGw9IiM0MjQyNDIiLz4KPHBhdGggZD0iTTI3Ny42MiAzMzkuMzMzQzI2MC4wMzIgMzQ5LjI4MSAyNDAuNzk1IDM1My43ODEgMjIyLjAxIDM1NC40MTdDMjEyLjYwMiAzNTQuNzcxIDIwMy4yNTYgMzU0LjE1NiAxOTQuMTMxIDM1Mi44NDRDMTkwLjcyOSAzNTIuMzMzIDE4Ny4yMjIgMzUxLjY4OCAxODMuNzY3IDM1MC45NDhDMTg3LjYzMiAzNjIuNDY5IDE5Mi43NjYgMzczLjM4NSAxOTguOTA5IDM4Mi43NUMxOTguOTkzIDM4Mi44ODUgMTk5LjEwOSAzODMuMDEgMTk5LjE4MiAzODMuMTU2QzIwOC42MDEgMzgxIDIxNy44MzEgMzc4LjMxMyAyMjYuNjUxIDM3NC43MjlDMjQ2LjU5MiAzNjYuNzYgMjY0LjU4OSAzNTQuNjM1IDI3Ny42MiAzMzkuMzMzWiIgZmlsbD0iIzQyNDI0MiIvPgo8cGF0aCBkPSJNMjg4LjEyMSAyNjYuNDE3QzI4NC4yMjUgMjY2LjQxNyAyODAuNDc3IDI2NS45MDYgMjc2Ljg2NCAyNjUuMDUyQzI4Ni45NzYgMjc1LjgwMiAyOTguNjExIDI5My41NDIgMjc3LjYyIDMwMy41MjFDMjc3LjYyIDMwMy41MjEgMjk4LjYyMSAzMTguNSAyNzcuNjIgMzM5LjMzM0MyNzcuNjIgMzM5LjMzMyAzMDkuMTIyIDMzOS4zMzMgMjk4LjYyMSAzNzAuNTgzQzI5OC42MjEgMzcwLjU4MyAzMzAuMTIzIDM3MC41ODMgMzE5LjYyMiA0MDEuODMzQzMxOS42MjIgNDAxLjgzMyAzNDAuNjIzIDM5MS40MTcgMzYxLjYyNCA0MDEuODMzQzM2MS42MjQgNDAxLjgzMyAzOTkuNjg4IDM5Mi40NTggNDAzLjI2OSA0MTguNjE0QzQxNi42MDQgNDEwLjg0NCA0MzAuMzM5IDQwMS4xODcgNDQ0LjUwNCAzODkuMTE0QzI1Ni42MiA0MzMuMDgzIDMyMC4wMTEgMjY2LjQxNyAyODguMTIxIDI2Ni40MTdaIiBmaWxsPSIjNDI0MjQyIi8+CjxwYXRoIGQ9Ik0yOTIuNzUyIDIyNC44NjVMMjkyLjg2NyAyMjQuNzVDMjkyLjg2NyAyMjQuNzUgMjIyLjA0MiA4MS43MDgzIDE5MS4xMDcgNjkuNzE4N0MxNzEuNTU1IDYyLjEzNTQgMTU0LjU5NyAxMzMuODU0IDE4Mi4yNjYgMTc4LjEyNUMyMDUuNzQ1IDIxNS42NzcgMjc3LjYzMSAyMzguNDE3IDI3Ny42MzEgMjM4LjQxN0wyNzcuNzg4IDIzOC4yNzFDMjc4LjQ4MSAyMzguNzgxIDI3OS4xMjIgMjM5LjM0NCAyNzkuOTYyIDIzOS42NjdDMjg1LjM3IDI0MS43NSAyOTEuNDUgMjM5LjEwNCAyOTMuNTYgMjMzLjc2QzI5NC43NDcgMjMwLjcwOCAyOTQuMjc0IDIyNy41MSAyOTIuNzUyIDIyNC44NjVaIiBmaWxsPSIjQTBDMTY4Ii8+CjxwYXRoIGQ9Ik0zMzAuMTIzIDI2Ni40MTdDMzA4LjI4MiAyODguMDk0IDI3Ny42MiAyNjYuNDE3IDI2Ny4xMiAyNTZDMjQ2LjExOSAyMzUuMTY3IDIyNi43MzUgMjE3LjU4MyAyNDguNTY2IDE5NS45MzdDMjcwLjQwNyAxNzQuMjYgMjk3LjkxOCAxODIuMTA0IDMxOS43NDggMjAzLjc4MUMzNDEuNjEgMjI1LjQ1OCAzNTEuOTY0IDI0NC43NzEgMzMwLjEyMyAyNjYuNDE3WiIgZmlsbD0iIzRCNEI0QiIvPgo8cGF0aCBkPSJNMzUxLjEyNCAxNDEuNDM4TDM2MS42MjQgMTIwLjYwNEw0MTQuMTI2IDExMC4xODgiIHN0cm9rZT0iIzRCNEI0QiIgc3Ryb2tlLXdpZHRoPSIyMC44MzMzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KPHBhdGggZD0iTTMzMC4xMjMgMTMxLjAyMUwzMTkuNjIyIDk5Ljc3MDhMMzgyLjYyNSA3OC45Mzc1IiBzdHJva2U9IiM0QjRCNEIiIHN0cm9rZS13aWR0aD0iMjAuODMzMyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CjxwYXRoIGQ9Ik0zNjEuNjI0IDE5My41QzM3Mi4xMTQgMTcyLjY3NyAzODAuOTk3IDE3NC4yNzEgMzgxLjAwOCAxNzQuMjcxQzM3Mi41NTUgMTU0LjgyMyAzNTguMTM4IDEzNC45MTcgMzM2LjA4NyAxMjQuMjVDMzE1LjU4IDExNC4zNDQgMjkxLjExNCAxMjQuMzQ0IDI4MS44ODQgMTQ1LjcwOEMyNzIuNjY0IDE2Ny4wNzMgMjgxLjk5OSAxOTIuMDUyIDMwMi42NzUgMjAxLjYyNUMzMzAuMTIzIDIxNC4zMzMgMzcyLjEyNCAyMTQuMzMzIDM4Mi42MjUgMjI0Ljc1QzM4My40MjMgMjI1LjU0MiAzODQuMTU4IDIyNi4wMjEgMzg0Ljg0MSAyMjYuMzMzQzM3Mi4xMjUgMjAzLjkxNyAzNjEuNjI0IDE5My41IDM2MS42MjQgMTkzLjVaIiBmaWxsPSIjNzc3Nzc3Ii8+CjxwYXRoIGQ9Ik0zMjQuNzM2IDIwOC44MDJDMzE2LjY2MSAyMDYuNDE3IDMwOS42ODkgMjA0Ljg3NSAzMDIuNjc0IDIwMS42MzVDMjk0LjI3NCAxOTcuNzUgMjg3Ljg3OSAxOTEuMjYgMjgzLjcgMTgzLjU2M0MyNzYuMzUgMTgyLjQ3OSAyNjAuMjMyIDE4My43NSAyNTMuMDA3IDE5Mi41MzFDMjU4Ljc5MyAyMDcuMDk0IDI2MS40MjkgMjI5LjM3NSAyNzYuOTU5IDIzNS4xNzdDMzA3LjQ3MyAyNDYuNTczIDMyOS40ODIgMjQyLjYyNSAzNDEuNDYzIDIzNS4zNDRDMzM4Ljg0OSAyMjQuNzUgMzMxLjIzNiAyMTYuNTczIDMyNC43MzYgMjA4LjgwMloiIGZpbGw9IiMzMjMyMzIiLz4KPHBhdGggZD0iTTM2MC4yOSAxNzguNjg4QzM1NS40OTIgMTg2LjQ0OCAzNDUuNTA2IDE3My40NTggMzMwLjEyMyAxNjIuMjVDMzE0Ljc0IDE1MS4wNDIgMjk5Ljc2NiAxNDUuODU0IDMwNC41NjUgMTM4LjA4M0MzMDkuMzUzIDEzMC4zMzMgMzI1Ljc0NCAxMzMuMTI1IDM0MS4xMTcgMTQ0LjM0NEMzNTYuNDg5IDE1NS41NjMgMzY1LjEgMTcwLjkxNyAzNjAuMjkgMTc4LjY4OFoiIGZpbGw9IiMzMjMyMzIiLz4KPHBhdGggZD0iTTI4NC4xMiAyMTYuNzVMMjg0LjE5NCAyMTYuNjA0QzI4NC4xODMgMjE2LjYxNSAxMTEuMzI1IDY4LjUgNzguMTExOSA2OC41QzU3LjExMSA2OC41IDY3LjYxMTUgMTQxLjQxNyAxMDkuNjEzIDE3Mi42NjdDMTQ1LjI2MiAxOTkuMTg4IDI3NC45OTUgMjM0Ljg0NCAyNzQuOTk1IDIzNC44NDRMMjc1LjA5IDIzNC42NTZDMjc1LjkxOSAyMzQuODc1IDI3Ni43MTcgMjM1LjE2NyAyNzcuNjIgMjM1LjE2N0MyODMuNDI3IDIzNS4xNjcgMjg4LjEyMSAyMzAuNTEgMjg4LjEyMSAyMjQuNzVDMjg4LjEyMSAyMjEuNDc5IDI4Ni41MDQgMjE4LjY2NyAyODQuMTIgMjE2Ljc1WiIgZmlsbD0iI0E2RDM1QiIvPgo8L2c+CjxkZWZzPgo8Y2xpcFBhdGggaWQ9ImNsaXAwXzIxNl85NiI+CjxyZWN0IHdpZHRoPSIzNzYiIGhlaWdodD0iMzc2IiBmaWxsPSJ3aGl0ZSIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoNjggNjgpIi8+CjwvY2xpcFBhdGg+CjwvZGVmcz4KPC9zdmc+Cg==
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - apps
+          resources:
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - configmaps/status
+          verbs:
+          - get
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets/status
+          verbs:
+          - get
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments/status
+          verbs:
+          - get
+        - apiGroups:
+          - apps
+          resources:
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - statefulsets/status
+          verbs:
+          - get
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps/status
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - groups
+          verbs:
+          - impersonate
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - create
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          verbs:
+          - list
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods/portforward
+          verbs:
+          - create
+        - apiGroups:
+          - ""
+          resources:
+          - resourcequotas
+          verbs:
+          - create
+          - get
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - services/status
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - users
+          verbs:
+          - impersonate
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - networkpolicies
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - networkpolicies/status
+          verbs:
+          - get
+        - apiGroups:
+          - operator.openshift.io
+          resources:
+          - ingresscontrollers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - project.openshift.io
+          resources:
+          - projects
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - roles
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes/custom-host
+          verbs:
+          - create
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - get
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - clusterdirectives
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - clusterdirectives/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - clusterdirectives/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - dashboards
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - dashboards/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - dashboards/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - directives
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - directives/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - directives/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - streams
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - streams/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - streams/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - streamstores
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - streamstores/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - streamstores/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - topologyaggregators
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - topologyaggregators/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - tawon.mantisnet.com
+          resources:
+          - topologyaggregators/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - user.openshift.io
+          resources:
+          - groups
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - user.openshift.io
+          resources:
+          - users
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: tawon-operator-controller-manager
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - privileged
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: default
+      deployments:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: tawon-operator
+          app.kubernetes.io/instance: controller-manager
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: tawon-operator
+          control-plane: controller-manager
+        name: tawon-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - arm64
+                        - ppc64le
+                        - s390x
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: quay.io/mantisnet/kube-rbac-proxy@sha256:a2523c532c0c3d51a5396a901d7ded23e402a9a1492c783aae27af6d0c1d2ec5
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                command:
+                - /manager
+                env:
+                - name: TAWON_OPERATOR_DEFAULT_TAWON_IMAGE
+                  value: quay.io/mantisnet/tawon@sha256:370a1eefe4abd11bf1fc313126e315ca834dca14a7d8b2a8122c959bee7374b5
+                - name: TAWON_OPERATOR_DEFAULT_JETSTREAM_IMAGE
+                  value: quay.io/mantisnet/nats@sha256:5f9e7f8f685fd0c1279a3465b61c7215f4600c99d81785dda86a71c966cf829a
+                - name: TAWON_OPERATOR_DEFAULT_DASHBOARD_IMAGE
+                  value: quay.io/mantisnet/sengat@sha256:7a0b2fdcdc5f55a640af4e4ea104c84676a237c34292e2e9cbd523a572d791bb
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                image: quay.io/mantisnet/tawon-operator@sha256:b8a771120d492d757f0efaf1fd6036d8b9178e0cd8a158e9bf985718a4aa8c68
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: "1"
+                    memory: 1Gi
+                  requests:
+                    cpu: 250m
+                    memory: 128Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: cert
+                  readOnly: true
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: tawon-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - name: cert
+                secret:
+                  defaultMode: 420
+                  secretName: webhook-server-cert
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: tawon-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - monitoring
+  - networking
+  - metrics
+  - ebpf
+  links:
+  - name: Tawon Docs
+    url: https://docs.tawon.xmantis.net
+  maintainers:
+  - email: elliott@mantisnet.com
+    name: Elliott Starin
+  - email: nicolas@mantisnet.com
+    name: Nicolas Paton
+  - email: thiago@mantisnet.com
+    name: Thiago Navarro
+  maturity: alpha
+  provider:
+    name: Mantisnet
+    url: https://www.mantisnet.com
+  relatedImages:
+  - image: quay.io/mantisnet/kube-rbac-proxy@sha256:a2523c532c0c3d51a5396a901d7ded23e402a9a1492c783aae27af6d0c1d2ec5
+    name: kube-rbac-proxy
+  - image: quay.io/mantisnet/tawon-operator@sha256:b8a771120d492d757f0efaf1fd6036d8b9178e0cd8a158e9bf985718a4aa8c68
+    name: manager
+  - image: quay.io/mantisnet/tawon@sha256:b7baf502432f180a3c48cfa760f1e5f87b04ea9885852320e41787f1869cbef3
+    name: tawon-debug
+  - image: quay.io/mantisnet/tawon@sha256:370a1eefe4abd11bf1fc313126e315ca834dca14a7d8b2a8122c959bee7374b5
+    name: tawon
+  - image: quay.io/mantisnet/nats@sha256:5f9e7f8f685fd0c1279a3465b61c7215f4600c99d81785dda86a71c966cf829a
+    name: nats
+  - image: quay.io/mantisnet/kernel-headers@sha256:9290eb56b186ee0edf65da615c1a8aabc66f7d290168e49ad8764ab8fc2d209a
+    name: kernel-headers-ocp-4.12.45
+  - image: quay.io/mantisnet/kernel-headers@sha256:ca3baeba7ab8ce968c1ee129112532fc8b8d6fb6741e42831b6100f0a2451629
+    name: kernel-headers-ocp-4.12.53
+  - image: quay.io/mantisnet/kernel-headers@sha256:5d00bfa9f60c95afcfa363ede59a9625fef9925cd1cb4235327a1de94a0fc632
+    name: kernel-headers-ocp-4.12.58
+  - image: quay.io/mantisnet/tawonctl@sha256:f0f6efde7b0a36f2595e71e83941ce19664b9d3b08d257bc7ce32247e7351431
+    name: tawonctl
+  - image: quay.io/mantisnet/diagnose@sha256:1dd88a704a069cc0f8a05d31a2171776195e9ee69c09b9426466c7f0cf4443e6
+    name: diagnose
+  - image: quay.io/mantisnet/sengat@sha256:7a0b2fdcdc5f55a640af4e4ea104c84676a237c34292e2e9cbd523a572d791bb
+    name: dashboard
+  - image: quay.io/openshift/origin-oauth-proxy@sha256:28856aae9e481fe763776df713b4b335632645687e6fd2e31619f76d11e0f47c
+    name: origin-oauth-proxy
+  replaces: tawon-operator.v2.39.21-rc6
+  version: 2.39.25-rc2
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: tawon-operator-controller-manager
+    failurePolicy: Fail
+    generateName: mdashboard.kb.io
+    rules:
+    - apiGroups:
+      - tawon.mantisnet.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - dashboards
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-tawon-mantisnet-com-v1alpha1-dashboard
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: tawon-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vclusterdirective.kb.io
+    rules:
+    - apiGroups:
+      - tawon.mantisnet.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      - DELETE
+      resources:
+      - clusterdirectives
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-tawon-mantisnet-com-v1alpha1-clusterdirective
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: tawon-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vdirective.kb.io
+    rules:
+    - apiGroups:
+      - tawon.mantisnet.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      - DELETE
+      resources:
+      - directives
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-tawon-mantisnet-com-v1alpha1-directive
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: tawon-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vstream.kb.io
+    rules:
+    - apiGroups:
+      - tawon.mantisnet.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - streams
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-tawon-mantisnet-com-v1alpha1-stream
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: tawon-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vstreamstore.kb.io
+    rules:
+    - apiGroups:
+      - tawon.mantisnet.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - streamstores
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-tawon-mantisnet-com-v1alpha1-streamstore
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: tawon-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vtopologyaggregator.kb.io
+    rules:
+    - apiGroups:
+      - tawon.mantisnet.com
+      apiVersions:
+      - v1alpha1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - topologyaggregators
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-tawon-mantisnet-com-v1alpha1-topologyaggregator

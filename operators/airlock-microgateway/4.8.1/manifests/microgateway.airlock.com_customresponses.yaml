@@ -1,0 +1,172 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    app.kubernetes.io/name: airlock-microgateway-operator
+    app.kubernetes.io/version: 4.8.1
+  name: customresponses.microgateway.airlock.com
+spec:
+  group: microgateway.airlock.com
+  names:
+    categories:
+    - airlock-microgateway
+    kind: CustomResponse
+    listKind: CustomResponseList
+    plural: customresponses
+    singular: customresponse
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          CustomResponse defines a custom response.
+          The response may be defined for multiple Content-Types, in which case the actual response is selected based on the request's Accept header.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired CustomResponse.
+            properties:
+              content:
+                description: |-
+                  content specifies the custom response content with different content types.
+                  If multiple content types are specified, the content type which best matches the request's Accept header is served. The Accept header is interpreted as laid out in [RFC-9110, Section 12.5.1](https://www.rfc-editor.org/rfc/rfc9110.html#name-accept), with the caveat that all parameters except the weight q are ignored.
+
+                  The best match with the Accept header is determined as follows:
+                  1. The content type with the highest weighted match (q parameter) wins.
+                  2. In the case of equal weights, the more specific match wins.
+                  3. If the match specificity is the same, the content type which comes earlier in this list wins.
+
+                  For example, for a request with `Accept: application/json; q=0.8, text/*; q=1, text/plain; q=1`:
+                  - Given a [content](#customresponsespeccontent) list with content types `text/html` and `application/json`, `text/html` would be served because it matches an entry with higher weight.
+                  - Given a [content](#customresponsespeccontent) list with content types `text/html` and `text/plain`, `text/plain` would be served because it matches a more specific entry with equal weight.
+                  - Given a [content](#customresponsespeccontent) list with `application/xml` and `image/jpg`, `application/xml` would be served because it comes earlier in the list while neither of them matches any part of the Accept header.
+                items:
+                  description: A custom response definition for a specific content
+                    type.
+                  properties:
+                    body:
+                      description: |-
+                        body defines the response body.
+                        If not specified, the response is sent without a body and without a Content-Type header.
+                      properties:
+                        value:
+                          description: |-
+                            value defines the response body inline as a string.
+                            Note: Dynamic values can be injected into the body using [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators), e.g., `%STREAM_ID%`. Percentage signs not part of command operators must be escaped using `%%`.
+                          maxLength: 65536
+                          minLength: 1
+                          pattern: ^[^%]*(%([A-Z][A-Z_]*(\([^()\s"]+\)(:\d+)?)?)?%[^%]*)*$
+                          type: string
+                        valueFrom:
+                          description: valueFrom specifies the source from which to
+                            load the response body.
+                          properties:
+                            configMapKeyRef:
+                              description: |-
+                                configMapKeyRef specifies to load the body from a ConfigMap key.
+                                Note: Dynamic values can be injected into the body using [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators), e.g., `%STREAM_ID%`. Percentage signs not part of command operators must be escaped using `%%`.
+                              properties:
+                                key:
+                                  description: key to load from the config map.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[A-Za-z0-9_\-\.]+$
+                                  type: string
+                                name:
+                                  description: name of the resource
+                                  maxLength: 253
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - key
+                              - name
+                              type: object
+                          required:
+                          - configMapKeyRef
+                          type: object
+                      type: object
+                    contentType:
+                      description: |-
+                        contentType defines the content type of the response.
+                        If a body is specified, this value is used to populate the Content-Type header.
+                      maxLength: 256
+                      minLength: 1
+                      type: string
+                    headers:
+                      description: |-
+                        headers to add to the response.
+                        Note: If the custom response replaces a local response, the original local response's headers are also included. If this list specifies a header with the same name as an existing header, the existing header's value is overwritten.
+                        Note: If the custom response replaces an upstream (backend) response, the upstream response's headers are *not* automatically included.
+                      items:
+                        description: A Name value pair representing a header
+                        properties:
+                          name:
+                            description: name defines the name of the header.
+                            maxLength: 512
+                            minLength: 1
+                            type: string
+                          value:
+                            description: |-
+                              value defines the value of the header.
+                              Note: This field supports dynamic values via [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators), e.g., `value: "%STREAM_ID%"`. Percentage signs not part of command operators must be escaped using `%%`.
+                            maxLength: 8192
+                            pattern: ^[^%]*(%([A-Z][A-Z_]*(\([^()\s"]+\)(:\d+)?)?)?%[^%]*)*$
+                            type: string
+                        required:
+                        - name
+                        - value
+                        type: object
+                      maxItems: 64
+                      type: array
+                      x-kubernetes-list-type: atomic
+                  required:
+                  - contentType
+                  type: object
+                maxItems: 16
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: atomic
+                x-kubernetes-validations:
+                - message: contentType field must be unique across all content items
+                  rule: self.all(t1, self.exists_one(t2, t1.contentType == t2.contentType))
+              statusCode:
+                description: |-
+                  statusCode overrides the HTTP status code of the response.
+                  If not specified, the original upstream or local response's status code is preserved.
+                format: int32
+                maximum: 599
+                minimum: 100
+                type: integer
+            required:
+            - content
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

@@ -1,0 +1,705 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.10.0
+  creationTimestamp: null
+  name: smartkubes.bonree.com
+spec:
+  group: bonree.com
+  names:
+    categories:
+    - bonree
+    kind: SmartKube
+    listKind: SmartKubeList
+    plural: smartkubes
+    shortNames:
+    - sk
+    - sks
+    singular: smartkube
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.apiUrl
+      name: ApiUrl
+      type: string
+    - jsonPath: .status.phase
+      name: Status
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: SmartKube is the Schema for the smartkubes API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SmartKubeSpec defines the desired state of SmartKube
+            properties:
+              agentModules:
+                description: Configuration for AgentModules Monitoring
+                properties:
+                  enabled:
+                    description: Enables Application monitoring, bonree-webhook injects
+                      into application pods based on labeled namespaces. Has an optional
+                      CSI driver per node via DaemonSet to provide binaries to pods.
+                    type: boolean
+                  env:
+                    description: 'Optional: List of environment variables to set for
+                      the app container'
+                    items:
+                      description: EnvVar represents an environment variable present
+                        in a Container.
+                      properties:
+                        name:
+                          description: Name of the environment variable. Must be a
+                            C_IDENTIFIER.
+                          type: string
+                        value:
+                          description: 'Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in
+                            the container and any service environment variables. If
+                            a variable cannot be resolved, the reference in the input
+                            string will be unchanged. Double $$ are reduced to a single
+                            $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless
+                            of whether the variable exists or not. Defaults to "".'
+                          type: string
+                        valueFrom:
+                          description: Source for the environment variable's value.
+                            Cannot be used if value is not empty.
+                          properties:
+                            configMapKeyRef:
+                              description: Selects a key of a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fieldRef:
+                              description: 'Selects a field of the pod: supports metadata.name,
+                                metadata.namespace, `metadata.labels[''<KEY>'']`,
+                                `metadata.annotations[''<KEY>'']`, spec.nodeName,
+                                spec.serviceAccountName, status.hostIP, status.podIP,
+                                status.podIPs.'
+                              properties:
+                                apiVersion:
+                                  description: Version of the schema the FieldPath
+                                    is written in terms of, defaults to "v1".
+                                  type: string
+                                fieldPath:
+                                  description: Path of the field to select in the
+                                    specified API version.
+                                  type: string
+                              required:
+                              - fieldPath
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            resourceFieldRef:
+                              description: 'Selects a resource of the container: only
+                                resources limits and requests (limits.cpu, limits.memory,
+                                limits.ephemeral-storage, requests.cpu, requests.memory
+                                and requests.ephemeral-storage) are currently supported.'
+                              properties:
+                                containerName:
+                                  description: 'Container name: required for volumes,
+                                    optional for env vars'
+                                  type: string
+                                divisor:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Specifies the output format of the
+                                    exposed resources, defaults to "1"
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                resource:
+                                  description: 'Required: resource to select'
+                                  type: string
+                              required:
+                              - resource
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretKeyRef:
+                              description: Selects a key of a secret in the pod's
+                                namespace
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  image:
+                    description: '[Since 1.1.0] Optional: Install agentModules from
+                      image if specified'
+                    type: string
+                  imagePullPolicy:
+                    description: 'Optional: agentModules image pull policy Defaults
+                      to IfNotPresent'
+                    type: string
+                  resources:
+                    description: Define resources requests and limits for the initContainer.
+                      For details, see Managing resources for containers (https://kubernetes.io/docs/concepts/configuration/manage-resources-containers).
+                    properties:
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                  useCSIDriver:
+                    description: 'Optional: If you want to use CSIDriver; disable
+                      if your cluster does not have ''nodes'' to fall back to the
+                      volume approach.'
+                    type: boolean
+                type: object
+              agentTypes:
+                description: 'Optional: Enable Agent Types, example: -t "java,php,dotnet,python,nodejs,nginx,go,apache,javanative"'
+                type: string
+              apiUrl:
+                description: Location of the SmartKube API to connect to
+                maxLength: 128
+                type: string
+              classicFullStack:
+                description: Configuration for ClassicFullStack Monitoring
+                properties:
+                  args:
+                    description: 'Optional: Arguments to the SmartAgent installer'
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  dnsPolicy:
+                    description: 'Optional: Sets DNS Policy for the SmartAgent pods'
+                    type: string
+                  enabled:
+                    description: Enables FullStack Monitoring Has a single SmartAgent
+                      per node via DaemonSet. Injection is performed via the same
+                      SmartAgent DaemonSet.
+                    type: boolean
+                  env:
+                    description: 'Optional: List of environment variables to set for
+                      the installer'
+                    items:
+                      description: EnvVar represents an environment variable present
+                        in a Container.
+                      properties:
+                        name:
+                          description: Name of the environment variable. Must be a
+                            C_IDENTIFIER.
+                          type: string
+                        value:
+                          description: 'Variable references $(VAR_NAME) are expanded
+                            using the previously defined environment variables in
+                            the container and any service environment variables. If
+                            a variable cannot be resolved, the reference in the input
+                            string will be unchanged. Double $$ are reduced to a single
+                            $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                            "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                            Escaped references will never be expanded, regardless
+                            of whether the variable exists or not. Defaults to "".'
+                          type: string
+                        valueFrom:
+                          description: Source for the environment variable's value.
+                            Cannot be used if value is not empty.
+                          properties:
+                            configMapKeyRef:
+                              description: Selects a key of a ConfigMap.
+                              properties:
+                                key:
+                                  description: The key to select.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the ConfigMap or its
+                                    key must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            fieldRef:
+                              description: 'Selects a field of the pod: supports metadata.name,
+                                metadata.namespace, `metadata.labels[''<KEY>'']`,
+                                `metadata.annotations[''<KEY>'']`, spec.nodeName,
+                                spec.serviceAccountName, status.hostIP, status.podIP,
+                                status.podIPs.'
+                              properties:
+                                apiVersion:
+                                  description: Version of the schema the FieldPath
+                                    is written in terms of, defaults to "v1".
+                                  type: string
+                                fieldPath:
+                                  description: Path of the field to select in the
+                                    specified API version.
+                                  type: string
+                              required:
+                              - fieldPath
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            resourceFieldRef:
+                              description: 'Selects a resource of the container: only
+                                resources limits and requests (limits.cpu, limits.memory,
+                                limits.ephemeral-storage, requests.cpu, requests.memory
+                                and requests.ephemeral-storage) are currently supported.'
+                              properties:
+                                containerName:
+                                  description: 'Container name: required for volumes,
+                                    optional for env vars'
+                                  type: string
+                                divisor:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Specifies the output format of the
+                                    exposed resources, defaults to "1"
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                resource:
+                                  description: 'Required: resource to select'
+                                  type: string
+                              required:
+                              - resource
+                              type: object
+                              x-kubernetes-map-type: atomic
+                            secretKeyRef:
+                              description: Selects a key of a secret in the pod's
+                                namespace
+                              properties:
+                                key:
+                                  description: The key of the secret to select from.  Must
+                                    be a valid secret key.
+                                  type: string
+                                name:
+                                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    TODO: Add other useful fields. apiVersion, kind,
+                                    uid?'
+                                  type: string
+                                optional:
+                                  description: Specify whether the Secret or its key
+                                    must be defined
+                                  type: boolean
+                              required:
+                              - key
+                              type: object
+                              x-kubernetes-map-type: atomic
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: 'Optional: Adds additional labels for the SmartAgent
+                      pods'
+                    type: object
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: Node selector to control the selection of nodes (optional)
+                    type: object
+                  priorityClassName:
+                    description: 'Optional: If specified, indicates the pod''s priority.
+                      Name must be defined by creating a PriorityClass object with
+                      that name. If not specified the setting will be removed from
+                      the DaemonSet.'
+                    type: string
+                  resources:
+                    description: 'Optional: define resources requests and limits for
+                      single pods'
+                    properties:
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Limits describes the maximum amount of compute
+                          resources allowed. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: 'Requests describes the minimum amount of compute
+                          resources required. If Requests is omitted for a container,
+                          it defaults to Limits if that is explicitly specified, otherwise
+                          to an implementation-defined value. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/'
+                        type: object
+                    type: object
+                  tolerations:
+                    description: 'Optional: set tolerations for the SmartAgent pods'
+                    items:
+                      description: The pod this Toleration is attached to tolerates
+                        any taint that matches the triple <key,value,effect> using
+                        the matching operator <operator>.
+                      properties:
+                        effect:
+                          description: Effect indicates the taint effect to match.
+                            Empty means match all taint effects. When specified, allowed
+                            values are NoSchedule, PreferNoSchedule and NoExecute.
+                          type: string
+                        key:
+                          description: Key is the taint key that the toleration applies
+                            to. Empty means match all taint keys. If the key is empty,
+                            operator must be Exists; this combination means to match
+                            all values and all keys.
+                          type: string
+                        operator:
+                          description: Operator represents a key's relationship to
+                            the value. Valid operators are Exists and Equal. Defaults
+                            to Equal. Exists is equivalent to wildcard for value,
+                            so that a pod can tolerate all taints of a particular
+                            category.
+                          type: string
+                        tolerationSeconds:
+                          description: TolerationSeconds represents the period of
+                            time the toleration (which must be of effect NoExecute,
+                            otherwise this field is ignored) tolerates the taint.
+                            By default, it is not set, which means tolerate the taint
+                            forever (do not evict). Zero and negative values will
+                            be treated as 0 (evict immediately) by the system.
+                          format: int64
+                          type: integer
+                        value:
+                          description: Value is the taint value the toleration matches
+                            to. If the operator is Exists, the value should be empty,
+                            otherwise just a regular string.
+                          type: string
+                      type: object
+                    type: array
+                  waitReadySeconds:
+                    description: 'Optional: Defines the time to wait until SmartAgent
+                      pod is ready after update - default 300 sec'
+                    minimum: 0
+                    type: integer
+                type: object
+              clusterName:
+                description: 'Optional: Sets Cluster Name for SmartAgent pods or serverless
+                  deployments'
+                type: string
+              controllerInfo:
+                description: ControllerInfo information about the accountGUID and
+                  its controller hosts
+                properties:
+                  accountGUID:
+                    description: Account GUID associated with the Bonree platform.
+                    type: string
+                  controllerUrl:
+                    description: URL of the Bonree controller, e.g. https://oneupload.bonree.com/APM.
+                      Used by the agent to upload metrics.
+                    type: string
+                  logControllerUrl:
+                    description: URL of the Bonree log controller, e.g. https://onelog.joinbr.com/controller/logs.
+                      Used by the log agent to upload log data.
+                    type: string
+                type: object
+              enableIstio:
+                description: If enabled, Istio on the cluster will be configured automatically
+                  to allow access to the Bonree Platform environment
+                type: boolean
+              envId:
+                description: 'Optional: Sets Env Id for SmartAgent pods or serverless
+                  deployments'
+                type: string
+              hostAttributes:
+                description: 'Optional: Sets host attributes for SmartAgent pods or
+                  serverless deployments'
+                type: string
+              hostTags:
+                description: 'Optional: Sets host tags for SmartAgent pods or serverless
+                  deployments'
+                type: string
+              networkZone:
+                description: 'Optional: Sets Network Zone for SmartAgent pods or serverless
+                  deployments'
+                type: string
+              proxy:
+                description: 'Optional: Set custom proxy settings either directly
+                  or from a secret with the field ''proxy'''
+                properties:
+                  value:
+                    type: string
+                  valueFrom:
+                    type: string
+                type: object
+              skipCertCheck:
+                description: Disable certificate validation checks for installer download
+                  and API communication
+                type: boolean
+              smartAgent:
+                description: General configuration about SmartAgent instances
+                properties:
+                  autoUpdate:
+                    description: Disable automatic restarts of SmartAgent pods in
+                      case a new version is available
+                    type: boolean
+                  image:
+                    description: 'Optional: the SmartAgent installer container image
+                      Defaults to docker.bonree.com/agent/smartagent:latest'
+                    type: string
+                  version:
+                    description: 'Optional: If specified, indicates the SmartAgent
+                      version to use Example: 5.0.0'
+                    type: string
+                type: object
+              tokens:
+                description: Name of the secret holding the API and PaaS tokens. Default
+                  SmartKube
+                type: string
+              trustedCAs:
+                description: 'Optional: Adds custom RootCAs from a configmap This
+                  property only affects certificates used to communicate with the
+                  Bonree Platform API.'
+                type: string
+            required:
+            - apiUrl
+            type: object
+          status:
+            description: SmartKubeStatus defines the observed state of SmartKube
+            properties:
+              communicationHostForClient:
+                description: CommunicationHostForClient caches a communication host
+                  specific to the api url.
+                properties:
+                  host:
+                    type: string
+                  port:
+                    format: int32
+                    type: integer
+                  protocol:
+                    type: string
+                type: object
+              conditions:
+                description: Conditions includes status about the current state of
+                  the instance
+                items:
+                  description: 'Condition contains details for one aspect of the current
+                    state of this API Resource. --- This struct is intended for direct
+                    use as an array at the field path .status.conditions.  For example,
+                    type FooStatus struct{ // Represents the observations of a foo''s
+                    current state. // Known .status.conditions.type are: "Available",
+                    "Progressing", and "Degraded" // +patchMergeKey=type // +patchStrategy=merge
+                    // +listType=map // +listMapKey=type Conditions []metav1.'
+                  properties:
+                    lastTransitionTime:
+                      description: lastTransitionTime is the last time the condition
+                        transitioned from one status to another. This should be when
+                        the underlying condition changed.  If that is not known, then
+                        using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: message is a human readable message indicating
+                        details about the transition. This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: observedGeneration represents the .metadata.generation
+                        that the condition was set based upon. For instance, if .metadata.generation
+                        is currently 12, but the .status.conditions[x].observedGeneration
+                        is 9, the condition is out of date with respect to the current
+                        state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: reason contains a programmatic identifier indicating
+                        the reason for the condition's last transition. Producers
+                        of specific condition types may define expected values and
+                        meanings for this field, and whether the values are considered
+                        a guaranteed API. The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        --- Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              connectionInfo:
+                description: ConnectionInfo caches information about the accountGUID
+                  and its communication hosts
+                properties:
+                  accountGUID:
+                    type: string
+                  communicationHosts:
+                    items:
+                      properties:
+                        host:
+                          type: string
+                        port:
+                          format: int32
+                          type: integer
+                        protocol:
+                          type: string
+                      type: object
+                    type: array
+                type: object
+              kubeSystemUUID:
+                description: KubeSystemUUID contains the UUID of the current Kubernetes
+                  cluster
+                type: string
+              lastClusterVersionProbeTimestamp:
+                description: LastClusterVersionProbeTimestamp indicates when the cluster's
+                  version was last checked
+                format: date-time
+                type: string
+              lastPaaSTokenProbeTimestamp:
+                description: LastPaaSTokenProbeTimestamp tracks when the last request
+                  for the PaaS token validity was sent
+                format: date-time
+                type: string
+              latestAgentVersionUnixDefault:
+                description: LatestAgentVersionUnixDefault caches the current agent
+                  version for unix and the default installer which is configured for
+                  the environment
+                type: string
+              latestAgentVersionUnixPaas:
+                description: LatestAgentVersionUnixDefault caches the current agent
+                  version for unix and the PaaS installer which is configured for
+                  the environment
+                type: string
+              phase:
+                description: Defines the current state (Running, Updating, Error,
+                  ...)
+                type: string
+              smartAgent:
+                properties:
+                  imageHash:
+                    description: TODO ImageHash contains the last image hash seen.
+                    type: string
+                  instances:
+                    additionalProperties:
+                      properties:
+                        ipAddress:
+                          type: string
+                        podName:
+                          type: string
+                      type: object
+                    type: object
+                  lastHostsRequestTimestamp:
+                    description: LastHostsRequestTimestamp indicates the last timestamp
+                      the Operator queried for hosts
+                    format: date-time
+                    type: string
+                  lastUpdateProbeTimestamp:
+                    description: LastUpdateProbeTimestamp defines the last timestamp
+                      when the querying for updates have been done
+                    format: date-time
+                    type: string
+                  version:
+                    description: Version contains the version to be deployed.
+                    type: string
+                type: object
+              tokens:
+                description: Credentials used to connect back to Bonree Platform.
+                type: string
+              updatedTimestamp:
+                description: UpdatedTimestamp indicates when the instance was last
+                  updated
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

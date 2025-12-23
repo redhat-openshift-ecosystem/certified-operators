@@ -1,0 +1,502 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    config.couchbase.com/version: 2.9.0
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: couchbasereplications.couchbase.com
+spec:
+  group: couchbase.com
+  names:
+    kind: CouchbaseReplication
+    listKind: CouchbaseReplicationList
+    plural: couchbasereplications
+    singular: couchbasereplication
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.bucket
+      name: bucket
+      type: string
+    - jsonPath: .spec.remoteBucket
+      name: remote bucket
+      type: string
+    - jsonPath: .spec.paused
+      name: paused
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: age
+      type: date
+    name: v2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          The CouchbaseReplication resource represents a Couchbase-to-Couchbase, XDCR replication
+          stream from a source bucket to a destination bucket.  This provides off-site backup,
+          migration, and disaster recovery.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          explicitMapping:
+            description: |-
+              The explicit mappings to use for replication which are optional.
+              For Scopes and Collection replication support we can specify a set of implicit and
+              explicit mappings to use. If none is specified then it is assumed to be existing
+              bucket level replication.
+              https://docs.couchbase.com/server/current/learn/clusters-and-availability/xdcr-with-scopes-and-collections.html#explicit-mapping
+            properties:
+              allowRules:
+                description: |-
+                  The list of explicit replications to carry out including any nested implicit replications:
+                  specifying a scope implicitly replicates all collections within it.
+                  There should be no duplicates, including more-specific duplicates, e.g. if you specify replication
+                  of a scope then you can only deny replication of collections within it.
+                items:
+                  description: |-
+                    CouchbaseAllowReplicationMapping is to cover Scope and Collection explicit replication.
+                    If a scope is defined then it implicitly allows all collections unless a more specific
+                    CouchbaseDenyReplicationMapping rule is present to block it.
+                    Once a rule is defined at scope level it should not be redefined at collection level.
+                    https://docs.couchbase.com/server/current/learn/clusters-and-availability/xdcr-with-scopes-and-collections.html
+                  properties:
+                    sourceKeyspace:
+                      description: |-
+                        The source keyspace: where to replicate from.
+                        Source and target must match whether they have a collection or not, i.e. you cannot
+                        replicate from a scope to a collection.
+                      properties:
+                        collection:
+                          description: The optional collection within the scope. May
+                            be empty to just work at scope level.
+                          maxLength: 251
+                          minLength: 1
+                          pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                          type: string
+                        scope:
+                          description: The scope to use.
+                          maxLength: 251
+                          minLength: 1
+                          pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                          type: string
+                      required:
+                      - scope
+                      type: object
+                    targetKeyspace:
+                      description: |-
+                        The target keyspace: where to replicate to.
+                        Source and target must match whether they have a collection or not, i.e. you cannot
+                        replicate from a scope to a collection.
+                      properties:
+                        collection:
+                          description: The optional collection within the scope. May
+                            be empty to just work at scope level.
+                          maxLength: 251
+                          minLength: 1
+                          pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                          type: string
+                        scope:
+                          description: The scope to use.
+                          maxLength: 251
+                          minLength: 1
+                          pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                          type: string
+                      required:
+                      - scope
+                      type: object
+                  required:
+                  - sourceKeyspace
+                  - targetKeyspace
+                  type: object
+                type: array
+              denyRules:
+                description: |-
+                  The list of explicit replications to prevent including any nested implicit denials:
+                  specifying a scope implicitly denies all collections within it.
+                  There should be no duplicates, including more-specific duplicates, e.g. if you specify denial of
+                  replication of a scope then you can only specify replication of collections within it.
+                items:
+                  description: |-
+                    Provide rules to block implicit replication at scope or collection level.
+                    You may want to implicitly map all scopes or collections except a specific one (or set) so this
+                    is a better way to express that by creating rules just for those to deny.
+                  properties:
+                    sourceKeyspace:
+                      description: 'The source keyspace: where to block replication
+                        from.'
+                      properties:
+                        collection:
+                          description: The optional collection within the scope. May
+                            be empty to just work at scope level.
+                          maxLength: 251
+                          minLength: 1
+                          pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                          type: string
+                        scope:
+                          description: The scope to use.
+                          maxLength: 251
+                          minLength: 1
+                          pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                          type: string
+                      required:
+                      - scope
+                      type: object
+                  required:
+                  - sourceKeyspace
+                  type: object
+                type: array
+            type: object
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CouchbaseReplicationSpec allows configuration of an XDCR
+              replication.
+            properties:
+              bucket:
+                description: |-
+                  Bucket is the source bucket to replicate from. This refers to the Couchbase
+                  bucket name, not the resource name of the bucket. A bucket with this name must
+                  be defined on this cluster.  Legal bucket names have a maximum length of 100
+                  characters and may be composed of any character from "a-z", "A-Z", "0-9" and "-_%\.".
+                maxLength: 100
+                pattern: ^[a-zA-Z0-9-_%\.]{1,100}$
+                type: string
+              checkpointInterval:
+                description: CheckpointInterval is the interval in seconds between
+                  checkpoints.
+                format: int32
+                maximum: 14400
+                minimum: 60
+                type: integer
+              collectionsOSOMode:
+                description: |-
+                  CollectionsOSOMode optimizes for out-of-order mutations streaming (performance toggle).
+                  This field defaults to true.
+                type: boolean
+              compressionType:
+                description: CompressionType is the compression used for XDCR traffic.
+                enum:
+                - Auto
+                - None
+                type: string
+              conflictLogging:
+                description: |-
+                  ConflictLogging is the configuration for conflict logging.
+                  This feature is available in Couchbase Server 8.0.0 and later.
+                properties:
+                  enabled:
+                    description: Enabled defines whether conflict logging is enabled.
+                    type: boolean
+                  logCollection:
+                    description: LogCollection defines the collection to log conflicts
+                      to.
+                    properties:
+                      bucket:
+                        description: Bucket defines the bucket to log conflicts to.
+                        maxLength: 100
+                        pattern: ^[a-zA-Z0-9-_%\.]{1,100}$
+                        type: string
+                      collection:
+                        description: Collection defines the collection to log conflicts
+                          to.
+                        maxLength: 251
+                        minLength: 1
+                        pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                        type: string
+                      scope:
+                        description: Scope defines the scope to log conflicts to.
+                        maxLength: 251
+                        minLength: 1
+                        pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                        type: string
+                    type: object
+                  loggingRules:
+                    description: |-
+                      LoggingRules defines the list of logging rules for conflict logging. The rules can
+                      be scoped to a specific scope or a specific collection in a scope. The rules can disable
+                      logging, log to the default collection defined at `spec.conflictLogging.logCollection`, or
+                      log to a different collection.
+                    properties:
+                      customCollectionRules:
+                        description: CustomCollectionRules defines the rules for logging
+                          to a different collection.
+                        items:
+                          description: CouchbaseConflictCustomCollectionRule defines
+                            a rule for conflict logging that logs to a different collection.
+                          properties:
+                            collection:
+                              description: Collection defines the collection to apply
+                                the rule to.
+                              maxLength: 251
+                              minLength: 1
+                              pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                              type: string
+                            logCollection:
+                              description: LogCollection defines the collection to
+                                log conflicts to.
+                              properties:
+                                bucket:
+                                  description: Bucket defines the bucket to log conflicts
+                                    to.
+                                  maxLength: 100
+                                  pattern: ^[a-zA-Z0-9-_%\.]{1,100}$
+                                  type: string
+                                collection:
+                                  description: Collection defines the collection to
+                                    log conflicts to.
+                                  maxLength: 251
+                                  minLength: 1
+                                  pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                                  type: string
+                                scope:
+                                  description: Scope defines the scope to log conflicts
+                                    to.
+                                  maxLength: 251
+                                  minLength: 1
+                                  pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                                  type: string
+                              type: object
+                            scope:
+                              description: Scope defines the scope to apply the rule
+                                to.
+                              maxLength: 251
+                              minLength: 1
+                              pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                              type: string
+                          required:
+                          - logCollection
+                          - scope
+                          type: object
+                        type: array
+                      defaultCollectionRules:
+                        description: DefaultCollectionRules defines the rules for
+                          logging to the default collection.
+                        items:
+                          description: CouchbaseConflictKeyspace defines a scope or
+                            collection to apply the rule to.
+                          properties:
+                            collection:
+                              description: Collection defines the collection to apply
+                                the rule to.
+                              maxLength: 251
+                              minLength: 1
+                              pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                              type: string
+                            scope:
+                              description: Scope defines the scope to apply the rule
+                                to.
+                              maxLength: 251
+                              minLength: 1
+                              pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                              type: string
+                          type: object
+                        type: array
+                      noLoggingRules:
+                        description: NoLoggingRules defines the rules for disabling
+                          logging to for conflicts in a specific scope or collection.
+                        items:
+                          description: CouchbaseConflictKeyspace defines a scope or
+                            collection to apply the rule to.
+                          properties:
+                            collection:
+                              description: Collection defines the collection to apply
+                                the rule to.
+                              maxLength: 251
+                              minLength: 1
+                              pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                              type: string
+                            scope:
+                              description: Scope defines the scope to apply the rule
+                                to.
+                              maxLength: 251
+                              minLength: 1
+                              pattern: ^(_default|[a-zA-Z0-9\-][a-zA-Z0-9\-%_]{0,250})$
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              desiredLatency:
+                description: |-
+                  DesiredLatency is the target latency (ms) for high-priority replications.
+                  This field defaults to 50.
+                format: int32
+                type: integer
+              docBatchSizeKb:
+                description: DocBatchSizeKb is the size (KB) of document batches sent.
+                format: int32
+                maximum: 10000
+                minimum: 10
+                type: integer
+              failureRestartInterval:
+                description: FailureRestartInterval is the seconds to wait before
+                  restarting after a failure.
+                format: int32
+                maximum: 300
+                minimum: 1
+                type: integer
+              filterBinary:
+                description: |-
+                  FilterBinary specifies whether binary documents should be replicated.
+                  The value can be true or false (the default). If the value is true, binary documents are not replicated, regardless of whether a filterExpression is applied. If the value is false:
+                  The behavior is identical to that of all Couchbase-Server versions prior to 7.2.1 (with the exception of 7.1.5), where the filterBinary flag did not exist.
+                  If a filter expression is not provided, binary documents are replicated.
+                  If a filter expression is provided, and the expression refers only to either the document's key, or its xattr, or to both, the expression is applied, and the document is replicated if the expression permits.
+                  If a filter expression is provided, and the expression refers only to the document's body, the document is replicated.
+                  If a filter expression is provided, and the expression refers to the document's key, or its xattr, or to both; and also refers to the document's body; the document is not replicated (regardless of whether the key or xattr might appear to permit replication).
+                type: boolean
+              filterBypassExpiry:
+                description: FilterBypassExpiry when true, TTL is removed before replication.
+                type: boolean
+              filterBypassUncommittedTxn:
+                description: FilterBypassUncommittedTxn when true, documents with
+                  uncommitted txn xattrs are not replicated.
+                type: boolean
+              filterDeletion:
+                description: FilterDeletion when true, delete mutations are filtered
+                  out (not replicated).
+                type: boolean
+              filterExpiration:
+                description: FilterExpiration when true, expiry mutations are filtered
+                  out.
+                type: boolean
+              filterExpression:
+                description: |-
+                  FilterExpression is a filter expression to match against documents in the source bucket.
+                  Each document that produces a successful match is replicated.
+                type: string
+              filterSkipRestream:
+                description: |-
+                  FilterSkipRestream controls whether replication restarts after filterExpression changes.
+                  When false (default), replication restarts after filter changes. When true, continues without restart.
+                  Note: Server requires this field when filterExpression is set. If not specified, operator defaults to false.
+                type: boolean
+              hlvPruningWindowSec:
+                description: HlvPruningWindowSec is the HLV pruning window (sec) for
+                  hybrid logical vector conflict resolution.
+                format: int32
+                minimum: 1
+                type: integer
+              jsFunctionTimeoutMs:
+                description: JSFunctionTimeoutMs is the timeout for JS custom conflict-resolution
+                  functions (ms).
+                format: int32
+                minimum: 1
+                type: integer
+              logLevel:
+                description: LogLevel is the logging verbosity for XDCR.
+                enum:
+                - Error
+                - Info
+                - Debug
+                - Trace
+                type: string
+              mergeFunctionMapping:
+                additionalProperties:
+                  type: string
+                description: |-
+                  MergeFunctionMapping maps collection specifiers (scope.collection) to merge function names for custom conflict resolution.
+                  Nil values can be used to explicitly unset merge functions for specific collections.
+                type: object
+              mobile:
+                description: |-
+                  Mobile enables mobile (Sync Gateway) active-active mode.
+                  This feature is available in Couchbase Server 7.6.4 and later
+                enum:
+                - "Off"
+                - Active
+                type: string
+              networkUsageLimit:
+                description: NetworkUsageLimit is the upper limit for replication
+                  network usage (MB/s).
+                format: int32
+                minimum: 0
+                type: integer
+              optimisticReplicationThreshold:
+                description: OptimisticReplicationThreshold is the size threshold
+                  below which documents replicate optimistically.
+                format: int32
+                maximum: 20971520
+                minimum: 0
+                type: integer
+              paused:
+                default: false
+                description: PauseRequested indicates whether the replication has
+                  been issued a pause request.
+                type: boolean
+              priority:
+                description: Priority is the resource priority for replication streams.
+                enum:
+                - High
+                - Medium
+                - Low
+                type: string
+              remoteBucket:
+                description: |-
+                  RemoteBucket is the remote bucket name to synchronize to. This refers to the
+                  Couchbase bucket name, not the resource name of the bucket. Legal bucket names
+                  have a maximum length of 100 characters and may be composed of any character from
+                  "a-z", "A-Z", "0-9" and "-_%\.".
+                maxLength: 100
+                pattern: ^[a-zA-Z0-9-_%\.]{1,100}$
+                type: string
+              retryOnRemoteAuthErr:
+                description: RetryOnRemoteAuthErr defines whether to retry connections
+                  when remote auth fails.
+                type: boolean
+              retryOnRemoteAuthErrMaxWaitSec:
+                description: |-
+                  RetryOnRemoteAuthErrMaxWaitSec is the max wait seconds for retrying remote auth failures.
+                  Only effective if retryOnRemoteAuthErr is true.
+                format: int32
+                minimum: 1
+                type: integer
+              sourceNozzlePerNode:
+                description: SourceNozzlePerNode is the number of source nozzles (parallelism)
+                  per source node.
+                format: int32
+                maximum: 100
+                minimum: 1
+                type: integer
+              statsInterval:
+                description: StatsInterval is the interval for statistics updates
+                  (ms).
+                format: int32
+                maximum: 600000
+                minimum: 200
+                type: integer
+              targetNozzlePerNode:
+                description: TargetNozzlePerNode is the number of target nozzles per
+                  target node (parallelism).
+                format: int32
+                maximum: 100
+                minimum: 1
+                type: integer
+              workerBatchSize:
+                description: WorkerBatchSize is the number of mutations per worker
+                  batch.
+                format: int32
+                maximum: 10000
+                minimum: 500
+                type: integer
+            required:
+            - bucket
+            - remoteBucket
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true

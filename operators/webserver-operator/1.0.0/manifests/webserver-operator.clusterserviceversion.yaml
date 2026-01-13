@@ -1,0 +1,119 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: webserver-operator.v1.0.30
+  namespace: placeholder
+  annotations:
+    # FIX: must be a standard category; remove "WebServer"
+    categories: "Application Runtime"
+
+    capabilities: "Basic Install"
+    description: "An Ansible-based operator that deploys NGINX or Apache based on a WebServer CR."
+
+    # FIX: pin the operator image
+    containerImage: "quay.io/philip860/webserver-operator@sha256:3a8be40478a671eaf7f5f62d4e4bebfc8a8071a3294203d9e391bddb367ae727"
+
+    # FIX: add examples (removes warning)
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "example.com/v1alpha1",
+          "kind": "WebServer",
+          "metadata": { "name": "example-webserver" },
+          "spec": {
+            "type": "nginx",
+            "replicas": 1,
+            "port": 8080
+          }
+        }
+      ]
+
+    # FIX: required feature annotations (must exist and be "true"/"false")
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+
+spec:
+  displayName: "WebServer Operator"
+  description: |
+    The WebServer Operator manages WebServer custom resources which can
+    deploy either NGINX or Apache HTTPD behind a Service and OpenShift Route.
+  maturity: alpha
+  version: 1.0.30
+
+  # FIX: set a real minimum kube version (use your cluster's kube version as baseline)
+  # Get it via: oc version -o json | jq -r '.openshiftVersion, .serverVersion.gitVersion'
+  minKubeVersion: "1.33.6"  # <-- REPLACE with real value (example: v1.30.0 or v1.31.0)
+
+  provider:
+    name: Duncan-Networks
+
+  icon:
+    - base64data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGNgAAAAAgAB4iG8MwAAAABJRU5ErkJggg==
+      mediatype: image/png
+
+  keywords:
+    - nginx
+    - apache
+    - webserver
+    - ansible
+
+  # FIX: pinned image refs + required for future enforcement
+  relatedImages:
+    - name: webserver-operator
+      image: "quay.io/philip860/webserver-operator@sha256:3a8be40478a671eaf7f5f62d4e4bebfc8a8071a3294203d9e391bddb367ae727"
+
+  install:
+    strategy: deployment
+    spec:
+      deployments:
+        - name: webserver-operator
+          spec:
+            selector:
+              matchLabels:
+                name: webserver-operator
+            replicas: 1
+            template:
+              metadata:
+                labels:
+                  name: webserver-operator
+              spec:
+                serviceAccountName: webserver-operator
+                containers:
+                  - name: ansible-operator
+                    # FIX: must match pinned digest
+                    image: "quay.io/philip860/webserver-operator@sha256:3a8be40478a671eaf7f5f62d4e4bebfc8a8071a3294203d9e391bddb367ae727"
+                    imagePullPolicy: IfNotPresent
+                    env:
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                      - name: OPERATOR_NAME
+                        value: "webserver-operator"
+
+  customresourcedefinitions:
+    owned:
+      - name: webservers.example.com
+        version: v1alpha1
+        kind: WebServer
+        displayName: "WebServer"
+        description: "Custom resource that declares an Apache or NGINX deployment."
+
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: false
+    - type: AllNamespaces
+      supported: true

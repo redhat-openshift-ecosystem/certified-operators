@@ -1,0 +1,406 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  name: hostpathdefinitions.apelocal.csi.apecloud.com
+spec:
+  group: apelocal.csi.apecloud.com
+  names:
+    kind: HostPathDefinition
+    listKind: HostPathDefinitionList
+    plural: hostpathdefinitions
+    singular: hostpathdefinition
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HostPathDefinition is the Schema for the hostpathdefinitions
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HostPathDefinitionSpec defines the desired state of HostPathDefinition.
+            properties:
+              allocatableCapacity:
+                description: |-
+                  Declares the total allocatable capacity (used capacity + available capacity) for the base.
+                  If not specified, the base is treated as having unlimited capacity.
+                properties:
+                  asIs:
+                    description: Specifies whether to use the actual storage size
+                      as the capacity.
+                    enum:
+                    - true
+                    type: boolean
+                  asValue:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Specifies a fixed size as the capacity.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  asWithMultiplier:
+                    description: |-
+                      Specifies the capacity as a multiple of the actual storage size.
+                      The multiplier value should be in the range (0, 10000], representing a percentage.
+                      For example, if you want to oversell the storage by 2 times, set the value to 200.
+                    exclusiveMinimum: true
+                    format: int32
+                    maximum: 100000
+                    minimum: 0
+                    type: integer
+                type: object
+                x-kubernetes-validations:
+                - message: one and only one field should be set
+                  rule: (has(self.asValue)?1:0) + (has(self.asIs)?1:0) + (has(self.asWithMultiplier)?1:0)
+                    == 1
+              backendType:
+                description: Specifies the backend type of the base.
+                enum:
+                - HostDir
+                - RawDisk
+                - RawDiskGroup
+                type: string
+                x-kubernetes-validations:
+                - message: backendType is immutable
+                  rule: self == oldSelf
+              hostDirOptions:
+                description: Options for the HostDir backend.
+                properties:
+                  mustBeMountPoint:
+                    description: Ensures that the specified hostDir is a mountpoint.
+                    type: boolean
+                    x-kubernetes-validations:
+                    - message: mustBeMountPoint is immutable
+                      rule: self == oldSelf
+                  mustEnabledQuota:
+                    description: Ensures that the quota feature is enabled for the
+                      underlying file system of the specified hostDir.
+                    type: boolean
+                    x-kubernetes-validations:
+                    - message: mustEnabledQuota is immutable
+                      rule: self == oldSelf
+                  mustPresent:
+                    description: Ensures that the specified hostDir is already exists
+                      on the host.
+                    type: boolean
+                    x-kubernetes-validations:
+                    - message: mustPresent is immutable
+                      rule: self == oldSelf
+                  mustWithFs:
+                    description: Ensures that the specified hostDir uses the specified
+                      file system.
+                    enum:
+                    - ext4
+                    - xfs
+                    type: string
+                    x-kubernetes-validations:
+                    - message: mustWithFs is immutable
+                      rule: self == oldSelf
+                  path:
+                    description: |-
+                      Points to the path in the host for a HostDir backend. When not specified,
+                      a default location (usually a subpath of /var/lib/ape-local) is used.
+                    pattern: ^(/[^/]+)+/?$
+                    type: string
+                    x-kubernetes-validations:
+                    - message: path is immutable
+                      rule: self == oldSelf
+                required:
+                - path
+                type: object
+                x-kubernetes-validations:
+                - message: hostDirOptions is immutable
+                  rule: self == oldSelf
+              rawDiskGroupOptions:
+                description: Options for the RawDiskGroup backend.
+                properties:
+                  diskSelector:
+                    description: |-
+                      DiskSelector specifies the criteria for selecting a new raw disk to add to the group
+                      when none of the existing disks in the group can satisfy a volume creation request.
+                      Only unformatted and unpartitioned disks will be selected.
+                      If omitted, any available disk will be eligible for selection, excluding loop devices,
+                      read-only devices (such as CD-ROMs) and removable devices (e.g. USB storage devices).
+                    properties:
+                      allowLoopDevices:
+                        default: false
+                        description: |-
+                          AllowLoopDevices controls whether loop devices are permitted for use.
+                          When set to true, the system will allow mounting and using loop devices,
+                          which are virtual block devices that map files to block devices.
+                          This should be used with caution as loop devices can't survive a reboot
+                          and are typically used for testing or development purposes.
+                        type: boolean
+                      devNamePatterns:
+                        description: |-
+                          DevNamePatterns defines a list of regular expressions for matching disk device names.
+                          A disk is considered eligible if its name matches ANY pattern in this list.
+                          Examples:
+                          - "^sd[a-z]$" matches sda, sdb, ..., sdz
+                          - "^nvme[0-9]n1$" matches nvme0n1, nvme1n1, ..., nvme9n1
+
+
+                          If empty, all disk names are eligible.
+                        items:
+                          type: string
+                        maxItems: 32
+                        type: array
+                        x-kubernetes-validations:
+                        - message: pattern string must not be empty
+                          rule: self.all(p, p.size() > 0)
+                      minimumCapacity:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          MinimumCapacity specifies the minimum required storage capacity for disk selection.
+                          The value must be expressed as a Kubernetes resource quantity.
+                          Examples:
+                          - "100Gi" for 100 gibibytes
+                          - "1Ti" for 1 tebibyte
+
+
+                          If not specified, capacity is not considered in selection.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  diskSetup:
+                    description: |-
+                      DiskSetup defines the initialization process for newly selected disks.
+                      This includes formatting options and preparation steps that will be applied
+                      before the disk is made available for use.
+                    properties:
+                      enableProjectQuota:
+                        default: true
+                        description: |-
+                          Specifies whether to enable the project quota feature when mounting the disk.
+                          It do nothing if the file system does not support the feature.
+                        type: boolean
+                      extraMkfsFlags:
+                        description: Extra flags to be passed to mkfs.
+                        items:
+                          type: string
+                        type: array
+                      extraMountFlags:
+                        description: Extra flags to be passed to mount.
+                        items:
+                          type: string
+                        type: array
+                      fsType:
+                        default: xfs
+                        description: The type of file system to use.
+                        enum:
+                        - ext4
+                        - xfs
+                        type: string
+                    required:
+                    - fsType
+                    type: object
+                  groupId:
+                    description: |-
+                      GroupId is used to identify a group of raw disks. When a RawDiskGroup backend volume is created,
+                      ape-local first attempts to find a disk within the group that has sufficient capacity.
+                      If no suitable disk is found and the group has not reached its `maxDiskNum` limit,
+                      ape-local will select a new, unused raw disk from the host based on the `diskSelector` criteria,
+                      initialize it, and add it to this group. The new volume will then be provisioned on this newly added disk.
+
+
+                      Multiple HostPathDefinitions can use the same disk group by specifying the same GroupId.
+
+
+                      The identifier must also meet the following requirements:
+                      - RFC 1035 compliant
+                      - Contain only lowercase alphanumeric characters or hyphens
+                      - Start and end with an alphanumeric character
+                      - Not exceed 63 characters
+                    maxLength: 63
+                    minLength: 1
+                    pattern: ^[a-z]([a-z0-9\-]*[a-z0-9])?$
+                    type: string
+                  maxDiskNum:
+                    description: |-
+                      MaxDiskNum specifies the maximum number of disks allowed in the group.
+                      If not specified, all available disks on the host can be utilized.
+                    minimum: 1
+                    type: integer
+                required:
+                - diskSetup
+                - groupId
+                type: object
+                x-kubernetes-validations:
+                - message: rawDiskGroupOptions is immutable
+                  rule: self == oldSelf
+              rawDiskOptions:
+                description: Options for the RawDisk backend.
+                properties:
+                  diskId:
+                    description: |-
+                      DiskId is used to identify a raw disk. When a RawDisk backend volume is created,
+                      ape-local checks for a disk on the node that has been assigned this DiskId.
+                      If a disk is found, it is reused.
+                      If not, ape-local selects a new, unused raw disk based on the `diskSelector` criteria,
+                      initializes it, and assigns this DiskId to it for future identification.
+
+
+                      Multiple HostPathDefinitions can share the same physical disk by specifying the same DiskId.
+
+
+                      The identifier must also meet the following requirements:
+                      - RFC 1035 compliant
+                      - Contain only lowercase alphanumeric characters or hyphens
+                      - Start and end with an alphanumeric character
+                      - Not exceed 63 characters
+
+
+                      Identifiers starting with the "managed-" prefix are reserved.
+                    maxLength: 63
+                    minLength: 1
+                    pattern: ^[a-z]([a-z0-9\-]*[a-z0-9])?$
+                    type: string
+                    x-kubernetes-validations:
+                    - message: diskId must not start with 'managed-' prefix
+                      rule: '!self.startsWith(''managed-'')'
+                  diskSelector:
+                    description: |-
+                      DiskSelector specifies the criteria for selecting a new raw disk when a disk
+                      with the specified `DiskId` is not found on the node.
+                      Only unformatted and unpartitioned disks will be selected.
+                      If omitted, any available disk will be eligible for selection, excluding loop devices,
+                      read-only devices (such as CD-ROMs) and removable devices (e.g. USB storage devices).
+                    properties:
+                      allowLoopDevices:
+                        default: false
+                        description: |-
+                          AllowLoopDevices controls whether loop devices are permitted for use.
+                          When set to true, the system will allow mounting and using loop devices,
+                          which are virtual block devices that map files to block devices.
+                          This should be used with caution as loop devices can't survive a reboot
+                          and are typically used for testing or development purposes.
+                        type: boolean
+                      devNamePatterns:
+                        description: |-
+                          DevNamePatterns defines a list of regular expressions for matching disk device names.
+                          A disk is considered eligible if its name matches ANY pattern in this list.
+                          Examples:
+                          - "^sd[a-z]$" matches sda, sdb, ..., sdz
+                          - "^nvme[0-9]n1$" matches nvme0n1, nvme1n1, ..., nvme9n1
+
+
+                          If empty, all disk names are eligible.
+                        items:
+                          type: string
+                        maxItems: 32
+                        type: array
+                        x-kubernetes-validations:
+                        - message: pattern string must not be empty
+                          rule: self.all(p, p.size() > 0)
+                      minimumCapacity:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: |-
+                          MinimumCapacity specifies the minimum required storage capacity for disk selection.
+                          The value must be expressed as a Kubernetes resource quantity.
+                          Examples:
+                          - "100Gi" for 100 gibibytes
+                          - "1Ti" for 1 tebibyte
+
+
+                          If not specified, capacity is not considered in selection.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    type: object
+                  diskSetup:
+                    description: |-
+                      DiskSetup defines the initialization process for newly selected disks.
+                      This includes formatting options and preparation steps that will be applied
+                      before the disk is made available for use.
+                    properties:
+                      enableProjectQuota:
+                        default: true
+                        description: |-
+                          Specifies whether to enable the project quota feature when mounting the disk.
+                          It do nothing if the file system does not support the feature.
+                        type: boolean
+                      extraMkfsFlags:
+                        description: Extra flags to be passed to mkfs.
+                        items:
+                          type: string
+                        type: array
+                      extraMountFlags:
+                        description: Extra flags to be passed to mount.
+                        items:
+                          type: string
+                        type: array
+                      fsType:
+                        default: xfs
+                        description: The type of file system to use.
+                        enum:
+                        - ext4
+                        - xfs
+                        type: string
+                    required:
+                    - fsType
+                    type: object
+                required:
+                - diskId
+                - diskSetup
+                type: object
+                x-kubernetes-validations:
+                - message: rawDiskOptions is immutable
+                  rule: self == oldSelf
+            required:
+            - backendType
+            type: object
+            x-kubernetes-validations:
+            - message: rawDiskOptions can not be nil when backendType is RawDisk
+              rule: self.backendType != 'RawDisk' || has(self.rawDiskOptions)
+            - message: rawDiskGroupOptions can not be nil when backendType is RawDiskGroup
+              rule: self.backendType != 'RawDiskGroup' || has(self.rawDiskGroupOptions)
+          status:
+            description: HostPathDefinitionStatus defines the observed state of HostPathDefinition
+            properties:
+              message:
+                description: |-
+                  A human-readable message indicating details about why the HostPathDefinition
+                  is in this phase.
+                type: string
+              phase:
+                description: Indicates the current phase of the HostPathDefinition.
+                  This can be either 'Available' or 'Unavailable'.
+                enum:
+                - Available
+                - Unavailable
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

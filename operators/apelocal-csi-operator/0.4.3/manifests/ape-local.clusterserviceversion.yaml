@@ -1,0 +1,227 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+    createdAt: "2026-01-15T10:19:01Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.41.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: ape-local.v0.4.3
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: HostPathDefinition
+        name: hostpathdefinitions.apelocal.csi.apecloud.com
+        version: v1alpha1
+  description: Ape Local description. TODO.
+  displayName: Ape Local
+  icon:
+    - base64data: ""
+      mediatype: ""
+  install:
+    spec:
+      deployments:
+        - label:
+            app: csi-controller
+            app.kubernetes.io/component: csi-driver
+            app.kubernetes.io/created-by: ape-local
+            app.kubernetes.io/instance: csi-controller
+            app.kubernetes.io/managed-by: kustomize
+            app.kubernetes.io/name: deployment
+            app.kubernetes.io/part-of: ape-local-csi-driver
+          name: apelocal-apelocal-csi-controller
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: csi-controller
+            strategy: {}
+            template:
+              metadata:
+                labels:
+                  app: csi-controller
+              spec:
+                containers:
+                  - args:
+                      - controller
+                      - --provisioner-name=local.csi.apecloud.com
+                      - --endpoint=$(CSI_ENDPOINT)
+                      - --node-agent-port=14379
+                      - --node-agent-app-name=ape-local-csi-node
+                      - --namespace=$(CSI_NAMESPACE)
+                      - --capacity-cache-ttl=20m
+                      - --metrics-bind-address=:3301
+                      - --logtostderr
+                      - --v=2
+                    env:
+                      - name: CSI_ENDPOINT
+                        value: unix:///var/lib/csi/sockets/pluginproxy/csi.sock
+                      - name: CSI_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                    image: apecloud/ape-local@sha256:d16636f58daf8f642f4ecb8c2433eb89e74b631479fc418486df81e2be4cad8b
+                    imagePullPolicy: IfNotPresent
+                    livenessProbe:
+                      failureThreshold: 5
+                      httpGet:
+                        path: /healthz
+                        port: healthz
+                      initialDelaySeconds: 10
+                      periodSeconds: 10
+                      timeoutSeconds: 3
+                    name: ape-local-plugin
+                    ports:
+                      - containerPort: 9808
+                        name: healthz
+                        protocol: TCP
+                      - containerPort: 3301
+                        name: metrics
+                        protocol: TCP
+                    readinessProbe:
+                      failureThreshold: 5
+                      httpGet:
+                        path: /healthz
+                        port: healthz
+                      initialDelaySeconds: 10
+                      periodSeconds: 10
+                      timeoutSeconds: 3
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 256Mi
+                      requests:
+                        cpu: 100m
+                        memory: 128Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                    volumeMounts:
+                      - mountPath: /var/lib/csi/sockets/pluginproxy/
+                        name: socket-dir
+                  - args:
+                      - --csi-address=$(ADDRESS)
+                      - --v=2
+                      - --feature-gates=Topology=true
+                      - --leader-election=true
+                      - --default-fstype=ext4
+                      - --capacity-ownerref-level=2
+                      - --enable-capacity
+                      - --capacity-threads=4
+                      - --capacity-poll-interval=3m
+                    env:
+                      - name: ADDRESS
+                        value: /var/lib/csi/sockets/pluginproxy/csi.sock
+                      - name: NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: POD_NAME
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.name
+                    image: registry.k8s.io/sig-storage/csi-provisioner@sha256:de79c8bbc271622eb94d2ee8689f189ea7c1cb6adac260a421980fe5eed66708
+                    imagePullPolicy: IfNotPresent
+                    name: csi-provisioner
+                    resources: {}
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                    volumeMounts:
+                      - mountPath: /var/lib/csi/sockets/pluginproxy/
+                        name: socket-dir
+                  - args:
+                      - --csi-address=$(ADDRESS)
+                      - --v=2
+                      - --leader-election=true
+                    env:
+                      - name: ADDRESS
+                        value: /var/lib/csi/sockets/pluginproxy/csi.sock
+                    image: registry.k8s.io/sig-storage/csi-attacher@sha256:d69cc72025f7c40dae112ff989e920a3331583497c8dfb1600c5ae0e37184a29
+                    imagePullPolicy: IfNotPresent
+                    name: csi-attacher
+                    resources: {}
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                    volumeMounts:
+                      - mountPath: /var/lib/csi/sockets/pluginproxy/
+                        name: socket-dir
+                  - args:
+                      - --csi-address=$(ADDRESS)
+                      - --v=2
+                      - --handle-volume-inuse-error=false
+                    env:
+                      - name: ADDRESS
+                        value: /var/lib/csi/sockets/pluginproxy/csi.sock
+                    image: registry.k8s.io/sig-storage/csi-resizer@sha256:4c148bbdf883153bc72d321be4dc55c33774a6d98b2b3e0c2da6ae389149a9b7
+                    imagePullPolicy: IfNotPresent
+                    name: csi-resizer
+                    resources: {}
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                    volumeMounts:
+                      - mountPath: /var/lib/csi/sockets/pluginproxy/
+                        name: socket-dir
+                  - args:
+                      - --csi-address=/csi/csi.sock
+                    image: registry.k8s.io/sig-storage/livenessprobe@sha256:5baeb4a6d7d517434292758928bb33efc6397368cbb48c8a4cf29496abf4e987
+                    imagePullPolicy: IfNotPresent
+                    name: liveness-probe
+                    resources: {}
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                    volumeMounts:
+                      - mountPath: /csi
+                        name: socket-dir
+                nodeSelector:
+                  kubernetes.io/os: linux
+                priorityClassName: system-cluster-critical
+                securityContext:
+                  fsGroup: 1000
+                  runAsGroup: 1000
+                  runAsNonRoot: true
+                  runAsUser: 1000
+                serviceAccountName: csi-controller
+                volumes:
+                  - emptyDir: {}
+                    name: socket-dir
+    strategy: deployment
+  installModes:
+    - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - ape-local
+  links:
+    - name: Ape Local
+      url: https://ape-local.domain
+  maintainers:
+    - email: your@email.com
+      name: Maintainer Name
+  maturity: alpha
+  provider:
+    name: Provider Name
+    url: https://your.domain
+  relatedImages:
+    - image: apecloud/ape-local@sha256:d16636f58daf8f642f4ecb8c2433eb89e74b631479fc418486df81e2be4cad8b
+      name: ape-local-plugin
+    - image: registry.k8s.io/sig-storage/csi-provisioner@sha256:de79c8bbc271622eb94d2ee8689f189ea7c1cb6adac260a421980fe5eed66708
+      name: csi-provisioner
+    - image: registry.k8s.io/sig-storage/csi-attacher@sha256:d69cc72025f7c40dae112ff989e920a3331583497c8dfb1600c5ae0e37184a29
+      name: csi-attacher
+    - image: registry.k8s.io/sig-storage/csi-resizer@sha256:4c148bbdf883153bc72d321be4dc55c33774a6d98b2b3e0c2da6ae389149a9b7
+      name: csi-resizer
+    - image: registry.k8s.io/sig-storage/livenessprobe@sha256:5baeb4a6d7d517434292758928bb33efc6397368cbb48c8a4cf29496abf4e987
+      name: liveness-probe
+  version: 0.4.3

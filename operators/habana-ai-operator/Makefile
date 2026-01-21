@@ -33,7 +33,7 @@ fbc-onboarding: clean
 	else \
 		echo "No authentication file found."; \
 	fi; \
-	podman run \
+	docker run \
 		--rm \
 		--user $(id -u):$(id -g) \
 		--security-opt label=disable \

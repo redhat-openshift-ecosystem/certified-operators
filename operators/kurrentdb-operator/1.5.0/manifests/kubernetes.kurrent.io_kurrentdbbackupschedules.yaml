@@ -1,0 +1,211 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: kurrentdbbackupschedules.kubernetes.kurrent.io
+spec:
+  group: kubernetes.kurrent.io
+  names:
+    kind: KurrentDBBackupSchedule
+    listKind: KurrentDBBackupScheduleList
+    plural: kurrentdbbackupschedules
+    singular: kurrentdbbackupschedule
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Most recent scheduled backup
+      jsonPath: .status.previousBackup
+      name: Previous
+      type: date
+    - description: Next scheduled backup
+      jsonPath: .status.nextBackup
+      name: Next
+      type: string
+    - description: Is schedule suspended
+      jsonPath: .spec.suspend
+      name: Suspend
+      type: boolean
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: KurrentDBBackupSchedule is the Schema for the KurrentDBBackupSchedules
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: KurrentDBBackupScheduleSpec defines the desired state of
+              KurrentDBBackupSchedule
+            properties:
+              keep:
+                description: |-
+                  Keep specifies how many backups from this schedule should be retained.  When the number of
+                  completed backups from this schedule exceeds the value of Keep, the oldest backups are
+                  removed until the number of completed backups equals the value of Keep.  This implies that
+                  you will briefly have Keep+1 backups on the cluster before the oldest one is deleted.  When
+                  Keep is set to zero (the default), this retention mechanism is disabled and an unlimited
+                  number of backups may accumulate.
+                format: int32
+                type: integer
+                x-kubernetes-validations:
+                - message: Keep must be a non-negative number
+                  rule: self > -1
+              schedule:
+                description: |-
+                  Schedule is a cron-style schedule.  The schedule is interpreted with the same library as
+                  Kubernetes' CronJob uses; see "Writing a CronJob Spec" [1] for more detail.
+
+                  [1] kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#writing-a-cronjob-spec
+                type: string
+              suspend:
+                default: false
+                description: |-
+                  Suspend may be set to true to prevent new backups from being created.  If unset, it defaults
+                  to false.  Note that when Suspend is set from false to true and one or more backups were
+                  skipped while Suspend was true, then a backup will be considered due immediately and one
+                  (only one) backup will be created.
+                type: boolean
+              template:
+                description: Template describes the KurrentDBBackups this schedule
+                  will produce.
+                properties:
+                  metadata:
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      name:
+                        type: string
+                    type: object
+                  spec:
+                    description: KurrentDBBackupSpec defines the desired state of
+                      KurrentDBBackup
+                    properties:
+                      clusterName:
+                        description: Backup cluster name
+                        type: string
+                        x-kubernetes-validations:
+                        - message: DBBackup objects are immutable, except for TTL
+                          rule: self == oldSelf
+                      extraMetadata:
+                        description: ExtraMetadata contains additional annotations
+                          and labels for child resources.
+                        properties:
+                          all:
+                            description: |-
+                              All specifies extra metadata for all child resource types (though currently there is only
+                              one type of child resource).
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                            type: object
+                          volumeSnapshots:
+                            description: VolumeSnapshots specifies extra metadata
+                              for VolumeSnapshots.
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                type: object
+                            type: object
+                        type: object
+                        x-kubernetes-validations:
+                        - message: DBBackup objects are immutable, except for TTL
+                          rule: self == oldSelf
+                      nodeName:
+                        description: The node index for backup to be created. If not
+                          set, backup will be created from the leader node
+                        type: string
+                        x-kubernetes-validations:
+                        - message: DBBackup objects are immutable, except for TTL
+                          rule: self == oldSelf
+                      ttl:
+                        description: |-
+                          TTL expresses how long the backup should remain until it is deleted.  If unset, the backup
+                          will remain until it is manually deleted.  The format of the TTL is a positive integer
+                          followed by one of "h" for hour, "d" for day, "w" for week, "y" for year (technically 365
+                          days), or "s" for second (for testing purposes).  Times can be combined, e.g. 1d12h is
+                          equivalent to 36hours.
+                        pattern: ^(?:0*[1-9][0-9]*y)?(?:0*[1-9][0-9]*w)?(?:0*[1-9][0-9]*d)?(?:0*[1-9][0-9]*h)?(?:0*[1-9][0-9]*s)?$
+                        type: string
+                      volumeSnapshotClassName:
+                        description: |-
+                          Which volume snapshot class to use when creating this backup.  If empty, the value will be
+                          taken from the KurrentDB resources being snapshotted, or the kurrentdb-operator config, or
+                          the default volume snapshot class for the whole kubernetes cluster (in that order).
+                        type: string
+                        x-kubernetes-validations:
+                        - message: DBBackup objects are immutable, except for TTL
+                          rule: self == oldSelf
+                    required:
+                    - clusterName
+                    type: object
+                required:
+                - spec
+                type: object
+              timeZone:
+                description: |-
+                  TimeZone is used to interpret Schedule.  As with Kubernetes' CronJob, if TimeZone is not
+                  specified, the operator interprets the Schedule with the local timezone configured in the
+                  operator image, which in the official images is always UTC.
+                type: string
+            required:
+            - schedule
+            - template
+            type: object
+          status:
+            description: KurrentDBBackupScheduleStatus defines the observed state
+              of KurrentDBBackupSchedule
+            properties:
+              error:
+                type: string
+              nextBackup:
+                format: date-time
+                type: string
+              nextIndex:
+                format: int32
+                type: integer
+              previousBackup:
+                format: date-time
+                type: string
+            required:
+            - nextBackup
+            - nextIndex
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

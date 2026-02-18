@@ -86,7 +86,7 @@ OS=$(shell uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(shell uname -m | sed 's/x86_64/amd64/')
 
 # Automatically download the binaries and scripts and place them in the bin directory
-OPM_VERSION ?= v1.46.0
+OPM_VERSION ?= v1.61.0
 ${BINDIR}/opm:
 	if [ ! -d ${BINDIR} ]; then mkdir -p ${BINDIR}; fi
 	curl -sLO https://github.com/operator-framework/operator-registry/releases/download/$(OPM_VERSION)/$(OS)-$(ARCH)-opm && chmod +x $(OS)-$(ARCH)-opm && mv $(OS)-$(ARCH)-opm ${BINDIR}/opm

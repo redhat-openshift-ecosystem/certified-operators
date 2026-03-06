@@ -1,0 +1,220 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: prometheusquerymappings.metrics.turbonomic.io
+spec:
+  group: metrics.turbonomic.io
+  names:
+    kind: PrometheusQueryMapping
+    listKind: PrometheusQueryMappingList
+    plural: prometheusquerymappings
+    shortNames:
+    - pqm
+    singular: prometheusquerymapping
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: PrometheusQueryMapping is the Schema for the prometheusquerymappings
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PrometheusQueryMappingSpec defines the desired state of PrometheusQueryMapping
+            properties:
+              entities:
+                description: |-
+                  EntityConfigs specifies how Turbonomic entities can be mapped from Prometheus
+                  query result
+                items:
+                  description: |-
+                    The EntityConfiguration defines the configuration for mapping from Prometheus query result
+                    to a specific type of Turbonomic entity.
+                  properties:
+                    attributes:
+                      description: |-
+                        AttributeConfigs is a list of AttributeConfiguration objects that specify how to map labels into attributes
+                        of the entity. This field is required and must contain at least one attribute configuration.
+                      items:
+                        description: The AttributeConfiguration specifies how to map
+                          labels from Prometheus metrics into attributes of an entity.
+                        properties:
+                          as:
+                            description: |-
+                              As is an optional field that specifies how to reconstruct the extracted patterns from the result of the
+                              Matches field and use that as the attribute value instead. This field is only evaluated when the Matches
+                              field is specified.
+                            type: string
+                          delimeter:
+                            description: delimeter to use when combing values from
+                              multiple labels
+                            type: string
+                          isIdentifier:
+                            description: |-
+                              IsIdentifier is an optional field that specifies if this attribute should be used as the identifier of an entity.
+                              There should be one and only one identifier for an entity.
+                            type: boolean
+                          label:
+                            description: |-
+                              Label is the name of the label that contains the value for this attribute.
+                              If the Matches field is not specified, the value of this label will be used as the attribute value.
+                            type: string
+                          labels:
+                            description: |-
+                              Label can be a single string or array of strings, if both are not specified,
+                              the "name" field is used as the label
+                            items:
+                              type: string
+                            type: array
+                          matches:
+                            description: |-
+                              Matches is an optional regular expression that can be used to extract a pattern from the label value and
+                              use that as the attribute value.
+                            type: string
+                          name:
+                            description: The name of the attribute
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      minItems: 1
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - name
+                      x-kubernetes-list-type: map
+                    hostedOnVM:
+                      description: |-
+                        HostedOnVM specifies if an entity is hosted on VM
+                        If not set, the entity is assumed to be hosted on a container
+                      type: boolean
+                    metrics:
+                      description: |-
+                        MetricConfigs is a list of MetricConfiguration objects that specify how to collect metrics for the entity.
+                        This field is required and must contain at least one metric configuration.
+                      items:
+                        description: The MetricConfiguration is a struct that represents
+                          the configuration for a specific type of metric.
+                        properties:
+                          queries:
+                            description: QueryConfigs is a list of QueryConfiguration
+                              structs.
+                            items:
+                              description: The QueryConfiguration struct represents
+                                a specific query that will be used to collect data
+                                for the metric.
+                              properties:
+                                promql:
+                                  description: PromQL is a string that contains the
+                                    PromQL query that will be used to collect data
+                                    for the metric.
+                                  type: string
+                                type:
+                                  description: Type specifies the subtype of metric,
+                                    for example, "used", "capacity", or "peak".
+                                  enum:
+                                  - used
+                                  - capacity
+                                  - peak
+                                  - usedInPercent
+                                  type: string
+                              required:
+                              - promql
+                              - type
+                              type: object
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - type
+                            x-kubernetes-list-type: map
+                          type:
+                            description: Type specifies the type of metric
+                            enum:
+                            - responseTime
+                            - transaction
+                            - heap
+                            - collectionTime
+                            - cacheHitRate
+                            - dbMem
+                            - cpu
+                            - memory
+                            - gpu
+                            - gpuMem
+                            - queuingTime
+                            - serviceTime
+                            - concurrentQueries
+                            - energy
+                            - llmCache
+                            - pCpu
+                            - pMemory
+                            - coreSpeed
+                            type: string
+                        required:
+                        - queries
+                        - type
+                        type: object
+                      minItems: 1
+                      type: array
+                    type:
+                      description: |-
+                        Type specifies the type of entity.
+                        This field is required and must be one of application, databaseServer, virtualMachine, physicalMachine, container, containerSpec
+                        or nvidiaGPU.
+                      enum:
+                      - application
+                      - databaseServer
+                      - virtualMachine
+                      - physicalMachine
+                      - service
+                      - nvidiaGPU
+                      - kepler
+                      - openStackVirtualMachine
+                      - openStackPhysicalMachine
+                      - container
+                      - containerSpec
+                      type: string
+                  required:
+                  - attributes
+                  - metrics
+                  - type
+                  type: object
+                minItems: 1
+                type: array
+            required:
+            - entities
+            type: object
+          status:
+            description: PrometheusQueryMappingStatus defines the observed state of
+              PrometheusQueryMapping
+            properties:
+              message:
+                type: string
+              reason:
+                type: string
+              state:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

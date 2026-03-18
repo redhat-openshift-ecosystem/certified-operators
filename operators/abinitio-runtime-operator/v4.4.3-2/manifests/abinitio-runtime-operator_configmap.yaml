@@ -1,0 +1,59 @@
+---
+# Source: ab-runtime-operator/templates/logging/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ab-runtime-operator-config
+data:
+  # Configuration files: server, input, filters and output
+  # ======================================================
+  # NOTE: MUST follow appropriate YAML indentation for ANY update
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush                     1
+        Log_Level                 info
+        Daemon                    off
+    @INCLUDE input.conf
+  input.conf: |
+    [INPUT]
+        Name              TCP
+        Listen            localhost
+        Port              24225
+        Tag               operator-logs
+        Format            json
+        Chunk_Size        1024
+        Buffer_Size       2048
+  operator-config.conf: |
+    number_of_shards: 0
+    logging_enabled: false
+    # To override operator's default of 'true', we explicitly set post_events
+    # to 'false', when the corresponding Helm chart value is empty.
+    post_events: true
+    client_throttling_burst: 100
+    client_throttling_qps: 50
+    default_certificate_duration: 7
+    certificate_renewal_grace_period: 1
+    audit_interval: 60
+    metrics_retention_period: 60
+    load_update_grace_period: 300
+    pool_min_idle_period: 600
+    pvc_retention_period: 30 days
+    pool_pvc_retention_period: 90 days
+    pvc_usage_period: 0
+    metrics_service_name: abinitio-system-runtime-controller-manager
+    metrics_server_port: 9882
+    metrics_level: default
+    external_config_provider_enabled: false
+    external_config_provider_port: 2379
+    external_config_provider_name: abinitio-system-runtime-controller-manager
+    external_config_provider_dynamic_permissions: false
+    mux_proxy_mode: Disabled
+    mux_proxy_port: 6344
+    mux_proxy_name: abinitio-system-runtime-controller-manager
+    webhook_server_enabled: false
+    webhook_server_port: 9443
+    webhook_server_name: abinitio-system-runtime-controller-webhook
+    pbkdf2_iterations: 0
+    # to restrict operator permissions set ab_namespace_restrict to true
+    # and add namespaces for jobs under ab_job_namespaces
+    ab_namespace_restrict: false

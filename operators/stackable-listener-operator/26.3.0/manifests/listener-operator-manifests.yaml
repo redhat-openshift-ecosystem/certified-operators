@@ -1,0 +1,276 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: listener-operator-deployer-manifests
+data:
+  storageclass.yaml: |
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: listeners.stackable.tech
+    provisioner: listeners.stackable.tech
+    volumeBindingMode: WaitForFirstConsumer
+  service.yaml: |
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: listener-operator
+      labels:
+        app.kubernetes.io/name: listener-operator
+        app.kubernetes.io/instance: listener-operator
+        stackable.tech/vendor: Stackable
+        app.kubernetes.io/version: 26.3.0
+    spec:
+      selector:
+        webhook.stackable.tech/conversion: enabled
+        app.kubernetes.io/name: listener-operator
+        app.kubernetes.io/instance: listener-operator
+        stackable.tech/vendor: Stackable
+      ports:
+      - name: conversion-webhook
+        protocol: TCP
+        port: 8443
+        targetPort: 8443
+  listener-operator-csi-node-driver.yaml: |
+    apiVersion: apps/v1
+    kind: DaemonSet
+    metadata:
+      name: listener-operator-csi-node-driver
+      labels:
+        app.kubernetes.io/name: listener-operator
+        app.kubernetes.io/instance: listener-operator
+        stackable.tech/vendor: Stackable
+        app.kubernetes.io/version: 26.3.0
+    spec:
+      selector:
+        matchLabels:
+          app.kubernetes.io/role: node-driver
+          app.kubernetes.io/name: listener-operator
+          app.kubernetes.io/instance: listener-operator
+          stackable.tech/vendor: Stackable
+      template:
+        metadata:
+          annotations:
+            internal.stackable.tech/image: quay.io/stackable/listener-operator@sha256:141d04eb3d79bbce25dd04ac0b2e95c9c9fe661ce8953206e4cc9b76b3d24ed1
+          labels:
+            app.kubernetes.io/role: node-driver
+            app.kubernetes.io/name: listener-operator
+            app.kubernetes.io/instance: listener-operator
+            stackable.tech/vendor: Stackable
+        spec:
+          serviceAccountName: listener-operator-serviceaccount
+          securityContext: {}
+          containers:
+          - name: csi-node-service
+            securityContext:
+              runAsUser: 0
+              seLinuxOptions:
+                type: spc_t
+            image: quay.io/stackable/listener-operator@sha256:141d04eb3d79bbce25dd04ac0b2e95c9c9fe661ce8953206e4cc9b76b3d24ed1  # 26.3.0
+            imagePullPolicy: IfNotPresent
+            resources:
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+            args:
+            - run
+            - node
+            env:
+            - name: CSI_ENDPOINT
+              value: /csi/csi.sock
+            - name: OPERATOR_IMAGE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['internal.stackable.tech/image']
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_SERVICE_NAME
+              value: listener-operator
+            - name: KUBERNETES_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            volumeMounts:
+            - name: csi
+              mountPath: /csi
+            - name: mountpoint
+              mountPath: /var/lib/kubelet/pods
+          - name: node-driver-registrar
+            image: quay.io/stackable/sig-storage/csi-node-driver-registrar@sha256:ab4a3289015f7de39c4dc987fa6183bcb157294a841c88fa842332ce66b068d8  # v2.15.0
+            imagePullPolicy: IfNotPresent
+            resources:
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+            args:
+            - --csi-address=/csi/csi.sock
+            - --kubelet-registration-path=/var/lib/kubelet/plugins/listeners.stackable.tech/csi.sock
+            volumeMounts:
+            - name: registration-sock
+              mountPath: /registration
+            - name: csi
+              mountPath: /csi
+          volumes:
+          - name: registration-sock
+            hostPath:
+              path: /var/lib/kubelet/plugins_registry
+          - name: csi
+            hostPath:
+              path: /var/lib/kubelet/plugins/listeners.stackable.tech/
+          - name: mountpoint
+            hostPath:
+              path: /var/lib/kubelet/pods/
+  listener-operator-csi-provisioner.yaml: |
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: listener-operator-csi-provisioner
+      labels:
+        app.kubernetes.io/name: listener-operator
+        app.kubernetes.io/instance: listener-operator
+        stackable.tech/vendor: Stackable
+        app.kubernetes.io/version: 26.3.0
+    spec:
+      selector:
+        matchLabels:
+          app.kubernetes.io/role: provisioner
+          app.kubernetes.io/name: listener-operator
+          app.kubernetes.io/instance: listener-operator
+          stackable.tech/vendor: Stackable
+      template:
+        metadata:
+          annotations:
+            internal.stackable.tech/image: quay.io/stackable/listener-operator@sha256:141d04eb3d79bbce25dd04ac0b2e95c9c9fe661ce8953206e4cc9b76b3d24ed1
+          labels:
+            app.kubernetes.io/role: provisioner
+            webhook.stackable.tech/conversion: enabled
+            app.kubernetes.io/name: listener-operator
+            app.kubernetes.io/instance: listener-operator
+            stackable.tech/vendor: Stackable
+        spec:
+          serviceAccountName: listener-operator-serviceaccount
+          securityContext: {}
+          containers:
+          - name: csi-controller-service
+            securityContext:
+              runAsUser: 0
+              seLinuxOptions:
+                type: spc_t
+            image: quay.io/stackable/listener-operator@sha256:141d04eb3d79bbce25dd04ac0b2e95c9c9fe661ce8953206e4cc9b76b3d24ed1  # 26.3.0
+            imagePullPolicy: IfNotPresent
+            resources:
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+            args:
+            - run
+            - controller
+            env:
+            - name: CSI_ENDPOINT
+              value: /csi/csi.sock
+            - name: OPERATOR_IMAGE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['internal.stackable.tech/image']
+            - name: OPERATOR_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_SERVICE_NAME
+              value: listener-operator
+            - name: KUBERNETES_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: LISTENER_CLASS_PRESET
+              value: ephemeral-nodes
+            volumeMounts:
+            - name: csi
+              mountPath: /csi
+          - name: external-provisioner
+            image: quay.io/stackable/sig-storage/csi-provisioner@sha256:142e0b069dcc100671c91d66d8c973d56ea330b4e11ab79e5eb4fea5c79c6ecb  # v5.3.0
+            imagePullPolicy: IfNotPresent
+            resources:
+              limits:
+                cpu: 100m
+                memory: 128Mi
+              requests:
+                cpu: 100m
+                memory: 128Mi
+            args:
+            - --csi-address=/csi/csi.sock
+            - --feature-gates=Topology=true
+            - --extra-create-metadata
+            volumeMounts:
+            - name: csi
+              mountPath: /csi
+          volumes:
+          - name: csi
+            emptyDir: {}
+  csidriver.yaml: |
+    apiVersion: storage.k8s.io/v1
+    kind: CSIDriver
+    metadata:
+      name: listeners.stackable.tech
+    spec:
+      attachRequired: false
+      podInfoOnMount: true
+      fsGroupPolicy: File
+      volumeLifecycleModes:
+      - Ephemeral
+      - Persistent
+  stackable-listener-operator-scc.yaml: |
+    apiVersion: security.openshift.io/v1
+    kind: SecurityContextConstraints
+    metadata:
+      name: listener-scc
+      labels:
+        app.kubernetes.io/name: listener-operator
+        app.kubernetes.io/instance: listener-operator
+        stackable.tech/vendor: Stackable
+        app.kubernetes.io/version: 26.3.0
+      annotations:
+        kubernetes.io/description: listener-scc includes the minimum required privileges
+          to run the listener-operator.
+    allowHostDirVolumePlugin: true
+    allowHostIPC: false
+    allowHostNetwork: false
+    allowHostPID: false
+    allowHostPorts: false
+    allowPrivilegeEscalation: false
+    allowPrivilegedContainer: false
+    allowedCapabilities: []
+    defaultAddCapabilities: null
+    fsGroup:
+      type: MustRunAs
+    groups: []
+    priority: null
+    readOnlyRootFilesystem: true
+    requiredDropCapabilities:
+    - ALL
+    runAsUser:
+      type: MustRunAs
+      uid: 0
+    seLinuxContext:
+      type: RunAsAny
+    seccompProfiles:
+    - runtime/default
+    supplementalGroups:
+      type: RunAsAny
+    users: []
+    volumes:
+    - emptyDir
+    - hostPath
+    - projected

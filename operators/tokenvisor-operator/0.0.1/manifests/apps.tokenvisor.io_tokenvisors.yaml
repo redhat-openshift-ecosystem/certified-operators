@@ -1,0 +1,559 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  creationTimestamp: null
+  name: tokenvisors.apps.tokenvisor.io
+spec:
+  group: apps.tokenvisor.io
+  names:
+    kind: TokenVisor
+    listKind: TokenVisorList
+    plural: tokenvisors
+    singular: tokenvisor
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: TokenVisor is the Schema for the tokenvisors API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              application:
+                properties:
+                  emu:
+                    properties:
+                      enabled:
+                        default: false
+                        type: boolean
+                      image:
+                        default: ghcr.io/embeddedllm/tokenvisor-emu:latest
+                        type: string
+                      imagePullPolicy:
+                        default: Always
+                        type: string
+                      otelImage:
+                        default: otel/opentelemetry-collector-contrib:0.113.0
+                        type: string
+                      rbac:
+                        properties:
+                          create:
+                            default: false
+                            description: Create controls whether EMU Role/RoleBinding
+                              and ClusterRole/ClusterRoleBinding are reconciled.
+                            type: boolean
+                        type: object
+                      replicas:
+                        default: 1
+                        format: int32
+                        type: integer
+                      route:
+                        properties:
+                          enabled:
+                            default: false
+                            description: Enabled controls whether an OpenShift Route
+                              is created for the EMU service.
+                            type: boolean
+                          host:
+                            description: Host sets an explicit route host. Leave empty
+                              to let OpenShift assign one.
+                            type: string
+                          insecureEdgeTerminationPolicy:
+                            default: Allow
+                            type: string
+                          termination:
+                            default: edge
+                            type: string
+                        type: object
+                      serviceAccountName:
+                        default: emu
+                        type: string
+                      serviceName:
+                        default: emu-api-server
+                        type: string
+                      servicePort:
+                        default: 5969
+                        format: int32
+                        type: integer
+                    required:
+                    - enabled
+                    type: object
+                  exposedURL:
+                    description: |-
+                      ExposedURL is the public Studio endpoint used to populate HOST/ORIGIN.
+                      Supported schemes are http and https.
+                    type: string
+                  studio:
+                    properties:
+                      allowInsecureCookies:
+                        description: |-
+                          AllowInsecureCookies forces HTTP cookie mode and disables route TLS termination.
+                          Use this for local/non-TLS testing where HTTPS is unavailable.
+                        type: boolean
+                      authConfigYaml:
+                        description: |-
+                          AuthConfigYaml is mounted as /app/studio-config.yml (and /home/node/app/studio-config.yml)
+                          to control Studio auth/login feature flags.
+                        type: string
+                      enabled:
+                        default: false
+                        type: boolean
+                      image:
+                        default: ghcr.io/embeddedllm/tokenvisor/tokenvisor-studio-openshift:20260113
+                        type: string
+                      imagePullPolicy:
+                        default: Always
+                        type: string
+                      logos:
+                        additionalProperties:
+                          type: string
+                        description: Logos are mounted from ConfigMap data in /logos
+                          and copied into Studio client assets at startup.
+                        type: object
+                      logosBinaryData:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          LogosBinaryData are mounted from ConfigMap binaryData in /logos and copied into Studio client assets at startup.
+                          Values must be base64-encoded content.
+                        type: object
+                      pdb:
+                        properties:
+                          minAvailable:
+                            default: 1
+                            format: int32
+                            type: integer
+                        type: object
+                      replicas:
+                        default: 1
+                        format: int32
+                        type: integer
+                      route:
+                        properties:
+                          host:
+                            description: Host sets an explicit route host. Leave empty
+                              to let OpenShift assign one.
+                            type: string
+                          insecureEdgeTerminationPolicy:
+                            default: Redirect
+                            type: string
+                          termination:
+                            default: edge
+                            type: string
+                        type: object
+                      serviceAccountName:
+                        default: studio
+                        type: string
+                      serviceName:
+                        default: studio-frontend-server
+                        type: string
+                      servicePort:
+                        default: 4969
+                        format: int32
+                        type: integer
+                      themeCss:
+                        description: |-
+                          ThemeCss is mounted as /app/static/theme.css (and /home/node/app/static/theme.css)
+                          to customize Studio theming.
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                type: object
+              global:
+                properties:
+                  imagePullSecrets:
+                    description: ImagePullSecrets are required namespace secret names
+                      used by ClickHouse pods.
+                    items:
+                      type: string
+                    type: array
+                  storageClass:
+                    description: StorageClass is used for ClickHouse PVCs.
+                    type: string
+                required:
+                - storageClass
+                type: object
+              infrastructure:
+                properties:
+                  clickhouse:
+                    properties:
+                      clusterReplicas:
+                        default: 1
+                        description: ClusterReplicas is the number of ClickHouse replicas
+                          in the tokenvisor cluster.
+                        format: int32
+                        type: integer
+                      enabled:
+                        default: true
+                        description: Enabled controls whether ClickHouse child CRs
+                          should be reconciled.
+                        type: boolean
+                      images:
+                        properties:
+                          imagePullPolicy:
+                            default: IfNotPresent
+                            type: string
+                          keeper:
+                            default: ghcr.io/embeddedllm/jamaibase/clickhouse-keeper-openshift:24.12.6.70
+                            type: string
+                          server:
+                            default: ghcr.io/embeddedllm/jamaibase/clickhouse-server-openshift:25.12.2.54
+                            type: string
+                        type: object
+                      keeperReplicas:
+                        default: 1
+                        description: KeeperReplicas is the number of keeper replicas.
+                        format: int32
+                        type: integer
+                      secretName:
+                        default: clickhouse-secret
+                        description: SecretName is the namespace secret containing
+                          ClickHouse credentials.
+                        type: string
+                      storageSize:
+                        default: 10Gi
+                        description: StorageSize is the requested PVC size for keeper
+                          and server data.
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                  dragonfly:
+                    properties:
+                      enabled:
+                        default: true
+                        type: boolean
+                      replicas:
+                        default: 2
+                        format: int32
+                        type: integer
+                      skipFSGroup:
+                        default: true
+                        type: boolean
+                    required:
+                    - enabled
+                    type: object
+                  fluentBit:
+                    properties:
+                      enabled:
+                        default: true
+                        type: boolean
+                    required:
+                    - enabled
+                    type: object
+                  postgres:
+                    properties:
+                      enabled:
+                        default: true
+                        description: Enabled controls whether CNPG child CRs should
+                          be reconciled.
+                        type: boolean
+                      images:
+                        properties:
+                          catalogImage:
+                            default: ghcr.io/embeddedllm/tokenvisor/postgres-17-ubi:17.7-ubi-fixed
+                            type: string
+                        type: object
+                      instances:
+                        default: 1
+                        description: Instances is the number of postgres instances
+                          in the CNPG cluster.
+                        format: int32
+                        type: integer
+                      secretName:
+                        default: pg-emu-user-secret
+                        description: SecretName is the namespace secret containing
+                          the bootstrap database credentials.
+                        type: string
+                      storageClassName:
+                        description: StorageClassName is the storage class to use.
+                          Defaults to spec.global.storageClass.
+                        type: string
+                      storageSize:
+                        default: 10Gi
+                        description: StorageSize is the requested PVC size for postgres
+                          data.
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                  victoriaMetrics:
+                    properties:
+                      enabled:
+                        default: true
+                        type: boolean
+                      secretName:
+                        default: vmuser-secret
+                        type: string
+                      storageClassName:
+                        description: StorageClassName defaults to spec.global.storageClass.
+                        type: string
+                      victoriaLogsReplicas:
+                        default: 1
+                        description: VictoriaLogsReplicas controls VLSingle replicas.
+                        format: int32
+                        type: integer
+                      victoriaLogsResources:
+                        properties:
+                          limitsCpu:
+                            type: string
+                          limitsMemory:
+                            type: string
+                          requestsCpu:
+                            type: string
+                          requestsMemory:
+                            type: string
+                        type: object
+                      victoriaLogsRetentionMaxDiskSpaceUsageBytes:
+                        default: 9GiB
+                        description: VictoriaLogsRetentionMaxDiskSpaceUsageBytes controls
+                          VLSingle max disk usage.
+                        type: string
+                      victoriaLogsRetentionPeriod:
+                        default: 100y
+                        description: VictoriaLogsRetentionPeriod controls VLSingle
+                          retention.
+                        type: string
+                      victoriaLogsStorageSize:
+                        default: 10Gi
+                        description: VictoriaLogsStorageSize controls VLSingle PVC
+                          request size.
+                        type: string
+                      vmAgentAggregateReplicas:
+                        default: 3
+                        description: VMAgentAggregateReplicas controls replicas for
+                          vmagent-agg (stateful aggregate agent).
+                        format: int32
+                        type: integer
+                      vmAgentAggregateResources:
+                        properties:
+                          limitsCpu:
+                            type: string
+                          limitsMemory:
+                            type: string
+                          requestsCpu:
+                            type: string
+                          requestsMemory:
+                            type: string
+                        type: object
+                      vmAgentAggregateStorageSize:
+                        default: 2Gi
+                        description: VMAgentAggregateStorageSize controls vmagent-agg
+                          PVC request size.
+                        type: string
+                      vmAgentReplicas:
+                        default: 2
+                        description: VMAgentReplicas controls replicas for vmagent
+                          (service/pod scrape agent).
+                        format: int32
+                        type: integer
+                      vmAgentResources:
+                        properties:
+                          limitsCpu:
+                            type: string
+                          limitsMemory:
+                            type: string
+                          requestsCpu:
+                            type: string
+                          requestsMemory:
+                            type: string
+                        type: object
+                      vmAuthReplicas:
+                        default: 2
+                        description: VMAuthReplicas controls VMAuth replicas.
+                        format: int32
+                        type: integer
+                      vmAuthResources:
+                        properties:
+                          limitsCpu:
+                            type: string
+                          limitsMemory:
+                            type: string
+                          requestsCpu:
+                            type: string
+                          requestsMemory:
+                            type: string
+                        type: object
+                      vmClusterRequestsLBReplicas:
+                        default: 2
+                        description: |-
+                          VMClusterRequestsLBReplicas is deprecated and currently ignored by the operator.
+                          VMAuth plus the default VMCluster services are used for routing instead.
+                        format: int32
+                        type: integer
+                      vmClusterRetentionPeriod:
+                        default: 100y
+                        description: VMClusterRetentionPeriod controls VMCluster retention.
+                        type: string
+                      vmInsertReplicas:
+                        default: 2
+                        description: VMInsertReplicas controls VMCluster vminsert
+                          replicas.
+                        format: int32
+                        type: integer
+                      vmInsertResources:
+                        properties:
+                          limitsCpu:
+                            type: string
+                          limitsMemory:
+                            type: string
+                          requestsCpu:
+                            type: string
+                          requestsMemory:
+                            type: string
+                        type: object
+                      vmSelectReplicas:
+                        default: 2
+                        description: VMSelectReplicas controls VMCluster vmselect
+                          replicas.
+                        format: int32
+                        type: integer
+                      vmSelectResources:
+                        properties:
+                          limitsCpu:
+                            type: string
+                          limitsMemory:
+                            type: string
+                          requestsCpu:
+                            type: string
+                          requestsMemory:
+                            type: string
+                        type: object
+                      vmSelectSize:
+                        default: 1Gi
+                        description: VMSelectSize controls VMCluster vmselect PVC
+                          request size.
+                        type: string
+                      vmStorageReplicas:
+                        default: 2
+                        description: VMStorageReplicas controls VMCluster vmstorage
+                          replicas.
+                        format: int32
+                        type: integer
+                      vmStorageResources:
+                        properties:
+                          limitsCpu:
+                            type: string
+                          limitsMemory:
+                            type: string
+                          requestsCpu:
+                            type: string
+                          requestsMemory:
+                            type: string
+                        type: object
+                      vmStorageSize:
+                        default: 10Gi
+                        description: VMStorageSize controls VMCluster vmstorage PVC
+                          request size.
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                type: object
+            required:
+            - global
+            type: object
+          status:
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              lastError:
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              phase:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

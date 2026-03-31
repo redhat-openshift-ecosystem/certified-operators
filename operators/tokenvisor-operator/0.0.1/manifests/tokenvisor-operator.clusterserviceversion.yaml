@@ -1,0 +1,467 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "apps.tokenvisor.io/v1alpha1",
+          "kind": "TokenVisor",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "tokenvisor-operator"
+            },
+            "name": "tokenvisor-sample"
+          },
+          "spec": {
+            "application": {
+              "emu": {
+                "enabled": true,
+                "image": "ghcr.io/embeddedllm/tokenvisor/tokenvisor-emu-openshift:2023-03-26",
+                "imagePullPolicy": "Always",
+                "rbac": {
+                  "create": true
+                },
+                "replicas": 1,
+                "route": {
+                  "enabled": false,
+                  "insecureEdgeTerminationPolicy": "Allow",
+                  "termination": "edge"
+                }
+              },
+              "exposedURL": "http://studio-frontend-server-tokenvisor.apps.ellm-4.local.com",
+              "studio": {
+                "allowInsecureCookies": true,
+                "authConfigYaml": "features:\n  user-pass-login:\n    login: true\n    signups: true\n  redirect-to-idp: false\n",
+                "enabled": true,
+                "image": "ghcr.io/embeddedllm/tokenvisor/tokenvisor-studio-openshift:20260113",
+                "imagePullPolicy": "Always",
+                "replicas": 1,
+                "route": {},
+                "serviceName": "studio-frontend-server",
+                "servicePort": 4969,
+                "themeCss": ":root {\n  --background: 216 24% 96%;\n  --foreground: 222.2 84% 4.9%;\n\n  --muted: 220 14% 96%;\n  --muted-foreground: 220 9% 56%;\n\n  --popover: 0 0% 100%;\n  --popover-foreground: 222.2 84% 4.9%;\n\n  --card: 0 0% 100%;\n  --card-foreground: 222.2 84% 4.9%;\n\n  --border: 214.3 31.8% 88%;\n  --input: 214.3 31.8% 91.4%;\n\n  --primary: 192 67% 32%;\n  --primary-foreground: 210 40% 98%;\n\n  --secondary-50: 210 40% 98%;\n  --secondary-100: 210 40% 96%;\n  --secondary-200: 213 26% 88%;\n  --secondary-300: 215 18% 80%;\n  --secondary-400: 215 17% 72%;\n  --secondary-500: 215 16% 65%;\n  --secondary-600: 215 16% 57%;\n  --secondary-700: 215 16% 45%;\n  --secondary-800: 215 16% 30%;\n  --secondary-900: 216 18% 18%;\n\n  --secondary: var(--secondary-200);\n  --secondary-foreground: var(--secondary-800);\n\n  --tertiary: 184 52% 63%;\n  --tertiary-foreground: 192 67% 32%;\n\n  --highlight: 280 53% 48%;\n  --highlight-foreground: 0 0% 100%;\n\n  --accent: 77 100% 93%;\n  --accent-strong: 87 82% 64%;\n  --accent-foreground: 222.2 47.4% 11.2%;\n\n  --destructive: 0 72.2% 50.6%;\n  --destructive-foreground: 210 40% 98%;\n\n  --success: 138 76% 97%;\n  --success-foreground: 142 72% 29%;\n\n  --error: 0 84% 60%;\n  --error-foreground: 210 40% 98%;\n\n  --warning: 38 85% 60%;\n  --warning-foreground: 0 0% 100%;\n\n  --ring: 222.2 84% 4.9%;\n\n  --radius: 0.75rem;\n\n  --navbar-system-from: 210 12% 34%;\n  --navbar-system-to: 208 31% 70%;\n\n  --navbar-organization-from: 193 100% 33%;\n  --navbar-organization-to: 189 100% 13%;\n\n  --navbar-project-from: 253 32% 61%;\n  --navbar-project-to: 247 21% 28%;\n}\n"
+              }
+            },
+            "global": {
+              "imagePullSecrets": [
+                "github-registry-secret"
+              ],
+              "storageClass": "openebs-hostpath"
+            },
+            "infrastructure": {
+              "clickhouse": {
+                "clusterReplicas": 3,
+                "enabled": true,
+                "images": {
+                  "imagePullPolicy": "IfNotPresent",
+                  "keeper": "ghcr.io/embeddedllm/jamaibase/clickhouse-keeper-openshift:24.12.6.70",
+                  "server": "ghcr.io/embeddedllm/jamaibase/clickhouse-server-openshift:25.12.2.54"
+                },
+                "keeperReplicas": 1,
+                "secretName": "clickhouse-secret",
+                "storageSize": "10Gi"
+              },
+              "dragonfly": {
+                "enabled": true,
+                "replicas": 2,
+                "skipFSGroup": true
+              },
+              "fluentBit": {
+                "enabled": false
+              },
+              "postgres": {
+                "enabled": true,
+                "images": {
+                  "catalogImage": "ghcr.io/embeddedllm/tokenvisor/postgres-17-ubi:17.7-ubi-fixed"
+                },
+                "instances": 1,
+                "secretName": "pg-emu-user-secret",
+                "storageClassName": "openebs-hostpath",
+                "storageSize": "10Gi"
+              },
+              "victoriaMetrics": {
+                "enabled": true,
+                "secretName": "vmuser-secret",
+                "storageClassName": "openebs-hostpath",
+                "vmAgentAggregateReplicas": 3,
+                "vmAgentReplicas": 2
+              }
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: AI/Machine Learning,Database,Logging & Tracing,Monitoring
+    com.redhat.openshift.versions: v4.21
+    containerImage: ghcr.io/embeddedllm/tokenvisor/operator:2026-03-30
+    createdAt: "2026-03-30T09:57:25Z"
+    description: TokenVisor operator for infrastructure and application orchestration
+      on OpenShift.
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/valid-subscription: No subscription required for evaluation.
+      Contact EmbeddedLLM for commercial support.
+    operators.operatorframework.io/builder: operator-sdk-v1.38.0-ocp
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/os.linux: supported
+  name: tokenvisor-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: TokenVisor is the Schema for the tokenvisors API
+      displayName: Token Visor
+      kind: TokenVisor
+      name: tokenvisors.apps.tokenvisor.io
+      version: v1alpha1
+  description: TokenVisor operator for infrastructure and application orchestration
+    on OpenShift.
+  displayName: TokenVisor Operator
+  icon:
+  - base64data: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO7ZfN8AAAAASUVORK5CYII=
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - serviceaccounts
+          - services
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - endpoints
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - deployments
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps.tokenvisor.io
+          resources:
+          - tokenvisors
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps.tokenvisor.io
+          resources:
+          - tokenvisors/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - apps.tokenvisor.io
+          resources:
+          - tokenvisors/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - clickhouse-keeper.altinity.com
+          resources:
+          - clickhousekeeperinstallations
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - clickhouse.altinity.com
+          resources:
+          - clickhouseinstallations
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - dragonflydb.io
+          resources:
+          - dragonflies
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - fluentbit.fluent.io
+          resources:
+          - clusterfilters
+          - clusterfluentbitconfigs
+          - clusterinputs
+          - clusteroutputs
+          - fluentbits
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - operator.victoriametrics.com
+          resources:
+          - vlsingles
+          - vmagents
+          - vmauths
+          - vmclusters
+          - vmnodescrapes
+          - vmpodscrapes
+          - vmusers
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - policy
+          resources:
+          - poddisruptionbudgets
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - postgresql.cnpg.io
+          resources:
+          - clusters
+          - imagecatalogs
+          - poolers
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          - rolebindings
+          - roles
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: tokenvisor-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: tokenvisor-operator
+          control-plane: controller-manager
+        name: tokenvisor-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --metrics-bind-address=:8443
+                - --leader-elect
+                - --health-probe-bind-address=:8081
+                command:
+                - /manager
+                image: ghcr.io/embeddedllm/tokenvisor/tokenvisor-operator:2026-03-30
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: tokenvisor-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: tokenvisor-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - tokenvisor
+  - llm
+  - observability
+  - openshift
+  links:
+  - name: TokenVisor
+    url: https://github.com/embeddedllm/tokenvisor
+  maintainers:
+  - email: support@embeddedllm.com
+    name: EmbeddedLLM
+  maturity: alpha
+  minKubeVersion: 1.30.0
+  provider:
+    name: EmbeddedLLM
+    url: https://embeddedllm.com
+  relatedImages:
+  - image: ghcr.io/embeddedllm/tokenvisor/tokenvisor-operator:2026-03-30
+    name: tokenvisor-operator
+  version: 0.0.1

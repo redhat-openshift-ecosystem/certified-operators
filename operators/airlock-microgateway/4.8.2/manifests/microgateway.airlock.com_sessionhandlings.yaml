@@ -1,0 +1,328 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    app.kubernetes.io/name: airlock-microgateway-operator
+    app.kubernetes.io/version: 4.8.2
+  name: sessionhandlings.microgateway.airlock.com
+spec:
+  group: microgateway.airlock.com
+  names:
+    categories:
+    - airlock-microgateway
+    kind: SessionHandling
+    listKind: SessionHandlingList
+    plural: sessionhandlings
+    singular: sessionhandling
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: SessionHandling defines how the Airlock Microgateway Engine should
+          handle and persist sessions.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired session handling configuration.
+            properties:
+              agent:
+                description: agent configures the Airlock Microgateway Session Agent
+                  container.
+                properties:
+                  logging:
+                    description: logging configures the logging behavior.
+                    properties:
+                      level:
+                        default: info
+                        description: level specifies the log level.
+                        enum:
+                        - trace
+                        - debug
+                        - info
+                        - warn
+                        - error
+                        type: string
+                    type: object
+                  resources:
+                    description: |-
+                      resources specifies the compute resources for the `airlock-microgateway-session-agent` container. If undefined, default resource settings are applied: `{"requests":{"cpu":"25m","memory":"64Mi"},"limits":{"memory":"128Mi"}}`.
+                      Setting this field overrides the defaults entirely, values are not merged.
+                      Note: This setting only affects `airlock-microgateway-session-agent` containers of Gateways managed via Gateway API.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                    x-kubernetes-validations:
+                    - message: cpu request must be less than or equal to cpu limit
+                      rule: '!has(self.requests) || !has(self.limits) || !(''cpu''
+                        in self.requests) || !(''cpu'' in self.limits) || quantity(string(self.requests[''cpu''])).compareTo(quantity(string(self.limits[''cpu''])))
+                        <= 0'
+                    - message: memory request must be less than or equal to memory
+                        limit
+                      rule: '!has(self.requests) || !has(self.limits) || !(''memory''
+                        in self.requests) || !(''memory'' in self.limits) || quantity(string(self.requests[''memory''])).compareTo(quantity(string(self.limits[''memory''])))
+                        <= 0'
+                type: object
+              cookie:
+                description: cookie configures the session cookie used for cookie-based
+                  session tracking.
+                properties:
+                  attributes:
+                    description: attributes specifies additional attributes set on
+                      the session cookie.
+                    properties:
+                      domain:
+                        description: domain attribute to set. If not present, the
+                          attribute is omitted. A typical use case is to share the
+                          session cookie with sub-domains.
+                        maxLength: 256
+                        minLength: 1
+                        type: string
+                      path:
+                        description: path attribute to set. If not present, the attribute
+                          is omitted. Specifies a path prefix which the requested
+                          URL must match in order for the cookie to be sent.
+                        maxLength: 2048
+                        minLength: 1
+                        pattern: ^/.*
+                        type: string
+                      sameSite:
+                        default: Lax
+                        description: sameSite attribute to set. Specifies whether
+                          and when cookies are sent with cross-site requests.
+                        enum:
+                        - None
+                        - Lax
+                        - Strict
+                        type: string
+                      secure:
+                        default: true
+                        description: secure attribute to set. A cookie with the Secure
+                          attribute is only sent to the server with an encrypted request
+                          over the HTTPS protocol.
+                        type: boolean
+                    type: object
+                  name:
+                    default: AL_SESS
+                    description: name specifies the name of the session cookie.
+                    maxLength: 256
+                    minLength: 1
+                    pattern: ^[-!#$%&'*+.^_`|~0-9a-zA-Z]+$
+                    type: string
+                type: object
+              defaultTimeouts:
+                description: defaultTimeouts specifies the session timeouts to apply
+                  when not provided by the authentication method.
+                properties:
+                  idle:
+                    default: 10m
+                    description: idle specifies the maximum duration a session can
+                      remain inactive before it is considered expired.
+                    type: string
+                  lifetime:
+                    default: 12h
+                    description: lifetime specifies the maximum duration a session
+                      can exist.
+                    type: string
+                type: object
+              limits:
+                description: limits configures session-related limits.
+                properties:
+                  sessionsPerIP:
+                    description: sessionsPerIP configures the limit of concurrently
+                      active sessions per remote IP address.
+                    properties:
+                      disabled:
+                        description: disabled specifies that the limit is disabled.
+                        type: object
+                      exceptions:
+                        description: exceptions define conditions under which the
+                          limit does not apply.
+                        items:
+                          description: SessionHandlingLimitsException defines an exception
+                            for the sessions-per-IP limit.
+                          properties:
+                            remoteIP:
+                              description: remoteIP restricts the exception to requests
+                                originating from matching remote IP CIDR ranges.
+                              properties:
+                                cidrRanges:
+                                  description: cidrRanges defines the IPv4 or IPv6
+                                    CIDR ranges, e.g. ``196.148.3.128/26`` or ``2001:db8::/28``.
+                                  items:
+                                    description: CIDRRange defines an IPv4 or IPv6
+                                      CIDR range, e.g. “196.148.3.128/26“ or “2001:db8::/28“.
+                                    format: cidr
+                                    maxLength: 49
+                                    minLength: 1
+                                    type: string
+                                  maxItems: 1024
+                                  minItems: 1
+                                  type: array
+                                  x-kubernetes-list-type: set
+                                invert:
+                                  default: false
+                                  description: invert indicates whether the match
+                                    should be inverted.
+                                  type: boolean
+                              required:
+                              - cidrRanges
+                              type: object
+                          required:
+                          - remoteIP
+                          type: object
+                        maxItems: 4096
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      thresholds:
+                        description: |-
+                          thresholds specifies the logging and/or blocking thresholds for the number of concurrent sessions per remote IP.
+                          If not set, default thresholds apply.
+
+                          Defaults:
+                          - Blocking: 8192
+                          - Logging: None
+                        properties:
+                          blocking:
+                            description: blocking specifies the threshold above which
+                              requests are blocked.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                          logging:
+                            description: logging specifies the threshold above which
+                              an event is logged.
+                            format: int32
+                            minimum: 0
+                            type: integer
+                        type: object
+                        x-kubernetes-validations:
+                        - message: logging must be less than blocking
+                          rule: '!has(self.logging) || !has(self.blocking) || self.logging
+                            < self.blocking'
+                    type: object
+                type: object
+              mode:
+                default: OnDemand
+                description: |-
+                  mode specifies the session handling mode. Meaning of the possible values:
+                  _Enforce_: All requests are aggregated into sessions. For requests without a session, a new session is created. For requests with an existing session, the session is reused and the idle time reset.
+                  _OnDemand_: Behaves like `Enforce` for routes which have access control with OIDC authentication configured. For all other routes, sessions will be neither created nor used.
+                enum:
+                - Enforce
+                - OnDemand
+                type: string
+              persistence:
+                description: persistence configures where to store the session state.
+                properties:
+                  redisProviderRef:
+                    description: redisProviderRef specifies to cache session information
+                      in the provided Redis instance.
+                    properties:
+                      name:
+                        description: name of the resource
+                        maxLength: 253
+                        minLength: 1
+                        type: string
+                    required:
+                    - name
+                    type: object
+                required:
+                - redisProviderRef
+                type: object
+              prefix:
+                description: |-
+                  prefix specifies the prefix under which the sessions should be stored in the persistence layer.
+                  If not specified, an automatic prefix derived from the namespaced SessionHandling CR name is used, which ensures that sessions will always be isolated on Microgateways configured with different SessionHandling CRs, even if they share the same persistence backend.
+
+                  To allow session sharing between different Microgateway deployments, ensure that the cookie domain, prefix and persistence backend is the same across all corresponding SessionHandling CRs.
+                maxLength: 64
+                minLength: 1
+                pattern: ^[a-zA-Z][a-zA-Z0-9_]*$
+                type: string
+            required:
+            - persistence
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

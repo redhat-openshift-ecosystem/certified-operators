@@ -1,0 +1,187 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.0
+    platform.confluent.io/app-version: 3.0.2
+    platform.confluent.io/chart-version: v0.1263.79
+  creationTimestamp: null
+  name: kraftmigrationjobs.platform.confluent.io
+spec:
+  group: platform.confluent.io
+  names:
+    categories:
+      - all
+      - confluent-platform
+      - confluent
+    kind: KRaftMigrationJob
+    listKind: KRaftMigrationJobList
+    plural: kraftmigrationjobs
+    shortNames:
+      - kraftmigrationjob
+      - kmj
+    singular: kraftmigrationjob
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.phase
+          name: Status
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+      name: v1beta1
+      schema:
+        openAPIV3Schema:
+          description: KRaftMigrationJob is the schema for the KRaftMigrationJob API.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: spec defines the desired state of the KRaftMigrationJob.
+              properties:
+                dependencies:
+                  description: dependencies specify the Kafka Broker, Zookeeper and KRaft Controllers.
+                  properties:
+                    kRaftController:
+                      description: |-
+                        kRaftController specifies the dependency configuration for the KRaftController cluster.
+                        You cannot configure both zookeeper and kRaftController dependencies.
+                      properties:
+                        name:
+                          description: name specifies the name of the Confluent Platform component cluster.
+                          type: string
+                        namespace:
+                          description: namespace specifies the namespace where the Confluent Platform component cluster is running.
+                          type: string
+                      required:
+                        - name
+                      type: object
+                    kafka:
+                      description: kafka defines the Kafka dependency configurations.
+                      properties:
+                        name:
+                          description: name specifies the name of the Confluent Platform component cluster.
+                          type: string
+                        namespace:
+                          description: namespace specifies the namespace where the Confluent Platform component cluster is running.
+                          type: string
+                      required:
+                        - name
+                      type: object
+                    zookeeper:
+                      description: zookeeper specifies the dependency configuration for Zookeeper.
+                      properties:
+                        name:
+                          description: name specifies the name of the Confluent Platform component cluster.
+                          type: string
+                        namespace:
+                          description: namespace specifies the namespace where the Confluent Platform component cluster is running.
+                          type: string
+                      required:
+                        - name
+                      type: object
+                  required:
+                    - kRaftController
+                    - kafka
+                    - zookeeper
+                  type: object
+              required:
+                - dependencies
+              type: object
+            status:
+              description: status defines the observed state of the KRaftMigrationJob.
+              properties:
+                conditions:
+                  description: conditions represents the latest available observations of the kraft migration job.
+                  items:
+                    description: Condition represent the latest available observations of the current state.
+                    properties:
+                      lastProbeTime:
+                        description: lastProbeTime shows the last time the condition was evaluated.
+                        format: date-time
+                        type: string
+                      lastTransitionTime:
+                        description: lastTransitionTime shows the last time the condition was transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: message shows a human-readable message with details about the transition.
+                        type: string
+                      reason:
+                        description: reason shows the reason for the last transition of the condition.
+                        type: string
+                      status:
+                        description: status shows the status of the condition, one of `True`, `False`, or `Unknown`.
+                        type: string
+                      type:
+                        description: type shows the condition type.
+                        type: string
+                    type: object
+                  type: array
+                kafkaClusterId:
+                  description: clusterId is the clusterId for migrating cluster
+                  type: string
+                kafkaGeneration:
+                  description: |-
+                    kafkaGeneration is the last generation at which
+                    kafka cluster was updated during migration workflow
+                  format: int64
+                  type: integer
+                kraftControllerGeneration:
+                  description: |-
+                    kraftControllerGeneration is the last generation at which
+                    kraftController cluster was updated during migration workflow
+                  format: int64
+                  type: integer
+                phase:
+                  description: phase is the state of the kraft migration job.
+                  type: string
+                subPhase:
+                  description: subPhase is the state of the kraft migration job.
+                  type: string
+                zkEndpointWithNode:
+                  description: |-
+                    zkEndpointWithNode is the zkEndpoint with node fetched from kafka
+                    <host:port>/<zkNodeID>
+                  type: string
+              required:
+                - kafkaClusterId
+                - kafkaGeneration
+                - kraftControllerGeneration
+                - phase
+                - subPhase
+                - zkEndpointWithNode
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        scale:
+          labelSelectorPath: .status.selector
+          specReplicasPath: .spec.replicas
+          statusReplicasPath: .status.replicas
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

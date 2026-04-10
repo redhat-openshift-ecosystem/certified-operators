@@ -1,0 +1,311 @@
+apiVersion: v1
+data:
+  daemon-assets.yaml: |
+    # SPDX-License-Identifier: Apache-2.0
+    # Copyright (c) 2020-2025 Intel Corporation
+
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: daemon-config
+      namespace: {{ .SRIOV_FEC_NAMESPACE }}
+    immutable: false
+    data:
+      serviceAccount: |
+        apiVersion: v1
+        kind: ServiceAccount
+        metadata:
+          name: sriov-fec-daemon
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+      role: |
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: Role
+        metadata:
+          name: sriov-fec-daemon
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+        rules:
+        - apiGroups:
+          - sriovfec.intel.com
+          resources:
+          - sriovfecclusterconfigs
+          - sriovfecnodeconfigs
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - sriovfec.intel.com
+          resources:
+          - sriovfecclusterconfigs/status
+          - sriovfecnodeconfigs/status
+          verbs:
+          - get
+          - update
+          - patch
+        - apiGroups:
+          - sriovvrb.intel.com
+          resources:
+          - sriovvrbclusterconfigs
+          - sriovvrbnodeconfigs
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - sriovvrb.intel.com
+          resources:
+          - sriovvrbclusterconfigs/status
+          - sriovvrbnodeconfigs/status
+          verbs:
+          - get
+          - update
+          - patch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+          resourceNames:
+          - privileged
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups: [""]
+          resources: ["configmaps"]
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+      roleBinding: |
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: RoleBinding
+        metadata:
+          name: sriov-fec-daemon
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+        roleRef:
+          apiGroup: rbac.authorization.k8s.io
+          kind: Role
+          name: sriov-fec-daemon
+          {{ if eq (.SRIOV_FEC_GENERIC_K8S|ToLower) `false` }}
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+          {{ end }}
+        subjects:
+        - kind: ServiceAccount
+          name: sriov-fec-daemon
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+          {{ if eq (.SRIOV_FEC_GENERIC_K8S|ToLower) `false` }}
+        userNames:
+        - system:serviceaccount:{{ .SRIOV_FEC_NAMESPACE }}:sriov-fec-daemon
+          {{ end }}
+      clusterRole: |
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRole
+        metadata:
+          name: sriov-fec-daemon
+        rules:
+        - apiGroups: [""]
+          resources: ["pods"]
+          verbs: ["get","list","watch","create","update", "patch", "delete"]
+        - apiGroups: [""]
+          resources: ["nodes"]
+          verbs: ["get", "list", "watch", "patch", "update"]
+        - apiGroups: ["apps"]
+          resources: ["daemonsets"]
+          verbs: ["get"]
+        - apiGroups: [""]
+          resources: ["pods/eviction"]
+          verbs: ["create"]
+      clusterRoleBinding: |
+        apiVersion: rbac.authorization.k8s.io/v1
+        kind: ClusterRoleBinding
+        metadata:
+          name: sriov-fec-daemon
+        subjects:
+        - kind: ServiceAccount
+          name: sriov-fec-daemon
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+        roleRef:
+          kind: ClusterRole
+          name: sriov-fec-daemon
+          apiGroup: rbac.authorization.k8s.io
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+      secret: |
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: vfio-token
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+        type: Opaque
+        stringData:
+          VFIO_TOKEN: {{ .SRIOV_FEC_VFIO_TOKEN }}
+        immutable: true
+      daemonSet: |
+        apiVersion: apps/v1
+        kind: DaemonSet
+        metadata:
+          labels:
+            app: sriov-fec-daemonset
+          name: sriov-fec-daemonset
+          namespace: {{ .SRIOV_FEC_NAMESPACE }}
+          annotations:
+            openshift.io/scc: sriov-fec-daemon
+        spec:
+          selector:
+            matchLabels:
+              app: sriov-fec-daemonset
+          template:
+            metadata:
+              # Mark this pod as a critical add-on; when enabled, the critical add-on scheduler
+              # reserves resources for critical add-on pods so that they can be rescheduled after
+              # a failure.  This annotation works in tandem with the toleration below.
+              annotations:
+                scheduler.alpha.kubernetes.io/critical-pod: ""
+              labels:
+                app: sriov-fec-daemonset
+            spec:
+              nodeSelector:
+                fpga.intel.com/intel-accelerator-present: ""
+              {{ if eq (.SRIOV_FEC_GENERIC_K8S|ToLower) `true` }}
+              shareProcessNamespace: true
+              {{ end }}
+              tolerations:
+              - key: intel.com/sriovfec
+                operator: Exists
+                effect: NoSchedule
+              serviceAccount: sriov-fec-daemon
+              serviceAccountName: sriov-fec-daemon
+              hostPID: false
+              hostNetwork: false
+              dnsPolicy: Default
+              containers:
+              - name: sriov-fec-daemon
+                image: {{ .SRIOV_FEC_DAEMON_IMAGE }}
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: {{ .SRIOV_FEC_DAEMON_LIVENESS_INITIAL_DELAY_SECONDS }}
+                  periodSeconds: {{ .SRIOV_FEC_DAEMON_LIVENESS_PERIOD_SECONDS }}
+                  failureThreshold: {{ .SRIOV_FEC_DAEMON_LIVENESS_FAILURE_THRESHOLD }}
+                  successThreshold: {{ .SRIOV_FEC_DAEMON_LIVENESS_SUCCESS_THRESHOLD }}
+                  timeoutSeconds: {{ .SRIOV_FEC_DAEMON_LIVENESS_TIMEOUT_SECONDS }}
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: {{ .SRIOV_FEC_DAEMON_READINESS_INITIAL_DELAY_SECONDS }}
+                  periodSeconds: {{ .SRIOV_FEC_DAEMON_READINESS_PERIOD_SECONDS }}
+                  failureThreshold: {{ .SRIOV_FEC_DAEMON_READINESS_FAILURE_THRESHOLD }}
+                  successThreshold: {{ .SRIOV_FEC_DAEMON_READINESS_SUCCESS_THRESHOLD }}
+                  timeoutSeconds: {{ .SRIOV_FEC_DAEMON_READINESS_TIMEOUT_SECONDS }}
+                ports:
+                - containerPort: 8080
+                  name: bbdevconfig
+                volumeMounts:
+                - name: tlscert
+                  mountPath: "/etc/certificate"
+                  readOnly: true
+                - name: devvfio
+                  mountPath: /dev/vfio
+                  readOnly: true
+                - name: vfiotoken
+                  mountPath: /sriov_config/
+                  readOnly: true
+                - name: libmodules
+                  mountPath: /lib/modules
+                  readOnly: true
+                - mountPath: /sriov_config/config
+                  name: config-volume
+                  readOnly: true
+                - name: logs
+                  mountPath: /var/log
+                - name: tmp
+                  mountPath: /tmp
+                - name: lockdown
+                  mountPath: /sys/kernel/security
+                  readOnly: true
+                env:
+                  - name: SRIOV_FEC_NAMESPACE
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: metadata.namespace
+                  - name: NODENAME
+                    valueFrom:
+                      fieldRef:
+                        fieldPath: spec.nodeName
+                  - name: DRAIN_TIMEOUT_SECONDS
+                    value: "90"
+                  - name: LEASE_DURATION_SECONDS
+                    value: "600"
+                  - name: SRIOV_FEC_METRIC_GATHER_INTERVAL
+                    value: {{ .SRIOV_FEC_METRIC_GATHER_INTERVAL }}
+                securityContext:
+                  readOnlyRootFilesystem: true
+                  privileged: true
+          {{ if eq (.SRIOV_FEC_GENERIC_K8S|ToLower) `true` }}
+                  runAsUser: 0
+                  capabilities:
+                    add:
+                      - "ALL"
+          {{ end }}
+              volumes:
+              - name: tlscert
+                secret:
+                  secretName: tls-cert
+                  optional: true
+              - configMap:
+                  defaultMode: 420
+                  items:
+                  - key: accelerators.json
+                    path: accelerators.json
+                  - key: accelerators_vrb.json
+                    path: accelerators_vrb.json
+                  name: supported-accelerators
+                name: config-volume
+              - name: vfiotoken
+                secret:
+                  secretName: vfio-token
+                  optional: false
+                  items:
+                  - key: VFIO_TOKEN
+                    path: vfiotoken
+              - name: devvfio
+                hostPath:
+                  path: /dev/vfio
+              - name: libmodules
+                hostPath:
+                  path: /lib/modules
+              - name: logs
+                emptyDir: {}
+              - name: tmp
+                emptyDir: {}
+              - name: lockdown
+                hostPath:
+                  path: /sys/kernel/security
+immutable: false
+kind: ConfigMap
+metadata:
+  name: sriov-fec-daemon-assets

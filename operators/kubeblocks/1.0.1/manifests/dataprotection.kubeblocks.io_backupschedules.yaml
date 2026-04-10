@@ -1,0 +1,179 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: kubeblocks
+  name: backupschedules.dataprotection.kubeblocks.io
+spec:
+  group: dataprotection.kubeblocks.io
+  names:
+    categories:
+    - kubeblocks
+    kind: BackupSchedule
+    listKind: BackupScheduleList
+    plural: backupschedules
+    shortNames:
+    - bs
+    singular: backupschedule
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: STATUS
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: BackupSchedule is the Schema for the backupschedules API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: BackupScheduleSpec defines the desired state of BackupSchedule.
+            properties:
+              backupPolicyName:
+                description: Specifies the backupPolicy to be applied for the `schedules`.
+                pattern: ^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$
+                type: string
+              schedules:
+                description: Defines the list of backup schedules.
+                items:
+                  properties:
+                    backupMethod:
+                      description: Specifies the backup method name that is defined
+                        in backupPolicy.
+                      type: string
+                    cronExpression:
+                      description: |-
+                        Specifies the cron expression for the schedule. The timezone is in UTC.
+                        see https://en.wikipedia.org/wiki/Cron.
+                      type: string
+                    enabled:
+                      description: Specifies whether the backup schedule is enabled
+                        or not.
+                      type: boolean
+                    name:
+                      description: |-
+                        Specifies the name of the schedule. Names cannot be duplicated.
+                        If the name is empty, it will be considered the same as the value of the backupMethod below.
+                      type: string
+                    parameters:
+                      description: |-
+                        Specifies a list of name-value pairs representing parameters and their corresponding values.
+                        Parameters match the schema specified in the `actionset.spec.parametersSchema`
+                      items:
+                        properties:
+                          name:
+                            description: Represents the name of the parameter.
+                            type: string
+                          value:
+                            description: Represents the parameter values.
+                            type: string
+                        required:
+                        - name
+                        - value
+                        type: object
+                      maxItems: 128
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - name
+                      x-kubernetes-list-type: map
+                    retentionPeriod:
+                      default: 7d
+                      description: "Determines the duration for which the backup should
+                        be kept.\nKubeBlocks will remove all backups that are older
+                        than the RetentionPeriod.\nFor example, RetentionPeriod of
+                        `30d` will keep only the backups of last 30 days.\nSample
+                        duration format:\n\n\n- years: \t2y\n- months: \t6mo\n- days:
+                        \t\t30d\n- hours: \t12h\n- minutes: \t30m\n\n\nYou can also
+                        combine the above durations. For example: 30d12h30m"
+                      type: string
+                  required:
+                  - backupMethod
+                  - cronExpression
+                  type: object
+                minItems: 1
+                type: array
+              startingDeadlineMinutes:
+                description: |-
+                  Defines the deadline in minutes for starting the backup workload if it
+                  misses its scheduled time for any reason.
+                format: int64
+                maximum: 1440
+                minimum: 0
+                type: integer
+            required:
+            - backupPolicyName
+            - schedules
+            type: object
+          status:
+            description: BackupScheduleStatus defines the observed state of BackupSchedule.
+            properties:
+              failureReason:
+                description: Represents an error that caused the backup to fail.
+                type: string
+              observedGeneration:
+                description: |-
+                  Represents the most recent generation observed for this BackupSchedule.
+                  It refers to the BackupSchedule's generation, which is updated on mutation
+                  by the API Server.
+                format: int64
+                type: integer
+              phase:
+                description: Describes the phase of the BackupSchedule.
+                type: string
+              schedules:
+                additionalProperties:
+                  description: ScheduleStatus represents the status of each schedule.
+                  properties:
+                    failureReason:
+                      description: Represents an error that caused the backup to fail.
+                      type: string
+                    lastScheduleTime:
+                      description: Records the last time the backup was scheduled.
+                      format: date-time
+                      type: string
+                    lastSuccessfulTime:
+                      description: Records the last time the backup was successfully
+                        completed.
+                      format: date-time
+                      type: string
+                    phase:
+                      description: Describes the phase of the schedule.
+                      type: string
+                  type: object
+                description: Describes the status of each schedule.
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

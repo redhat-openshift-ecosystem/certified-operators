@@ -1,0 +1,233 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.17.1
+  name: prometheusserverconfigs.metrics.turbonomic.io
+spec:
+  group: metrics.turbonomic.io
+  names:
+    kind: PrometheusServerConfig
+    listKind: PrometheusServerConfigList
+    plural: prometheusserverconfigs
+    shortNames:
+    - psc
+    singular: prometheusserverconfig
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: PrometheusServerConfig is the Schema for the prometheusserverconfigs
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: PrometheusServerConfigSpec defines the desired state of PrometheusServerConfig
+            properties:
+              address:
+                description: Address of the Prometheus server.
+                type: string
+              bearerToken:
+                description: Bearer Token of the Prometheus server.
+                properties:
+                  secretKeyRef:
+                    description: SecretKeySelector selects a key of a Secret.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                required:
+                - secretKeyRef
+                type: object
+              clusters:
+                description: |-
+                  ClusterConfigs is an optional list of ClusterConfiguration structs that specify information about the clusters
+                  that the Prometheus server should obtain metrics for.
+                  If this field is not specified, the Prometheus server obtains metrics only for the cluster where the
+                  Prometurbo probe is running.
+                items:
+                  description: |-
+                    The ClusterConfiguration struct is used to configure the behavior of a Prometurbo probe when collecting
+                    metrics from a cluster.
+                  properties:
+                    identifier:
+                      description: |-
+                        The Identifier field is an optional field that specifies the cluster identifier for a Prometurbo probe.
+                        If this field is not specified, the probe will default to the cluster where it is running.
+                      properties:
+                        clusterLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            The ClusterLabels that store the labels that identify the cluster when executing PromQL queries
+                            against the Prometheus server.
+                            Use this field to specify different labels for each cluster.
+                            These labels, if exists, will be used in PromQL queries to filter metrics from a specific cluster.
+                            For example, the following labels could be used to select metrics from the "production" cluster in the
+                            "us-west-2" region.
+                                clusterLabels := map[string]string {
+                                    "cluster": "production",
+                                    "region":  "us-west-2",
+                                }
+                          type: object
+                        id:
+                          description: |-
+                            The unique ID of the cluster.
+                            Get the ID by running the following command inside the cluster:
+                                kubectl -n default get svc kubernetes -ojsonpath='{.metadata.uid}'
+                            The resulting output should be the Kubernetes service ID, which is a version 4 UUID.
+                            For example, 5f2bd289-20b8-4c3c-be48-f5c5d8ff9c82.
+                          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$
+                          type: string
+                      required:
+                      - id
+                      type: object
+                    queryMappingSelector:
+                      description: |-
+                        The QueryMappingSelector field is an optional field that specifies a label selector for PrometheusQueryMapping
+                        resources. This field is of type *metav1.LabelSelector, which is a Kubernetes API type that represents
+                        a label selector.
+                        If the QueryMappingSelector field is not defined, it will default to all PrometheusQueryMapping resources in the
+                        current namespace. If it is defined, it should be set to a valid label selector that can be used to identify
+                        the desired resources.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  type: object
+                type: array
+            required:
+            - address
+            type: object
+          status:
+            description: PrometheusServerConfigStatus defines the observed state of
+              PrometheusServerConfig
+            properties:
+              clusters:
+                items:
+                  description: The ClusterStatus struct defines the status of a cluster.
+                  properties:
+                    entities:
+                      description: |-
+                        Entities is a list of EntityStatus objects.
+                        This field is omitted if there are no entities found in the cluster.
+                      items:
+                        description: The EntityStatus represents the status of an
+                          entity in a cluster.
+                        properties:
+                          count:
+                            description: |-
+                              Count is a pointer to an int32 that represents the number of entities of this type in the cluster.
+                              If this field is nil, it means that the number of entities is unknown or has not been discovered yet.
+                            format: int32
+                            type: integer
+                          type:
+                            description: Type is a string that specifies the type
+                              of entity.
+                            type: string
+                        required:
+                        - count
+                        - type
+                        type: object
+                      type: array
+                    id:
+                      description: ID is the unique ID that identifies the cluster.
+                      type: string
+                    lastDiscoveryTime:
+                      description: |-
+                        LastDiscoveryTime is a metav1.Time object that indicates when the cluster was last discovered.
+                        This field is optional and can be omitted if the discovery time is not known.
+                      format: date-time
+                      type: string
+                  required:
+                  - id
+                  type: object
+                type: array
+              message:
+                type: string
+              reason:
+                type: string
+              state:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,199 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    app.kubernetes.io/name: airlock-microgateway-operator
+    app.kubernetes.io/version: 4.8.0-alpha1
+  name: openapis.microgateway.airlock.com
+spec:
+  group: microgateway.airlock.com
+  names:
+    categories:
+    - airlock-microgateway
+    kind: OpenAPI
+    listKind: OpenAPIList
+    plural: openapis
+    singular: openapi
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: OpenAPI defines a policy for enforcing an OpenAPI schema.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired OpenAPI schema enforcement configuration.
+            properties:
+              response:
+                description: response defines the validation behavior for responses.
+                properties:
+                  secured:
+                    description: secured enables response checking.
+                    properties:
+                      validation:
+                        default: Lax
+                        description: validation defines the validation mode for responses.
+                        enum:
+                        - Lax
+                        - Strict
+                        type: string
+                    type: object
+                  unsecured:
+                    description: unsecured disables response checking.
+                    type: object
+                type: object
+              settings:
+                description: settings defines the settings to configure OpenAPI specification
+                  enforcement.
+                properties:
+                  logging:
+                    description: logging specifies the access log behavior.
+                    properties:
+                      maxFailedSubvalidations:
+                        default: 10
+                        description: maxFailedSubvalidations defines the maximum number
+                          of failed subvalidations being logged.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                    type: object
+                  schema:
+                    description: schema configures the OpenAPI specification.
+                    properties:
+                      source:
+                        description: source specifies the OpenAPI v3.0 specification
+                          to be enforced.
+                        properties:
+                          configMapRef:
+                            description: |-
+                              configMapRef references the configmap by its name containing the well-known key `openapi.json`. Use the `data` field for plaintext or the `binaryData` for compressed data. Supported compression formats are zstd, gzip or zip.
+                              Note: If the provided OpenAPI schema is invalid (e.g., due to syntax errors), the Airlock Microgateway Engine will log an error, OpenAPI validation will always fail, and requests will be blocked.
+                            properties:
+                              name:
+                                description: name of the resource
+                                maxLength: 253
+                                minLength: 1
+                                type: string
+                            required:
+                            - name
+                            type: object
+                        type: object
+                    required:
+                    - source
+                    type: object
+                  threatHandlingMode:
+                    default: Block
+                    description: threatHandlingMode specifies how threats should be
+                      handled.
+                    enum:
+                    - Block
+                    - LogOnly
+                    type: string
+                  validation:
+                    description: validation specifies the patterns for the validation
+                      behavior.
+                    properties:
+                      authentication:
+                        description: authentication defines the settings for the authentication
+                          scheme.
+                        properties:
+                          oAuth2:
+                            description: oAuth2 specifies the OAuth2 parameters.
+                            properties:
+                              allowedParameters:
+                                description: allowedParameters specifies the allowed
+                                  parameters for the authentication scheme.
+                                properties:
+                                  builtIn:
+                                    description: builtIn allows configuring a set
+                                      of predefined allowed parameters.
+                                    properties:
+                                      standardParameters:
+                                        default: true
+                                        description: standardParameters defines whether
+                                          the allowed parameters should be expanded
+                                          by the set of common parameters.
+                                        type: boolean
+                                    type: object
+                                  custom:
+                                    description: custom allows configuring additional
+                                      allowed parameters.
+                                    items:
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                    maxItems: 2048
+                                    minItems: 1
+                                    type: array
+                                    x-kubernetes-list-type: set
+                                type: object
+                            type: object
+                          oidc:
+                            description: oidc specifies the OIDC parameters.
+                            properties:
+                              allowedParameters:
+                                description: allowedParameters specifies the allowed
+                                  parameters for the authentication scheme.
+                                properties:
+                                  builtIn:
+                                    description: builtIn allows configuring a set
+                                      of predefined allowed parameters.
+                                    properties:
+                                      standardParameters:
+                                        default: true
+                                        description: standardParameters defines whether
+                                          the allowed parameters should be expanded
+                                          by the set of common parameters.
+                                        type: boolean
+                                    type: object
+                                  custom:
+                                    description: custom allows configuring additional
+                                      allowed parameters.
+                                    items:
+                                      maxLength: 256
+                                      minLength: 1
+                                      type: string
+                                    maxItems: 2048
+                                    minItems: 1
+                                    type: array
+                                    x-kubernetes-list-type: set
+                                type: object
+                            type: object
+                        type: object
+                    type: object
+                required:
+                - schema
+                type: object
+            required:
+            - settings
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

@@ -1,0 +1,692 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations: {}
+  name: sparkconnectservers.spark.stackable.tech
+spec:
+  group: spark.stackable.tech
+  names:
+    categories: []
+    kind: SparkConnectServer
+    plural: sparkconnectservers
+    shortNames:
+    - sparkconnect
+    singular: sparkconnectserver
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns: []
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for SparkConnectServerSpec via `CustomResource`
+        properties:
+          spec:
+            description: An Apache Spark Connect server component. This resource is
+              managed by the Stackable operator for Apache Spark. Find more information
+              on how to use it in the [operator documentation](https://docs.stackable.tech/home/25.7/spark-k8s/usage-guide/connect-server).
+            properties:
+              args:
+                default: []
+                description: User provided command line arguments appended to the
+                  server entry point.
+                items:
+                  type: string
+                type: array
+              clusterOperation:
+                default:
+                  reconciliationPaused: false
+                  stopped: false
+                description: '[Cluster operations](https://docs.stackable.tech/home/25.7/concepts/operations/cluster_operations)
+                  properties, allow stopping the product instance as well as pausing
+                  reconciliation.'
+                properties:
+                  reconciliationPaused:
+                    default: false
+                    description: Flag to stop cluster reconciliation by the operator.
+                      This means that all changes in the custom resource spec are
+                      ignored until this flag is set to false or removed. The operator
+                      will however still watch the deployed resources at the time
+                      and update the custom resource status field. If applied at the
+                      same time with `stopped`, `reconciliationPaused` will take precedence
+                      over `stopped` and stop the reconciliation immediately.
+                    type: boolean
+                  stopped:
+                    default: false
+                    description: Flag to stop the cluster. This means all deployed
+                      resources (e.g. Services, StatefulSets, ConfigMaps) are kept
+                      but all deployed Pods (e.g. replicas from a StatefulSet) are
+                      scaled to 0 and therefore stopped and removed. If applied at
+                      the same time with `reconciliationPaused`, the latter will pause
+                      reconciliation and `stopped` will take no effect until `reconciliationPaused`
+                      is set to false or removed.
+                    type: boolean
+                type: object
+              executor:
+                description: Spark Connect executor properties.
+                nullable: true
+                properties:
+                  cliOverrides:
+                    additionalProperties:
+                      type: string
+                    default: {}
+                    type: object
+                  config:
+                    default: {}
+                    properties:
+                      affinity:
+                        default:
+                          nodeAffinity: null
+                          nodeSelector: null
+                          podAffinity: null
+                          podAntiAffinity: null
+                        description: These configuration settings control [Pod placement](https://docs.stackable.tech/home/25.7/concepts/operations/pod_placement).
+                        properties:
+                          nodeAffinity:
+                            description: Same as the `spec.affinity.nodeAffinity`
+                              field on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                            nullable: true
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          nodeSelector:
+                            additionalProperties:
+                              type: string
+                            description: Simple key-value pairs forming a nodeSelector,
+                              see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                            nullable: true
+                            type: object
+                          podAffinity:
+                            description: Same as the `spec.affinity.podAffinity` field
+                              on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                            nullable: true
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          podAntiAffinity:
+                            description: Same as the `spec.affinity.podAntiAffinity`
+                              field on the Pod, see the [Kubernetes docs](https://kubernetes.io/docs/concepts/scheduling-eviction/assign-pod-node)
+                            nullable: true
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                        type: object
+                      logging:
+                        default:
+                          containers: {}
+                          enableVectorAgent: null
+                        description: Logging configuration, learn more in the [logging
+                          concept documentation](https://docs.stackable.tech/home/25.7/concepts/logging).
+                        properties:
+                          containers:
+                            additionalProperties:
+                              anyOf:
+                              - required:
+                                - custom
+                              - {}
+                              description: Log configuration of the container
+                              properties:
+                                console:
+                                  description: Configuration for the console appender
+                                  nullable: true
+                                  properties:
+                                    level:
+                                      description: The log level threshold. Log events
+                                        with a lower log level are discarded.
+                                      enum:
+                                      - TRACE
+                                      - DEBUG
+                                      - INFO
+                                      - WARN
+                                      - ERROR
+                                      - FATAL
+                                      - NONE
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                custom:
+                                  description: Custom log configuration provided in
+                                    a ConfigMap
+                                  properties:
+                                    configMap:
+                                      description: ConfigMap containing the log configuration
+                                        files
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                file:
+                                  description: Configuration for the file appender
+                                  nullable: true
+                                  properties:
+                                    level:
+                                      description: The log level threshold. Log events
+                                        with a lower log level are discarded.
+                                      enum:
+                                      - TRACE
+                                      - DEBUG
+                                      - INFO
+                                      - WARN
+                                      - ERROR
+                                      - FATAL
+                                      - NONE
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                loggers:
+                                  additionalProperties:
+                                    description: Configuration of a logger
+                                    properties:
+                                      level:
+                                        description: The log level threshold. Log
+                                          events with a lower log level are discarded.
+                                        enum:
+                                        - TRACE
+                                        - DEBUG
+                                        - INFO
+                                        - WARN
+                                        - ERROR
+                                        - FATAL
+                                        - NONE
+                                        nullable: true
+                                        type: string
+                                    type: object
+                                  default: {}
+                                  description: Configuration per logger
+                                  type: object
+                              type: object
+                            description: Log configuration per container.
+                            type: object
+                          enableVectorAgent:
+                            description: Wether or not to deploy a container with
+                              the Vector log agent.
+                            nullable: true
+                            type: boolean
+                        type: object
+                      requestedSecretLifetime:
+                        description: Request secret (currently only autoTls certificates)
+                          lifetime from the secret operator, e.g. `7d`, or `30d`.
+                          This can be shortened by the `maxCertificateLifetime` setting
+                          on the SecretClass issuing the TLS certificate.
+                        nullable: true
+                        type: string
+                      resources:
+                        default:
+                          cpu:
+                            max: null
+                            min: null
+                          memory:
+                            limit: null
+                            runtimeLimits: {}
+                          storage: {}
+                        description: Resource usage is configured here, this includes
+                          CPU usage, memory usage and disk storage usage, if this
+                          role needs any.
+                        properties:
+                          cpu:
+                            default:
+                              max: null
+                              min: null
+                            properties:
+                              max:
+                                description: The maximum amount of CPU cores that
+                                  can be requested by Pods. Equivalent to the `limit`
+                                  for Pod resource configuration. Cores are specified
+                                  either as a decimal point number or as milli units.
+                                  For example:`1.5` will be 1.5 cores, also written
+                                  as `1500m`.
+                                nullable: true
+                                type: string
+                              min:
+                                description: The minimal amount of CPU cores that
+                                  Pods need to run. Equivalent to the `request` for
+                                  Pod resource configuration. Cores are specified
+                                  either as a decimal point number or as milli units.
+                                  For example:`1.5` will be 1.5 cores, also written
+                                  as `1500m`.
+                                nullable: true
+                                type: string
+                            type: object
+                          memory:
+                            properties:
+                              limit:
+                                description: 'The maximum amount of memory that should
+                                  be available to the Pod. Specified as a byte [Quantity](https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/),
+                                  which means these suffixes are supported: E, P,
+                                  T, G, M, k. You can also use the power-of-two equivalents:
+                                  Ei, Pi, Ti, Gi, Mi, Ki. For example, the following
+                                  represent roughly the same value: `128974848, 129e6,
+                                  129M,  128974848000m, 123Mi`'
+                                nullable: true
+                                type: string
+                              runtimeLimits:
+                                description: Additional options that can be specified.
+                                type: object
+                            type: object
+                          storage:
+                            type: object
+                        type: object
+                    type: object
+                  configOverrides:
+                    additionalProperties:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    default: {}
+                    description: The `configOverrides` can be used to configure properties
+                      in product config files that are not exposed in the CRD. Read
+                      the [config overrides documentation](https://docs.stackable.tech/home/25.7/concepts/overrides#config-overrides)
+                      and consult the operator specific usage guide documentation
+                      for details on the available config files and settings for the
+                      specific product.
+                    type: object
+                  envOverrides:
+                    additionalProperties:
+                      type: string
+                    default: {}
+                    description: '`envOverrides` configure environment variables to
+                      be set in the Pods. It is a map from strings to strings - environment
+                      variables and the value to set. Read the [environment variable
+                      overrides documentation](https://docs.stackable.tech/home/25.7/concepts/overrides#env-overrides)
+                      for more information and consult the operator specific usage
+                      guide to find out about the product specific environment variables
+                      that are available.'
+                    type: object
+                  jvmArgumentOverrides:
+                    default:
+                      add: []
+                      remove: []
+                      removeRegex: []
+                    description: Allows overriding JVM arguments. Please read on the
+                      [JVM argument overrides documentation](https://docs.stackable.tech/home/25.7/concepts/overrides#jvm-argument-overrides)
+                      for details on the usage.
+                    properties:
+                      add:
+                        default: []
+                        description: JVM arguments to be added
+                        items:
+                          type: string
+                        type: array
+                      remove:
+                        default: []
+                        description: JVM arguments to be removed by exact match
+                        items:
+                          type: string
+                        type: array
+                      removeRegex:
+                        default: []
+                        description: JVM arguments matching any of this regexes will
+                          be removed
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  podOverrides:
+                    default: {}
+                    description: In the `podOverrides` property you can define a [PodTemplateSpec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#podtemplatespec-v1-core)
+                      to override any property that can be set on a Kubernetes Pod.
+                      Read the [Pod overrides documentation](https://docs.stackable.tech/home/25.7/concepts/overrides#pod-overrides)
+                      for more information.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+              image:
+                anyOf:
+                - required:
+                  - custom
+                  - productVersion
+                - required:
+                  - productVersion
+                description: 'Specify which image to use, the easiest way is to only
+                  configure the `productVersion`. You can also configure a custom
+                  image registry to pull from, as well as completely custom images.
+
+
+                  Consult the [Product image selection documentation](https://docs.stackable.tech/home/25.7/concepts/product_image_selection)
+                  for details.'
+                properties:
+                  custom:
+                    description: Overwrite the docker image. Specify the full docker
+                      image name, e.g. `oci.stackable.tech/sdp/superset:1.4.1-stackable2.1.0`
+                    type: string
+                  productVersion:
+                    description: Version of the product, e.g. `1.4.1`.
+                    type: string
+                  pullPolicy:
+                    default: Always
+                    description: '[Pull policy](https://kubernetes.io/docs/concepts/containers/images/#image-pull-policy)
+                      used when pulling the image.'
+                    enum:
+                    - IfNotPresent
+                    - Always
+                    - Never
+                    type: string
+                  pullSecrets:
+                    description: '[Image pull secrets](https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod)
+                      to pull images from a private registry.'
+                    items:
+                      description: LocalObjectReference contains enough information
+                        to let you locate the referenced object inside the same namespace.
+                      properties:
+                        name:
+                          description: 'Name of the referent. This field is effectively
+                            required, but due to backwards compatibility is allowed
+                            to be empty. Instances of this type with an empty value
+                            here are almost certainly wrong. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    nullable: true
+                    type: array
+                  repo:
+                    description: Name of the docker repo, e.g. `oci.stackable.tech/sdp`
+                    nullable: true
+                    type: string
+                  stackableVersion:
+                    description: Stackable version of the product, e.g. `23.4`, `23.4.1`
+                      or `0.0.0-dev`. If not specified, the operator will use its
+                      own version, e.g. `23.4.1`. When using a nightly operator or
+                      a pr version, it will use the nightly `0.0.0-dev` image.
+                    nullable: true
+                    type: string
+                type: object
+              server:
+                default:
+                  roleConfig:
+                    listenerClass: cluster-internal
+                description: A Spark Connect server definition.
+                properties:
+                  cliOverrides:
+                    additionalProperties:
+                      type: string
+                    default: {}
+                    type: object
+                  config:
+                    default: {}
+                    properties:
+                      logging:
+                        default:
+                          containers: {}
+                          enableVectorAgent: null
+                        description: Logging configuration, learn more in the [logging
+                          concept documentation](https://docs.stackable.tech/home/25.7/concepts/logging).
+                        properties:
+                          containers:
+                            additionalProperties:
+                              anyOf:
+                              - required:
+                                - custom
+                              - {}
+                              description: Log configuration of the container
+                              properties:
+                                console:
+                                  description: Configuration for the console appender
+                                  nullable: true
+                                  properties:
+                                    level:
+                                      description: The log level threshold. Log events
+                                        with a lower log level are discarded.
+                                      enum:
+                                      - TRACE
+                                      - DEBUG
+                                      - INFO
+                                      - WARN
+                                      - ERROR
+                                      - FATAL
+                                      - NONE
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                custom:
+                                  description: Custom log configuration provided in
+                                    a ConfigMap
+                                  properties:
+                                    configMap:
+                                      description: ConfigMap containing the log configuration
+                                        files
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                file:
+                                  description: Configuration for the file appender
+                                  nullable: true
+                                  properties:
+                                    level:
+                                      description: The log level threshold. Log events
+                                        with a lower log level are discarded.
+                                      enum:
+                                      - TRACE
+                                      - DEBUG
+                                      - INFO
+                                      - WARN
+                                      - ERROR
+                                      - FATAL
+                                      - NONE
+                                      nullable: true
+                                      type: string
+                                  type: object
+                                loggers:
+                                  additionalProperties:
+                                    description: Configuration of a logger
+                                    properties:
+                                      level:
+                                        description: The log level threshold. Log
+                                          events with a lower log level are discarded.
+                                        enum:
+                                        - TRACE
+                                        - DEBUG
+                                        - INFO
+                                        - WARN
+                                        - ERROR
+                                        - FATAL
+                                        - NONE
+                                        nullable: true
+                                        type: string
+                                    type: object
+                                  default: {}
+                                  description: Configuration per logger
+                                  type: object
+                              type: object
+                            description: Log configuration per container.
+                            type: object
+                          enableVectorAgent:
+                            description: Wether or not to deploy a container with
+                              the Vector log agent.
+                            nullable: true
+                            type: boolean
+                        type: object
+                      requestedSecretLifetime:
+                        description: Request secret (currently only autoTls certificates)
+                          lifetime from the secret operator, e.g. `7d`, or `30d`.
+                          This can be shortened by the `maxCertificateLifetime` setting
+                          on the SecretClass issuing the TLS certificate.
+                        nullable: true
+                        type: string
+                      resources:
+                        default:
+                          cpu:
+                            max: null
+                            min: null
+                          memory:
+                            limit: null
+                            runtimeLimits: {}
+                          storage: {}
+                        description: Resource usage is configured here, this includes
+                          CPU usage, memory usage and disk storage usage, if this
+                          role needs any.
+                        properties:
+                          cpu:
+                            default:
+                              max: null
+                              min: null
+                            properties:
+                              max:
+                                description: The maximum amount of CPU cores that
+                                  can be requested by Pods. Equivalent to the `limit`
+                                  for Pod resource configuration. Cores are specified
+                                  either as a decimal point number or as milli units.
+                                  For example:`1.5` will be 1.5 cores, also written
+                                  as `1500m`.
+                                nullable: true
+                                type: string
+                              min:
+                                description: The minimal amount of CPU cores that
+                                  Pods need to run. Equivalent to the `request` for
+                                  Pod resource configuration. Cores are specified
+                                  either as a decimal point number or as milli units.
+                                  For example:`1.5` will be 1.5 cores, also written
+                                  as `1500m`.
+                                nullable: true
+                                type: string
+                            type: object
+                          memory:
+                            properties:
+                              limit:
+                                description: 'The maximum amount of memory that should
+                                  be available to the Pod. Specified as a byte [Quantity](https://kubernetes.io/docs/reference/kubernetes-api/common-definitions/quantity/),
+                                  which means these suffixes are supported: E, P,
+                                  T, G, M, k. You can also use the power-of-two equivalents:
+                                  Ei, Pi, Ti, Gi, Mi, Ki. For example, the following
+                                  represent roughly the same value: `128974848, 129e6,
+                                  129M,  128974848000m, 123Mi`'
+                                nullable: true
+                                type: string
+                              runtimeLimits:
+                                description: Additional options that can be specified.
+                                type: object
+                            type: object
+                          storage:
+                            type: object
+                        type: object
+                    type: object
+                  configOverrides:
+                    additionalProperties:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    default: {}
+                    description: The `configOverrides` can be used to configure properties
+                      in product config files that are not exposed in the CRD. Read
+                      the [config overrides documentation](https://docs.stackable.tech/home/25.7/concepts/overrides#config-overrides)
+                      and consult the operator specific usage guide documentation
+                      for details on the available config files and settings for the
+                      specific product.
+                    type: object
+                  envOverrides:
+                    additionalProperties:
+                      type: string
+                    default: {}
+                    description: '`envOverrides` configure environment variables to
+                      be set in the Pods. It is a map from strings to strings - environment
+                      variables and the value to set. Read the [environment variable
+                      overrides documentation](https://docs.stackable.tech/home/25.7/concepts/overrides#env-overrides)
+                      for more information and consult the operator specific usage
+                      guide to find out about the product specific environment variables
+                      that are available.'
+                    type: object
+                  jvmArgumentOverrides:
+                    default:
+                      add: []
+                      remove: []
+                      removeRegex: []
+                    description: Allows overriding JVM arguments. Please read on the
+                      [JVM argument overrides documentation](https://docs.stackable.tech/home/25.7/concepts/overrides#jvm-argument-overrides)
+                      for details on the usage.
+                    properties:
+                      add:
+                        default: []
+                        description: JVM arguments to be added
+                        items:
+                          type: string
+                        type: array
+                      remove:
+                        default: []
+                        description: JVM arguments to be removed by exact match
+                        items:
+                          type: string
+                        type: array
+                      removeRegex:
+                        default: []
+                        description: JVM arguments matching any of this regexes will
+                          be removed
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  podOverrides:
+                    default: {}
+                    description: In the `podOverrides` property you can define a [PodTemplateSpec](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#podtemplatespec-v1-core)
+                      to override any property that can be set on a Kubernetes Pod.
+                      Read the [Pod overrides documentation](https://docs.stackable.tech/home/25.7/concepts/overrides#pod-overrides)
+                      for more information.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  roleConfig:
+                    default:
+                      listenerClass: cluster-internal
+                    description: Global role config settings for the Spark Connect
+                      Server.
+                    properties:
+                      listenerClass:
+                        default: cluster-internal
+                        description: This field controls which [ListenerClass](https://docs.stackable.tech/home/25.7/listener-operator/listenerclass.html)
+                          is used to expose the Spark Connect services.
+                        type: string
+                    type: object
+                type: object
+              vectorAggregatorConfigMapName:
+                description: Name of the Vector aggregator discovery ConfigMap. It
+                  must contain the key `ADDRESS` with the address of the Vector aggregator.
+                nullable: true
+                type: string
+            required:
+            - image
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      nullable: true
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition.
+                      nullable: true
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition.
+                      nullable: true
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      enum:
+                      - 'True'
+                      - 'False'
+                      - Unknown
+                      type: string
+                    type:
+                      description: Type of deployment condition.
+                      enum:
+                      - Available
+                      - Degraded
+                      - Progressing
+                      - ReconciliationPaused
+                      - Stopped
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        title: SparkConnectServer
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

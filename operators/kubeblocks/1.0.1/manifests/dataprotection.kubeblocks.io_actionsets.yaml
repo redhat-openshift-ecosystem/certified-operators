@@ -1,0 +1,634 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: kubeblocks
+  name: actionsets.dataprotection.kubeblocks.io
+spec:
+  group: dataprotection.kubeblocks.io
+  names:
+    categories:
+    - kubeblocks
+    kind: ActionSet
+    listKind: ActionSetList
+    plural: actionsets
+    shortNames:
+    - as
+    singular: actionset
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.backupType
+      name: BACKUP-TYPE
+      type: string
+    - jsonPath: .status.phase
+      name: STATUS
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ActionSet is the Schema for the actionsets API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ActionSetSpec defines the desired state of ActionSet
+            properties:
+              backup:
+                description: Specifies the backup action.
+                properties:
+                  backupData:
+                    description: Represents the action to be performed for backing
+                      up data.
+                    properties:
+                      command:
+                        description: Defines the commands to back up the volume data.
+                        items:
+                          type: string
+                        type: array
+                      image:
+                        description: Specifies the image of the backup container.
+                        type: string
+                      onError:
+                        default: Fail
+                        description: Indicates how to behave if an error is encountered
+                          during the execution of this action.
+                        enum:
+                        - Continue
+                        - Fail
+                        type: string
+                      runOnTargetPodNode:
+                        default: false
+                        description: |-
+                          Determines whether to run the job workload on the target pod node.
+                          If the backup container needs to mount the target pod's volumes, this field
+                          should be set to true. Otherwise, the target pod's volumes will be ignored.
+                        type: boolean
+                      syncProgress:
+                        description: |-
+                          Determines if the backup progress should be synchronized and the interval
+                          for synchronization in seconds.
+                        properties:
+                          enabled:
+                            description: |-
+                              Determines if the backup progress should be synchronized. If set to true,
+                              a sidecar container will be instantiated to synchronize the backup progress with the
+                              Backup Custom Resource (CR) status.
+                            type: boolean
+                          intervalSeconds:
+                            default: 60
+                            description: Defines the interval in seconds for synchronizing
+                              the backup progress.
+                            format: int32
+                            type: integer
+                        type: object
+                    required:
+                    - command
+                    - image
+                    type: object
+                  postBackup:
+                    description: Represents a set of actions that should be executed
+                      after the backup process has completed.
+                    items:
+                      description: ActionSpec defines an action that should be executed.
+                        Only one of the fields may be set.
+                      properties:
+                        exec:
+                          description: Specifies that the action should be executed
+                            using the pod's exec API within a container.
+                          properties:
+                            command:
+                              description: Defines the command and arguments to be
+                                executed.
+                              items:
+                                type: string
+                              minItems: 1
+                              type: array
+                            container:
+                              description: |-
+                                Specifies the container within the pod where the command should be executed.
+                                If not specified, the first container in the pod is used by default.
+                              type: string
+                            onError:
+                              default: Fail
+                              description: Indicates how to behave if an error is
+                                encountered during the execution of this action.
+                              enum:
+                              - Continue
+                              - Fail
+                              type: string
+                            timeout:
+                              description: |-
+                                Specifies the maximum duration to wait for the hook to complete before
+                                considering the execution a failure.
+                              type: string
+                          required:
+                          - command
+                          type: object
+                        job:
+                          description: Specifies that the action should be executed
+                            by a Kubernetes Job.
+                          properties:
+                            command:
+                              description: Defines the commands to back up the volume
+                                data.
+                              items:
+                                type: string
+                              type: array
+                            image:
+                              description: Specifies the image of the backup container.
+                              type: string
+                            onError:
+                              default: Fail
+                              description: Indicates how to behave if an error is
+                                encountered during the execution of this action.
+                              enum:
+                              - Continue
+                              - Fail
+                              type: string
+                            runOnTargetPodNode:
+                              default: false
+                              description: |-
+                                Determines whether to run the job workload on the target pod node.
+                                If the backup container needs to mount the target pod's volumes, this field
+                                should be set to true. Otherwise, the target pod's volumes will be ignored.
+                              type: boolean
+                          required:
+                          - command
+                          - image
+                          type: object
+                      type: object
+                    type: array
+                  preBackup:
+                    description: Represents a set of actions that should be executed
+                      before the backup process begins.
+                    items:
+                      description: ActionSpec defines an action that should be executed.
+                        Only one of the fields may be set.
+                      properties:
+                        exec:
+                          description: Specifies that the action should be executed
+                            using the pod's exec API within a container.
+                          properties:
+                            command:
+                              description: Defines the command and arguments to be
+                                executed.
+                              items:
+                                type: string
+                              minItems: 1
+                              type: array
+                            container:
+                              description: |-
+                                Specifies the container within the pod where the command should be executed.
+                                If not specified, the first container in the pod is used by default.
+                              type: string
+                            onError:
+                              default: Fail
+                              description: Indicates how to behave if an error is
+                                encountered during the execution of this action.
+                              enum:
+                              - Continue
+                              - Fail
+                              type: string
+                            timeout:
+                              description: |-
+                                Specifies the maximum duration to wait for the hook to complete before
+                                considering the execution a failure.
+                              type: string
+                          required:
+                          - command
+                          type: object
+                        job:
+                          description: Specifies that the action should be executed
+                            by a Kubernetes Job.
+                          properties:
+                            command:
+                              description: Defines the commands to back up the volume
+                                data.
+                              items:
+                                type: string
+                              type: array
+                            image:
+                              description: Specifies the image of the backup container.
+                              type: string
+                            onError:
+                              default: Fail
+                              description: Indicates how to behave if an error is
+                                encountered during the execution of this action.
+                              enum:
+                              - Continue
+                              - Fail
+                              type: string
+                            runOnTargetPodNode:
+                              default: false
+                              description: |-
+                                Determines whether to run the job workload on the target pod node.
+                                If the backup container needs to mount the target pod's volumes, this field
+                                should be set to true. Otherwise, the target pod's volumes will be ignored.
+                              type: boolean
+                          required:
+                          - command
+                          - image
+                          type: object
+                      type: object
+                    type: array
+                  preDelete:
+                    description: |-
+                      Represents a custom deletion action that can be executed before the built-in deletion action.
+                      Note: The preDelete action job will ignore the env/envFrom.
+                    properties:
+                      command:
+                        description: Defines the commands to back up the volume data.
+                        items:
+                          type: string
+                        type: array
+                      image:
+                        description: Specifies the image of the backup container.
+                        type: string
+                    required:
+                    - command
+                    - image
+                    type: object
+                  withParameters:
+                    description: Specifies the parameters used by the backup action
+                    items:
+                      type: string
+                    type: array
+                type: object
+              backupType:
+                allOf:
+                - enum:
+                  - Full
+                  - Incremental
+                  - Differential
+                  - Continuous
+                  - Selective
+                - enum:
+                  - Full
+                  - Incremental
+                  - Differential
+                  - Continuous
+                  - Selective
+                default: Full
+                description: |-
+                  Specifies the backup type. Supported values include:
+
+
+                  - `Full` for a full backup.
+                  - `Incremental` back up data that have changed since the last backup (either full or incremental).
+                  - `Differential` back up data that has changed since the last full backup.
+                  - `Continuous` back up transaction logs continuously, such as MySQL binlog, PostgreSQL WAL, etc.
+                  - `Selective` back up data more precisely, use custom parameters, such as specific databases or tables.
+
+
+                  Continuous backup is essential for implementing Point-in-Time Recovery (PITR).
+                type: string
+              env:
+                description: Specifies a list of environment variables to be set in
+                  the container.
+                items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
+                  properties:
+                    name:
+                      description: Name of the environment variable. Must be a C_IDENTIFIER.
+                      type: string
+                    value:
+                      description: |-
+                        Variable references $(VAR_NAME) are expanded
+                        using the previously defined environment variables in the container and
+                        any service environment variables. If a variable cannot be resolved,
+                        the reference in the input string will be unchanged. Double $$ are reduced
+                        to a single $, which allows for escaping the $(VAR_NAME) syntax: i.e.
+                        "$$(VAR_NAME)" will produce the string literal "$(VAR_NAME)".
+                        Escaped references will never be expanded, regardless of whether the variable
+                        exists or not.
+                        Defaults to "".
+                      type: string
+                    valueFrom:
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
+                      properties:
+                        configMapKeyRef:
+                          description: Selects a key of a ConfigMap.
+                          properties:
+                            key:
+                              description: The key to select.
+                              type: string
+                            name:
+                              description: |-
+                                Name of the referent.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?
+                              type: string
+                            optional:
+                              description: Specify whether the ConfigMap or its key
+                                must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        fieldRef:
+                          description: |-
+                            Selects a field of the pod: supports metadata.name, metadata.namespace, `metadata.labels['<KEY>']`, `metadata.annotations['<KEY>']`,
+                            spec.nodeName, spec.serviceAccountName, status.hostIP, status.podIP, status.podIPs.
+                          properties:
+                            apiVersion:
+                              description: Version of the schema the FieldPath is
+                                written in terms of, defaults to "v1".
+                              type: string
+                            fieldPath:
+                              description: Path of the field to select in the specified
+                                API version.
+                              type: string
+                          required:
+                          - fieldPath
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        resourceFieldRef:
+                          description: |-
+                            Selects a resource of the container: only resources limits and requests
+                            (limits.cpu, limits.memory, limits.ephemeral-storage, requests.cpu, requests.memory and requests.ephemeral-storage) are currently supported.
+                          properties:
+                            containerName:
+                              description: 'Container name: required for volumes,
+                                optional for env vars'
+                              type: string
+                            divisor:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Specifies the output format of the exposed
+                                resources, defaults to "1"
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            resource:
+                              description: 'Required: resource to select'
+                              type: string
+                          required:
+                          - resource
+                          type: object
+                          x-kubernetes-map-type: atomic
+                        secretKeyRef:
+                          description: Selects a key of a secret in the pod's namespace
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              description: |-
+                                Name of the referent.
+                                More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                          x-kubernetes-map-type: atomic
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-preserve-unknown-fields: true
+              envFrom:
+                description: |-
+                  Specifies a list of sources to populate environment variables in the container.
+                  The keys within a source must be a C_IDENTIFIER. Any invalid keys will be
+                  reported as an event when the container starts. If a key exists in multiple
+                  sources, the value from the last source will take precedence. Any values
+                  defined by an Env with a duplicate key will take precedence.
+
+
+                  This field cannot be updated.
+                items:
+                  description: EnvFromSource represents the source of a set of ConfigMaps
+                  properties:
+                    configMapRef:
+                      description: The ConfigMap to select from
+                      properties:
+                        name:
+                          description: |-
+                            Name of the referent.
+                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            TODO: Add other useful fields. apiVersion, kind, uid?
+                          type: string
+                        optional:
+                          description: Specify whether the ConfigMap must be defined
+                          type: boolean
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    prefix:
+                      description: An optional identifier to prepend to each key in
+                        the ConfigMap. Must be a C_IDENTIFIER.
+                      type: string
+                    secretRef:
+                      description: The Secret to select from
+                      properties:
+                        name:
+                          description: |-
+                            Name of the referent.
+                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            TODO: Add other useful fields. apiVersion, kind, uid?
+                          type: string
+                        optional:
+                          description: Specify whether the Secret must be defined
+                          type: boolean
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  type: object
+                type: array
+                x-kubernetes-preserve-unknown-fields: true
+              parametersSchema:
+                description: Specifies the schema of parameters in backups and restores
+                  before their usage.
+                properties:
+                  openAPIV3Schema:
+                    description: |-
+                      Defines the schema for parameters using the OpenAPI v3.
+                      The supported property types include:
+                      - string
+                      - number
+                      - integer
+                      - array: Note that only items of string type are supported.
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+              restore:
+                description: Specifies the restore action.
+                properties:
+                  baseBackupRequired:
+                    default: true
+                    description: Determines if a base backup is required during restoration.
+                    type: boolean
+                  postReady:
+                    description: Specifies the actions that should be executed after
+                      the data has been prepared and is ready for restoration.
+                    items:
+                      description: ActionSpec defines an action that should be executed.
+                        Only one of the fields may be set.
+                      properties:
+                        exec:
+                          description: Specifies that the action should be executed
+                            using the pod's exec API within a container.
+                          properties:
+                            command:
+                              description: Defines the command and arguments to be
+                                executed.
+                              items:
+                                type: string
+                              minItems: 1
+                              type: array
+                            container:
+                              description: |-
+                                Specifies the container within the pod where the command should be executed.
+                                If not specified, the first container in the pod is used by default.
+                              type: string
+                            onError:
+                              default: Fail
+                              description: Indicates how to behave if an error is
+                                encountered during the execution of this action.
+                              enum:
+                              - Continue
+                              - Fail
+                              type: string
+                            timeout:
+                              description: |-
+                                Specifies the maximum duration to wait for the hook to complete before
+                                considering the execution a failure.
+                              type: string
+                          required:
+                          - command
+                          type: object
+                        job:
+                          description: Specifies that the action should be executed
+                            by a Kubernetes Job.
+                          properties:
+                            command:
+                              description: Defines the commands to back up the volume
+                                data.
+                              items:
+                                type: string
+                              type: array
+                            image:
+                              description: Specifies the image of the backup container.
+                              type: string
+                            onError:
+                              default: Fail
+                              description: Indicates how to behave if an error is
+                                encountered during the execution of this action.
+                              enum:
+                              - Continue
+                              - Fail
+                              type: string
+                            runOnTargetPodNode:
+                              default: false
+                              description: |-
+                                Determines whether to run the job workload on the target pod node.
+                                If the backup container needs to mount the target pod's volumes, this field
+                                should be set to true. Otherwise, the target pod's volumes will be ignored.
+                              type: boolean
+                          required:
+                          - command
+                          - image
+                          type: object
+                      type: object
+                    type: array
+                  prepareData:
+                    description: Specifies the action required to prepare data for
+                      restoration.
+                    properties:
+                      command:
+                        description: Defines the commands to back up the volume data.
+                        items:
+                          type: string
+                        type: array
+                      image:
+                        description: Specifies the image of the backup container.
+                        type: string
+                      onError:
+                        default: Fail
+                        description: Indicates how to behave if an error is encountered
+                          during the execution of this action.
+                        enum:
+                        - Continue
+                        - Fail
+                        type: string
+                      runOnTargetPodNode:
+                        default: false
+                        description: |-
+                          Determines whether to run the job workload on the target pod node.
+                          If the backup container needs to mount the target pod's volumes, this field
+                          should be set to true. Otherwise, the target pod's volumes will be ignored.
+                        type: boolean
+                    required:
+                    - command
+                    - image
+                    type: object
+                  withParameters:
+                    description: Specifies the parameters used by the restore action
+                    items:
+                      type: string
+                    type: array
+                type: object
+            required:
+            - backupType
+            type: object
+          status:
+            description: ActionSetStatus defines the observed state of ActionSet
+            properties:
+              message:
+                description: Provides a human-readable explanation detailing the reason
+                  for the current phase of the ActionSet.
+                type: string
+              observedGeneration:
+                description: Represents the generation number that has been observed
+                  by the controller.
+                format: int64
+                type: integer
+              phase:
+                description: Indicates the phase of the ActionSet. This can be either
+                  'Available' or 'Unavailable'.
+                enum:
+                - Available
+                - Unavailable
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

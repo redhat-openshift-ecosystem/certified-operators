@@ -1,0 +1,149 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: axis-swgi-operator.v0.1.0
+  namespace: placeholder
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "swgi.io/v1alpha1",
+          "kind": "SwgiDeployment",
+          "metadata": {
+            "name": "axis-swgi-api"
+          },
+          "spec": {
+            "image": "quay.io/axis919/swgi-core@sha256:3424029ec66f356d85d349c37b49fda137c4911d3b9490f630c9b30e83eef75c",
+            "replicas": 1,
+            "port": 8080
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Security,Developer Tools
+    certified: "false"
+    containerImage: quay.io/axis919/swgi-operator@sha256:77c36d4e55bffa70921e5e3d5321e9198c588c2891fbb460d1482f78d4ebd251
+    createdAt: "2026-03-18T00:00:00Z"
+    description: SWGI operator bundle for Red Hat Connect certification testing.
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
+    operators.operatorframework.io/builder: operator-sdk-v1.38.0
+    repository: https://github.com/AxisTradeMarket/axis-swgi-operator
+    support: SWGI
+spec:
+  displayName: SWGI Operator
+  icon:
+    - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjggMTI4IiByb2xlPSJpbWciIGFyaWEtbGFiZWw9IlNXR0kiPgogIDxyZWN0IHdpZHRoPSIxMjgiIGhlaWdodD0iMTI4IiByeD0iMjAiIGZpbGw9IiMwZjE3MmEiLz4KICA8cmVjdCB4PSIxMCIgeT0iMTAiIHdpZHRoPSIxMDgiIGhlaWdodD0iMTA4IiByeD0iMTYiIGZpbGw9IiMxZDRlZDgiLz4KICA8cGF0aCBkPSJNMzMgNDJoNjJ2MTJINTN2MTBoMzRjNy43IDAgMTQgNi4zIDE0IDE0cy02LjMgMTQtMTQgMTRIMzNWODBoNTRhMiAyIDAgMCAwIDAtNEg1M2MtMTEgMC0yMC05LTIwLTIwczktMjAgMjAtMjB6IiBmaWxsPSIjZmZmIi8+CiAgPHRleHQgeD0iNjQiIHk9IjExMiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9IkFyaWFsLCBIZWx2ZXRpY2EsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTYiIGZvbnQtd2VpZ2h0PSI3MDAiIGZpbGw9IiNkYmVhZmUiPlNXR0k8L3RleHQ+Cjwvc3ZnPgo=
+      mediatype: image/svg+xml
+  description: |
+    SWGI Operator manages lifecycle, scaling, and configuration for the SWGI
+    OpenShift operand. The execution path remains in the SWGI API image while
+    the operator owns deployment plumbing through the SwgiDeployment CRD.
+  version: 0.1.0
+  maturity: alpha
+  provider:
+    name: SWGI
+  maintainers:
+    - name: SWGI
+      email: support@example.com
+  links:
+    - name: Source Code
+      url: https://github.com/AxisTradeMarket/axis-swgi-operator
+  keywords:
+    - swgi
+    - openshift
+    - operator
+  minKubeVersion: 1.27.0
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: false
+    - type: AllNamespaces
+      supported: false
+  cleanup:
+    enabled: false
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+        - serviceAccountName: axis-swgi-operator
+          rules:
+            - apiGroups: ["swgi.io"]
+              resources: ["swgideployments", "swgideployments/status", "swgideployments/finalizers"]
+              verbs: ["get", "list", "watch", "create", "update", "patch"]
+            - apiGroups: [""]
+              resources: ["configmaps", "secrets", "services", "events"]
+              verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+            - apiGroups: ["apps"]
+              resources: ["deployments"]
+              verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+      permissions:
+        - serviceAccountName: axis-swgi-operator
+          rules:
+            - apiGroups: [""]
+              resources: ["pods"]
+              verbs: ["get", "list", "watch"]
+      deployments:
+        - name: axis-swgi-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: axis-swgi-operator
+            template:
+              metadata:
+                labels:
+                  app: axis-swgi-operator
+              spec:
+                serviceAccountName: axis-swgi-operator
+                securityContext:
+                  runAsNonRoot: true
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: axis-swgi-operator
+                    image: quay.io/axis919/swgi-operator@sha256:77c36d4e55bffa70921e5e3d5321e9198c588c2891fbb460d1482f78d4ebd251
+                    imagePullPolicy: IfNotPresent
+                    env:
+                      - name: RELATED_IMAGE_AXIS_SWGI_OPERATOR
+                        value: quay.io/axis919/swgi-operator@sha256:77c36d4e55bffa70921e5e3d5321e9198c588c2891fbb460d1482f78d4ebd251
+                      - name: RELATED_IMAGE_AXIS_SWGI_API
+                        value: quay.io/axis919/swgi-core@sha256:3424029ec66f356d85d349c37b49fda137c4911d3b9490f630c9b30e83eef75c
+                    command:
+                      - kopf
+                    args:
+                      - run
+                      - /opt/app-root/src/axis-swgi-operator/controller/main.py
+                    resources:
+                      requests:
+                        cpu: 100m
+                        memory: 128Mi
+                      limits:
+                        cpu: 500m
+                        memory: 512Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop: ["ALL"]
+                      runAsNonRoot: true
+  customresourcedefinitions:
+    owned:
+      - name: swgideployments.swgi.io
+        version: v1alpha1
+        kind: SwgiDeployment
+        displayName: SWGI Deployment
+        description: Declares the desired SWGI operand deployment and runtime configuration.
+  relatedImages:
+    - name: axis-swgi-operator
+      image: quay.io/axis919/swgi-operator@sha256:77c36d4e55bffa70921e5e3d5321e9198c588c2891fbb460d1482f78d4ebd251
+    - name: axis-swgi-api
+      image: quay.io/axis919/swgi-core@sha256:3424029ec66f356d85d349c37b49fda137c4911d3b9490f630c9b30e83eef75c

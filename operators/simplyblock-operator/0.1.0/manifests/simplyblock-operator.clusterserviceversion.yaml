@@ -6,6 +6,38 @@ metadata:
       [
         {
           "apiVersion": "storage.simplyblock.io/v1alpha1",
+          "kind": "BackupRestore",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "simplyblock-operator"
+            },
+            "name": "backuprestore-sample"
+          },
+          "spec": {
+            "backupRef": {
+              "name": "storagebackup-sample"
+            },
+            "clusterName": "sample-cluster",
+            "pvcTemplate": {
+              "metadata": {
+                "name": "backuprestore-sample-pvc"
+              },
+              "spec": {
+                "accessModes": [
+                  "ReadWriteOnce"
+                ],
+                "resources": {
+                  "requests": {
+                    "storage": "10Gi"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "storage.simplyblock.io/v1alpha1",
           "kind": "Device",
           "metadata": {
             "labels": {
@@ -136,8 +168,21 @@ metadata:
         }
       ]
     capabilities: Basic Install
+    categories: Storage
+    com.redhat.openshift.versions: v4.19
     containerImage: quay.io/simplyblock-io/simplyblock-operator@sha256:b7db1d324fa1d6d272f40d696a46c11147de541ca54eb95e67760bc821dec4d8
-    createdAt: "2026-05-01T09:51:04Z"
+    createdAt: "2026-05-01T12:37:51Z"
+    description: The Simplyblock Operator helps with installation, operation, and management
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "true"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
     operators.operatorframework.io/builder: operator-sdk-v1.42.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
   name: simplyblock-operator.v0.1.0
@@ -146,45 +191,305 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+      - description: BackupRestore is the Schema for the backuprestores API.
+        displayName: Backup Restore
+        kind: BackupRestore
+        name: backuprestores.storage.simplyblock.io
+        resources:
+          - kind: PersistentVolumeClaim
+            name: restored-claim
+            version: v1
+          - kind: PersistentVolume
+            name: restored-volume
+            version: v1
+        specDescriptors:
+          - description: Name is the StorageBackup resource name.
+            displayName: Backup Name
+            path: backupRef.name
+          - description: ClusterName is the target storage cluster name.
+            displayName: Cluster Name
+            path: clusterName
+          - description: PVCTemplate describes the PVC to create once the restore completes.
+            displayName: PVC Template
+            path: pvcTemplate
+          - description: |-
+              TargetNode is the UUID of the storage node to restore onto.
+              Defaults to the node that originally held the backup.
+            displayName: Target Node
+            path: targetNode
+          - description: |-
+              TargetPool overrides the pool to restore into.
+              Defaults to the source backup's pool.
+            displayName: Target Pool
+            path: targetPool
+        statusDescriptors:
+          - description: Message contains the latest reconciliation detail or error.
+            displayName: Message
+            path: message
+          - description: Phase is the high-level lifecycle shown in kubectl output.
+            displayName: Phase
+            path: phase
+          - description: PVName is the name of the PersistentVolume created by the controller.
+            displayName: Persistent Volume
+            path: pvName
+          - description: PVCName is the name of the PersistentVolumeClaim created from pvcTemplate.
+            displayName: PersistentVolumeClaim
+            path: pvcName
+          - description: RestoredLvolID is the UUID of the newly-created logical volume.
+            displayName: Restored LVOL ID
+            path: restoredLvolID
+        version: v1alpha1
       - description: Device is the Schema for the devices API
         displayName: Device
         kind: Device
         name: devices.storage.simplyblock.io
+        specDescriptors:
+          - description: Action triggers an imperative device operation.
+            displayName: Action
+            path: action
+          - description: ClusterName is the target storage cluster name.
+            displayName: Cluster Name
+            path: clusterName
+          - description: DeviceID is the backend device identifier used for actions.
+            displayName: Device ID
+            path: deviceID
+          - description: NodeUUID scopes operations to a single storage node when set.
+            displayName: Node UUID
+            path: nodeUUID
+        statusDescriptors:
+          - description: Message is a human-readable action result or error.
+            displayName: Action Message
+            path: actionStatus.message
+          - displayName: Action State
+            path: actionStatus.state
+          - description: Nodes contains observed devices grouped by storage node.
+            displayName: Devices
+            path: nodes
         version: v1alpha1
       - description: Lvol is the Schema for the lvols API
         displayName: Lvol
         kind: Lvol
         name: lvols.storage.simplyblock.io
+        specDescriptors:
+          - description: ClusterName is the target storage cluster name.
+            displayName: Cluster Name
+            path: clusterName
+          - description: PoolName is the target storage pool name.
+            displayName: Pool Name
+            path: poolName
+        statusDescriptors:
+          - description: Configured indicates whether initial Lvol reconciliation has completed.
+            displayName: Configured
+            path: configured
+          - description: Lvols contains observed logical volume entries.
+            displayName: Logical Volumes
+            path: lvols
         version: v1alpha1
       - description: Pool is the Schema for the pools API
         displayName: Pool
         kind: Pool
         name: pools.storage.simplyblock.io
+        specDescriptors:
+          - description: CapacityLimit is the maximum pool capacity.
+            displayName: Capacity Limit
+            path: capacityLimit
+          - description: ClusterName is the target storage cluster name.
+            displayName: Cluster Name
+            path: clusterName
+          - description: Name is the backend pool name.
+            displayName: Pool Name
+            path: name
+          - description: Fabric is the transport fabric (e.g. tcp).
+            displayName: Fabric
+            path: storageClassParameters.fabric
+          - description: QosRwIops sets the read/write IOPS limit (0 = unlimited).
+            displayName: Read/Write IOPS
+            path: storageClassParameters.qosRwIops
+          - description: Replicate enables replication for logical volumes.
+            displayName: Replicate By Default
+            path: storageClassParameters.replicate
+        statusDescriptors:
+          - description: Status is the backend lifecycle status.
+            displayName: Status
+            path: status
+          - description: UUID is the backend pool UUID.
+            displayName: Pool UUID
+            path: uuid
         version: v1alpha1
       - description: SnapshotReplication is the Schema for the snapshotreplications API
         displayName: Snapshot Replication
         kind: SnapshotReplication
         name: snapshotreplications.storage.simplyblock.io
+        specDescriptors:
+          - displayName: Action
+            path: action
+          - description: 'snapshot replication interval in seconds (default: 300sec)'
+            displayName: Interval
+            path: interval
+          - description: Source cluster for the snapshots
+            displayName: Source Cluster
+            path: sourceCluster
+          - description: Target cluster for replication
+            displayName: Target Cluster
+            path: targetCluster
+          - description: Target cluster pool for replication
+            displayName: Target Pool
+            path: targetPool
+        statusDescriptors:
+          - description: Conditions provides human-readable status conditions for kubectl get output.
+            displayName: Conditions
+            path: conditions
+          - displayName: Configured
+            path: configured
+          - description: Per-volume replication status
+            displayName: Volumes
+            path: volumes
         version: v1alpha1
       - description: StorageBackup is the Schema for the storagebackups API.
         displayName: Storage Backup
         kind: StorageBackup
         name: storagebackups.storage.simplyblock.io
+        resources:
+          - kind: PersistentVolumeClaim
+            name: source-claim
+            version: v1
+          - kind: PersistentVolume
+            name: source-volume
+            version: v1
+        specDescriptors:
+          - description: ClusterName is the target storage cluster name.
+            displayName: Cluster Name
+            path: clusterName
+          - description: Name is the PVC name.
+            displayName: PVC Name
+            path: pvcRef.name
+          - description: Namespace overrides the backup resource namespace for the PVC lookup.
+            displayName: PVC Namespace
+            path: pvcRef.namespace
+          - description: SnapshotName optionally overrides the internally-created snapshot name.
+            displayName: Snapshot Name
+            path: snapshotName
+        statusDescriptors:
+          - description: BackupID is the backend backup UUID.
+            displayName: Backup ID
+            path: backupID
+          - description: Message contains the latest reconciliation detail or error.
+            displayName: Message
+            path: message
+          - description: Phase is the high-level backup lifecycle shown in kubectl output.
+            displayName: Phase
+            path: phase
+          - description: SnapshotName is the snapshot name used for the backup request.
+            displayName: Snapshot Name
+            path: snapshotName
         version: v1alpha1
       - description: StorageCluster is the Schema for the storageclusters API
         displayName: Storage Cluster
         kind: StorageCluster
         name: storageclusters.storage.simplyblock.io
+        resources:
+          - kind: Secret
+            name: simplyblock-cluster-credentials
+            version: v1
+        specDescriptors:
+          - description: Name is the name of the Secret in the same namespace as the cluster CR.
+            displayName: Backup Credentials Secret
+            path: backup.credentialsSecretRef.name
+          - description: ClusterName is the user-facing cluster identifier.
+            displayName: Cluster Name
+            path: clusterName
+          - description: FabricType defines the storage fabric type.
+            displayName: Fabric Type
+            path: fabricType
+          - description: HAType defines the backend high-availability mode.
+            displayName: HA Type
+            path: haType
+          - description: DataChunks defines the number of data chunks in the erasure-coding layout.
+            displayName: Data Chunks
+            path: stripe.dataChunks
+        statusDescriptors:
+          - description: Message is a human-readable action result or error.
+            displayName: Action Message
+            path: actionStatus.message
+          - displayName: Action State
+            path: actionStatus.state
+          - description: Configured indicates whether initial cluster setup completed.
+            displayName: Configured
+            path: configured
+          - description: SecretName is the Kubernetes Secret containing cluster credentials.
+            displayName: Cluster Secret
+            path: secretName
+          - description: Status is the backend-reported lifecycle status.
+            displayName: Status
+            path: status
+          - description: UUID is the backend cluster UUID.
+            displayName: Cluster UUID
+            path: uuid
         version: v1alpha1
       - description: StorageNode is the Schema for the storagenodes API
         displayName: Storage Node
         kind: StorageNode
         name: storagenodes.storage.simplyblock.io
+        resources:
+          - kind: ClusterRole
+            name: simplyblock-storage-node
+            version: v1
+          - kind: ClusterRoleBinding
+            name: simplyblock-storage-node
+            version: v1
+          - kind: DaemonSet
+            name: simplyblock-storage-node
+            version: v1
+          - kind: Service
+            name: simplyblock-storage-node
+            version: v1
+          - kind: ServiceAccount
+            name: simplyblock-storage-node
+            version: v1
+        specDescriptors:
+          - description: Action triggers an imperative node operation.
+            displayName: Action
+            path: action
+          - description: ClusterImage is the container image used for storage-node workloads.
+            displayName: Cluster Image
+            path: clusterImage
+          - description: ClusterName is the target storage cluster name.
+            displayName: Cluster Name
+            path: clusterName
+          - description: MaxLogicalVolumeCount is the maximum number of logical volumes per node.
+            displayName: Max Logical Volume Count
+            path: maxLogicalVolumeCount
+          - description: WorkerNodes is the set of Kubernetes worker nodes to manage.
+            displayName: Worker Nodes
+            path: workerNodes
+        statusDescriptors:
+          - description: Message is a human-readable action result or error.
+            displayName: Action Message
+            path: actionStatus.message
+          - displayName: Action State
+            path: actionStatus.state
+          - description: DrainCoordination tracks the upgrade-drain state per worker node.
+            displayName: Drain Coordination
+            path: drainCoordination
+          - description: Nodes is the observed state of each managed storage node.
+            displayName: Nodes
+            path: nodes
         version: v1alpha1
       - description: Task is the Schema for the tasks API
         displayName: Task
         kind: Task
         name: tasks.storage.simplyblock.io
+        specDescriptors:
+          - description: ClusterName is the target storage cluster name.
+            displayName: Cluster Name
+            path: clusterName
+          - description: TaskID filters results to a specific backend task when set.
+            displayName: Task ID
+            path: taskID
+        statusDescriptors:
+          - description: Tasks is the currently reported task list for the query scope.
+            displayName: Tasks
+            path: tasks
         version: v1alpha1
   description: The Simplyblock Operator helps with installation, operation, and management of Simplyblock Control Planes, Storage Planes, and the CSI Driver.
   displayName: Simplyblock Operator

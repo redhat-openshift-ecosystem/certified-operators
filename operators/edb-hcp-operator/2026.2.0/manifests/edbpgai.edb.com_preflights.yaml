@@ -1,0 +1,172 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: edb-hcp-operator
+    control-plane: edb-hcp-operator
+  name: preflights.edbpgai.edb.com
+spec:
+  group: edbpgai.edb.com
+  names:
+    kind: Preflight
+    listKind: PreflightList
+    plural: preflights
+    singular: preflight
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Preflight is the Schema for the preflights API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of Preflight
+            properties:
+              hm:
+                description: HM is the reference to the Hybrid Management resource.
+                properties:
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              secretRequirements:
+                description: SecretRequirements is the list of secret requirements
+                  to be checked during preflight.
+                items:
+                  description: SecretRequirement defines the structure for secret
+                    requirements in preflight checks.
+                  properties:
+                    component:
+                      description: |-
+                        Component is the component associated with the secret requirement.
+                        Optional: only used when we need to use the component parameter
+                        to render the secret name.
+                      type: string
+                    rules:
+                      description: Rules is the list of CEL rules to validate the
+                        secret.
+                      items:
+                        description: CELRule defines common expression language rule
+                          structure.
+                        properties:
+                          expression:
+                            description: Expression contains the CEL expression to
+                              be evaluated.
+                            type: string
+                          key:
+                            description: Key is the unique identifier for the rule.
+                            type: string
+                          message:
+                            description: Message provides a human-readable description
+                              of the rule.
+                            type: string
+                        type: object
+                      type: array
+                    scenario:
+                      description: Scenario is the scenario associated with the secret
+                        requirement.
+                      enum:
+                      - core
+                      - migration
+                      - ai
+                      - analytics
+                      type: string
+                    secret:
+                      description: Secret is the reference to the Kubernetes secret
+                        required.
+                      properties:
+                        name:
+                          description: name is unique within a namespace to reference
+                            a secret resource.
+                          type: string
+                        namespace:
+                          description: namespace defines the space within which the
+                            secret name must be unique.
+                          type: string
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  type: object
+                type: array
+            type: object
+          status:
+            description: status defines the observed state of Preflight
+            properties:
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the last observed generation of the Preflight resource.
+                  It will be set to the metadata.generation of the Preflight resource
+                  when the preflight passes.
+                format: int64
+                type: integer
+              secretRequirementsStatus:
+                description: SecretRequirementsStatus is the list of secret requirement
+                  statuses.
+                items:
+                  properties:
+                    messages:
+                      description: Messages provides additional information about
+                        the secret requirement status.
+                      items:
+                        type: string
+                      type: array
+                    secret:
+                      description: Secret is the reference to the Kubernetes secret
+                        required.
+                      properties:
+                        name:
+                          description: name is unique within a namespace to reference
+                            a secret resource.
+                          type: string
+                        namespace:
+                          description: namespace defines the space within which the
+                            secret name must be unique.
+                          type: string
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    state:
+                      description: State indicates whether the secret requirement
+                        is valid or invalid.
+                      type: string
+                  type: object
+                type: array
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

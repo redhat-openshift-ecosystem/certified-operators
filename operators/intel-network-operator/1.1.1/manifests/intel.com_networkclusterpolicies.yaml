@@ -1,0 +1,159 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: intel-network-operator/intel-network-serving-cert
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  name: networkclusterpolicies.intel.com
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: intel-network-webhook-service
+          namespace: intel-network-operator
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: intel.com
+  names:
+    kind: NetworkClusterPolicy
+    listKind: NetworkClusterPolicyList
+    plural: networkclusterpolicies
+    singular: networkclusterpolicy
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: NetworkClusterPolicy is the Schema for the networkclusterpolicies
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: NetworkClusterPolicySpec defines the desired state of NetworkClusterPolicy
+            properties:
+              configurationType:
+                description: |-
+                  Configuration type that the operator will configure to the nodes. Possible options: gaudi-so.
+                  TODO: plausible other options: host-nic
+                enum:
+                - gaudi-so
+                type: string
+              gaudiScaleOut:
+                description: Gaudi Scale-Out specific settings. Only valid when configuration
+                  type is 'gaudi-so'
+                properties:
+                  disableNetworkManager:
+                    description: |-
+                      Disable Gaudi scale-out interfaces in NetworkManager. For nodes where NetworkManager tries
+                      to configure the Gaudi interfaces, prevent it from doing so.
+                    type: boolean
+                  enableLLDPAD:
+                    description: |-
+                      Enable LLDP for Priority Flow Control in a dedicated container
+                      Keep this value as false if lldpad LLDP daemon is already present and
+                      running on the host
+                    type: boolean
+                  image:
+                    description: Container image to handle interface configurations
+                      on the worker nodes.
+                    type: string
+                  layer:
+                    description: 'Layer where the configuration should occur. Possible
+                      options: L2 and L3.'
+                    enum:
+                    - L2
+                    - L3
+                    type: string
+                  mtu:
+                    description: MTU for the scale-out interfaces.
+                    maximum: 9000
+                    minimum: 1500
+                    type: integer
+                  networkMetrics:
+                    description: Enable scale-out network metrics support.
+                    type: boolean
+                  pfcPriorities:
+                    description: |-
+                      Bitmask of Priority Flow Control priorities to enable
+                      Requires lldpad on the host, or enabling the above EnableLLDPAD boolean
+                      Currently accepted values are 00000000 or 11110000
+                    enum:
+                    - "00000000"
+                    - "11110000"
+                    type: string
+                  pullPolicy:
+                    description: Normal image pull policy used in the resulting daemonset.
+                    enum:
+                    - Never
+                    - Always
+                    - IfNotPresent
+                    type: string
+                type: object
+              logLevel:
+                description: LogLevel sets the operator's log level.
+                maximum: 8
+                minimum: 0
+                type: integer
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: Select which nodes the operator should target. Align
+                  with labels created by NFD.
+                type: object
+            required:
+            - configurationType
+            type: object
+          status:
+            description: NetworkClusterPolicyStatus defines the observed state of
+              NetworkClusterPolicy
+            properties:
+              errors:
+                items:
+                  type: string
+                type: array
+              ready:
+                format: int32
+                type: integer
+              state:
+                type: string
+              targets:
+                format: int32
+                type: integer
+            required:
+            - errors
+            - ready
+            - state
+            - targets
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

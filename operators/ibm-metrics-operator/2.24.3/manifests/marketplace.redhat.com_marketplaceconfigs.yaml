@@ -1,0 +1,822 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  creationTimestamp: null
+  labels:
+    redhat.marketplace.com/name: ibm-metrics-operator
+  name: marketplaceconfigs.marketplace.redhat.com
+spec:
+  group: marketplace.redhat.com
+  names:
+    kind: MarketplaceConfig
+    listKind: MarketplaceConfigList
+    plural: marketplaceconfigs
+    singular: marketplaceconfig
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type == "Installing")].status
+      name: INSTALLING
+      type: string
+    - jsonPath: .status.conditions[?(@.type == "Installing")].reason
+      name: STEP
+      type: string
+    - jsonPath: .status.conditions[?(@.type == "Registered")].status
+      name: REGISTERED
+      type: string
+    - jsonPath: .status.conditions[?(@.type == "Registered")].message
+      name: REGISTERED_MSG
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          MarketplaceConfig is configuration manager for our Red Hat Marketplace controllers
+          By installing this product you accept the license terms https://ibm.biz/BdfaAY.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: MarketplaceConfigSpec defines the desired state of MarketplaceConfig
+            properties:
+              authorizeAccountCreation:
+                description: AuthorizeAccountCreation authorizes IBM Software Central
+                  to automatically create an account when usage data is submitted
+                  with an ibm-entitlement-key
+                type: boolean
+              clusterName:
+                description: |-
+                  ClusterName is the name that will be assigned to your cluster in the Red Hat Marketplace UI.
+                  If you have set the name in the UI first, this name will be ignored.
+                type: string
+              clusterUUID:
+                description: ClusterUUID is the Red Hat Marketplace cluster identifier
+                type: string
+              dataService:
+                description: dataService configures objects of the data-service
+                properties:
+                  route:
+                    description: Route enablement and configures an optional custom
+                      Route Spec
+                    properties:
+                      disabled:
+                        type: boolean
+                      spec:
+                        description: |-
+                          RouteSpec describes the hostname or path the route exposes, any security information,
+                          and one to four backends (services) the route points to. Requests are distributed
+                          among the backends depending on the weights assigned to each backend. When using
+                          roundrobin scheduling the portion of requests that go to each backend is the backend
+                          weight divided by the sum of all of the backend weights. When the backend has more than
+                          one endpoint the requests that end up on the backend are roundrobin distributed among
+                          the endpoints. Weights are between 0 and 256 with default 100. Weight 0 causes no requests
+                          to the backend. If all weights are zero the route will be considered to have no backends
+                          and return a standard 503 response.
+
+                          The `tls` field is optional and allows specific certificates or behavior for the
+                          route. Routers typically configure a default certificate on a wildcard domain to
+                          terminate routes without explicit certificates, but custom hostnames usually must
+                          choose passthrough (send traffic directly to the backend via the TLS Server-Name-
+                          Indication field) or provide a certificate.
+                        properties:
+                          alternateBackends:
+                            description: |-
+                              alternateBackends allows up to 3 additional backends to be assigned to the route.
+                              Only the Service kind is allowed, and it will be defaulted to Service.
+                              Use the weight field in RouteTargetReference object to specify relative preference.
+                            items:
+                              description: |-
+                                RouteTargetReference specifies the target that resolve into endpoints. Only the 'Service'
+                                kind is allowed. Use 'weight' field to emphasize one over others.
+                              properties:
+                                kind:
+                                  default: Service
+                                  description: The kind of target that the route is
+                                    referring to. Currently, only 'Service' is allowed
+                                  enum:
+                                  - Service
+                                  - ""
+                                  type: string
+                                name:
+                                  description: name of the service/target that is
+                                    being referred to. e.g. name of the service
+                                  minLength: 1
+                                  type: string
+                                weight:
+                                  default: 100
+                                  description: |-
+                                    weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
+                                    against other target reference objects. 0 suppresses requests to this backend.
+                                  format: int32
+                                  maximum: 256
+                                  minimum: 0
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            maxItems: 3
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            - kind
+                            x-kubernetes-list-type: map
+                          host:
+                            description: |-
+                              host is an alias/DNS that points to the service. Optional.
+                              If not specified a route name will typically be automatically
+                              chosen.
+                              Must follow DNS952 subdomain conventions.
+                            maxLength: 253
+                            pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
+                            type: string
+                          httpHeaders:
+                            description: httpHeaders defines policy for HTTP headers.
+                            properties:
+                              actions:
+                                description: |-
+                                  actions specifies options for modifying headers and their values.
+                                  Note that this option only applies to cleartext HTTP connections
+                                  and to secure HTTP connections for which the ingress controller
+                                  terminates encryption (that is, edge-terminated or reencrypt
+                                  connections).  Headers cannot be modified for TLS passthrough
+                                  connections.
+                                  Setting the HSTS (`Strict-Transport-Security`) header is not supported via actions.
+                                  `Strict-Transport-Security` may only be configured using the "haproxy.router.openshift.io/hsts_header"
+                                  route annotation, and only in accordance with the policy specified in Ingress.Spec.RequiredHSTSPolicies.
+                                  In case of HTTP request headers, the actions specified in spec.httpHeaders.actions on the Route will be executed after
+                                  the actions specified in the IngressController's spec.httpHeaders.actions field.
+                                  In case of HTTP response headers, the actions specified in spec.httpHeaders.actions on the IngressController will be
+                                  executed after the actions specified in the Route's spec.httpHeaders.actions field.
+                                  The headers set via this API will not appear in access logs.
+                                  Any actions defined here are applied after any actions related to the following other fields:
+                                  cache-control, spec.clientTLS,
+                                  spec.httpHeaders.forwardedHeaderPolicy, spec.httpHeaders.uniqueId,
+                                  and spec.httpHeaders.headerNameCaseAdjustments.
+                                  The following header names are reserved and may not be modified via this API:
+                                  Strict-Transport-Security, Proxy, Cookie, Set-Cookie.
+                                  Note that the total size of all net added headers *after* interpolating dynamic values
+                                  must not exceed the value of spec.tuningOptions.headerBufferMaxRewriteBytes on the
+                                  IngressController. Please refer to the documentation
+                                  for that API field for more details.
+                                properties:
+                                  request:
+                                    description: |-
+                                      request is a list of HTTP request headers to modify.
+                                      Currently, actions may define to either `Set` or `Delete` headers values.
+                                      Actions defined here will modify the request headers of all requests made through a route.
+                                      These actions are applied to a specific Route defined within a cluster i.e. connections made through a route.
+                                      Currently, actions may define to either `Set` or `Delete` headers values.
+                                      Route actions will be executed after IngressController actions for request headers.
+                                      Actions are applied in sequence as defined in this list.
+                                      A maximum of 20 request header actions may be configured.
+                                      You can use this field to specify HTTP request headers that should be set or deleted
+                                      when forwarding connections from the client to your application.
+                                      Sample fetchers allowed are "req.hdr" and "ssl_c_der".
+                                      Converters allowed are "lower" and "base64".
+                                      Example header values: "%[req.hdr(X-target),lower]", "%{+Q}[ssl_c_der,base64]".
+                                      Any request header configuration applied directly via a Route resource using this API
+                                      will override header configuration for a header of the same name applied via
+                                      spec.httpHeaders.actions on the IngressController or route annotation.
+                                      Note: This field cannot be used if your route uses TLS passthrough.
+                                    items:
+                                      description: RouteHTTPHeader specifies configuration
+                                        for setting or deleting an HTTP header.
+                                      properties:
+                                        action:
+                                          description: action specifies actions to
+                                            perform on headers, such as setting or
+                                            deleting headers.
+                                          properties:
+                                            set:
+                                              description: |-
+                                                set defines the HTTP header that should be set: added if it doesn't exist or replaced if it does.
+                                                This field is required when type is Set and forbidden otherwise.
+                                              properties:
+                                                value:
+                                                  description: |-
+                                                    value specifies a header value.
+                                                    Dynamic values can be added. The value will be interpreted as an HAProxy format string as defined in
+                                                    http://cbonte.github.io/haproxy-dconv/2.6/configuration.html#8.2.6 and may use HAProxy's %[] syntax and
+                                                    otherwise must be a valid HTTP header value as defined in https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.
+                                                    The value of this field must be no more than 16384 characters in length.
+                                                    Note that the total size of all net added headers *after* interpolating dynamic values
+                                                    must not exceed the value of spec.tuningOptions.headerBufferMaxRewriteBytes on the
+                                                    IngressController.
+                                                  maxLength: 16384
+                                                  minLength: 1
+                                                  type: string
+                                              required:
+                                              - value
+                                              type: object
+                                            type:
+                                              description: |-
+                                                type defines the type of the action to be applied on the header.
+                                                Possible values are Set or Delete.
+                                                Set allows you to set HTTP request and response headers.
+                                                Delete allows you to delete HTTP request and response headers.
+                                              enum:
+                                              - Set
+                                              - Delete
+                                              type: string
+                                          required:
+                                          - type
+                                          type: object
+                                          x-kubernetes-validations:
+                                          - message: set is required when type is
+                                              Set, and forbidden otherwise
+                                            rule: 'has(self.type) && self.type ==
+                                              ''Set'' ?  has(self.set) : !has(self.set)'
+                                        name:
+                                          description: |-
+                                            name specifies the name of a header on which to perform an action. Its value must be a valid HTTP header
+                                            name as defined in RFC 2616 section 4.2.
+                                            The name must consist only of alphanumeric and the following special characters, "-!#$%&'*+.^_`".
+                                            The following header names are reserved and may not be modified via this API:
+                                            Strict-Transport-Security, Proxy, Cookie, Set-Cookie.
+                                            It must be no more than 255 characters in length.
+                                            Header name must be unique.
+                                          maxLength: 255
+                                          minLength: 1
+                                          pattern: ^[-!#$%&'*+.0-9A-Z^_`a-z|~]+$
+                                          type: string
+                                          x-kubernetes-validations:
+                                          - message: strict-transport-security header
+                                              may not be modified via header actions
+                                            rule: self.lowerAscii() != 'strict-transport-security'
+                                          - message: proxy header may not be modified
+                                              via header actions
+                                            rule: self.lowerAscii() != 'proxy'
+                                          - message: cookie header may not be modified
+                                              via header actions
+                                            rule: self.lowerAscii() != 'cookie'
+                                          - message: set-cookie header may not be
+                                              modified via header actions
+                                            rule: self.lowerAscii() != 'set-cookie'
+                                      required:
+                                      - action
+                                      - name
+                                      type: object
+                                    maxItems: 20
+                                    type: array
+                                    x-kubernetes-list-map-keys:
+                                    - name
+                                    x-kubernetes-list-type: map
+                                    x-kubernetes-validations:
+                                    - message: Either the header value provided is
+                                        not in correct format or the sample fetcher/converter
+                                        specified is not allowed. The dynamic header
+                                        value will be interpreted as an HAProxy format
+                                        string as defined in http://cbonte.github.io/haproxy-dconv/2.6/configuration.html#8.2.6
+                                        and may use HAProxy's %[] syntax and otherwise
+                                        must be a valid HTTP header value as defined
+                                        in https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.
+                                        Sample fetchers allowed are req.hdr, ssl_c_der.
+                                        Converters allowed are lower, base64.
+                                      rule: self.all(key, key.action.type == "Delete"
+                                        || (has(key.action.set) && key.action.set.value.matches('^(?:%(?:%|(?:\\{[-+]?[QXE](?:,[-+]?[QXE])*\\})?\\[(?:req\\.hdr\\([0-9A-Za-z-]+\\)|ssl_c_der)(?:,(?:lower|base64))*\\])|[^%[:cntrl:]])+$')))
+                                  response:
+                                    description: |-
+                                      response is a list of HTTP response headers to modify.
+                                      Currently, actions may define to either `Set` or `Delete` headers values.
+                                      Actions defined here will modify the response headers of all requests made through a route.
+                                      These actions are applied to a specific Route defined within a cluster i.e. connections made through a route.
+                                      Route actions will be executed before IngressController actions for response headers.
+                                      Actions are applied in sequence as defined in this list.
+                                      A maximum of 20 response header actions may be configured.
+                                      You can use this field to specify HTTP response headers that should be set or deleted
+                                      when forwarding responses from your application to the client.
+                                      Sample fetchers allowed are "res.hdr" and "ssl_c_der".
+                                      Converters allowed are "lower" and "base64".
+                                      Example header values: "%[res.hdr(X-target),lower]", "%{+Q}[ssl_c_der,base64]".
+                                      Note: This field cannot be used if your route uses TLS passthrough.
+                                    items:
+                                      description: RouteHTTPHeader specifies configuration
+                                        for setting or deleting an HTTP header.
+                                      properties:
+                                        action:
+                                          description: action specifies actions to
+                                            perform on headers, such as setting or
+                                            deleting headers.
+                                          properties:
+                                            set:
+                                              description: |-
+                                                set defines the HTTP header that should be set: added if it doesn't exist or replaced if it does.
+                                                This field is required when type is Set and forbidden otherwise.
+                                              properties:
+                                                value:
+                                                  description: |-
+                                                    value specifies a header value.
+                                                    Dynamic values can be added. The value will be interpreted as an HAProxy format string as defined in
+                                                    http://cbonte.github.io/haproxy-dconv/2.6/configuration.html#8.2.6 and may use HAProxy's %[] syntax and
+                                                    otherwise must be a valid HTTP header value as defined in https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.
+                                                    The value of this field must be no more than 16384 characters in length.
+                                                    Note that the total size of all net added headers *after* interpolating dynamic values
+                                                    must not exceed the value of spec.tuningOptions.headerBufferMaxRewriteBytes on the
+                                                    IngressController.
+                                                  maxLength: 16384
+                                                  minLength: 1
+                                                  type: string
+                                              required:
+                                              - value
+                                              type: object
+                                            type:
+                                              description: |-
+                                                type defines the type of the action to be applied on the header.
+                                                Possible values are Set or Delete.
+                                                Set allows you to set HTTP request and response headers.
+                                                Delete allows you to delete HTTP request and response headers.
+                                              enum:
+                                              - Set
+                                              - Delete
+                                              type: string
+                                          required:
+                                          - type
+                                          type: object
+                                          x-kubernetes-validations:
+                                          - message: set is required when type is
+                                              Set, and forbidden otherwise
+                                            rule: 'has(self.type) && self.type ==
+                                              ''Set'' ?  has(self.set) : !has(self.set)'
+                                        name:
+                                          description: |-
+                                            name specifies the name of a header on which to perform an action. Its value must be a valid HTTP header
+                                            name as defined in RFC 2616 section 4.2.
+                                            The name must consist only of alphanumeric and the following special characters, "-!#$%&'*+.^_`".
+                                            The following header names are reserved and may not be modified via this API:
+                                            Strict-Transport-Security, Proxy, Cookie, Set-Cookie.
+                                            It must be no more than 255 characters in length.
+                                            Header name must be unique.
+                                          maxLength: 255
+                                          minLength: 1
+                                          pattern: ^[-!#$%&'*+.0-9A-Z^_`a-z|~]+$
+                                          type: string
+                                          x-kubernetes-validations:
+                                          - message: strict-transport-security header
+                                              may not be modified via header actions
+                                            rule: self.lowerAscii() != 'strict-transport-security'
+                                          - message: proxy header may not be modified
+                                              via header actions
+                                            rule: self.lowerAscii() != 'proxy'
+                                          - message: cookie header may not be modified
+                                              via header actions
+                                            rule: self.lowerAscii() != 'cookie'
+                                          - message: set-cookie header may not be
+                                              modified via header actions
+                                            rule: self.lowerAscii() != 'set-cookie'
+                                      required:
+                                      - action
+                                      - name
+                                      type: object
+                                    maxItems: 20
+                                    type: array
+                                    x-kubernetes-list-map-keys:
+                                    - name
+                                    x-kubernetes-list-type: map
+                                    x-kubernetes-validations:
+                                    - message: Either the header value provided is
+                                        not in correct format or the sample fetcher/converter
+                                        specified is not allowed. The dynamic header
+                                        value will be interpreted as an HAProxy format
+                                        string as defined in http://cbonte.github.io/haproxy-dconv/2.6/configuration.html#8.2.6
+                                        and may use HAProxy's %[] syntax and otherwise
+                                        must be a valid HTTP header value as defined
+                                        in https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.
+                                        Sample fetchers allowed are res.hdr, ssl_c_der.
+                                        Converters allowed are lower, base64.
+                                      rule: self.all(key, key.action.type == "Delete"
+                                        || (has(key.action.set) && key.action.set.value.matches('^(?:%(?:%|(?:\\{[-+]?[QXE](?:,[-+]?[QXE])*\\})?\\[(?:res\\.hdr\\([0-9A-Za-z-]+\\)|ssl_c_der)(?:,(?:lower|base64))*\\])|[^%[:cntrl:]])+$')))
+                                type: object
+                            type: object
+                          path:
+                            description: path that the router watches for, to route
+                              traffic for to the service. Optional
+                            pattern: ^/
+                            type: string
+                          port:
+                            description: |-
+                              If specified, the port to be used by the router. Most routers will use all
+                              endpoints exposed by the service by default - set this value to instruct routers
+                              which port to use.
+                            properties:
+                              targetPort:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: |-
+                                  The target port on pods selected by the service this route points to.
+                                  If this is a string, it will be looked up as a named port in the target
+                                  endpoints port list. Required
+                                x-kubernetes-int-or-string: true
+                            required:
+                            - targetPort
+                            type: object
+                          subdomain:
+                            description: |-
+                              subdomain is a DNS subdomain that is requested within the ingress controller's
+                              domain (as a subdomain). If host is set this field is ignored. An ingress
+                              controller may choose to ignore this suggested name, in which case the controller
+                              will report the assigned name in the status.ingress array or refuse to admit the
+                              route. If this value is set and the server does not support this field host will
+                              be populated automatically. Otherwise host is left empty. The field may have
+                              multiple parts separated by a dot, but not all ingress controllers may honor
+                              the request. This field may not be changed after creation except by a user with
+                              the update routes/custom-host permission.
+
+                              Example: subdomain `frontend` automatically receives the router subdomain
+                              `apps.mycluster.com` to have a full hostname `frontend.apps.mycluster.com`.
+                            maxLength: 253
+                            pattern: ^([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])(\.([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]{0,61}[a-zA-Z0-9]))*$
+                            type: string
+                          tls:
+                            description: The tls field provides the ability to configure
+                              certificates and termination for the route.
+                            properties:
+                              caCertificate:
+                                description: caCertificate provides the cert authority
+                                  certificate contents
+                                type: string
+                              certificate:
+                                description: |-
+                                  certificate provides certificate contents. This should be a single serving certificate, not a certificate
+                                  chain. Do not include a CA certificate.
+                                type: string
+                              destinationCACertificate:
+                                description: |-
+                                  destinationCACertificate provides the contents of the ca certificate of the final destination.  When using reencrypt
+                                  termination this file should be provided in order to have routers use it for health checks on the secure connection.
+                                  If this field is not specified, the router may provide its own destination CA and perform hostname validation using
+                                  the short service name (service.namespace.svc), which allows infrastructure generated certificates to automatically
+                                  verify.
+                                type: string
+                              externalCertificate:
+                                description: |-
+                                  externalCertificate provides certificate contents as a secret reference.
+                                  This should be a single serving certificate, not a certificate
+                                  chain. Do not include a CA certificate. The secret referenced should
+                                  be present in the same namespace as that of the Route.
+                                  Forbidden when `certificate` is set.
+                                  The router service account needs to be granted with read-only access to this secret,
+                                  please refer to openshift docs for additional details.
+                                properties:
+                                  name:
+                                    description: |-
+                                      name of the referent.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                    type: string
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              insecureEdgeTerminationPolicy:
+                                description: |-
+                                  insecureEdgeTerminationPolicy indicates the desired behavior for insecure connections to a route. While
+                                  each router may make its own decisions on which ports to expose, this is normally port 80.
+
+                                  If a route does not specify insecureEdgeTerminationPolicy, then the default behavior is "None".
+
+                                  * Allow - traffic is sent to the server on the insecure port (edge/reencrypt terminations only).
+
+                                  * None - no traffic is allowed on the insecure port (default).
+
+                                  * Redirect - clients are redirected to the secure port.
+                                enum:
+                                - Allow
+                                - None
+                                - Redirect
+                                - ""
+                                type: string
+                              key:
+                                description: key provides key file contents
+                                type: string
+                              termination:
+                                description: |-
+                                  termination indicates the TLS termination type.
+
+                                  * edge - TLS termination is done by the router and http is used to communicate with the backend (default)
+
+                                  * passthrough - Traffic is sent straight to the destination without the router providing TLS termination
+
+                                  * reencrypt - TLS termination is done by the router and https is used to communicate with the backend
+
+                                  Note: passthrough termination is incompatible with httpHeader actions
+                                enum:
+                                - edge
+                                - reencrypt
+                                - passthrough
+                                type: string
+                            required:
+                            - termination
+                            type: object
+                            x-kubernetes-validations:
+                            - message: 'cannot have both spec.tls.termination: passthrough
+                                and spec.tls.insecureEdgeTerminationPolicy: Allow'
+                              rule: 'has(self.termination) && has(self.insecureEdgeTerminationPolicy)
+                                ? !((self.termination==''passthrough'') && (self.insecureEdgeTerminationPolicy==''Allow''))
+                                : true'
+                          to:
+                            description: |-
+                              to is an object the route should use as the primary backend. Only the Service kind
+                              is allowed, and it will be defaulted to Service. If the weight field (0-256 default 100)
+                              is set to zero, no traffic will be sent to this backend.
+                            properties:
+                              kind:
+                                default: Service
+                                description: The kind of target that the route is
+                                  referring to. Currently, only 'Service' is allowed
+                                enum:
+                                - Service
+                                - ""
+                                type: string
+                              name:
+                                description: name of the service/target that is being
+                                  referred to. e.g. name of the service
+                                minLength: 1
+                                type: string
+                              weight:
+                                default: 100
+                                description: |-
+                                  weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
+                                  against other target reference objects. 0 suppresses requests to this backend.
+                                format: int32
+                                maximum: 256
+                                minimum: 0
+                                type: integer
+                            required:
+                            - kind
+                            - name
+                            type: object
+                          wildcardPolicy:
+                            default: None
+                            description: |-
+                              Wildcard policy if any for the route.
+                              Currently only 'Subdomain' or 'None' is allowed.
+                            enum:
+                            - None
+                            - Subdomain
+                            - ""
+                            type: string
+                        required:
+                        - to
+                        type: object
+                    type: object
+                type: object
+              deploySecretName:
+                description: DeploySecretName is the secret name that contains the
+                  deployment information
+                type: string
+              enableMetering:
+                description: EnableMetering enables the Marketplace Metering components
+                type: boolean
+              features:
+                description: The features that can be enabled or disabled
+                properties:
+                  deployment:
+                    description: '[DEPRECATED] Deployment represents the enablement
+                      of the razee deployment, defaults to true when not set'
+                    type: boolean
+                  meterDefinitionCatalogServer:
+                    description: '[DEPRECATED] EnableMeterDefinitionCatalogServer
+                      represents the enablement of the meterdefinition catalog server,
+                      defaults to true when not set'
+                    type: boolean
+                  registration:
+                    description: Registration represents the enablement of the registration
+                      watchkeeper deployment, defaults to true when not set
+                    type: boolean
+                type: object
+              installIBMCatalogSource:
+                description: InstallIBMCatalogSource is the flag that indicates if
+                  the IBM Catalog Source is installed
+                type: boolean
+              isDisconnected:
+                description: IsDisconnected represents the installation of operator
+                  in disconnected mode
+                type: boolean
+              license:
+                description: License information is required
+                properties:
+                  accept:
+                    description: By installing this product you accept the license
+                      terms https://ibm.biz/BdfaAY
+                    type: boolean
+                type: object
+              namespaceLabelSelector:
+                description: NamespaceLabelSelector is a LabelSelector that overrides
+                  the default LabelSelector used to build the OperatorGroup Namespace
+                  list
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              rhmAccountID:
+                description: RhmAccountID is the Red Hat Marketplace Account identifier
+                type: string
+              storageClassName:
+                description: |-
+                  storageClassName is the name of the StorageClass required by the claim.
+                  More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#class-1
+                type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
+            type: object
+          status:
+            description: MarketplaceConfigStatus defines the observed state of MarketplaceConfig
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of an object's stateonfig
+                items:
+                  description: |-
+                    Condition represents an observation of an object's state. Conditions are an
+                    extension mechanism intended to be used when the details of an observation
+                    are not a priori known or would not apply to all instances of a given Kind.
+
+                    Conditions should be added to explicitly convey properties that users and
+                    components care about rather than requiring those properties to be inferred
+                    from other observations. Once defined, the meaning of a Condition can not be
+                    changed arbitrarily - it becomes part of the API, and has the same
+                    backwards- and forwards-compatibility concerns of any other part of the API.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      description: |-
+                        ConditionReason is intended to be a one-word, CamelCase representation of
+                        the category of cause of the current status. It is intended to be used in
+                        concise output, such as one-line kubectl get output, and in summarizing
+                        occurrences of causes.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: |-
+                        ConditionType is the type of the condition and is typically a CamelCased
+                        word or short phrase.
+
+                        Condition types should indicate state in the "abnormal-true" polarity. For
+                        example, if the condition indicates when a policy is invalid, the "is valid"
+                        case is probably the norm, so the condition should be called "Invalid".
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              meterBaseSubConditions:
+                description: MeterBaseSubConditions represent the latest available
+                  observations of the meterbase object's state
+                items:
+                  description: |-
+                    Condition represents an observation of an object's state. Conditions are an
+                    extension mechanism intended to be used when the details of an observation
+                    are not a priori known or would not apply to all instances of a given Kind.
+
+                    Conditions should be added to explicitly convey properties that users and
+                    components care about rather than requiring those properties to be inferred
+                    from other observations. Once defined, the meaning of a Condition can not be
+                    changed arbitrarily - it becomes part of the API, and has the same
+                    backwards- and forwards-compatibility concerns of any other part of the API.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      description: |-
+                        ConditionReason is intended to be a one-word, CamelCase representation of
+                        the category of cause of the current status. It is intended to be used in
+                        concise output, such as one-line kubectl get output, and in summarizing
+                        occurrences of causes.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: |-
+                        ConditionType is the type of the condition and is typically a CamelCased
+                        word or short phrase.
+
+                        Condition types should indicate state in the "abnormal-true" polarity. For
+                        example, if the condition indicates when a policy is invalid, the "is valid"
+                        case is probably the norm, so the condition should be called "Invalid".
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              razeeSubConditions:
+                description: '[DEPRECATED] RazeeSubConditions represent the latest
+                  available observations of the razee object''s state'
+                items:
+                  description: |-
+                    Condition represents an observation of an object's state. Conditions are an
+                    extension mechanism intended to be used when the details of an observation
+                    are not a priori known or would not apply to all instances of a given Kind.
+
+                    Conditions should be added to explicitly convey properties that users and
+                    components care about rather than requiring those properties to be inferred
+                    from other observations. Once defined, the meaning of a Condition can not be
+                    changed arbitrarily - it becomes part of the API, and has the same
+                    backwards- and forwards-compatibility concerns of any other part of the API.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      description: |-
+                        ConditionReason is intended to be a one-word, CamelCase representation of
+                        the category of cause of the current status. It is intended to be used in
+                        concise output, such as one-line kubectl get output, and in summarizing
+                        occurrences of causes.
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: |-
+                        ConditionType is the type of the condition and is typically a CamelCased
+                        word or short phrase.
+
+                        Condition types should indicate state in the "abnormal-true" polarity. For
+                        example, if the condition indicates when a policy is invalid, the "is valid"
+                        case is probably the norm, so the condition should be called "Invalid".
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

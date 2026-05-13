@@ -1,0 +1,486 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "charts.tintri.com/v1alpha1",
+          "kind": "VmstoreCsi",
+          "metadata": {
+            "name": "vmstorecsi-sample"
+          },
+          "spec": {
+            "config": {
+              "debug": true,
+              "vmstore_map": {
+                "vmstore2": {
+                  "dataIp": "\u003cdataIp\u003e",
+                  "managementAddress": "\u003cmanagementAddress\u003e",
+                  "mountPoint": "/tintri-csi",
+                  "password": "tintri99",
+                  "username": "admin",
+                  "vmstoreFS": "/tintri/csi"
+                }
+              }
+            },
+            "csi_snapshotter": {
+              "pullPolicy": "IfNotPresent",
+              "repository": "registry.k8s.io/sig-storage/csi-snapshotter",
+              "resources": null,
+              "tag": "v6.3.2",
+              "timeout": "120m"
+            },
+            "image": {
+              "pullPolicy": "Always",
+              "repository": "tintri/vmstore-openshift-file-driver",
+              "tag": "v1.1.0"
+            },
+            "priorityClassName": "system-cluster-critical",
+            "provisioner": {
+              "pullPolicy": "IfNotPresent",
+              "repository": "registry.k8s.io/sig-storage/csi-provisioner",
+              "resources": null,
+              "tag": "v4.0.1",
+              "timeout": "120m"
+            },
+            "registrar": {
+              "pullPolicy": "IfNotPresent",
+              "repository": "registry.k8s.io/sig-storage/csi-node-driver-registrar",
+              "resources": null,
+              "tag": "v2.10.1"
+            },
+            "resizer": {
+              "pullPolicy": "IfNotPresent",
+              "repository": "registry.k8s.io/sig-storage/csi-resizer",
+              "resources": null,
+              "tag": "v1.12.0"
+            },
+            "resources": {
+              "limits": {
+                "cpu": "512m",
+                "memory": "512Mi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              }
+            },
+            "secretName": "vmstore-csi-file-driver-config",
+            "volumeNamePrefix": "pvc-vmstore"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2025-08-13T21:26:54Z"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.operatorframework.io/builder: operator-sdk-v1.40.0
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: vmstore-csi-driver-operator.v1.1.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - kind: VmstoreCsi
+        name: vmstorecsis.charts.tintri.com
+        version: v1alpha1
+  description: "A Container Storage Interface (CSI) Driver for Tintri Vmstore filesystems. This operator eases the installation\nand management of the Vmstore CSI Driver in an OpenShift or other Operator Lifecycle Manager enabled cluster.\n\n\n## Prerequisites\nMake sure that the top level folder where the CSI volumes will be created exists on VMStore and is shared over NFS.\nFor example `tintri/csi`.\n## Usage\n\n### Dynamically provisioned volumes\n\nFor dynamic volume provisioning, the administrator needs to set up a _StorageClass_ in the PV yaml (examples/nginx-dynamic-volume.yaml for this example) pointing to the driver.\nFor dynamically provisioned volumes, Kubernetes generates volume name automatically (for example `pvc-vmstore-cfc67950-fe3c-11e8-a3ca-005056b857f8`).\n\n```yaml\napiVersion: storage.k8s.io/v1\nkind: StorageClass\nmetadata:\n  name: vmstore-csi-file-driver-sc\nprovisioner: vmstore.csi.tintri.com\nallowVolumeExpansion: true\n```\n\n#### Example\n\nRun Nginx pod with dynamically provisioned volume:\n\n```bash\noc apply -f examples/nginx-dynamic-volume.yaml\n\n# to delete this pod:\noc delete -f examples/nginx-dynamic-volume.yaml\n```\n\n### Static (pre-provisioned) volumes\n\nThe driver can use already existing Vmstore filesystem,\nin this case, _StorageClass_, _PersistentVolume_ and _PersistentVolumeClaim_ should be configured.\n\n#### _StorageClass_ configuration\n\n```yaml\napiVersion: storage.k8s.io/v1\nkind: StorageClass\nmetadata:\n  name: vmstore-csi-file-driver-sc-nginx-persistent\nprovisioner: vmstore.csi.tintri.com\nallowVolumeExpansion: true\nallowedTopologies:\n- matchLabelExpressions:\n  - key: topology.vmstore.csi.tintri.com/zone\n    values:\n    - zone-1\nmountOptions:                         # list of options for `mount -o ...` command\n#  - noatime                          #\n```\n\n#### _PersistentVolume_ configuration\n\n```yaml\napiVersion: v1\nkind: PersistentVolume\nmetadata:\n  name: vmstore-csi-file-driver-pv-nginx-persistent\n  labels:\n    name: vmstore-csi-file-driver-pv-nginx-persistent\nspec:\n  storageClassName: vmstore-csi-file-driver-sc-nginx-persistent\n  accessModes:\n    - ReadWriteOnce\n  capacity:\n    storage: 1Gi\n  csi:\n    driver: vmstore.csi.tintri.com\n    volumeHandle: vmstore1/172.30.230.128:/tintri/csi/vmstorefs-mnt/persistent/volumefile-persistent.img\n```\n\n#### _PersistentVolumeClaim_ (pointing to created _PersistentVolume_)\n\n```yaml\napiVersion: v1\nkind: PersistentVolumeClaim\nmetadata:\n  name: vmstore-csi-file-driver-pvc-nginx-persistent\nspec:\n  storageClassName: vmstore-csi-file-driver-sc-nginx-persistent\n  accessModes:\n    - ReadWriteOnce\n  resources:\n    requests:\n      storage: 1Gi\n  selector:\n    matchLabels:\n      # to create 1-1 relationship for pod - persistent volume use unique labels\n      name: vmstore-csi-file-driver-pv-nginx-persistent\n```\n\n### Topology configuration\nIn order to configure CSI driver with kubernetes topology, use the `zone` parameter in driver config or storageClass parameters. Example config file with zones:\n  ```bash\n  vmstore_map:\n    vmstore1:\n      mountPoint: /tintri-csi                            # mountpoint on the host where the tintri fs will be mounted\n      dataIp: 172.30.200.37\n      managementAddress: tafzq23.tintri.com\n      vmstoreFS: /tintri/fs01\n      zone: zone-1\n      username: admin\n      password: password\n\n    vmstore2:\n      mountPoint: /tintri-csi                            # mountpoint on the host where the tintri fs will be mounted\n      dataIp: 10.136.40.71\n      managementAddress: tafbm05.tintri.com\n      vmstoreFS: /tintri/csi\n      zone: zone-2\n      username: admin\n      password: password\n  ```\n\nThis will assign volumes to be created on Vmstore that correspond with the zones requested by allowedTopologies values.\n\n\n### Defaults/Configuration/Parameter options\n\n| Default  | Config               |  Parameter    |  Desc                             |\n|----------|----------------------|---------------|-----------------------------------|\n|   -      | dataIp               |   dataIp      | Data address used to mount Vmstore filesystem |\n| -    | mountPoint       |    -      | Mount point inside of the driver container where Vmstore filesystem will be mounted|\n|   -      | username             |      -        | Vmstore API username |\n|   -      | password             |      -        | Vmstore API password |\n|   -      | zone                 |      -        | Zone to match topology.vmstore.csi.tintri.com/zone            |\n|   -      | vmstoreFS            |   vmstoreFS   | Path to filesystem on Vmstore |\n|   -      | managementAddress    |      -        | FQDN for Vmstore management operations |\n|   -      | defaultMountOptions  |   mountOptions| Mount options |\n|   0777   | mountPointPermissions|   mountPointPermissions | File permissions to be set on mount point |\n\n#### Example\n\nRun nginx server using PersistentVolume.\n\n**Note:** Pre-configured volume file should exist on the Vmstore:\n`/tintri/csi/vmstorefs-mnt/persistent/volumefile-persistent.img`.\n\n```bash\noc apply -f nginx-persistent-volume.yaml\n\n# to delete this pod and volume:\noc delete -f nginx-persistent-volume.yaml\n```\n\n## Snapshots\nTo use CSI snapshots, the snapshot CRDs along with the csi-snapshotter must be installed.\n```bash\noc apply -f deploy/kubernetes/snapshots/\n```\n\nAfter that the snapshot class for VMStore CSI must be created\n\n```bash\noc apply -f examples/snapshot-class.yaml\n```\n\nNow a snapshot can be created, for example\n```bash\noc apply -f examples/snapshot-from-dynamic.yaml\n```\n\nWe can create a volume using the snapshot\n```bash\noc apply -f examples/nginx-from-snapshot.yaml\n```\n\n## Troubleshooting\n### Driver logs\nTo collect all driver related logs, you can use the `oc logs` command.\nAll in on command:\n```bash\nmkdir vmstore-csi-logs\nfor name in $(oc get pod -owide | grep vmstore | awk '{print $1}'); do oc logs $name --all-containers > vmstore-csi-logs/$name; done\n```\n\nTo get logs from all containers of a single pod \n```bash\noc logs <pod_name> --all-containers\n```\n\nLogs from a single container of a pod\n```bash\noc logs <pod_name> -c driver\n```\n\n#### Driver secret\n```bash\noc get secret vmstore-csi-file-driver-config -o json | jq '.data | map_values(@base64d)' > vmstore-csi-logs/vmstore-csi-file-driver-config\n```\n\n#### PV/PVC/Pod data\n```bash\noc get pvc > vmstore-csi-logs/pvcs\noc get pv > vmstore-csi-logs/pvs\noc get pod > vmstore-csi-logs/pods\n```\n\n#### Extended info about a PV/PVC/Pod:\n```bash\noc describe pvc <pvc_name> > vmstore-csi-logs/<pvc_name>\noc describe pv <pv_name> > vmstore-csi-logs/<pv_name>\noc describe pod <pod_name> > vmstore-csi-logs/<pod_name>\n```"
+  displayName: Vmstore CSI file driver
+  icon:
+    - base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA0MzkuNyAxNzguNyI+CiAgPCEtLSBHZW5lcmF0b3I6IEFkb2JlIElsbHVzdHJhdG9yIDI5LjYuMCwgU1ZHIEV4cG9ydCBQbHVnLUluIC4gU1ZHIFZlcnNpb246IDIuMS4xIEJ1aWxkIDIwNykgIC0tPgogIDxkZWZzPgogICAgPHN0eWxlPgogICAgICAuc3QwIHsKICAgICAgICBmaWxsOiAjYTUxZDM0OwogICAgICB9CgogICAgICAuc3QxIHsKICAgICAgICBmaWxsOiAjZmZmOwogICAgICB9CgogICAgICAuc3QyIHsKICAgICAgICBmaWxsOiBub25lOwogICAgICB9CgogICAgICAuc3QzIHsKICAgICAgICBmaWxsOiAjNTQxMTFmOwogICAgICB9CgogICAgICAuc3Q0IHsKICAgICAgICBmaWxsOiAjZWExZTQ2OwogICAgICB9CiAgICA8L3N0eWxlPgogIDwvZGVmcz4KICA8Zz4KICAgIDxnPgogICAgICA8cGF0aCBkPSJNMjQ3LjQsNDYuOGgtNjEuM2MtMS4yLDAtMi4yLDEtMi4yLDIuMnY5LjRjMCwxLjIsMSwyLjIsMi4yLDIuMmgyMy41djY5YzAsMS4yLDEsMi4yLDIuMiwyLjJoOS45YzEuMiwwLDIuMi0xLDIuMi0yLjJWNjAuNmgyMy41YzEuMiwwLDIuMi0xLDIuMi0yLjJ2LTkuNGMwLTEuMi0xLTIuMi0yLjItMi4yWiIvPgogICAgICA8cGF0aCBkPSJNNDEzLjMsNzMuMWg5LjljMS4yLDAsMi4yLDEsMi4yLDIuMnY1NC4zYzAsMS4yLTEsMi4yLTIuMiwyLjJoLTkuOWMtMS4yLDAtMi4yLTEtMi4yLTIuMnYtNTQuM2MwLTEuMi45LTIuMiwyLjItMi4yWiIvPgogICAgPC9nPgogICAgPHBhdGggZD0iTTQwNSw4MGMxLjEtLjksMS0yLjYtLjEtMy40LTMuNi0yLjgtOS4zLTQuNS0xNC00LjVzLS45LDAtMS4yLDBjLTMuOC4yLTcuNCwxLjMtMTAuMSwzLjJoMGMwLTEuMi0xLTIuMi0yLjItMi4yaC0xMC4xYy0xLjIsMC0yLjIsMS0yLjIsMi4ydjU0LjNjMCwxLjIsMSwyLjIsMi4yLDIuMmgxMC4xYzEuMiwwLDIuMi0xLDIuMi0yLjJ2LTM1LjNjMC0zLjIuOC00LjYsMi4zLTYuMywxLjUtMS43LDMuOC0yLjUsNi43LTIuNXM0LjIuNSw1LjcsMS41Yy44LjYsMS45LjUsMi43LS4ybDgtNi45WiIvPgogICAgPHBhdGggZD0iTTM1NS42LDgzLjl2LTguNmMwLTEuMi0xLTIuMi0yLjItMi4yaC05Ljh2LTE2LjljMC0xLjItMS0yLjItMi4yLTIuMmgtMTBjLTEuMiwwLTIuMiwxLTIuMiwyLjJ2MTYuOWgtNy4yYy0xLjIsMC0yLjIsMS0yLjIsMi4ydjguNmMwLDEuMiwxLDIuMiwyLjIsMi4yaDcuMnYyOC40YzAsNS44LDEuMywxMC4xLDMuOSwxM3M2LjcsNC40LDEyLjMsNC40aDguMWMxLjIsMCwyLjItMSwyLjItMi4ydi05LjVjMC0xLjItMS0yLjItMi4yLTIuMmgtNS44Yy0xLjMsMC0yLjMtLjQtMy0xLjNzLTEtMi4xLTEtMy44di0yNi44aDkuOGMxLjEsMCwyLjEtLjksMi4xLTIuMloiLz4KICAgIDxwYXRoIGQ9Ik0zMDguOSw3OC40Yy0zLjEtMy44LTEwLjItNi40LTE1LjktNi40cy0uOSwwLTEuMiwwYy0zLjguMi03LjQsMS4zLTEwLjEsMy4yaDBjMC0xLjItMS0yLjItMi4yLTIuMmgtMTAuMWMtMS4yLDAtMi4yLDEtMi4yLDIuMnY1NC4zYzAsMS4yLDEsMi4yLDIuMiwyLjJoMTAuMWMxLjIsMCwyLjItMSwyLjItMi4ydi0zNS4yYzAtMy4yLjgtNC42LDIuMy02LjMsMS41LTEuNywzLjgtMi41LDYuNy0yLjVzNS40LjksNywyLjYsMi40LDMuMiwyLjQsNi41djM0LjljMCwxLjIsMSwyLjIsMi4yLDIuMmg5LjFjMS4yLDAsMi4yLTEsMi4yLTIuMnYtMzQuMWMwLTEwLjQtMS42LTEzLjMtNC43LTE3LjFaIi8+CiAgICA8cGF0aCBkPSJNMjQxLjQsNzMuMWg5LjljMS4yLDAsMi4yLDEsMi4yLDIuMnY1NC4zYzAsMS4yLTEsMi4yLTIuMiwyLjJoLTkuOWMtMS4yLDAtMi4yLTEtMi4yLTIuMnYtNTQuM2MwLTEuMiwxLTIuMiwyLjItMi4yWiIvPgogIDwvZz4KICA8Zz4KICAgIDxwYXRoIGNsYXNzPSJzdDIiIGQ9Ik04OC4xLDE2LjJsNTIuOSwzMC42YzQuMywyLjUsNyw3LjEsNywxMnY2MS4xYzAsNS0yLjcsOS42LTcsMTJsLTUyLjksMzAuNWMtNC4zLDIuNS05LjYsMi41LTEzLjksMGwtNTIuOS0zMC41Yy00LjMtMi41LTctNy4xLTctMTJ2LTYxLjFjMC01LDIuNy05LjYsNy0xMmw1Mi45LTMwLjVjNC4zLTIuNiw5LjYtMi42LDEzLjksMFoiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDQiIGQ9Ik03NC4yLDE2LjNsLTEwLjQsNmMtLjguOS0uNiwyLjQuNSwzLjFsNDIuMywyNC4xYzEuMy44LDMtLjIsMy0xLjd2LTE4YzAtLjUtLjItMS0uNi0xLjRsLTIwLjktMTIuMWMtNC4zLTIuNS05LjYtMi41LTEzLjksMFoiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDQiIGQ9Ik0xNDAuOSw0Ni44bC0xMC01LjhjLTEuMy0uNi0yLjguMy0yLjgsMS44djQ3LjdjMCwxLjUsMS42LDIuNSwzLDEuN2wxNS44LTkuMWMuNS0uMy44LS43LjktMS4ydi0yMy4xYy4xLTQuOS0yLjYtOS41LTYuOS0xMloiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xNDcuOSwxMTkuOXYtMTNjLS40LTEuMi0xLjctMS44LTIuOS0xLjJsLTQxLjksMjMuN2MtMS40LjgtMS40LDIuNywwLDMuNWwxNy41LDkuN2MuNC4zLDEsLjMsMS41LjJsMTguOS0xMC45YzQuMi0yLjUsNi45LTcuMSw2LjktMTJaIi8+CiAgICA8cGF0aCBjbGFzcz0ic3QzIiBkPSJNMzAuOCw4NC41bC0xNS41LDguN2MtLjQuMi0uNy42LS45LDF2MjUuNmMwLDUsMi42LDkuNiw2LjksMTJsMTAsNS44YzEuMi4yLDIuNC0uNiwyLjQtMnYtNDkuM2MwLTEuNi0xLjUtMi41LTIuOS0xLjhaIi8+CiAgICA8cGF0aCBjbGFzcz0ic3QzIiBkPSJNMTQuNCw1OC44djEwLjljLjQsMS4yLDEuNywxLjgsMi45LDEuMmwzLjctMi4xaDBsMTIuNi03LjEsMjUuNS0xNC40YzEuNC0uOCwxLjQtMi43LDAtMy41bC0xNS45LTguNWMtLjQtLjItLjktLjMtMS40LS4ybC0yMC40LDExLjdjLTQuMywyLjUtNyw3LjEtNywxMloiLz4KICAgIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik05OS43LDE1Mi4zbC00NC40LTI1Yy0xLjMtLjgtMywuMi0zLDEuN3YxOS43YzAsLjYuMywxLjIuNywxLjVsMjEuMSwxMi4yYzQuMywyLjUsOS42LDIuNSwxMy45LDBsMTEuOS02LjljMS4yLS45LDEuMS0yLjUtLjItMy4yWiIvPgogICAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTEyMi4xLDE0Mi44Yy0uNS4xLTEsLjEtMS41LS4ybC0xNy41LTkuN2MtMS40LS44LTEuNC0yLjcsMC0zLjVsNDEuOS0yMy43YzEuMi0uNywyLjUsMCwyLjksMS4ydi0yNC44Yy0uMS41LS41LjktLjksMS4ybC0xNS44LDkuMWMtMS4zLjgtMy0uMi0zLTEuN3YtNDcuN2MwLTEuNSwxLjUtMi40LDIuOC0xLjhsLTIxLjktMTIuN2MuMy40LjYuOS42LDEuNHYxOGMwLDEuNS0xLjcsMi41LTMsMS43bC00Mi40LTI0LjJjLTEuMS0uNy0xLjMtMi4xLS41LTMuMWwtMjIsMTIuN2MuNSwwLDEsMCwxLjQuMmwxNS45LDguNWMxLjMuOCwxLjMsMi43LDAsMy41bC0yNS41LDE0LjQtMTIuNiw3LjJoMGwtMy43LDIuMWMtMS4yLjctMi41LDAtMi45LTEuMnYyNC41Yy4yLS40LjUtLjguOS0xbDE1LjUtOC43YzEuMy0uOCwzLC4yLDMsMS43djQ5LjVjMCwxLjMtMS4yLDIuMi0yLjQsMmwyMS43LDEyLjVjLS41LS40LS43LS45LS43LTEuNXYtMTkuN2MwLTEuNSwxLjYtMi41LDMtMS43bDQ0LjQsMjVjMS4yLjcsMS4zLDIuNC4zLDMuM00xMDkuNiwxMDQuNWwtMjguNCwxNmgwbC0yOC44LTE2LjJ2LTMxLjloMGwyOC42LTE2LjIsMjguNywxNi40djMxLjloMFoiLz4KICAgIDxwb2x5Z29uIGNsYXNzPSJzdDQiIHBvaW50cz0iNTIuNCA3Mi4zIDUyLjQgMTA0LjMgODEuMiAxMjAuNSAxMDkuNiAxMDQuNSAxMDkuNiA3Mi41IDgwLjkgNTYuMiA1Mi40IDcyLjMiLz4KICA8L2c+CiAgPG1ldGFkYXRhPgogICAgPHNmdyB4bWxucz0iaHR0cDovL25zLmFkb2JlLmNvbS9TYXZlRm9yV2ViLzEuMC8iPgogICAgICA8c2xpY2VzLz4KICAgICAgPHNsaWNlU291cmNlQm91bmRzIHg9IjE0LjMiIHk9IjE0LjQzIiB3aWR0aD0iNDExLjEiIGhlaWdodD0iMTQ5Ljk0IiBib3R0b21MZWZ0T3JpZ2luPSJ0cnVlIi8+CiAgICA8L3Nmdz4KICA8L21ldGFkYXRhPgo8L3N2Zz4=
+      mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - namespaces
+              verbs:
+                - get
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+            - apiGroups:
+                - charts.tintri.com
+              resources:
+                - vmstorecsis
+                - vmstorecsis/status
+                - vmstorecsis/finalizers
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+                - services
+                - services/finalizers
+                - endpoints
+                - persistentvolumeclaims
+                - events
+                - configmaps
+                - secrets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - daemonsets
+                - replicasets
+                - statefulsets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - csidrivers
+                - volumeattachments
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims/status
+              verbs:
+                - update
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumes
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - watch
+                - update
+                - patch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshotcontents
+                - volumesnapshots
+              verbs:
+                - get
+                - list
+                - watch
+                - update
+                - create
+                - delete
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - storageclasses
+              verbs:
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - csinodes
+              verbs:
+                - watch
+                - list
+                - get
+            - apiGroups:
+                - csi.storage.k8s.io
+              resources:
+                - csinodeinfos
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - watch
+                - list
+                - delete
+                - update
+                - create
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - volumeattachments/status
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - delete
+                - update
+                - patch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshotclasses
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshotcontents
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+                - update
+                - delete
+                - patch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshots
+              verbs:
+                - get
+                - list
+                - watch
+                - update
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshots/status
+              verbs:
+                - update
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshotcontents/status
+              verbs:
+                - update
+            - apiGroups:
+                - apiextensions.k8s.io
+              resources:
+                - customresourcedefinitions
+              verbs:
+                - get
+                - list
+                - watch
+                - update
+            - apiGroups:
+                - authentication.k8s.io
+              resources:
+                - tokenreviews
+              verbs:
+                - create
+            - apiGroups:
+                - authorization.k8s.io
+              resources:
+                - subjectaccessreviews
+              verbs:
+                - create
+          serviceAccountName: vmstore-csi-controller-manager
+      deployments:
+        - label:
+            app.kubernetes.io/component: manager
+            app.kubernetes.io/created-by: vmstore-csi-driver-operator
+            app.kubernetes.io/instance: controller-manager
+            app.kubernetes.io/managed-by: kustomize
+            app.kubernetes.io/name: deployment
+            app.kubernetes.io/part-of: vmstore-csi-driver-operator
+            control-plane: controller-manager
+          name: vmstore-csi-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  control-plane: controller-manager
+              spec:
+                affinity:
+                  nodeAffinity:
+                    requiredDuringSchedulingIgnoredDuringExecution:
+                      nodeSelectorTerms:
+                        - matchExpressions:
+                            - key: kubernetes.io/arch
+                              operator: In
+                              values:
+                                - amd64
+                                - arm64
+                                - ppc64le
+                                - s390x
+                            - key: kubernetes.io/os
+                              operator: In
+                              values:
+                                - linux
+                containers:
+                  - args:
+                      - --secure-listen-address=0.0.0.0:8443
+                      - --upstream=http://127.0.0.1:8080/
+                      - --logtostderr=true
+                      - --v=0
+                    image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:d4883d7c622683b3319b5e6b3a7edfbf2594c18060131a8bf64504805f875522
+                    name: kube-rbac-proxy
+                    ports:
+                      - containerPort: 8443
+                        name: https
+                        protocol: TCP
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 5m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                  - args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=127.0.0.1:8080
+                      - --leader-elect
+                      - --leader-election-id=vmstore-csi-driver-operator
+                    image: tintri/vmstore-csi-driver-operator-controller@sha256:749ceff2bd46c71d81338510c1cc5866d39c66345f971d3093f986ea0417311d
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: vmstore-csi-controller-manager
+                terminationGracePeriodSeconds: 10
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: vmstore-csi-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: false
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - CSI
+    - Vmstore
+    - storage
+    - Tintri
+    - DDN
+  links:
+    - name: DDN vmstore Filesystem
+      url: https://www.ddn.com/products/lustre-file-system-vmstore/
+  maintainers:
+    - email: akhodos@tintri.com
+      name: Alexey Khodos
+    - email: rrethinam@tintri.com
+      name: Ranjith Rethinam
+  maturity: alpha
+  provider:
+    name: DataDirect Networks
+    url: https://www.ddn.com
+  relatedImages:
+    - image: gcr.io/kubebuilder/kube-rbac-proxy@sha256:d4883d7c622683b3319b5e6b3a7edfbf2594c18060131a8bf64504805f875522
+      name: kube-rbac-proxy
+    - image: tintri/vmstore-csi-driver-operator-controller@sha256:749ceff2bd46c71d81338510c1cc5866d39c66345f971d3093f986ea0417311d
+      name: manager
+  version: 1.1.0

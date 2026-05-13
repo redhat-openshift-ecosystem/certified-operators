@@ -1,0 +1,56 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins2tekton-operator-controller-manager
+  labels:
+    app.kubernetes.io/name: jenkins2tekton-operator
+    app.kubernetes.io/component: controller-manager
+rules:
+  # Leader election (required when LeaderElection: true)
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Read user-provided Jenkinsfile ConfigMaps AND create/update the internal Jenkinsfile CM
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Emit events
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]
+
+  # Run converter jobs
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  # Read pods to find job pods and fetch logs
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+
+  # Manage the JenkinsPipeline CR and status
+  - apiGroups: ["jenkins2tekton.io"]
+    resources: ["jenkinspipelines"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+  - apiGroups: ["jenkins2tekton.io"]
+    resources: ["jenkinspipelines/status"]
+    verbs: ["get", "update", "patch"]
+
+  # ✅ FIX: allow setting blockOwnerDeletion on owned resources (OwnerReference requires finalizers permission)
+  - apiGroups: ["jenkins2tekton.io"]
+    resources: ["jenkinspipelines/finalizers"]
+    verbs: ["update", "patch"]
+
+  # Create/update Tekton resources in the same namespace
+  - apiGroups: ["tekton.dev"]
+    resources: ["tasks", "pipelines", "pipelineruns"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]

@@ -1,0 +1,1672 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "infoscale.veritas.com/v1",
+          "kind": "DNS",
+          "metadata": {
+            "name": "test-dns"
+          },
+          "spec": {
+            "domain": "vcslnxdns.com"
+          }
+        },
+        {
+          "apiVersion": "infoscale.veritas.com/v1",
+          "kind": "DataReplication",
+          "metadata": {
+            "name": "test-datareplication"
+          },
+          "spec": {
+            "cloudVendor": "Local",
+            "currentPrimary": "Clus1",
+            "force": false,
+            "lbEnabled": false,
+            "localHostAddress": "10.0.0.1",
+            "localNIC": "eth0",
+            "localNetMask": "255.255.240.0",
+            "remoteClusterDetails": [
+              {
+                "bandwidthLimit": "N/A",
+                "clusterName": "Clus2",
+                "latencyProtection": "disable",
+                "logProtection": "autodcm",
+                "networkTransportProtocol": "TCP",
+                "remoteCloudVendor": "Local",
+                "remoteHostAddress": "10.0.0.2",
+                "remoteLbEnabled": false,
+                "remoteNIC": "eth0",
+                "remoteNetMask": "255.255.240.0",
+                "replicationState": "start",
+                "replicationType": "async"
+              }
+            ],
+            "selector": {
+              "namespace": "mysql"
+            }
+          }
+        },
+        {
+          "apiVersion": "infoscale.veritas.com/v1",
+          "kind": "DisasterRecoveryPlan",
+          "metadata": {
+            "name": "test-disaster-recovery-plan"
+          },
+          "spec": {
+            "clusterFailOverPolicy": "Manual",
+            "force": false,
+            "preferredClusterList": [
+              "Clus1",
+              "Clus2"
+            ],
+            "primaryCluster": "Clus1",
+            "selector": {
+              "namespace": "mysql"
+            }
+          }
+        },
+        {
+          "apiVersion": "infoscale.veritas.com/v1",
+          "kind": "GlobalClusterMembership",
+          "metadata": {
+            "name": "global-cluster-membership"
+          },
+          "spec": {
+            "backupClusterScopeCRD": true,
+            "counterMissTolerance": 5,
+            "datarepRefreshStatusFrequency": 5,
+            "globalClusterOperation": "none",
+            "globalMemberClusters": [
+              {
+                "clusterID": "Clus1",
+                "drControllerAddress": "10.0.10.1",
+                "drControllerPort": "8080"
+              },
+              {
+                "clusterID": "Clus2",
+                "drControllerAddress": "10.0.10.2",
+                "drControllerPort": "9090"
+              }
+            ],
+            "localClusterName": "Clus1",
+            "maximumMetadataCopies": 5,
+            "metadataBackupInterval": 15
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Storage
+    containerImage: registry.connect.redhat.com/arctera/infoscale-dr-operator@sha256:ca65f01cb406bb12faeef07decffe765d1b34954830073d053244a1846a1b24e
+    createdAt: "2025-09-12T09:53:51Z"
+    description: InfoScale™ DR Manager manages the Disaster Recovery operations of InfoScale™ for container environment
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "true"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operatorframework.io/suggested-namespace: infoscale-vtas
+    operators.operatorframework.io/builder: operator-sdk-v1.41.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    support: Arctera US LLC
+  name: infoscale-dr-manager.v9.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: DataReplication is the Schema for the storagereplications API.
+      displayName: Data Replication
+      kind: DataReplication
+      name: datareplications.infoscale.veritas.com
+      specDescriptors:
+      - description: |-
+          Cloud Vendor (e.g Azure/Aws) on remote VVR site.
+          Default will be Local.
+        displayName: Cloud Vendor
+        path: cloudVendor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Current primary site name
+        displayName: Current Primary
+        path: currentPrimary
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          In case of takeover operation, set force to true along with
+          the updated CurrentPrimary value. In case of migrate operation,
+          force should be kept false and only CurrentPrimary needs to be changed.
+        displayName: Force
+        path: force
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: |-
+          In case of load balancer based n/w traffic management, set LbEnabled to true.
+          else the default value should be always kept false.
+        displayName: LbEnabled
+        path: lbEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Resolvable hostname or IP address of the local VVR site
+        displayName: Local Host Address
+        path: localHostAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Network adapter for virtual IP
+        displayName: Local NIC
+        path: localNIC
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: List of hostname and corresponding network adapter for virtual IP
+        displayName: Local NIC List
+        path: localNICList
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Netmask for virtual ip
+        displayName: Local Net Mask
+        path: localNetMask
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Set this to true to refresh replication status
+        displayName: Refresh Status
+        path: refreshStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Details about remote clusters involved in the storage replication
+        displayName: Remote Cluster Details
+        path: remoteClusterDetails
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Defines the maximum network bandwidth (in bits per second) that can
+          be used during replication.
+          If unspecified, then available network bandwidth will be used.
+        displayName: Maximum Bandwidth
+        path: remoteClusterDetails[0].bandwidthLimit
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Remote cluster name which is part of storage replication
+        displayName: Cluster Name
+        path: remoteClusterDetails[0].clusterName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Set force to true if operations like start replication, stop replication needs to
+          be performed forcefully.
+          Default value is false.
+        displayName: Force
+        path: remoteClusterDetails[0].force
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Indicates whether latency protection is to be enabled for the RLINK.
+        displayName: Latency Protection
+        path: remoteClusterDetails[0].latencyProtection
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          Indicates whether log protection (SRL protection) is to be enabled
+          for the RLINK.
+        displayName: Log Protection
+        path: remoteClusterDetails[0].logProtection
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          Indicates the network transport protocol that is used by RLINKs for
+          communicating between hosts.
+          Supported values are TCP and UDP, default is TCP.
+        displayName: Network Transport Protocol
+        path: remoteClusterDetails[0].networkTransportProtocol
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          Cloud Vendor (e.g Azure/Aws) on remote VVR site.
+          Default will be Local.
+        displayName: Remote Cloud Vendor
+        path: remoteClusterDetails[0].remoteCloudVendor
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Resolvable hostname or IP address of the remote VVR site
+        displayName: Remote Host Address
+        path: remoteClusterDetails[0].remoteHostAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          In case of load balancer based n/w traffic management, set RemoteLbEnabled to true.
+          else the default value should be always kept false.
+        displayName: RemoteLbEnabled
+        path: remoteClusterDetails[0].remoteLbEnabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Network adapter for virtual IP
+        displayName: Remote NIC
+        path: remoteClusterDetails[0].remoteNIC
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: List of hostname and corresponding network adapter for virtual IP
+        displayName: Remote NIC List
+        path: remoteClusterDetails[0].remoteNICList
+      - description: Netmask for virtual ip
+        displayName: Remote Netmask
+        path: remoteClusterDetails[0].remoteNetMask
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Applicable for Cloud-Vendor based environments, If "remoteHostAddress" value is an Overlay N/w IP, then specify all applicable Route table resource ids.
+        displayName: Remote Route Table ResourceIds
+        path: remoteClusterDetails[0].remoteRouteTableResourceIds
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Replication state like start, stop, pasue, resume and migrate.
+          Default state will be start.
+        displayName: Replication State
+        path: remoteClusterDetails[0].replicationState
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          Replication type i.e. sync or async to be used.
+          If unspecified, defaults to async.
+        displayName: Replication Type
+        path: remoteClusterDetails[0].replicationType
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Applicable for Cloud-Vendor based environments, If "localHostAddress" value is an Overlay N/w IP, then specify all applicable Route table resource ids.
+        displayName: Route Table ResourceIds
+        path: routeTableResourceIds
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Specify namespace and optionally labels to decide what all
+          persistent volumes need to be part of storage replication
+        displayName: Selector
+        path: selector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Array of comma separated labels which can select persistent volumes to be replicated
+          in more granular way.
+          If multiple provided they will be joined by the OR operator.
+        displayName: Labels
+        path: selector.labels
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of namespace which is to be considered for storage replication
+        displayName: Namespace
+        path: selector.namespace
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      statusDescriptors:
+      - description: In progress add volumes to replication
+        displayName: In Progress Add Volumes
+        path: addVolumesInProgress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Current primary site name
+        displayName: Current Primary Site Name
+        path: currentPrimary
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Specifies if encryption is enabled or not for rlink
+        displayName: Encrypted
+        path: encrypted
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Error details
+        displayName: Error Details
+        path: errorDetails
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: ErrorCode represents the error code in case the request fails.
+        displayName: Error Code
+        path: errorDetails.errorCode
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Error messages corresponding to the failure.
+        displayName: Error Message
+        path: errorDetails.errorMessage
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Internal status of data replication, it is used by drplan CR
+        displayName: Internal Status
+        path: internalStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Timestamp of last replication status update
+        displayName: Timestamp of Last Replication Update
+        path: lastRefreshed
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Current phase of data replication
+        displayName: Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Status of Primary site
+        displayName: Status of Primary Site
+        path: primaryStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Diskgroup name to which RVG belongs
+        displayName: Diskgroup Name
+        path: primaryStatus.dgName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: VCS resource created for RVG logowner
+        displayName: Log Owner Resource Name
+        path: primaryStatus.logownerresName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Primary Host name
+        displayName: Primary Host
+        path: primaryStatus.primaryHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Replicated Volume Group (RVG) name internally used by InfoScale
+        displayName: Replicated Volume Group
+        path: primaryStatus.rvgName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: VCS service group name created for RVG
+        displayName: Service Group Name
+        path: primaryStatus.rvgSgName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Replicated Volume Group (RVG) state reported by InfoScale
+        displayName: Replicated Volume Group State
+        path: primaryStatus.rvgState
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: VCS service group name created for HA of VIP
+        displayName: Service Group Name
+        path: primaryStatus.sgName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Storage Replicator Log (SRL) volume name created by InfoScale
+        displayName: Storage Replicator Log Volume Name
+        path: primaryStatus.srlName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Storage Replicator Log (SRL) volume size
+        displayName: Storage Replicator Log Volume Size
+        path: primaryStatus.srlSize
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Config errors observed in VVR replication
+        displayName: Config Error in VVR Replication
+        path: replicationConfigErrors
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Status of Secondary site(s)
+        displayName: Status of Secondary Site
+        path: secondaryStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Bandwidth limit
+        displayName: Bandwidth Limit
+        path: secondaryStatus[0].bandwidthLimit
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Data status
+        displayName: Data Status
+        path: secondaryStatus[0].dataStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Indicates if some operation needs to be performed forcefully
+        displayName: Force
+        path: secondaryStatus[0].force
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - description: Latency protection setting
+        displayName: Latency Protection Setting
+        path: secondaryStatus[0].latencyProtection
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: SRL protection setting
+        displayName: Storage Replicator Log Protection Setting
+        path: secondaryStatus[0].logProtection
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Logging to SRL or DCM
+        displayName: Logging to SRL or DCM
+        path: secondaryStatus[0].loggingTo
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: VCS resource created for RVG logowner
+        displayName: Log Owner Resource Name
+        path: secondaryStatus[0].logownerresName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Indicates the network transport protocol that is used by RLINKs for
+          communicating between hosts.
+        displayName: Network Transport Protocol
+        path: secondaryStatus[0].networkTransportProtocol
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Replication mode
+        displayName: Replication Mode
+        path: secondaryStatus[0].replicationMode
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Replication state like start, stop, pasue, resume and migrate.
+        displayName: Replication State
+        path: secondaryStatus[0].replicationState
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Replication status
+        displayName: Replication Status
+        path: secondaryStatus[0].replicationStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Replicated Volume Group (RVG) name internally used by InfoScale
+        displayName: Replicated Volume Group Name
+        path: secondaryStatus[0].rvgName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: VCS service group name created for RVG
+        displayName: Service Group Name
+        path: secondaryStatus[0].rvgSgName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Secondary Host name
+        displayName: Secondary Host name
+        path: secondaryStatus[0].secondaryHost
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: VCS service group name created for HA of VIP
+        displayName: Service Group Name
+        path: secondaryStatus[0].sgName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Storage Replicator Log (SRL) volume name created by InfoScale
+        displayName: Storage Replicator Log Volume Name
+        path: secondaryStatus[0].srlName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Timestamp info related to replication
+        displayName: Timestamp Info
+        path: secondaryStatus[0].timestampInfo
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Snapshot volumes skip from replication
+        displayName: Snapshot Volumes
+        path: snapshotVolumes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Datareplication summary
+        displayName: Datareplication Summary
+        path: summaryOfReplication
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Map of Volume and Task
+        displayName: Map Of Volume And Completion Task
+        path: volumeTasks
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Total volume size in bytes
+        displayName: Total Volume Size in bytes
+        path: volumesTotalSizeBytes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: VxVM volumes which are part of replication
+        displayName: Volumes Under Replication
+        path: volumesUnderReplication
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      version: v1
+    - description: DisasterRecoveryPlan is the Schema for the disasterrecoveryplans API.
+      displayName: Disaster Recovery Plan
+      kind: DisasterRecoveryPlan
+      name: disasterrecoveryplans.infoscale.veritas.com
+      specDescriptors:
+      - description: |-
+          Kind of corrective action in case of disaster.
+          Default value is "Manual".
+        displayName: Cluster Failover Policy
+        path: clusterFailOverPolicy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Pointer to manage data replication
+        displayName: Data Replication Pointer
+        path: dataReplicationPointer
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Pointer to manage DNS endpoints
+        displayName: DNS Pointer
+        path: dnsPointer
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Set force to true if peer cluster(s) is not reachable and local cluster needs to perform takeover.
+        displayName: Force
+        path: force
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanswitch
+      - description: Metadata sync details across cluster
+        displayName: Metadata Sync Detail
+        path: metadataSyncDetails
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Last successfully synced metadata backup for this cluster
+        displayName: Backup Name
+        path: metadataSyncDetails[0].backupName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Cluster ID
+        displayName: Cluster ID
+        path: metadataSyncDetails[0].clusterID
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: SyncLag to determine whether last metadata backup is successfully synced to this peer cluster
+        displayName: SyncLag
+        path: metadataSyncDetails[0].syncLag
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanswitch
+      - description: |-
+          List Of member cluster(s) where this DRPlan can failOver.
+          Sequence Of MemberCluster specified in this list denotes relative preference of member cluster(s).
+          Must be subset of global cluster membership
+        displayName: Preferred Cluster List
+        path: preferredClusterList
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Update this attribute to promote a cluster as primary for this DR Plan
+        displayName: Primary Cluster
+        path: primaryCluster
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Specify namespace and optionally labels to decide what all
+          needs to be part of Disaster Recovery Plan
+        displayName: Selector
+        path: selector
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Array of comma separated labels which can select persistent volumes to be replicated
+          in more granular way.
+          If multiple provided they will be joined by the OR operator.
+        displayName: Labels
+        path: selector.labels
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Name of namespace which is to be considered for storage replication
+        displayName: Namespace
+        path: selector.namespace
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Velero backup name
+        displayName: Velero Backup Name
+        path: veleroBkpName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      statusDescriptors:
+      - description: BackupRequestState captures the current state of a Velero backup operation
+        displayName: Backup Status
+        path: backupRequestState
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Attributes related to the request.
+        displayName: Attributes
+        path: backupRequestState.attributes
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Errors is the count of error messages generated during backup.
+        displayName: Count of error messages
+        path: backupRequestState.attributes.errorCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: ItemsBackedUp represent the actual number of resources velero backed up.
+        displayName: Number of resources velero backed up
+        path: backupRequestState.attributes.itemsBackedUp
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: TotalItems represent the total number of resources velero listed for backup.
+        displayName: Number of Resources for backup
+        path: backupRequestState.attributes.totalItems
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Warnings is the count of warning messages generated during backup.
+        displayName: Count of warning messages
+        path: backupRequestState.attributes.warningCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: ErrorDetails related to this request.
+        displayName: Error Details
+        path: backupRequestState.errorDetails
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: AdditionalErrorMessages contains the error/warning messages from the underlying library.
+        displayName: Additional Error Messages
+        path: backupRequestState.errorDetails.additionalErrorMessages
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Errors has the error messages corresponding to the failure.
+        displayName: Errors
+        path: backupRequestState.errorDetails.errors
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          ValidationErrors is a slice of all validation errors (if
+          applicable).
+        displayName: Validation Errors
+        path: backupRequestState.errorDetails.validationErrors
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Phase is the current state of the Backup.
+        displayName: Phase
+        path: backupRequestState.phase
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Data replication status
+        displayName: Data Replication Status
+        path: dataReplicationStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Last explicit metadata backup name
+        displayName: Last Backup Name
+        path: lastBackupName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Metadata Sync Status
+        displayName: Metadata Sync Status
+        path: metadataSyncStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Data replication plan phase
+        displayName: Data Replication Plan Phase
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Current primary site for this DR plan
+        displayName: Primary Cluster
+        path: primaryCluster
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: RestoreRequestState captures the current state of a Velero restore operation
+        displayName: Restore Status
+        path: restoreRequestState
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: BackupName is the backup from which current restore is triggered
+        displayName: Backup Name
+        path: restoreRequestState.backupName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: ErrorDetails defines the error details for the restore operation
+        displayName: Error Details
+        path: restoreRequestState.errorDetails
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Phase is the current state of the Restore.
+        displayName: Phase
+        path: restoreRequestState.phase
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: RetryCount current BSL restore retries on failure
+        displayName: Retry Count
+        path: restoreRequestState.retryCount
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: Schedule status
+        displayName: Schedule Status
+        path: scheduleStatus
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      version: v1
+    - description: DNS is the Schema for the DNSs API.
+      displayName: DNS
+      kind: DNS
+      name: dns.infoscale.veritas.com
+      specDescriptors:
+      - description: |-
+          Set to 1 if you want to clean up all the existing DNS records for the configured keys before adding new records
+          Default 0
+        displayName: Clean all DNS records for configured keys
+        path: cleanRRKeys
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanswitch
+      - description: |-
+          Attribute to control if DNS online should create PTR records for each RR of type A or AAAA.
+          Default 0
+        displayName: Create PTR Record
+        path: createPTR
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanswitch
+      - description: |-
+          User/Orchestrator initiated operation on DNS resource.
+          This operations will help in updating DNS Endpoints.
+          Default "none"
+        displayName: DNS Resource Operation
+        path: dnsResOperation
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Domain Name For DNS
+        displayName: Domain
+        path: domain
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Intended state
+        displayName: Intended State
+        path: iState
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Attribute to control if DNS offline should remove all records defined by ResRecord
+          Default 0
+        displayName: Delete All Records defined by ResRecord
+        path: offDelRR
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanswitch
+      - description: This attribute represents the time interval in seconds after which the DNS agent attempts to refresh the resource records (RRs) on the DNS servers.
+        displayName: Refresh Interval
+        path: refreshInterval
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: "An association of DNS resource record value\nSpecify the key values in map format\nresRecord:\n\tkey1: value1\n\tkey2: value2"
+        displayName: DNS Resource Record Map
+        path: resRecord
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: The list of primary master name servers in the domain.
+        displayName: List of Primary Master Name Servers
+        path: stealthMasters
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Path for the file containing private TSIG key, required for secure DNS updates.
+          Configure only for UNIX based DNS server
+        displayName: Path for file containing TSIG key
+        path: tsigKeyFile
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Time to Live value, in seconds for DNS entries in the zone
+          Default 86400
+        displayName: Time to Live value
+        path: ttl
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+      - description: |-
+          Set to 1 if the DNS server that you have configured is a Windows DNS server and only if it accepts secure dynamic updates.
+          Default 0
+        displayName: Use GSS API
+        path: useGSSAPI
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanswitch
+      statusDescriptors:
+      - description: DNS state
+        displayName: DNS State
+        path: dnsState
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Service group name for this DNS CR
+        displayName: Service Group ID
+        path: groupid
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      version: v1
+    - description: GlobalClusterMembership is the Schema for the globalclustermemberships API.
+      displayName: Global Cluster Membership
+      kind: GlobalClusterMembership
+      name: globalclustermemberships.infoscale.veritas.com
+      specDescriptors:
+      - description: Include Cluster-scoped Custom resources (CRDs) in drplan backup, Default value is true
+        displayName: Backup Cluster Scoped CRDs
+        path: backupClusterScopeCRD
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          Every 60 seconds, tries to heartbeat with peer clusters.
+          If heartbeat missed more than CounterMissTolerance times, then move to FAULTED state.
+          Default value is 5.
+        displayName: Counter Miss Tolerance
+        path: counterMissTolerance
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          Refresh data replication status after specified minutes.
+          Default is 10 minutes.
+        displayName: Refresh replication status interval
+        path: datarepRefreshStatusFrequency
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          User/Orchestrator initiated operation on Global Cluster Membership.
+          Default value is "none", idle state.
+          "localbuild: User seeding cluster membership, validating local copy of GCM.
+        displayName: Global Cluster Operation
+        path: globalClusterOperation
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          Protocol represents behavior of the cluster.
+          Cluster can support multiple protocols. Please see the controller logs for list of supported protocols.
+        displayName: Global Cluster Protocol
+        path: globalClusterProtocol
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: Details of Member Cluster(s)
+        displayName: Global Member Clusters
+        path: globalMemberClusters
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Cluster ID
+        displayName: Cluster ID
+        path: globalMemberClusters[0].clusterID
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Address Used For Communicating With Peer Cluster’s DR Controller
+        displayName: DR Controller Address
+        path: globalMemberClusters[0].drControllerAddress
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: 'Port Used For DR Controller. Default: 14155'
+        displayName: DR Controller Port
+        path: globalMemberClusters[0].drControllerPort
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Out Of MemberCluster(s), Specify Local Cluster Name
+        displayName: Local Cluster Name
+        path: localClusterName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: |-
+          Application metadata backup maximum copies per DR plan.
+          Default value is 5.
+        displayName: Maximum Metadata backup copies per DR plan
+        path: maximumMetadataCopies
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      - description: |-
+          Application metadata backup sync frequency to DR site(s) in minutes.
+          Default value is 15.
+        displayName: Metadata backup sync frequency
+        path: metadataBackupInterval
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:number
+        - urn:alm:descriptor:com.tectonic.ui:advanced
+      statusDescriptors:
+      - description: Details of licensing CR creation time
+        displayName: licenseCRCreationTimestamp
+        path: licenseCRCreationTimestamp
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Map of MemberCluster and PeerLinkState
+        displayName: Map Of MemberCluster And PeerLinkState
+        path: peerClusterLinkState
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: State of Global Cluster Membership
+        displayName: Global Cluster Status
+        path: phase
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      version: v1
+  description: |
+    ## InfoScale™ DR Manager
+
+    InfoScale™ DR Manager manages the Disaster Recovery operations of InfoScale™ for container environment
+
+    ## Overview
+
+    - Disaster Recovery(DR) is provided to applications hosted in container ecosystems. Native container HA capabilities provide high availability to application components within a cluster. However, DR functionality provides disaster recovery in the event of a entire cluster failure and application components can be restored on another peer cluster in membership.
+    - You can form a logical notion called 'Global Cluster' comprising clusters that can be used to migrate DR-enabled objects. DR-enabled objects migrate to peer cluster in case of a disaster like entire cluster going down, loss of connectivity with a particular cluster, user-initiated planned migration across cluster.
+
+    ---
+
+    ## Pre-requisites
+
+    **1.** InfoScale must be installed and InfoScale pods must be configured on the clusters. [[More Details](https://www.veritas.com/content/support/en_US/doc/168721626-168743109-0/v168721648-168743109)]
+
+    **2.** Create storage class with name, which must always be **`infoscale-dr-csi-sc`.**
+
+    ```
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: infoscale-dr-csi-sc
+    parameters:
+      fstype: vxfs
+      layout: mirror
+    allowVolumeExpansion: true
+    provisioner: org.veritas.infoscale
+    reclaimPolicy: Delete
+
+    ```
+
+    **3.** Create persistent volume claim with name, which must always be **`infoscale-dr-meta-bkp-pvc`.**
+
+    ```
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: infoscale-dr-meta-bkp-pvc
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 4Gi
+      storageClassName: infoscale-dr-csi-sc
+      volumeMode: Filesystem
+
+    ```
+
+    - **Note:** User must use InfoScale™ CSI provisioned storage.
+
+    - [For more details, please refer to 'Installing InfoScale DR Manager on openshift' section from official documentation](https://www.veritas.com/content/support/en_US/doc/168721626-168743109-0/v168721654-168743109)
+
+    ## InfoScale™ DR Manager custom resources
+
+    - **Note:** InfoScale™ DR Manager custom resources must be created only in the following order
+
+    **1. Global Cluster Membership:**
+
+    ```
+    apiVersion: infoscale.veritas.com/v1
+    kind: GlobalClusterMembership
+    metadata:
+      name: global-cluster-membership
+    spec:
+      # Local cluster name in the global membership
+      localClusterName: Clus1
+
+      globalMemberClusters:
+          # Cluster ID of member of global cluster membership
+        - clusterID: Clus1
+
+          # Address Used For Communicating With Peer Cluster's DR Controller
+          drControllerAddress: "10.0.10.1"
+
+          # Port used for DR controller
+          drControllerPort: "8080"
+
+          # Cluster ID of member of global cluster membership
+        - clusterID: Clus2
+
+          # Address Used For Communicating With Peer Cluster's DR Controller
+          drControllerAddress: "10.0.10.2"
+
+          # Port used for DR controller
+          drControllerPort: "9090"
+
+    ```
+
+    **2. Data Replication:**
+
+    ```
+    apiVersion: infoscale.veritas.com/v1
+    kind: DataReplication
+    metadata:
+      name: test-datareplication
+    spec:
+      # Primary cluster details
+
+      # Virtual IP address to configure VVR
+      localHostAddress: 10.0.0.1
+
+      # Corresponding netmask to configure VVR
+      localNetMask: 255.255.240.0
+
+      # Corresponding network interface to configure VVR (If NIC name is identical for all nodes)
+      localNIC: eth0
+
+      # Namespace and optional labels for which you want to configure data replication
+      selector:
+        namespace: mysql
+        #labels:
+        #  app: db
+
+      # Current primary cluster name - Name of the cluster you want to back up
+      currentPrimary: Clus1
+
+      # Secondary cluster details
+      remoteClusterDetails:
+          # ID of the Cluster to be used for a backup
+        - clusterName: Clus2
+
+          # Virtual IP address for VVR configuration of this cluster
+          remoteHostAddress: 10.0.0.2
+
+          # Corresponding Netmask of this cluster
+          remoteNetMask: 255.255.240.0
+
+          # Corresponding Network interface of this cluster
+          remoteNIC: eth0
+
+          # (optional) replication type can be sync or async.
+          # default value will be async if not specified.
+          replicationType: async
+
+    ```
+    **3. Disaster Recovery Plan:**
+
+    ```
+    apiVersion: infoscale.veritas.com/v1
+    kind: DisasterRecoveryPlan
+    metadata:
+      name: test-disaster-recovery-plan
+    spec:
+      # Name of cluster that should be treated as primary for this DR plan
+      primaryCluster: Clus1
+
+      # (optional) Set force to True if peer cluster(s) is not reachable and local cluster needs to perform takeover
+      force: false
+
+      # List of member cluster(s) where this DRPlan can failover.
+      # Sequence of MemberCluster specified in this list denotes relative preference of member cluster(s)
+      # Must be subset of Global Cluster Membership
+      preferredClusterList: ["Clus1", "Clus2"]
+
+      # Kind of corrective action in case of disaster
+      # default value will be "Manual" if not specified
+      clusterFailOverPolicy: Manual
+
+      # Specify namespace and optional labels to decide what all needs to be part of the disaster recovery plan
+      selector:
+        namespace: mysql
+        #labels:
+        #  app: db
+
+      # (optional) Pointer to manage data replication
+      dataReplicationPointer: test-datareplication
+
+    ```
+  displayName: InfoScale™ DR Manager
+  icon:
+  - base64data: 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
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - limitranges
+          - podtemplates
+          - serviceaccounts
+          verbs:
+          - deletecollection
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumes
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - deletecollection
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - patch
+          - watch
+        - apiGroups:
+          - '*'
+          resources:
+          - '*'
+          verbs:
+          - create
+          - get
+          - list
+          - patch
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - statefulsets
+          verbs:
+          - deletecollection
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - create
+          - delete
+          - deletecollection
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          verbs:
+          - deletecollection
+          - list
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates/status
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - infoscale.veritas.com
+          resources:
+          - datareplications
+          - disasterrecoveryplans
+          - dns
+          - globalclustermemberships
+          - globalclustermemberships/status
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - infoscale.veritas.com
+          resources:
+          - datareplications/finalizers
+          - disasterrecoveryplans/finalizers
+          - dns/finalizers
+          - globalclustermemberships/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - infoscale.veritas.com
+          resources:
+          - datareplications/status
+          - disasterrecoveryplans/status
+          - dns/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - infoscale.veritas.com
+          resources:
+          - infoscaleclusters
+          verbs:
+          - list
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          - rolebindings
+          - roles
+          verbs:
+          - bind
+          - escalate
+          - update
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - storageclasses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - watch
+        serviceAccountName: infoscale-dr-manager
+      deployments:
+      - label:
+          control-plane: infoscale-dr-manager
+        name: infoscale-dr-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: infoscale-dr-manager
+          strategy:
+            type: Recreate
+          template:
+            metadata:
+              labels:
+                control-plane: infoscale-dr-manager
+            spec:
+              containers:
+              - args:
+                - --config=controller_manager_config.yaml
+                - --nodename=$(NODENAME)
+                command:
+                - /manager
+                env:
+                - name: NODENAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: INFOSCALE_AUTH_KEYSTORE
+                  value: /etc/vx/dr/certs/
+                - name: INFOSCALE_REST_URL
+                  value: https://infoscale-vtas-rest:8443
+                - name: REST_CLIENT_DEBUG
+                  value: "false"
+                - name: DR_DEPLOYMENT_NS
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: DR_DEPLOYMENT_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.labels['control-plane']
+                - name: TLS_CIPHER_SUITES
+                  value: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+                image: registry.connect.redhat.com/arctera/infoscale-dr-operator@sha256:ca65f01cb406bb12faeef07decffe765d1b34954830073d053244a1846a1b24e
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: cert
+                  readOnly: true
+                - mountPath: /controller_manager_config.yaml
+                  name: manager-config
+                  subPath: controller_manager_config.yaml
+                - mountPath: /etc/vx/dr/certs
+                  name: dr-cert
+                  readOnly: true
+                - mountPath: /etc/vx/dr-serv/certs
+                  name: dr-certs-dir
+                  readOnly: true
+                - mountPath: /staging
+                  name: velero-bsl
+              initContainers:
+              - args:
+                - --manage-certs=create
+                command:
+                - /manager
+                env:
+                - name: DR_DEPLOYMENT_NS
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: DR_DEPLOYMENT_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.labels['control-plane']
+                image: registry.connect.redhat.com/arctera/infoscale-dr-operator@sha256:ca65f01cb406bb12faeef07decffe765d1b34954830073d053244a1846a1b24e
+                imagePullPolicy: IfNotPresent
+                name: pre-manager
+                resources: {}
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: infoscale-dr-manager
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - name: cert
+                secret:
+                  defaultMode: 420
+                  optional: true
+                  secretName: infoscale-dr-webhook-tls-cert
+              - configMap:
+                  name: infoscale-dr-manager-config
+                  optional: true
+                name: manager-config
+              - name: dr-cert
+                secret:
+                  optional: true
+                  secretName: infoscale-dr-tls-cert
+              - name: dr-certs-dir
+                secret:
+                  optional: true
+                  secretName: infoscale-dr-server-cert
+              - name: velero-bsl
+                persistentVolumeClaim:
+                  claimName: infoscale-dr-meta-bkp-pvc
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          - coordination.k8s.io
+          resources:
+          - configmaps
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: infoscale-dr-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - Infoscale
+  - Storage foundation
+  - Arctera
+  - Data storage
+  - Storage
+  - Data
+  - SDS
+  - Software
+  - Defined Storage
+  - Clustered storage
+  - CFS
+  - DR
+  - Disaster Recovery
+  links:
+  - name: Infoscale DR Manager
+    url: https://www.arctera.io/infoscale-kubernetes
+  maturity: stable
+  minKubeVersion: 1.17.0
+  provider:
+    name: Arctera US LLC
+    url: https://www.arctera.io
+  relatedImages:
+  - name: manager
+    image: registry.connect.redhat.com/arctera/infoscale-dr-operator@sha256:ca65f01cb406bb12faeef07decffe765d1b34954830073d053244a1846a1b24e
+  - name: pre-manager
+    image: registry.connect.redhat.com/arctera/infoscale-dr-operator@sha256:ca65f01cb406bb12faeef07decffe765d1b34954830073d053244a1846a1b24e
+  - name: infoscale-dr-operator-7dff20a0aff34e1e66a97c9a39cda883642dd1e94b872c8fc2f62efc7a4db1bb-annotation
+    image: registry.connect.redhat.com/arctera/infoscale-dr-operator@sha256:ca65f01cb406bb12faeef07decffe765d1b34954830073d053244a1846a1b24e
+  - name: infoscale-dr-operator-ca65f01cb406bb12faeef07decffe765d1b34954830073d053244a1846a1b24e-annotation
+    image: registry.connect.redhat.com/arctera/infoscale-dr-operator@sha256:ca65f01cb406bb12faeef07decffe765d1b34954830073d053244a1846a1b24e
+  version: 9.0.1
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    conversionCRDs:
+    - datareplications.infoscale.veritas.com
+    - disasterrecoveryplans.infoscale.veritas.com
+    - dns.infoscale.veritas.com
+    - globalclustermemberships.infoscale.veritas.com
+    deploymentName: infoscale-dr-manager
+    generateName: cdatareplicationsdisasterrecoveryplansdnsglobalclustermemberships.kb.io
+    sideEffects: None
+    targetPort: 9443
+    type: ConversionWebhook
+    webhookPath: /convert
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-dr-manager
+    failurePolicy: Fail
+    generateName: dns-mutate.veritas.com
+    rules:
+    - apiGroups:
+      - infoscale.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - dns
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-infoscale-veritas-com-v1-dns
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-dr-manager
+    failurePolicy: Fail
+    generateName: dns-validate.veritas.com
+    rules:
+    - apiGroups:
+      - infoscale.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - dns
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-infoscale-veritas-com-v1-dns
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-dr-manager
+    failurePolicy: Fail
+    generateName: drplan-mutate.veritas.com
+    rules:
+    - apiGroups:
+      - infoscale.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - disasterrecoveryplans
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-infoscale-veritas-com-v1-disasterrecoveryplan
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-dr-manager
+    failurePolicy: Fail
+    generateName: drplan-validate.veritas.com
+    rules:
+    - apiGroups:
+      - infoscale.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      - DELETE
+      resources:
+      - disasterrecoveryplans
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-infoscale-veritas-com-v1-disasterrecoveryplan
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-dr-manager
+    failurePolicy: Fail
+    generateName: gcm-mutate.veritas.com
+    rules:
+    - apiGroups:
+      - infoscale.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - globalclustermemberships
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-infoscale-veritas-com-v1-globalclustermembership
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-dr-manager
+    failurePolicy: Fail
+    generateName: gcm-validate.veritas.com
+    rules:
+    - apiGroups:
+      - infoscale.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      - DELETE
+      resources:
+      - globalclustermemberships
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-infoscale-veritas-com-v1-globalclustermembership
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-dr-manager
+    failurePolicy: Fail
+    generateName: replication-mutate.veritas.com
+    rules:
+    - apiGroups:
+      - infoscale.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - datareplications
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-infoscale-veritas-com-v1-datareplication
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-dr-manager
+    failurePolicy: Fail
+    generateName: replication-validate.veritas.com
+    rules:
+    - apiGroups:
+      - infoscale.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      - DELETE
+      resources:
+      - datareplications
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-infoscale-veritas-com-v1-datareplication

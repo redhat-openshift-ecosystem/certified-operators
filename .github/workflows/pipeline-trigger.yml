@@ -8,24 +8,16 @@ jobs:
     name: PR comment
     if: ${{ github.event.issue.pull_request && startsWith(github.event.comment.body, '/re-trigger') }}
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      PR: ${{ github.event.issue.number }}
     steps:
       - name: Add temporary re-trigger label
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          labels: pipeline/trigger
+        run: gh pr edit "$PR" --add-label pipeline/trigger
 
       - name: Comment a PR
-        uses: actions/github-script@v4
-        with:
-          script: |
-            github.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'The certification pipeline will be triggered soon.'
-            })
+        run: gh pr comment "$PR" --body 'The certification pipeline will be triggered soon.'
 
       - name: Remove a temporary label
-        uses: actions-ecosystem/action-remove-labels@v1
-        with:
-          labels: pipeline/trigger
+        run: gh pr edit "$PR" --remove-label pipeline/trigger

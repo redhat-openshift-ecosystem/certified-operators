@@ -1,0 +1,278 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  creationTimestamp: null
+  name: truenascsis.csi.truenas.io
+spec:
+  group: csi.truenas.io
+  names:
+    kind: TrueNASCSI
+    listKind: TrueNASCSIList
+    plural: truenascsis
+    shortNames:
+    - tnc
+    singular: truenascsi
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - description: Current phase
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Controller ready
+      jsonPath: .status.controllerReady
+      name: Controller
+      type: boolean
+    - description: Nodes ready
+      jsonPath: .status.nodeDaemonSetReady
+      name: Nodes
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: TrueNASCSI is the Schema for the truenascsis API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TrueNASCSISpec defines the desired state of TrueNASCSI.
+            properties:
+              controllerReplicas:
+                default: 1
+                description: ControllerReplicas is the number of controller pod replicas
+                format: int32
+                maximum: 3
+                minimum: 1
+                type: integer
+              credentialsSecret:
+                description: |-
+                  CredentialsSecret is the name of the Secret containing the TrueNAS API key
+                  The secret must have a key named "api-key"
+                type: string
+              defaultPool:
+                description: DefaultPool is the default ZFS pool to use for volume
+                  provisioning
+                type: string
+              driverImage:
+                default: quay.io/truenas_solutions/truenas-csi:latest
+                description: DriverImage is the container image for the TrueNAS CSI
+                  driver
+                type: string
+              insecureSkipTLS:
+                default: false
+                description: |-
+                  InsecureSkipTLS skips TLS certificate verification when connecting to TrueNAS
+                  Use only for testing or when using self-signed certificates
+                type: boolean
+              iscsiIQNBase:
+                default: iqn.2000-01.io.truenas
+                description: ISCSIIQNBase is the base IQN for iSCSI targets (e.g.,
+                  "iqn.2000-01.io.truenas")
+                type: string
+              iscsiPortal:
+                description: |-
+                  ISCSIPortal is the iSCSI portal address in the format "ip:port" (e.g., "192.168.1.100:3260")
+                  Required if using iSCSI storage classes
+                type: string
+              logLevel:
+                default: 4
+                description: LogLevel sets the verbosity of the CSI driver logs (1-5)
+                format: int32
+                maximum: 5
+                minimum: 1
+                type: integer
+              managementState:
+                default: Managed
+                description: |-
+                  ManagementState controls whether the operator manages this resource
+                  Valid values: "Managed", "Unmanaged", "Removed"
+                enum:
+                - Managed
+                - Unmanaged
+                - Removed
+                type: string
+              namespace:
+                default: truenas-csi
+                description: Namespace for deploying CSI driver components
+                type: string
+              nfsServer:
+                description: |-
+                  NFSServer is the IP address or hostname of the TrueNAS NFS server
+                  Required if using NFS storage classes
+                type: string
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: NodeSelector for the CSI node pods
+                type: object
+              tolerations:
+                description: Tolerations for the CSI node pods
+                items:
+                  description: |-
+                    The pod this Toleration is attached to tolerates any taint that matches
+                    the triple <key,value,effect> using the matching operator <operator>.
+                  properties:
+                    effect:
+                      description: |-
+                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                      type: string
+                    key:
+                      description: |-
+                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                      type: string
+                    operator:
+                      description: |-
+                        Operator represents a key's relationship to the value.
+                        Valid operators are Exists and Equal. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod can
+                        tolerate all taints of a particular category.
+                      type: string
+                    tolerationSeconds:
+                      description: |-
+                        TolerationSeconds represents the period of time the toleration (which must be
+                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                        negative values will be treated as 0 (evict immediately) by the system.
+                      format: int64
+                      type: integer
+                    value:
+                      description: |-
+                        Value is the taint value the toleration matches to.
+                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                      type: string
+                  type: object
+                type: array
+              truenasURL:
+                description: TrueNASURL is the WebSocket URL to the TrueNAS API (e.g.,
+                  wss://truenas.example.com/api/current)
+                pattern: ^wss?://
+                type: string
+            required:
+            - credentialsSecret
+            - defaultPool
+            - truenasURL
+            type: object
+          status:
+            description: TrueNASCSIStatus defines the observed state of TrueNASCSI.
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the TrueNASCSI's state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              controllerReady:
+                description: ControllerReady indicates if the controller deployment
+                  is ready
+                type: boolean
+              controllerReplicas:
+                description: ControllerReplicas is the number of ready controller
+                  replicas
+                format: int32
+                type: integer
+              driverVersion:
+                description: DriverVersion is the version of the deployed CSI driver
+                type: string
+              nodeDaemonSetReady:
+                description: NodeDaemonSetReady indicates if the node daemonset is
+                  ready
+                type: boolean
+              nodeReplicas:
+                description: NodeReplicas is the number of ready node replicas
+                format: int32
+                type: integer
+              observedGeneration:
+                description: ObservedGeneration is the generation last processed by
+                  the controller
+                format: int64
+                type: integer
+              phase:
+                description: Phase represents the current phase of the CSI driver
+                  deployment
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

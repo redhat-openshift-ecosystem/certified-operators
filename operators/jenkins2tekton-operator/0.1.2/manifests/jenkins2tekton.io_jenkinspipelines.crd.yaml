@@ -1,0 +1,175 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: jenkinspipelines.jenkins2tekton.io
+spec:
+  group: jenkins2tekton.io
+  scope: Namespaced
+
+  names:
+    plural: jenkinspipelines
+    singular: jenkinspipeline
+    kind: JenkinsPipeline
+    listKind: JenkinsPipelineList
+    shortNames:
+      - j2t
+      - jenkinspl
+    categories:
+      - tekton
+      - cicd
+
+  conversion:
+    strategy: None
+
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+
+      additionalPrinterColumns:
+        - name: Pipeline
+          type: string
+          jsonPath: .status.pipelineName
+        - name: Hash
+          type: string
+          jsonPath: .status.inputHash
+        - name: Source
+          type: string
+          jsonPath: .status.source
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+
+      subresources:
+        status: {}
+
+      schema:
+        openAPIV3Schema:
+          type: object
+          description: >
+            JenkinsPipeline represents a Jenkinsfile input that will be converted into Tekton resources
+            (Tasks + Pipeline, optionally PipelineRun) in the same namespace.
+          required:
+            - apiVersion
+            - kind
+            - metadata
+            - spec
+          properties:
+            apiVersion:
+              type: string
+            kind:
+              type: string
+            metadata:
+              type: object
+
+            spec:
+              type: object
+              description: Desired Jenkinsfile source + conversion options.
+              properties:
+                source:
+                  type: object
+                  description: |
+                    Inline Jenkinsfile input.
+                    NOTE: If spec.options.jenkinsfileConfigMapRef is set, inline is ignored.
+                  properties:
+                    inline:
+                      type: string
+                      description: |
+                        Paste Jenkinsfile (Declarative Pipeline) content directly.
+                        If options.jenkinsfileConfigMapRef is set, this field is ignored.
+                      maxLength: 20000
+
+                options:
+                  type: object
+                  description: Optional conversion options passed to the converter.
+                  properties:
+                    jenkinsfileConfigMapRef:
+                      type: object
+                      description: |
+                        Optional: reference a ConfigMap containing the Jenkinsfile text.
+                        When set, this takes precedence and spec.source.inline is ignored.
+                      required:
+                        - name
+                        - key
+                      properties:
+                        name:
+                          type: string
+                          minLength: 1
+                        key:
+                          type: string
+                          minLength: 1
+
+                    pipelineName:
+                      type: string
+                      description: Optional Tekton Pipeline name override.
+                      maxLength: 63
+                      pattern: "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+
+                    runnerImage:
+                      type: string
+                      description: Image used inside generated Tekton Tasks to run scripts.
+
+                    serviceAccount:
+                      type: string
+                      description: ServiceAccount used in generated PipelineRun (if enabled).
+
+                    workspacePVC:
+                      type: string
+                      description: Optional PVC name for shared workspace.
+
+                    sshSecret:
+                      type: string
+                      description: Optional Secret name that contains id_rsa for SSH steps.
+
+                    createPipelineRun:
+                      type: boolean
+                      description: If true, operator also creates a PipelineRun object.
+                      default: false
+
+                behavior:
+                  type: object
+                  description: Operator behavior controls (prune, re-run on change, etc).
+                  properties:
+                    prune:
+                      type: boolean
+                      description: If true, prune previously generated Tekton objects for this CR.
+                      default: true
+
+            status:
+              type: object
+              description: Observed state of the conversion.
+              properties:
+                observedGeneration:
+                  type: integer
+                  format: int64
+                source:
+                  type: string
+                  description: "inline|configmap|none"
+                inputHash:
+                  type: string
+                converterImage:
+                  type: string
+                pipelineName:
+                  type: string
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - status
+                      - lastTransitionTime
+                      - reason
+                      - message
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      reason:
+                        type: string
+                      message:
+                        type: string

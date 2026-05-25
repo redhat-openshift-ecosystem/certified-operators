@@ -1,0 +1,97 @@
+apiVersion: v1
+data:
+  csi.ibm.com_v1_ibmblockcsi_cr.yaml: |
+    apiVersion: csi.ibm.com/v1
+    kind: IBMBlockCSI
+    metadata:
+      name: ibm-block-csi
+      namespace: default
+      labels:
+        app.kubernetes.io/name: ibm-block-csi
+        app.kubernetes.io/instance: ibm-block-csi
+        app.kubernetes.io/managed-by: ibm-block-csi-operator
+        release: v1.12.4
+    spec:
+      # controller is a statefulSet with ibm-block-csi-controller container
+      # and csi-provisioner, csi-attacher, csi-snapshotter and livenessprobe sidecars.
+      controller:
+        repository: quay.io/ibmcsiblock/ibm-block-csi-driver-controller
+        tag: "1.12.4"
+        imagePullPolicy: IfNotPresent
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+                        - s390x
+                        - ppc64le
+
+      # node is a daemonSet with ibm-block-csi-node container
+      # and csi-node-driver-registrar and livenessprobe sidecars.
+      node:
+        repository: quay.io/ibmcsiblock/ibm-block-csi-driver-node
+        tag: "1.12.4"
+        imagePullPolicy: IfNotPresent
+        affinity:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms:
+                - matchExpressions:
+                    - key: kubernetes.io/arch
+                      operator: In
+                      values:
+                        - amd64
+                        - s390x
+                        - ppc64le
+
+    #    tolerations:
+    #    - effect: NoSchedule
+    #      key: node-role.kubernetes.io/control-plane
+    #      operator: Exists
+
+      odfVersionForCallHome: "1.8.0"
+
+      sidecars:
+      - name: csi-node-driver-registrar
+        repository: registry.k8s.io/sig-storage/csi-node-driver-registrar
+        tag: "v2.13.0"
+        imagePullPolicy: IfNotPresent
+      - name: csi-provisioner
+        repository: registry.k8s.io/sig-storage/csi-provisioner
+        tag: "v4.0.1"
+        imagePullPolicy: IfNotPresent
+      - name: csi-attacher
+        repository: registry.k8s.io/sig-storage/csi-attacher
+        tag: "v4.8.0"
+        imagePullPolicy: IfNotPresent
+      - name: csi-snapshotter
+        repository: registry.k8s.io/sig-storage/csi-snapshotter
+        tag: "v8.2.0"
+        imagePullPolicy: IfNotPresent
+      - name: csi-resizer
+        repository: registry.k8s.io/sig-storage/csi-resizer
+        tag: "v1.13.1"
+        imagePullPolicy: IfNotPresent
+      - name: csi-addons-replicator
+        repository: quay.io/ibmcsiblock/csi-block-volumereplication-operator
+        tag: "v0.9.2"
+        imagePullPolicy: IfNotPresent
+      - name: csi-volume-group
+        repository: quay.io/ibmcsiblock/csi-volume-group-operator
+        tag: "v0.9.2"
+        imagePullPolicy: IfNotPresent
+      - name: livenessprobe
+        repository: registry.k8s.io/sig-storage/livenessprobe
+        tag: "v2.15.0"
+        imagePullPolicy: IfNotPresent
+
+    #  healthPort: 9808
+    #  imagePullSecrets:
+    #  - "secretName"
+kind: ConfigMap
+metadata:
+  name: flashsystem-csi-cr

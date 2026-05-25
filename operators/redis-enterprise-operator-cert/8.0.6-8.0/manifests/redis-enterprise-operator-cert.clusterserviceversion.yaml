@@ -1,0 +1,717 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    categories: Database
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "app.redislabs.com/v1",
+          "kind": "RedisEnterpriseCluster",
+          "metadata": {
+            "name": "rec"
+          },
+          "spec": {
+            "nodes": 3,
+            "persistentSpec": {
+              "enabled": true
+            },
+            "bootstrapperImageSpec": {
+              "repository": "registry.connect.redhat.com/redislabs/redis-enterprise-operator"
+            },
+            "redisEnterpriseServicesRiggerImageSpec": {
+              "repository": "registry.connect.redhat.com/redislabs/services-manager"
+            },
+            "redisEnterpriseImageSpec": {
+              "repository": "registry.connect.redhat.com/redislabs/redis-enterprise"
+            },
+            "usageMeter": {
+              "callHomeClient": {
+                "imageSpec": {
+                  "repository": "registry.connect.redhat.com/redislabs/call-home-client"
+                }
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "app.redislabs.com/v1alpha1",
+          "kind": "RedisEnterpriseDatabase",
+          "metadata": {
+            "name": "redb"
+          },
+          "spec": {
+            "memorySize": "256MB",
+            "shardCount": 1,
+            "replication": true
+          }
+        },
+        {
+          "apiVersion": "app.redislabs.com/v1alpha1",
+          "kind": "RedisEnterpriseRemoteCluster",
+          "metadata": {
+            "name": "rerc1",
+            "labels": {
+              "app": "redis-enterprise"
+            }
+          },
+          "spec": {
+            "recName": "rec",
+            "recNamespace": "ns1",
+            "apiFqdnUrl": "testapi-rerc1-ns1.redislabs.com",
+            "dbFqdnSuffix": "-example-rerc1-ns1.redislabs.com",
+            "secretName": "redis-enterprise-rerc1"
+          }
+        },
+        {
+          "apiVersion": "app.redislabs.com/v1alpha1",
+          "kind": "RedisEnterpriseActiveActiveDatabase",
+          "metadata": {
+            "name": "reaadb-1",
+            "labels": {
+              "app": "redis-enterprise"
+            }
+          },
+          "spec": {
+            "participatingClusters": [
+              {
+                "name": "rerc1"
+              },
+              {
+                "name": "rerc2"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Deep Insights
+    # The following annotation is deprecated in OpenShift 4.14+,
+    # but left here for compatibility with older OpenShift versions.
+    operators.openshift.io/infrastructure-features: '["disconnected"]'
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "true"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+  name: redis-enterprise-operator.v8.0.6-8.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - group: app.redislabs.com
+      version: v1
+      kind: RedisEnterpriseCluster
+      name: redisenterpriseclusters.app.redislabs.com
+      displayName: RedisEnterpriseCluster
+      description: Deploy a Redis Enterprise Cluster
+      deploymentName: REC
+    - group: app.redislabs.com
+      version: v1alpha1
+      kind: RedisEnterpriseDatabase
+      name: redisenterprisedatabases.app.redislabs.com
+      displayName: RedisEnterpriseDatabase
+      description: Deploy a Redis Enterprise Database on an operator-managed Redis Enteprise Cluster
+      deploymentName: REDB
+    - group: app.redislabs.com
+      version: v1alpha1
+      kind: RedisEnterpriseActiveActiveDatabase
+      name: redisenterpriseactiveactivedatabases.app.redislabs.com
+      displayName: RedisEnterpriseActiveActiveDatabase
+      description: Deploy a Redis Enterprise Active-Active Database on an operator-managed Redis Enteprise Cluster
+      deploymentName: REAADB
+    - group: app.redislabs.com
+      version: v1alpha1
+      kind: RedisEnterpriseRemoteCluster
+      name: redisenterpriseremoteclusters.app.redislabs.com
+      displayName: RedisEnterpriseRemoteCluster
+      description: Define Redis Enterprise Clusters used to form Active-Active databases
+      deploymentName: RERC
+      resources:
+      - kind: Service
+        name: ''
+        version: v1
+      - kind: StatefulSet
+        name: ''
+        version: v1
+      - kind: ReplicaSet
+        name: ''
+        version: v1
+      - kind: ConfigMap
+        name: ''
+        version: v1
+      - kind: Secret
+        name: ''
+        version: v1
+      - kind: Deployment
+        name: ''
+        version: v1
+      - kind: Pod
+        name: ''
+        version: v1
+      specDescriptors:
+      - description: Number of cluster nodes to deploy.
+        displayName: Cluster Nodes
+        path: nodes
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:podCount'
+      - description: Enable cluster persistence.
+        displayName: Persistence
+        path: persistentSpec.enabled
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:booleanSwitch'
+      - description: Storage class name.
+        displayName: Storage class
+        path: persistentSpec.storageClassName
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:label'
+      - description: Cluster UI username.
+        displayName: Username
+        path: username
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:label'
+      - description: Number of cluster nodes to deploy.
+        displayName: Cluster Nodes
+        path: nodes
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:podCount'
+      - description: Redis Entrprise Node resource requirements.
+        displayName: Resource Requirements
+        path: redisEnterpriseNodeResources
+        x-descriptors:
+        - 'urn:alm:descriptor:com.tectonic.ui:resourceRequirements'
+      statusDescriptors:
+      - description: The status of the Redis Enterprise Cluster.
+        displayName: Cluster Status
+        path: state
+        x-descriptors:
+        - 'urn:alm:descriptor:text'
+  displayName: Redis Enterprise Operator
+  keywords:
+  - redislabs
+  - redis
+  - database
+  - nosql
+  - cache
+  install:
+    spec:
+      deployments:
+      - name: redis-enterprise-operator
+        label:
+          app: redis-enterprise
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: redis-enterprise-operator
+          strategy:
+            type: Recreate
+          template:
+            metadata:
+              labels:
+                name: redis-enterprise-operator
+                app: redis-enterprise
+            spec:
+              containers:
+              - name: redis-enterprise-operator
+                image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:7c9a0c2c41d4104a4e4d319b63cc7188ff1e72ed3f75ec51f8ee1a022ac83e16
+                securityContext:
+                  privileged: false
+                  readOnlyRootFilesystem: true
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                imagePullPolicy: Always
+                command:
+                - operator-root
+                - operator
+                envFrom:
+                - configMapRef:
+                    name: operator-environment-config
+                    optional: true
+                ports:
+                - containerPort: 8080
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: redis-enterprise-operator
+                - name: IS_OPENSHIFT
+                  value: "true"
+                - name: DEFAULT_RIGGER_IMAGE_DIGEST
+                  value: sha256:8cf316b7c8381387cb092d691a9a5bf098b8604229cabf95994eeb105d962037
+                - name: DEFAULT_CALL_HOME_IMAGE_DIGEST
+                  value: sha256:5540b0c0150e0b1b3979cd0d96ad2853472cd9fafdc03af5835d0e34ec329c82
+                - name: DEFAULT_BOOTSTRAPPER_IMAGE_DIGEST
+                  value: sha256:7c9a0c2c41d4104a4e4d319b63cc7188ff1e72ed3f75ec51f8ee1a022ac83e16
+                - name: DEFAULT_RS_IMAGE_DIGEST
+                  value: sha256:10c2630183aaf357bca793dbe239e7011d2527dfa6ff5f15c0278bbc501eaeb4
+                resources:
+                  limits:
+                    cpu: 4000m
+                    memory: 512Mi
+                  requests:
+                    cpu: 500m
+                    memory: 256Mi
+                livenessProbe:
+                  failureThreshold: 3
+                  successThreshold: 1
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  httpGet:
+                    path: /liveness
+                    port: 8080
+                    scheme: HTTP
+                readinessProbe:
+                  failureThreshold: 3
+                  exec:
+                    command: ["true"]
+                  periodSeconds: 60
+                  successThreshold: 1
+                  timeoutSeconds: 5
+                  initialDelaySeconds: 0
+              - name: admission
+                image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:7c9a0c2c41d4104a4e4d319b63cc7188ff1e72ed3f75ec51f8ee1a022ac83e16
+                securityContext:
+                  privileged: false
+                  readOnlyRootFilesystem: true
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                command:
+                - operator-root
+                - admission
+                imagePullPolicy: Always
+                envFrom:
+                - configMapRef:
+                    name: operator-environment-config
+                    optional: true
+                ports:
+                - containerPort: 8443
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: ADMISSION_SERVICE_NAME
+                  value: redis-enterprise-operator-service
+                - name: IS_OLM
+                  value: "true"
+                resources:
+                  limits:
+                    cpu: 1000m
+                    memory: 512Mi
+                  requests:
+                    cpu: 250m
+                    memory: 256Mi
+                readinessProbe:
+                  failureThreshold: 3
+                  successThreshold: 1
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  httpGet:
+                    path: /readiness
+                    port: 8443
+                    scheme: HTTPS
+                livenessProbe:
+                  failureThreshold: 3
+                  successThreshold: 1
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  initialDelaySeconds: 15
+                  httpGet:
+                    path: /liveness
+                    port: 8443
+                    scheme: HTTPS
+              serviceAccountName: redis-enterprise-operator
+              securityContext:
+                seccompProfile:
+                  type: RuntimeDefault
+                runAsNonRoot: true
+      permissions:
+      - rules:
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - roles
+          - rolebindings
+          verbs:
+          - create
+          - get
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - create
+          - get
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - app.redislabs.com
+          resources:
+          - "*"
+          verbs:
+          - delete
+          - get
+          - list
+          - patch
+          - create
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - update
+          - get
+          - create
+          - patch
+          - delete
+          - list
+          - watch
+        - apiGroups:
+          - discovery.k8s.io
+          resources:
+          - endpointslices
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - statefulsets
+          - replicasets
+          verbs:
+          - create
+          - delete
+          - get
+          - patch
+          - update
+          - list
+          - watch
+        - apiGroups:
+          - batch
+          resources:
+          - cronjobs
+          verbs:
+          - create
+          - delete
+          - get
+          - patch
+          - update
+          - list
+          - watch
+        - apiGroups:
+          - policy
+          resources:
+          - poddisruptionbudgets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - create
+          - delete
+          - get
+          - update
+          - watch
+          - list
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims
+          verbs:
+          - create
+          - delete
+          - get
+          - update
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+          - update
+          - patch
+          - delete
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          verbs:
+          - get
+          - list
+          - update
+          - patch
+          - create
+          - delete
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - create
+          - patch
+          - delete
+          - list
+          - update
+          - get
+          - watch
+        - apiGroups:
+          - networking.istio.io
+          resources:
+          - gateways
+          - virtualservices
+          verbs:
+          - get
+          - list
+          - update
+          - patch
+          - create
+          - delete
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          - routes/custom-host
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          resourceNames:
+          - nonroot-v2
+          verbs:
+          - use
+        serviceAccountName: redis-enterprise-operator
+      - rules:
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - redis-enterprise-scc-v2
+          - nonroot-v2
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        serviceAccountName: rec
+    strategy: deployment
+  webhookdefinitions:
+  - generateName: redisenterprise.admission.redislabs
+    type: ValidatingAdmissionWebhook
+    deploymentName: "redis-enterprise-operator"
+    containerPort: 8443
+    sideEffects: "None"
+    timeoutSeconds: 30
+    failurePolicy: "Fail"
+    matchPolicy: "Exact"
+    admissionReviewVersions:
+    - "v1beta1"
+    rules:
+    - operations:
+      - "CREATE"
+      - "UPDATE"
+      apiGroups:
+      - "app.redislabs.com"
+      apiVersions:
+      - "v1alpha1"
+      resources:
+      - "redisenterprisedatabases"
+      - "redisenterpriseactiveactivedatabases"
+      - "redisenterpriseremoteclusters"
+    webhookPath: "/admission"
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  maturity: mature
+  provider:
+    name: Redis
+  version: 8.0.6-8.0
+  skips:
+  - redis-enterprise-operator.v7.4.2-2.0
+  - redis-enterprise-operator.v7.4.2-2.6
+  - redis-enterprise-operator.v7.4.2-12.0
+  - redis-enterprise-operator.v7.4.6-2.0
+  - redis-enterprise-operator.v7.4.6-2.3
+  - redis-enterprise-operator.v7.4.6-2.4
+  - redis-enterprise-operator.v7.4.6-2.8
+  - redis-enterprise-operator.v7.8.2-6.3
+  - redis-enterprise-operator.v7.4.6-6.1
+  - redis-enterprise-operator.v7.8.2-6.8
+  - redis-enterprise-operator.v7.8.4-8.0
+  - redis-enterprise-operator.v7.4.6-6.3
+  - redis-enterprise-operator.v7.8.4-9.0
+  - redis-enterprise-operator.v7.8.6-1.0
+  - redis-enterprise-operator.v7.8.6-1.1
+  - redis-enterprise-operator.v7.22.0-7.0
+  - redis-enterprise-operator.v7.8.6-1.2
+  - redis-enterprise-operator.v7.8.6-2.2
+  - redis-enterprise-operator.v7.22.0-11.2
+  - redis-enterprise-operator.v7.4.6-6.4
+  - redis-enterprise-operator.v7.8.6-3.2
+  - redis-enterprise-operator.v7.22.0-15.0
+  - redis-enterprise-operator.v7.22.0-16.0
+  - redis-enterprise-operator.v7.8.6-5.1
+  - redis-enterprise-operator.v7.22.0-17.0
+  - redis-enterprise-operator.v7.22.0-11.3
+  - redis-enterprise-operator.v7.4.6-7.2
+  - redis-enterprise-operator.v7.8.6-8.1
+  - redis-enterprise-operator.v7.22.2-21.1
+  - redis-enterprise-operator.v7.22.2-22.0
+  - redis-enterprise-operator.v8.0.2-2.9
+  - redis-enterprise-operator.v8.0.2-6.1
+  - redis-enterprise-operator.v7.22.2-31.1
+  - redis-enterprise-operator.v7.4.6-7.5
+  links:
+  - name: Getting Started with Kubernetes and OpenShift
+    url: 'https://docs.redislabs.com/latest/platforms/openshift/'
+  - name: Deployment files on github
+    url: 'https://github.com/RedisLabs/redis-enterprise-k8s-docs'
+  - name: Redis Kubernetes Architecture
+    url: 'https://docs.redislabs.com/latest/platforms/kubernetes/kubernetes-architecture/'
+  - name: Redis Enterprise Kubernetes Operator-based Architecture
+    url: 'https://docs.redislabs.com/latest/platforms/kubernetes/kubernetes-with-operator/'
+  labels:
+    app: redis-enterprise
+  icon:
+  - base64data: >-
+      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
+    mediatype: image/png
+  maintainers:
+  - email: support@redislabs.com
+    name: 'Redis, Inc'
+  description: |-
+    Redis Enterprise Software is enterprise grade, distributed, in-memory NoSQL database server, fully compatible with open source Redis by Redis.
+    Redis Enterprise Software extends open source Redis and delivers stable high performance, zero-downtime linear scaling and high
+    availability, with significant operational savings.
+    Redis Enterprise provides a flexible and cost-effective data platform so developers can focus on rapid, high-quality development for
+    sophisticated use cases that meet the needs of a modern digital enterprise. With Redis Enterprise, you can:
+    * Enjoy high performance and record-setting low latencies with minimal operational overhead
+    * Develop highly scalable microservices-based and Kubernetes-orchestrated applications
+    * Use versatile data structures for a variety of use cases, such as high-speed transactions, user session management, real-time analytics, caching and many more
+    * Leverage enterprise-grade operational controls for high availability, security and seamless scale
+    * Automate operational best practices for deploying and managing the Redis Enterprise data platform with built-in Kubernetes Operator support
+    * Deploy, manage and move applications to and from any cloud for seamless portability
+
+    ### Core capabilities
+    * **Speed application development and time to market** - Unburden developers from the complexity of infrastructure operations and
+      empower them to manage data with maximum flexibility. This helps them build modern applications quickly, make changes rapidly and
+      support a variety of different data structures, models, relationships and use cases.
+    * **Ensure business continuity with always-on data service** - Maintain service uptime and ensure failsafe high availability, instant
+      failover and automatic recovery to protect your applications against unplanned downtime, outages and data loss.
+    * **Design for performance and unmatched user experience** - Deliver the highest level of responsiveness and interactive customer
+      experiences with best-in-class exceptional linear scaling high performance through a shared-nothing architecture and in-memory processing.
+    * **Simplify operations with automated lifecycle management and layered orchestration** - Automate database provisioning, management and
+      maintenance, and abstract away the complexities of high availability, seamless scale and zero-downtime upgrades with built-in support for
+      Kubernetes and Operators.
+    * **Enjoy multi-level robust security** - Provide granular control to meet self-imposed and regulatory compliance regulations and
+      standards with built-in finegrained security controls and data encryption.
+    * **Gain platform independence with flexible deployment options** - Ensure portability with multiple deployment options across any cloud
+      of choice for multicloud and hybrid deployments and on-premises.
+    * **Ensure success** - Leverage 24x7 enterprise-grade support backed by expertise in managing and scaling hundreds of thousands of
+      Redis databases for thousands of enterprise customers worldwide.
+    * **Future proof investments** - Use the most popular database amongst developers, built on open source innovation and entrenched firmly
+      in the application landscape with over 1B downloads on Docker. Redis preserves your investment for years with easy extensibility and
+      versatility through its Modules and support for over 50 different programming languages
+
+    #### Prerequisites
+    A minimum of 3 nodes which support the following requirements:
+    * RAM - At least 3GB with 4GB recommended
+    * Persistent Storage - At least 10GB of free space with 20GB recommended.
+    * A kubernetes version of 1.9 or higher
+
+    #### Recommendations/known issues
+    *  Changing the name of the Redis Enterprise Cluster in the spec from the
+      default requires running commands to grant permissions to the pods:
+
+      Operator service account:
+        Redis Enterprise Cluster service account:
+        > *oc adm policy add-scc-to-user redis-enterprise-scc-v2 system:serviceaccount:my-project:<name of Redis Enterprise Cluster>*
+
+        Replace my-project with the actual name of the project/namespace. Replace <name of Redis Enterprise Cluster> with the name of the Redis Enterprise Cluster.
+
+    * When creating a Redis Enterprise Cluster without specifying in its spec a `persistentSpec` with explicit `storageClassName`,
+    the default Storage Class of the Kubernetes cluster will be used to dynamically provision storage for the Redis Enterprise Cluster's nodes.
+    However, if the Kubernetes cluster doesn't have a default Storage Class configured
+    and no specific Storage Class was specified in the Redis Enterprise Cluster Spec, the installation of the cluster could fail.
+    To avoid such scenario in cases where a specific Storage Class isn't specified, make sure the Kubernetes Cluster has a default Storage Cluster configured.
+    This can be done by running a `kubectl get storageclass` command and see if one of the Storage Classes' names contains a `(default)` mark.
+  relatedImages:
+  - name: redis-enterprise-operator
+    image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:7c9a0c2c41d4104a4e4d319b63cc7188ff1e72ed3f75ec51f8ee1a022ac83e16
+  - name: admission
+    image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:7c9a0c2c41d4104a4e4d319b63cc7188ff1e72ed3f75ec51f8ee1a022ac83e16
+  - name: bootstrapper
+    image: registry.connect.redhat.com/redislabs/redis-enterprise-operator@sha256:7c9a0c2c41d4104a4e4d319b63cc7188ff1e72ed3f75ec51f8ee1a022ac83e16
+  - name: services-rigger
+    image: registry.connect.redhat.com/redislabs/services-manager@sha256:8cf316b7c8381387cb092d691a9a5bf098b8604229cabf95994eeb105d962037
+  - name: redis-enterprise-node
+    image: registry.connect.redhat.com/redislabs/redis-enterprise@sha256:10c2630183aaf357bca793dbe239e7011d2527dfa6ff5f15c0278bbc501eaeb4
+  - name: call-home-client
+    image: registry.connect.redhat.com/redislabs/call-home-client@sha256:5540b0c0150e0b1b3979cd0d96ad2853472cd9fafdc03af5835d0e34ec329c82

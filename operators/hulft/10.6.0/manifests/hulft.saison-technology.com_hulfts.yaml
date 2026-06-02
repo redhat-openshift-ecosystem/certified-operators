@@ -1,0 +1,674 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    cert-manager.io/inject-ca-from: hulft-system/hulft-serving-cert
+    controller-gen.kubebuilder.io/version: v0.11.1
+  creationTimestamp: null
+  name: hulfts.hulft.saison-technology.com
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: hulft-webhook-service
+          namespace: hulft-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: hulft.saison-technology.com
+  names:
+    kind: Hulft
+    listKind: HulftList
+    plural: hulfts
+    singular: hulft
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: Hulft is the Schema for the hulfts API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Various setting values that define the desired state of the
+              Hulft resource.
+            properties:
+              applicationName:
+                description: The application name assigned to HULFT when it is deployed.
+                  If omitted, no application name is assigned.
+                maxLength: 63
+                minLength: 1
+                nullable: true
+                pattern: ^(([A-Za-z0-9][_A-Za-z0-9.-]*)?[A-Za-z0-9])?$
+                type: string
+              control:
+                description: The settings related to the HULFT management container.
+                properties:
+                  allowExternalAccess:
+                    description: Creates a resource for external access to the management
+                      container. If omitted, no resource is created.
+                    type: boolean
+                  apiClientTlsSecret:
+                    description: The name of the Secret that stores the CA used by
+                      the HULFT management container to connect to the transfer container
+                      over HTTPS.
+                    maxLength: 253
+                    minLength: 1
+                    nullable: true
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  consoleTlsSecret:
+                    description: The name of the Secret that stores the private key
+                      and certificate used by the HULFT management container for HTTPS
+                      connections. If omitted, the cert-manager automatically issues
+                      a self-signed certificate.
+                    maxLength: 253
+                    minLength: 1
+                    nullable: true
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  replicas:
+                    description: The settings related to the number of HULFT management
+                      container replicas used.
+                    properties:
+                      max:
+                        description: The maximum number of the management container
+                          replicas when scaling with HPA. If specified, it must be
+                          greater than or equal to the value of spec.versions.schema.openAPIV3Schema.spec.control.replicas.min.
+                          If omitted, the value set in spec.versions.schema.openAPIV3Schema.spec.control.replicas.min
+                          is used. If this is also omitted, "1" is used.
+                        format: int64
+                        maximum: 9999
+                        minimum: 1
+                        type: integer
+                      min:
+                        description: The minimum number of the management container
+                          replicas when scaling with HPA. If specified, it must be
+                          less than or equal to the value of spec.versions.schema.openAPIV3Schema.spec.control.replicas.max.
+                          If omitted, "1" is used.
+                        format: int64
+                        maximum: 9999
+                        minimum: 1
+                        type: integer
+                    type: object
+                  samlSecret:
+                    description: The name of the Secret that stores the information
+                      used for SSO by using SAML to access the HULFT management container.
+                      If SAML is not used, you can omit this setting.
+                    maxLength: 253
+                    minLength: 1
+                    nullable: true
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                type: object
+              db:
+                description: The settings related to the database (MySql) that HULFT
+                  connects to.
+                properties:
+                  authorizationSecret:
+                    description: The name of the Secret that stores the authentication
+                      information used to connect to the database.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  connectionRetryCount:
+                    default: 30
+                    description: The number of retries if the connection to the database
+                      fails. If omitted, "30 times" is used.
+                    format: int32
+                    maximum: 9999
+                    minimum: 0
+                    type: integer
+                  hostname:
+                    description: The host name of the database to connect to.
+                    maxLength: 255
+                    minLength: 1
+                    pattern: ^[a-zA-Z0-9.-]+$
+                    type: string
+                  name:
+                    default: hulft
+                    description: The database name used in the destination database.
+                      If omitted, "hulft" is used.
+                    maxLength: 64
+                    minLength: 1
+                    pattern: ^[^/\\\\.]+$
+                    type: string
+                  port:
+                    default: 3306
+                    description: The port number of the database to connect to. If
+                      omitted, "3306" is used.
+                    format: int32
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                  tablePrefix:
+                    default: hulft
+                    description: The prefix to be assigned to the names of tables
+                      that are created in the destination database. If omitted, "hulft"
+                      is used.
+                    maxLength: 12
+                    minLength: 1
+                    pattern: ^[_a-z0-9]+$
+                    type: string
+                required:
+                - authorizationSecret
+                - hostname
+                type: object
+              licenseSecret:
+                description: The name of the Secret that stores the information for
+                  HULFT license authentication.
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              resourceIdentifier:
+                default: hulft
+                description: The identifier to distinguish HULFT instances when multiple
+                  HULFT instances are deployed. This identifier is assigned to the
+                  name of each resource. If omitted, "hulft" is used.
+                maxLength: 19
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                type: string
+              transfer:
+                description: The settings related to the HULFT transfer container.
+                properties:
+                  control:
+                    description: The settings that the HULFT transfer container uses
+                      to connect to the management container.
+                    properties:
+                      clientTlsSecret:
+                        description: The name of the Secret that stores the CA used
+                          by the HULFT transfer container to connect to the management
+                          container over HTTPS. If omitted, a public CA is used.
+                        maxLength: 253
+                        minLength: 1
+                        nullable: true
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                      retryCount:
+                        default: 10
+                        description: The maximum number of retries if the HULFT transfer
+                          container fails to connect to the management container.
+                          If omitted, "10 times" is used.
+                        format: int64
+                        maximum: 9999
+                        minimum: 0
+                        type: integer
+                      retryInterval:
+                        default: 10000
+                        description: The time (in milliseconds) before the next retry
+                          if the HULFT transfer container fails to connect to the
+                          management container. If omitted, "10000 milliseconds" is
+                          used.
+                        format: int64
+                        maximum: 9999000
+                        minimum: 0
+                        type: integer
+                      serverTlsSecret:
+                        description: The name of the Secret that stores the private
+                          key and certificate used by the HULFT transfer container
+                          when accepting connection requests from the management container
+                          over HTTPS. If omitted, the cert-manager automatically issues
+                          a self-signed certificate.
+                        maxLength: 253
+                        minLength: 1
+                        nullable: true
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                      timeout:
+                        default: 60000
+                        description: The timeout period (in milliseconds) for the
+                          HULFT transfer container to connect to the management container.
+                          If omitted, "60000 milliseconds" is used.
+                        format: int64
+                        maximum: 259200000
+                        minimum: 10000
+                        type: integer
+                    type: object
+                  gracefulShutdownWait:
+                    default: 3600
+                    description: The maximum amount of time the transfer container
+                      waits for a running transfer to finish before terminating. If
+                      omitted, "3600 seconds" is used.
+                    format: int64
+                    maximum: 259200
+                    minimum: 0
+                    type: integer
+                  observe:
+                    description: The settings that HULFT uses when accepting requests.
+                    properties:
+                      websocket:
+                        description: The settings that HULFT uses when accepting requests
+                          over WebSocket.
+                        properties:
+                          allowExternalAccess:
+                            description: Creates a resource for external access to
+                              accept requests over WebSocket. If omitted, no resource
+                              is created.
+                            type: boolean
+                          serverTlsSecret:
+                            description: The name of the Secret that stores the private
+                              key and certificate used by HULFT when accepting requests
+                              over WebSocket. If omitted, the cert-manager automatically
+                              issues a self-signed certificate.
+                            maxLength: 253
+                            minLength: 1
+                            nullable: true
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        type: object
+                    type: object
+                  replicas:
+                    description: The settings related to the number of HULFT transfer
+                      container replicas used.
+                    properties:
+                      max:
+                        description: The maximum number of the transfer container
+                          replicas when scaling with HPA. If omitted, "5" is used.
+                          If specified, it must be greater than or equal to the value
+                          of spec.versions.schema.openAPIV3Schema.spec.control.replicas.min.
+                          If omitted, the value set in spec.versions.schema.openAPIV3Schema.spec.control.replicas.min
+                          is used. If this is also omitted, "1" is used.
+                        format: int64
+                        maximum: 9999
+                        minimum: 1
+                        type: integer
+                      min:
+                        description: The minimum number of the transfer container
+                          replicas when scaling with HPA. If omitted, "1" is used.
+                          If specified, it must be less than or equal to the value
+                          of spec.versions.schema.openAPIV3Schema.spec.transfer.replicas.max.
+                          If omitted, "1" is used.
+                        format: int64
+                        maximum: 9999
+                        minimum: 1
+                        type: integer
+                    type: object
+                  s3:
+                    description: The settings related to S3 used by the HULFT transfer
+                      container.
+                    properties:
+                      authenticationSecret:
+                        description: The path to the Secret in which the authentication
+                          information used to transfer files to S3 is registered.
+                          If omitted, transfer to S3 is not possible.
+                        maxLength: 253
+                        minLength: 1
+                        nullable: true
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                      defaultRegion:
+                        description: The region that is associated with the destination
+                          bucket and that is used when a file is transferred to S3.
+                          If omitted, "ap-northeast-1" is used.
+                        maxLength: 253
+                        minLength: 1
+                        nullable: true
+                        pattern: ^[-a-z0-9]+$
+                        type: string
+                    type: object
+                  websocket:
+                    description: The settings that HULFT uses when transferring data
+                      over WebSocket.
+                    properties:
+                      allowExternalAccess:
+                        description: Creates a resource for external access to transfer
+                          files over WebSocket. If omitted, no resource is created.
+                        type: boolean
+                      clientTlsSecret:
+                        description: The name of the Secret that stores the CA used
+                          by HULFT to transfer data over WebSocket connections. If
+                          omitted, a public CA is used.
+                        maxLength: 253
+                        minLength: 1
+                        nullable: true
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                      serverTlsSecret:
+                        description: The name of the Secret that stores the private
+                          key and certificate used by HULFT when accepting requests
+                          to transfer data over WebSocket connections. If omitted,
+                          the cert-manager automatically issues a self-signed certificate.
+                        maxLength: 253
+                        minLength: 1
+                        nullable: true
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                    type: object
+                type: object
+            required:
+            - db
+            - licenseSecret
+            type: object
+          status:
+            description: The values applied to the HULFT instance in operation.
+            properties:
+              applicationName:
+                description: The application name assigned to HULFT when it is deployed.
+                type: string
+              control:
+                description: The settings related to the HULFT management container.
+                properties:
+                  allowExternalAccess:
+                    description: Creates a resource for external access to the management
+                      container.
+                    type: boolean
+                  apiClientTlsSecret:
+                    description: The name of the Secret that stores the CA used by
+                      the HULFT management container to connect to the transfer container
+                      over HTTPS.
+                    type: string
+                  consoleLoginSecret:
+                    description: The name of the Secret that stores the information
+                      for root login to the HULFT management container.
+                    type: string
+                  consoleTlsSecret:
+                    description: The name of the Secret that stores the private key
+                      and certificate used by the HULFT management container for HTTPS
+                      connections.
+                    type: string
+                  hostname:
+                    description: The name of the host where the HULFT management container
+                      is listening for TCP connections.
+                    type: string
+                  httpPort:
+                    description: The number of the port where the HULFT management
+                      container is listening for HTTP connections.
+                    format: int32
+                    type: integer
+                  httpsPort:
+                    description: The number of the port where the HULFT management
+                      container is listening for HTTPS connections.
+                    format: int32
+                    type: integer
+                  replicas:
+                    description: The settings related to the number of HULFT management
+                      container replicas used.
+                    properties:
+                      max:
+                        description: The maximum number of the management container
+                          replicas when scaling with HPA.
+                        format: int64
+                        type: integer
+                      min:
+                        description: The minimum number of the management container
+                          replicas when scaling with HPA.
+                        format: int64
+                        type: integer
+                    required:
+                    - max
+                    - min
+                    type: object
+                  samlSecret:
+                    description: The name of the Secret that stores the information
+                      used for SSO by using SAML to access the HULFT management container.
+                    type: string
+                required:
+                - allowExternalAccess
+                - apiClientTlsSecret
+                - consoleLoginSecret
+                - consoleTlsSecret
+                - hostname
+                - httpPort
+                - httpsPort
+                - replicas
+                - samlSecret
+                type: object
+              db:
+                description: The settings related to the database (MySql) that HULFT
+                  connects to.
+                properties:
+                  authorizationSecret:
+                    description: The name of the Secret that stores the authentication
+                      information used to connect to the database.
+                    type: string
+                  connectionRetryCount:
+                    description: The number of retries if the connection to the database
+                      fails.
+                    format: int32
+                    type: integer
+                  encryptionKeySecret:
+                    description: The name of the Secret that stores the information
+                      used by the database to encrypt sensitive information.
+                    type: string
+                  hostname:
+                    description: The host name of the database to connect to.
+                    type: string
+                  name:
+                    description: The database name used in the destination database.
+                    type: string
+                  port:
+                    description: The port number of the database to connect to.
+                    format: int32
+                    type: integer
+                  tablePrefix:
+                    description: The prefix to be assigned to the names of tables
+                      that are created in the destination database.
+                    type: string
+                required:
+                - authorizationSecret
+                - connectionRetryCount
+                - encryptionKeySecret
+                - hostname
+                - name
+                - port
+                - tablePrefix
+                type: object
+              licenseSecret:
+                description: The name of the Secret that stores the information for
+                  HULFT license authentication.
+                type: string
+              resourceIdentifier:
+                description: The identifier to distinguish HULFT instances when multiple
+                  HULFT instances are deployed.
+                type: string
+              transfer:
+                description: The settings related to the HULFT transfer container.
+                properties:
+                  control:
+                    description: The settings that the HULFT transfer container uses
+                      to connect to the management container.
+                    properties:
+                      clientTlsSecret:
+                        description: The name of the Secret that stores the CA used
+                          by the HULFT transfer container to connect to the management
+                          container over HTTPS.
+                        type: string
+                      port:
+                        description: The number of the port where the HULFT transfer
+                          container is listening for connections from the HULFT management
+                          container.
+                        format: int32
+                        type: integer
+                      retryCount:
+                        description: The maximum number of retries if the HULFT transfer
+                          container fails to connect to the management container.
+                        format: int64
+                        type: integer
+                      retryInterval:
+                        description: The time (in milliseconds) before the next retry
+                          if the HULFT transfer container fails to connect to the
+                          management container.
+                        format: int64
+                        type: integer
+                      serverTlsSecret:
+                        description: The name of the Secret that stores the private
+                          key and certificate used by the HULFT transfer container
+                          when accepting connection requests from the management container
+                          over HTTPS.
+                        type: string
+                      timeout:
+                        description: The timeout period (in milliseconds) for the
+                          HULFT transfer container to connect to the management container.
+                        format: int64
+                        type: integer
+                    required:
+                    - clientTlsSecret
+                    - port
+                    - retryCount
+                    - retryInterval
+                    - serverTlsSecret
+                    - timeout
+                    type: object
+                  gracefulShutdownWait:
+                    description: The maximum amount of time the transfer container
+                      waits for a running transfer to finish before terminating.
+                    format: int64
+                    type: integer
+                  hostname:
+                    description: The host name to be notified to the connected HULFT
+                      instance.
+                    type: string
+                  hulft:
+                    description: The settings that HULFT uses when transferring data
+                      over HULFT protocol.
+                    properties:
+                      port:
+                        description: The number of the port where HULFT is listening
+                          for connections over HULFT protocol.
+                        format: int32
+                        type: integer
+                    required:
+                    - port
+                    type: object
+                  observe:
+                    description: The settings that HULFT uses when accepting requests.
+                    properties:
+                      port:
+                        description: The number of the port where HULFT is listening
+                          for requests over HULFT protocol.
+                        format: int32
+                        type: integer
+                      websocket:
+                        description: The settings that HULFT uses when accepting requests
+                          over WebSocket.
+                        properties:
+                          allowExternalAccess:
+                            description: Creates a resource for external access to
+                              accept requests over WebSocket.
+                            type: boolean
+                          port:
+                            description: The number of the port where HULFT is listening
+                              for requests over WebSocket.
+                            format: int32
+                            type: integer
+                          serverTlsSecret:
+                            description: The name of the Secret that stores the private
+                              key and certificate used by HULFT when accepting requests
+                              over WebSocket.
+                            type: string
+                        required:
+                        - allowExternalAccess
+                        - port
+                        - serverTlsSecret
+                        type: object
+                    required:
+                    - port
+                    - websocket
+                    type: object
+                  replicas:
+                    description: The settings related to the number of HULFT transfer
+                      container replicas used.
+                    properties:
+                      max:
+                        description: The maximum number of the transfer container
+                          replicas when scaling with HPA.
+                        format: int64
+                        type: integer
+                      min:
+                        description: The minimum number of the transfer container
+                          replicas when scaling with HPA.
+                        format: int64
+                        type: integer
+                    required:
+                    - max
+                    - min
+                    type: object
+                  s3:
+                    description: The settings related to S3 used by the HULFT transfer
+                      container.
+                    properties:
+                      authenticationSecret:
+                        description: The path to the Secret in which the authentication
+                          information used to transfer files to S3 is registered.
+                        type: string
+                      defaultRegion:
+                        description: The region that is associated with the destination
+                          bucket and that is used when a file is transferred to S3.
+                        type: string
+                    required:
+                    - authenticationSecret
+                    - defaultRegion
+                    type: object
+                  websocket:
+                    description: The settings that HULFT uses when transferring data
+                      over WebSocket.
+                    properties:
+                      allowExternalAccess:
+                        description: Creates a resource for external access to transfer
+                          files over WebSocket.
+                        type: boolean
+                      clientTlsSecret:
+                        description: The name of the Secret that stores the CA used
+                          by HULFT to transfer data over WebSocket connections.
+                        type: string
+                      port:
+                        description: The number of the port where HULFT is listening
+                          for connections over WebSocket.
+                        format: int32
+                        type: integer
+                      serverTlsSecret:
+                        description: The name of the Secret that stores the private
+                          key and certificate used by HULFT when accepting requests
+                          to transfer data over WebSocket connections.
+                        type: string
+                    required:
+                    - allowExternalAccess
+                    - clientTlsSecret
+                    - port
+                    - serverTlsSecret
+                    type: object
+                required:
+                - control
+                - gracefulShutdownWait
+                - hostname
+                - hulft
+                - observe
+                - replicas
+                - s3
+                - websocket
+                type: object
+            required:
+            - applicationName
+            - control
+            - db
+            - licenseSecret
+            - resourceIdentifier
+            - transfer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

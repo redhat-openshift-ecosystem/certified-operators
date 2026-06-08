@@ -1,0 +1,186 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: eqube-operator.v1.0.0
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "eqube.operator/v1",
+          "kind": "EQProduct",
+          "metadata": { "name": "eqproducts.eqube.operator" },
+          "spec": {
+            "values": {
+              "namespace": "default",
+              "version": "2026-01"
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Database
+    certified: 'false'
+    containerImage: >-
+      docker.io/saurabh1eq/eq-operator@sha256:80980e00db3d175b750bbcb3c90b54ef07285ce90b13e501d285033b831da618
+    createdAt: '2026-05-26T00:00:00Z'
+    description: Eqube Operator
+    support: 1EQ
+    repository: 'https://github.com/1eq/eqube-operator'
+    vendor: 1EQ
+    operators.openshift.io/valid-subscription: 'false'
+    operators.operatorframework.io/internal-objects: '["secret"]'
+    features.operators.openshift.io/disconnected: 'false'
+    features.operators.openshift.io/fips-compliant: 'false'
+    features.operators.openshift.io/proxy-aware: 'false'
+    features.operators.openshift.io/tls-profiles: 'false'
+    features.operators.openshift.io/token-auth-aws: 'false'
+    features.operators.openshift.io/token-auth-azure: 'false'
+    features.operators.openshift.io/token-auth-gcp: 'false'
+spec:
+  displayName: eQube Operator
+  description: >-
+    Deploys eQube-DaaS platform. eQ Technologic is a global software company
+    specializing in data integration, analytics, and digital transformation. Its
+    eQube®-DaaS platform enables enterprises to connect, migrate, and analyze
+    data across complex systems, driving visibility and operational efficiency.
+  version: 1.0.0
+  maturity: alpha
+  minKubeVersion: 1.26.0
+  provider:
+    name: eQ Technologic
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: true
+    - type: AllNamespaces
+      supported: true
+  install:
+    strategy: deployment
+    spec:
+      deployments:
+        - name: eqube-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app: eqube-operator
+            template:
+              metadata:
+                labels:
+                  app: eqube-operator
+              spec:
+                serviceAccountName: eqube-operator
+                hostAliases:
+                  - ip: 1.1.1.1
+                    hostnames:
+                      - testhost
+                  - ip: 1.1.1.2
+                    hostnames:
+                      - testhost2
+                  - ip: 1.2.3.4
+                    hostnames:
+                      - testhost3
+                containers:
+                  - name: operator
+                    image: >-
+                      docker.io/saurabh1eq/eq-operator@sha256:80980e00db3d175b750bbcb3c90b54ef07285ce90b13e501d285033b831da618
+                    imagePullPolicy: IfNotPresent
+                    securityContext:
+                      runAsNonRoot: true
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities:
+                        drop:
+                          - ALL
+                      seccompProfile:
+                        type: RuntimeDefault
+                volumes: []
+                resources:
+                  limits:
+                    cpu: '4'
+                    memory: 4Gi
+                  requests:
+                    cpu: '2'
+                    memory: 2Gi
+      clusterPermissions:
+        - serviceAccountName: eqube-operator
+          rules:
+            - apiGroups:
+                - ''
+              resources:
+                - pods
+                - services
+                - configmaps
+                - secrets
+              verbs:
+                - '*'
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - statefulsets
+              verbs:
+                - '*'
+            - apiGroups:
+                - apiextensions.k8s.io
+              resources:
+                - customresourcedefinitions
+              verbs:
+                - '*'
+            - apiGroups:
+                - eqube.operator
+              resources:
+                - eqproducts
+                - eqproducts/status
+              verbs:
+                - '*'
+            - apiGroups:
+                - networking.k8s.io
+              resources:
+                - ingresses
+              verbs:
+                - '*'
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - '*'
+            - apiGroups:
+                - route.openshift.io
+              resources:
+                - routes
+                - routes/custom-host
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+  customresourcedefinitions:
+    owned:
+      - name: eqproducts.eqube.operator
+        kind: EQProduct
+        version: v1
+        description: eQube custom resource definition
+  relatedImages:
+    - name: operator
+      image: >-
+        docker.io/saurabh1eq/eq-operator@sha256:80980e00db3d175b750bbcb3c90b54ef07285ce90b13e501d285033b831da618
+    - name: psql-cli-14
+      image: >-
+        docker.io/1eqtech/rhel-operator-test@sha256:2a30560fea343486c7d2ecf4d0d9e2b59a23e626c65f35fcaa0c553492282f76
+  maintainers:
+    - name: 1eQ
+      email: team@1eq.com
+  links:
+    - name: Documentation
+      url: 'https://example.com/docs'
+  keywords:
+    - operator
+    - product

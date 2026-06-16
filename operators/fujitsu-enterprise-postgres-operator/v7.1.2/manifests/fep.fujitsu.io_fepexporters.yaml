@@ -1,0 +1,203 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: fepexporters.fep.fujitsu.io
+spec:
+  group: fep.fujitsu.io
+  names:
+    kind: FEPExporter
+    listKind: FEPExporterList
+    plural: fepexporters
+    singular: fepexporter
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: FEPExporter is the Schema for the fepexporters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired state of FEPExporter
+            properties:
+              fepExporter:
+                description: FEPExporter spec section
+                properties:
+                  authSecret:
+                    description: This is Optional section. Base Authentication secret
+                      to provide username & encrypted password of user
+                    properties:
+                      passwordKey:
+                        description: Mandatory Key of password in specified secret
+                        type: string
+                      secretName:
+                        description: Mandatory Name of secret that contains username
+                          and password
+                        type: string
+                      userKey:
+                        description: Mandatory Key of username in specified secret
+                        type: string
+                    type: object
+                  customLabel:
+                    description: Array of custom labels that are added to ServiceMonitor
+                      and PrometheusRules created for this FEPExporter
+                    items:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    type: array
+                  disableDefaultAlertRules:
+                    description: Not defined or set to false => Create default alert
+                      rules. Defined and set to true => Do not create default alert
+                      rules. If Default queries are disabled => Do not create default
+                      alert rule.
+                    type: boolean
+                  disableDefaultQueries:
+                    description: Not defined or set to false => Create default queries.
+                      Defined and set to true => Do not create default queries
+                    type: boolean
+                  exporterLogLevel:
+                    default: error
+                    description: 'Set logging level: one of debug, info, warn, error'
+                    enum:
+                    - error
+                    - debug
+                    - info
+                    - warn
+                    type: string
+                  fepClusterList:
+                    description: Array of names of FEPCluster to be monitored in current
+                      namespace
+                    items:
+                      type: string
+                    type: array
+                  image:
+                    description: FEP exporter image specification
+                    properties:
+                      image:
+                        description: FEP exporter image URL
+                        type: string
+                      pullPolicy:
+                        description: Pull policy for Exporter image.
+                        enum:
+                        - Always
+                        - IfNotPresent
+                        type: string
+                    type: object
+                  mcSpec:
+                    description: Resource spec section
+                    properties:
+                      limits:
+                        properties:
+                          cpu:
+                            description: cpu limit for Exporter container
+                            pattern: ^(([0-9]+(\.[0-9]+)?)|(\.[0-9]+))(m|[Ee][-+]?[0-9]+)?$
+                            x-kubernetes-preserve-unknown-fields: true
+                          memory:
+                            description: memory limit for Exporter container
+                            pattern: ^(([0-9]+(\.[0-9]+)?)|(\.[0-9]+))(([kmKMGTPE])|([KMGTPE]i)|([Ee][+-]?([0-9]+)))?$
+                            x-kubernetes-preserve-unknown-fields: true
+                        type: object
+                      requests:
+                        properties:
+                          cpu:
+                            description: cpu request for Exporter container
+                            pattern: ^(([0-9]+(\.[0-9]+)?)|(\.[0-9]+))(m|[Ee][-+]?[0-9]+)?$
+                            x-kubernetes-preserve-unknown-fields: true
+                          memory:
+                            description: memory request for Exporter container
+                            pattern: ^(([0-9]+(\.[0-9]+)?)|(\.[0-9]+))(([kmKMGTPE])|([KMGTPE]i)|([Ee][+-]?([0-9]+)))?$
+                            x-kubernetes-preserve-unknown-fields: true
+                        type: object
+                    type: object
+                  restartRequired:
+                    description: |
+                      True: To restart FEPExporter pod, if needed to make any change in FEPExporter or FEPCluster CR effective for metrics scraping
+                      False: Will not restart FEPExporter
+                    type: boolean
+                  scrapeInterval:
+                    default: 30s
+                    description: |
+                      This parameter may be specified to change statistics scraping frequency. If specified, Prometheus will poll FEPExporter at given interval.
+                      CHANGE THIS PARAMETER ONLY IF REALLY REQUIRED
+                    type: string
+                  scrapeTimeout:
+                    default: 30s
+                    description: |
+                      This parameter may be specified to change statistics scraping timeout. If specified, Prometheus will wait for FEPExporter for maximum this given period to return statistics.
+                      CHANGE THIS PARAMETER ONLY IF REALLY REQUIRED
+                    type: string
+                  sysExtraLogging:
+                    description: To turn on extra debugging messages for operator
+                      reconciliation loop for FEPExporter CR, set value to true. It
+                      can turn on/off anytime
+                    type: boolean
+                  tls:
+                    description: This is optional section. FEPExporter MTLS specs.
+                      Mandatory if tls specs defined for Prometheus specs
+                    properties:
+                      caName:
+                        description: |
+                          This points to Kubernetes configmap that contains additional CA the client uses to verify a server certificate.
+                          The CA is stored in the key ca.crt.
+                        type: string
+                      certificateName:
+                        description: |
+                          This points to Kubernetes TLS secret that contains the certificate of FepExporter to listen on.
+                          The certificate itself is stored in the key tls.crt.
+                        type: string
+                    type: object
+                  userCustomQueries:
+                    description: Example user’s custom query to extract additional
+                      metrics.
+                    type: string
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              prometheus:
+                description: Prometheus MTLS spec section
+                properties:
+                  tls:
+                    description: tls section
+                    properties:
+                      caName:
+                        description: This points to Kubernetes configmap that contains
+                          additional CA the client use to verify a server certificate.
+                          The CA is stored in the key ca.crt.
+                        type: string
+                      certificateName:
+                        description: This points to Kubernetes TLS secret that contains
+                          the certificate of Prometheus ServiceMonitor. FEPExporter
+                          will use this for certificate authentication. The certificate
+                          itself is stored in the key tls.crt.
+                        type: string
+                    type: object
+                type: object
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of FEPExporter
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

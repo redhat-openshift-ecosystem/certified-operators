@@ -1,0 +1,2010 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "mongodb.com/v1",
+          "kind": "MongoDB",
+          "metadata": {
+            "name": "my-replica-set"
+          },
+          "spec": {
+            "credentials": "my-credentials",
+            "members": 3,
+            "opsManager": {
+              "configMapRef": {
+                "name": "my-project"
+              }
+            },
+            "persistent": true,
+            "type": "ReplicaSet",
+            "version": "4.4.0-ent"
+          }
+        },
+        {
+          "apiVersion": "mongodb.com/v1",
+          "kind": "MongoDB",
+          "metadata": {
+            "name": "sample-sharded-cluster"
+          },
+          "spec": {
+            "configServerCount": 3,
+            "credentials": "my-credentials",
+            "mongodsPerShardCount": 3,
+            "mongosCount": 2,
+            "opsManager": {
+              "configMapRef": {
+                "name": "my-project"
+              }
+            },
+            "persistent": true,
+            "shardCount": 1,
+            "type": "ShardedCluster",
+            "version": "4.4.0-ent"
+          }
+        },
+        {
+          "apiVersion": "mongodb.com/v1",
+          "kind": "MongoDBMultiCluster",
+          "metadata": {
+            "name": "multi-replica-set"
+          },
+          "spec": {
+            "clusterSpecList": [
+              {
+                "clusterName": "e2e.cluster1.mongokubernetes.com",
+                "members": 2
+              },
+              {
+                "clusterName": "e2e.cluster2.mongokubernetes.com",
+                "members": 1
+              },
+              {
+                "clusterName": "e2e.cluster3.mongokubernetes.com",
+                "members": 2
+              }
+            ],
+            "credentials": "my-credentials",
+            "duplicateServiceObjects": false,
+            "opsManager": {
+              "configMapRef": {
+                "name": "my-project"
+              }
+            },
+            "persistent": true,
+            "type": "ReplicaSet",
+            "version": "4.4.0-ent"
+          }
+        },
+        {
+          "apiVersion": "mongodb.com/v1",
+          "kind": "MongoDBOpsManager",
+          "metadata": {
+            "name": "ops-manager"
+          },
+          "spec": {
+            "adminCredentials": "ops-manager-admin",
+            "applicationDatabase": {
+              "members": 3,
+              "podSpec": {
+                "cpu": 1
+              }
+            },
+            "configuration": {
+              "mms.fromEmailAddr": "admin@thecompany.com"
+            },
+            "externalConnectivity": {
+              "type": "LoadBalancer"
+            },
+            "version": "6.0.3"
+          }
+        },
+        {
+          "apiVersion": "mongodb.com/v1",
+          "kind": "MongoDBUser",
+          "metadata": {
+            "name": "my-replica-set-x509-user"
+          },
+          "spec": {
+            "db": "$external",
+            "mongodbResourceRef": {
+              "name": "my-replica-set"
+            },
+            "roles": [
+              {
+                "db": "admin",
+                "name": "dbOwner"
+              }
+            ],
+            "username": "CN=my-replica-set-x509-user,OU=cloud,O=MongoDB,L=New York,ST=New York,C=US"
+          },
+          "status": {
+            "phase": "Updated"
+          }
+        }
+      ]
+    capabilities: Deep Insights
+    categories: Database
+    certified: "true"
+    containerImage: quay.io/mongodb/mongodb-enterprise-operator-ubi@sha256:b278d471d21e9bc210b547c63e95f618972a33dc1d8ebb7b10dc4b8d47bc8d93
+    createdAt: "2025-03-06T13:34:14Z"
+    description: The MongoDB Enterprise Kubernetes Operator enables easy deploys of MongoDB into Kubernetes clusters, using our management, monitoring and backup platforms, Ops Manager and Cloud Manager.
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.operatorframework.io/builder: operator-sdk-v1.26.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    repository: https://github.com/mongodb/mongodb-enterprise-kubernetes
+    support: support@mongodb.com
+  name: mongodb-enterprise.v1.32.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: MongoDB Deployment
+        displayName: MongoDB Deployment
+        kind: MongoDB
+        name: mongodb.mongodb.com
+        resources:
+          - kind: StatefulSet
+            name: StatefulSet holding the Pod with MongoDB
+            version: apps/v1
+          - kind: Service
+            name: ""
+            version: v1
+        specDescriptors:
+          - displayName: MongoDB Deployment Type
+            path: type
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:select:Standalone
+              - urn:alm:descriptor:com.tectonic.ui:select:ReplicaSet
+              - urn:alm:descriptor:com.tectonic.ui:select:ShardedCluster
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ClusterConfiguration
+          - description: Version of MongoDB to use.
+            displayName: MongoDB Version
+            path: version
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ClusterConfiguration
+          - description: In a Replica Set deployment type, specifies the amount of members.
+            displayName: Members of a Replica Set
+            path: members
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:podCount
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ClusterConfiguration
+          - displayName: Cloud/Ops Manager credentials
+            path: credentials
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:OpsManagerConfig
+              - urn:alm:descriptor:io.kubernetes:Secret
+          - description: Project configuration for this deployment
+            displayName: Ops Manager project configuration
+            path: opsManager
+          - description: Name of the ConfigMap with the configuration for this project
+            displayName: Ops Manager Project Configuration
+            path: opsManager.configMapRef.name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:OpsManagerConfig
+              - urn:alm:descriptor:io.kubernetes:ConfigMap
+          - description: Enable Persistent Storage with Volume Claims
+            displayName: Persistent Storage
+            path: persistent
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ClusterConfiguration
+          - description: Optional. Name of a Kubernetes Cluster Domain.
+            displayName: Name of Kubernetes Cluster Domain
+            path: clusterDomain
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - displayName: Enable TLS
+            path: security.tls.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:security
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - displayName: Custom CA Config Map
+            path: security.tls.ca
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:security
+              - urn:alm:descriptor:io.kubernetes:ConfigMap
+          - displayName: Enable authentication
+            path: security.authentication.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Authentication
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - displayName: Authentication Mode
+            path: security.authentication.modes
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Authentication
+              - urn:alm:descriptor:com.tectonic.ui:select:X509
+              - urn:alm:descriptor:com.tectonic.ui:select:SCRAM
+              - urn:alm:descriptor:com.tectonic.ui:select:LDAP
+          - displayName: Authentication Mode used for Inter cluster communication
+            path: security.authentication.internalCluster
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Authentication
+              - urn:alm:descriptor:com.tectonic.ui:select:X509
+              - urn:alm:descriptor:com.tectonic.ui:select:SCRAM
+              - urn:alm:descriptor:com.tectonic.ui:select:LDAP
+          - description: Number of Config Servers in Replica
+            displayName: Number of Config Servers
+            path: configServerCount
+          - description: Number of Shards in a Sharded Cluster
+            displayName: Number of Shards
+            path: shardCount
+          - description: Number of MongoDB Servers per Shard
+            displayName: Number of MongoDB Servers
+            path: mongodsPerShardCount
+          - description: Number of Mongo routers, in total, for the whole cluster
+            displayName: Number of Mongos
+            path: mongosCount
+        statusDescriptors:
+          - description: |
+              Phase the MongoDB Deployment is currently on. It can be any of Running, Pending, Failed.
+            displayName: Phase
+            path: phase
+          - description: |
+              Type describes the deployment type this MongoDB resource. Posible values
+              are Standalone, ReplicaSet or ShardedCluster.
+            displayName: Type
+            path: type
+          - description: |
+              Timestamp of last transition
+            displayName: Last Transition
+            path: lastTransition
+          - description: |
+              Current version of MongoDB
+            displayName: MongoDB Version
+            path: version
+        version: v1
+      - description: MongoDB Multi Deployment
+        displayName: MongoDB Multi Deployment
+        kind: MongoDBMultiCluster
+        name: mongodbmulticluster.mongodb.com
+        resources:
+          - kind: StatefulSet
+            name: StatefulSet holding the Pod with MongoDB
+            version: apps/v1
+          - kind: Service
+            name: ""
+            version: v1
+        specDescriptors:
+          - displayName: MongoDB Deployment Type
+            path: type
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:select:ReplicaSet
+          - description: Version of MongoDB to use.
+            displayName: MongoDB Version
+            path: version
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ClusterConfiguration
+          - description: In a Replica Set deployment type, specifies the amount of members.
+            displayName: Members of a Replica Set
+            path: members
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:podCount
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ClusterConfiguration
+          - displayName: Cloud/Ops Manager credentials
+            path: credentials
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:OpsManagerConfig
+              - urn:alm:descriptor:io.kubernetes:Secret
+          - description: Project configuration for this deployment
+            displayName: Ops Manager project configuration
+            path: opsManager
+          - description: Name of the ConfigMap with the configuration for this project
+            displayName: Ops Manager Project Configuration
+            path: opsManager.configMapRef.name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:OpsManagerConfig
+              - urn:alm:descriptor:io.kubernetes:ConfigMap
+          - description: Enable Persistent Storage with Volume Claims
+            displayName: Persistent Storage
+            path: persistent
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ClusterConfiguration
+          - description: Optional. Specify whether to duplicate service objects among different Kubernetes clusters.
+            displayName: Duplicate Service Objects
+            path: duplicateServiceObjects
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ClusterConfiguration
+          - description: Optional. Name of a Kubernetes Cluster Domain.
+            displayName: Name of Kubernetes Cluster Domain
+            path: clusterDomain
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - displayName: Enable TLS
+            path: security.tls.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:security
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - displayName: Custom CA Config Map
+            path: security.tls.ca
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:security
+              - urn:alm:descriptor:io.kubernetes:ConfigMap
+          - displayName: Enable authentication
+            path: security.authentication.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Authentication
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+          - displayName: Authentication Mode
+            path: security.authentication.modes
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:Authentication
+              - urn:alm:descriptor:com.tectonic.ui:select:SCRAM
+          - description: Spec for each cluster that comprises MongoDB Replicaset
+            displayName: Cluster SpecList
+            path: clusterSpecList
+        statusDescriptors:
+          - description: |
+              Phase the MongoDB Deployment is currently on. It can be any of Running, Pending, Failed.
+            displayName: Phase
+            path: phase
+        version: v1
+      - description: MongoDB x509 User
+        displayName: MongoDB User
+        kind: MongoDBUser
+        name: mongodbusers.mongodb.com
+        resources:
+          - kind: Secret
+            name: ""
+            version: v1
+        specDescriptors:
+          - displayName: Name of the database user.
+            path: username
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - displayName: Name of the database that stores usernames.
+            path: db
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - displayName: Secret Name that user stores the user’s password.
+            path: passwordSecretKeyRef.name
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Secret
+          - displayName: Name of the MongoDB resource to which this user is associated.
+            path: mongodbResourceRef.name
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:mongodb
+          - displayName: Database on which the role can act.
+            path: roles.db
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+              - urn:alm:descriptor:com.tectonic.ui:arrayFieldGroup:Roles
+          - displayName: Name of the role to grant the database user.
+            path: roles.name
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+              - urn:alm:descriptor:com.tectonic.ui:arrayFieldGroup:Roles
+          - description: MongoDB resource this user belongs to
+            displayName: MongoDB resource
+            path: mongodbResourceRef
+          - description: Roles this user will have
+            displayName: MongoDB roles
+            path: roles
+        statusDescriptors:
+          - description: |
+              The current state of the MongoDB User
+            displayName: State
+            path: phase
+        version: v1
+      - description: MongoDB Ops Manager
+        displayName: MongoDB Ops Manager
+        kind: MongoDBOpsManager
+        name: opsmanagers.mongodb.com
+        resources:
+          - kind: StatefulSet
+            name: ""
+            version: apps/v1
+          - kind: Service
+            name: ""
+            version: v1
+          - kind: ConfigMap
+            name: ""
+            version: v1
+        specDescriptors:
+          - displayName: The version of Ops Manager to deploy.
+            path: version
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:OpsManagerConfiguration
+          - displayName: Number of Ops Manager instances.
+            path: replicas
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:OpsManagerConfiguration
+          - displayName: Secret containing admin user credentials.
+            path: adminCredentials
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Secret
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:OpsManagerConfiguration
+          - displayName: Secret to enable TLS for Ops Manager allowing it to serve traffic over HTTPS.
+            path: security.tls.secretRef.name
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Secret
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:OpsManagerConfiguration
+          - displayName: Number of ReplicaSet nodes for Application Database.
+            path: applicationDatabase.members
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:number
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ApplicationDatabase
+          - displayName: Secret containing the TLS certificate signed by known or custom CA.
+            path: applicationDatabase.security.tls.secretRef.name
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Secret
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ApplicationDatabase
+          - displayName: ConfigMap with CA for Custom TLS Certificate
+            path: applicationDatabase.security.tls.ca
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:ConfigMap
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:ApplicationDatabase
+          - displayName: Enable Backup Infrastructure
+            path: backup.enabled
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+              - urn:alm:descriptor:com.tectonic.ui:fieldGroup:BackupInfrastructure
+          - description: Application Database configuration
+            displayName: Application Database
+            path: applicationDatabase
+          - description: configuration
+            displayName: configuration
+            path: configuration
+          - description: Configures external connectivity
+            displayName: External Connectivity
+            path: externalConnectivity
+        statusDescriptors:
+          - description: |
+              The current state of the MongoDBOpsManager.
+            displayName: Phase
+            path: opsManager.phase
+          - description: Type of deployment
+            displayName: Type
+            path: type
+        version: v1
+  description: |
+    The MongoDB Enterprise Kubernetes Operator enables easy deploys of MongoDB
+    into Kubernetes clusters, using our management, monitoring and backup
+    platforms, Ops Manager and Cloud Manager.
+
+    ## Before You Start
+
+    To start using the operator you''ll need an account in MongoDB Cloud Manager or
+    a MongoDB Ops Manager deployment.
+
+    * [Create a Secret with your OpsManager API key](https://docs.mongodb.com/kubernetes-operator/stable/tutorial/create-operator-credentials/#procedure)
+
+    * [Create a ConfigMap with your OpsManager project ID and URL](https://docs.mongodb.com/kubernetes-operator/stable/tutorial/create-project-using-configmap/)
+
+    By installing this integration, you will be able to deploy MongoDB instances
+    with a single simple command.
+
+    ## Required Parameters
+
+    * `opsManager` or `cloudManager` - Enter the name of the ConfigMap containing project information
+    * `credentials` - Enter the name of the Secret containing your OpsManager credentials
+    * `type` - Enter MongoDB Deployment Types ("Standalone", "ReplicaSet", "ShardedCluster"
+
+    ## Supported MongoDB Deployment Types ##
+
+    * Standalone: An instance of mongod that is running as a single server and
+    not as part of a replica set, this is, it does not do any kind of
+    replication.
+
+    * Replica Set: A replica set in MongoDB is a group of mongod processes that
+    maintain the same data set. Replica sets provide redundancy and high
+    availability, and are the basis for all production deployments. This section
+    introduces replication in MongoDB as well as the components and architecture
+    of replica sets. The section also provides tutorials for common tasks
+    related to replica sets.
+
+    * Sharded Cluster: The set of nodes comprising a sharded MongoDB deployment.
+    A sharded cluster consists of config servers, shards, and one or more mongos
+    routing processes. Sharding is a A database architecture that partitions
+    data by key ranges and distributes the data among two or more database
+    instances. Sharding enables horizontal scaling.
+
+    ## Requirements for deploying MongoDB OpsManager
+
+    * In order to deploy resources of type MongoDB OpsManager, you will need to
+    create a secret containing the [credentials](https://docs.mongodb.com/kubernetes-operator/stable/tutorial/plan-om-resource/#om-rsrc-prereqs)
+    for the Global Owner user
+
+    ## Security ##
+
+    The operator can enable TLS for all traffic between servers and also between
+    clients and servers. Before enabling `security.tls.enabled` to `true` you
+    should create your certificates.  or you can leave the operator to create all
+    the certificates for you. The operator ability to create certs is been
+    deprecated due to Kubernetes API changes.
+
+    For more information, please read the official MongoDB
+    Kubernetes Operator  [docs](https://docs.mongodb.com/kubernetes-operator/stable/).
+  displayName: MongoDB Enterprise Operator
+  icon:
+    - base64data: iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAJEXpUWHRSYXcgcHJvZmlsZSB0eXBlIGV4aWYAAHjarVhtdiMpDPzPKfYIDUIIHYfP9/YGe/wtQXcnsZ1JMjP2xLQBg1CVSmLc+O/f6f7BiwIFF1ly0pQOvKJGDQUP+divsj79EdfnesVzCN8/9Lt7IKCL0NL+mtM5/+r39wK7KXjidwvldg7UjwN67hDyw0LnRmQWBTz0cyE9F6KwB/y5QNnHOpJmeX+EOnbbr5Pk/efsI7VjHcSfo4/fo8B7nbEPhTDI04HPQHEbQPbnHRUbwCe+YKKnjOe4ejxdlsAhr/x0vLPKPaJyP/lP+h9AobT7HTo+OjPd7ct+z6+d75aL3+1M7d75Qz/3oz4e5/qbs2c359inKzHBpek81HWU9YSJWCTS+lnCW/DHeJb1VryzA3sbIO9Hw44Vz+oDvD999N0XP/1YbfMNJsYwgqANoQEb68skQUOjwxk29vYzCCl1oBaoAV5Cb7ht8WtfXds1n7Fx95gZPBbzK9bs42+8P11oTqO890e+fQW7ggUFzDDk7BOzAIifF494Ofh6P74MVwKCvNycccBy1L1EZX9yy3hEC2jCREa7Y81LPxeAi7A3wxhPQOBIntgnf0gI4j38mIFPwUIZQRMqIPDMocPKEIkSwMnB9sZvxK+5gcPuhmYBCKZEAmiUCrCKEDbwR2IGhwoTR2ZOLJxZuSRKMXFKSZKJXxGSKCxJRLKolEw5Zs4pS84uay4alCCOrElFs6qWgk0LVi74dcGEUmqoVGPlmqrUXLWWBvq02LilJi27pq300KlDJ3rq0nPXXoYfoNKIg0caMvLQUSaoNmnGyTNNmXnqLDdq3m1Yn97fR81fqIWFlE2UGzX8VORawpucsGEGxEL0QFwMARA6GGZH9jEGZ9AZZocGRAUHWMkGTveGGBCMwwee/sbuDbkPuLkY/wi3cCHnDLq/gZwz6D5B7hm3F6h1yzbtILcQsjA0px6E8MOEkUvIxZLat1t3d9QCRxsxap9zbTJnSpC9Ujts4Njb6FI9zspJeXbVkeaYtbVJSEezUW6JaKAvwg/D5hQZLDanrtM00jbEY0rHKkDDT6qjjyI1Tvi0x0mumC00PWvDJgQFlzlr6JBLDpCAfhT8JmmB17ocZZ0GOWg/HHfrHjt+t10LAbGArAzLYWMFIjiYSgUyBMqQThxLoUockGq0iRauh56ughvMVW77wZ9+oOWHXtjDEyFKmyAyYgHI19rzRglrZxYvpcA/8Ec1h7rT63Q63Tw690qqSBQJdCs5llETtVGW9VzNejNAzPo0VWt1MD+hwMgT1lTWuj1MBWGlfqQ8kPXMvgMxs56QdF+17rOBX7WS9IlLzsj0nkswang2SsLdcyIt4xRwm+8UBaGTU0gRkaOh10kbtJLBoye6g78sscDpBA9P6YMn4ngidXfgQR1AIWLLjFyG1Mbw/UzR2d7Z2yfcx6EhKA+P6DfFAW1nywjatUeUGk5/Hc+t+2zgkxYhUnAuglk6BGE0m4lCmm4eaSwCwWjITao1orWjGS3EjpZENeNoxg6Qc0pZEYQv5m4m+E+rg/b47bE2dXwVCQDlNY2me6QRBA1iGCEhRbBjNe8F0L/N03a/bc8FWAUaKJ7FAsVBF7mPWO/Ahnz+XNZCdu86wOgwYwXw4fSOAb+8M1bowkooSoXgmAKCKaaBSwER/RBBCHJR5F0klsyWSyrl2vVkchv+ay0Z5IgTNARSNpvOJbKgdkog+dGr8b23CUVLwm3MXGAv9zf5i0grEqY2dchhniumDwkX78a3afXWuruDC3R9mMCg2ZH4pFQxsNVXIAEKVghKRpe2vqIfodLqTwXAD0EOsNTbjSm4FrCboDvIQtJa77P5ihzfpOrk0jpKqQEZ7DHj30T4X6IfnjjiviTJynfQ74d8NyRZ9rkzoXsbghrGJoIikuGb1hDza7FCQ/LrfeLpbnpOR3Asbg+2S4ERh9mALLv3h+dZXowU1hkdQYwG7ohDpp6qnEf9eXpzI9cWdmgiBua6CmmpVo28HNFiAtLnGDi/IqehYLLd3Urk7acMROiNULaywxE4lTNlYaszIj8MXSMIAxMLMiO81TxpLxc+CIX7plJ8UvScIGDEPQ49k2B8RYKHQut9i9BqjOQWhtomW3G6pguDF2NuDWpCnjZpyP5zL/y6dd8IhbzrPyQdZJhmjcKstRWoSBtK9xFbVKVqmeuN+i+Z/1TdVUuQfAgywAEVaqBb5jGvGCf+AbMfNsTNwZtkGeOslliVhF3371oCOWdAc1jWzoXOnfdCFO6VqDKjipiVCMkYgm2VSwIM1S8Fr33UuDLJhwg2GbEQRgIFRCgbAvlCuOD03tu7Qu8SSNxJSi3FYFjpE76mhtw+vUM+N0WU2lNeBwpqB4ofqpRdBsYiKONYcc3BfWosqbYCLxy8q5HfqNnu2s3qCbWCytHwsH1WvnPmihPU+zgkNxTMioQiqPKROhd1/PDXWS0Fn7nOvWNDLB3FmJYHN24vKtdqBTMuc/gFLogWAJRONyL636yEhYjY7Uv7T7q5vYnIXaXI4a12X+6Ezxni0lHxJpgdU+jNVbkDq+bfqkNeRT8KUJzPWBRn64tFuCcNAotWugWLirEIpXvd1MX+DaXc8K6Q/U9WkwT7ruqDnuh2+ukAQWQJ6SNBGIVWhI7g1qpdEMsDPMINBJBdGLWMKxhmwIhVoOPeYSGyrx28rx0dlxoL9WTGIj1ZjYIyEXV5UsKN/SqRUBi27+vRd9sa5fQjoqPf0ejoDEdZ4UjI0kdWVC3mRZArW4GP0hO6hmi+a2a6auawa2bU2YKyMMAD+2qGKrJ4lNuofE7Zhg1LnMnSI1IGDg0esfENVp1sQ7J0F91M8I1uCJakKNxHE/C0FNw+Ajg3QhWWmrsdcIR5ak2cp9aIA03kpImJTclWlaYGPtVWWk0HfmBnOq84dF1xglVxGWdK2GuVx4o8mvyRO7pD+0Up9evW/TleGy73BV77WqdpX0Is8iEsdgnx+yZeJ0hmIupmwlUcl5BT7SKus9BBm/ft6+xqXfwzibyq3OxgyhFHqt/IHuuMUMrBHLhVjyI/7AoDgDkkjh8GiTETsfU/ZHuEtrDMfYEAAAGFaUNDUElDQyBwcm9maWxlAAB4nH2RPUjDQBzFX1O1UioiVhBxyFB1sSAq4qhVKEKFUCu06mBy6YfQpCFJcXEUXAsOfixWHVycdXVwFQTBDxA3NydFFynxf2mhRYwHx/14d+9x9w4QqkWmWW1jgKbbZjIeE9OZFTHwiiD60IMRdMjMMmYlKQHP8XUPH1/vojzL+9yfo0vNWgzwicQzzDBt4nXiqU3b4LxPHGYFWSU+Jx416YLEj1xX6vzGOe+ywDPDZio5RxwmFvMtrLQwK5ga8SRxRNV0yhfSdVY5b3HWimXWuCd/YSirLy9xneYg4ljAIiSIUFDGBoqwEaVVJ8VCkvZjHv4B1y+RSyHXBhg55lGCBtn1g//B726t3MR4PSkUA9pfHOdjCAjsArWK43wfO07tBPA/A1d601+qAtOfpFeaWuQI6N4GLq6bmrIHXO4A/U+GbMqu5Kcp5HLA+xl9UwbovQWCq/XeGvs4fQBS1FXiBjg4BIbzlL3m8e7O1t7+PdPo7wdVb3KbaWTEXAAADRxpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+Cjx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IlhNUCBDb3JlIDQuNC4wLUV4aXYyIj4KIDxyZGY6UkRGIHhtbG5zOnJkZj0iaHR0cDovL3d3dy53My5vcmcvMTk5OS8wMi8yMi1yZGYtc3ludGF4LW5zIyI+CiAgPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIKICAgIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIgogICAgeG1sbnM6c3RFdnQ9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZUV2ZW50IyIKICAgIHhtbG5zOmRjPSJodHRwOi8vcHVybC5vcmcvZGMvZWxlbWVudHMvMS4xLyIKICAgIHhtbG5zOkdJTVA9Imh0dHA6Ly93d3cuZ2ltcC5vcmcveG1wLyIKICAgIHhtbG5zOnRpZmY9Imh0dHA6Ly9ucy5hZG9iZS5jb20vdGlmZi8xLjAvIgogICAgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIgogICB4bXBNTTpEb2N1bWVudElEPSJnaW1wOmRvY2lkOmdpbXA6ZDk1YjhmMjctMWM0NS00YjU1LWEwZTMtNmNmMjM0Yzk1ZWVkIgogICB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOmVhMGY5MTI5LWJlMDItNDVjOS1iNGU4LTU3N2MxZTBiZGJhNyIKICAgeG1wTU06T3JpZ2luYWxEb2N1bWVudElEPSJ4bXAuZGlkOjcyNmY4ZGFlLTM4ZTYtNGQ4Ni1hNTI4LWM0NTc4ZGE4ODA0NSIKICAgZGM6Rm9ybWF0PSJpbWFnZS9wbmciCiAgIEdJTVA6QVBJPSIyLjAiCiAgIEdJTVA6UGxhdGZvcm09Ik1hYyBPUyIKICAgR0lNUDpUaW1lU3RhbXA9IjE2MzQ4MzgwMTYyMTQ2MTMiCiAgIEdJTVA6VmVyc2lvbj0iMi4xMC4yNCIKICAgdGlmZjpPcmllbnRhdGlvbj0iMSIKICAgeG1wOkNyZWF0b3JUb29sPSJHSU1QIDIuMTAiPgogICA8eG1wTU06SGlzdG9yeT4KICAgIDxyZGY6U2VxPgogICAgIDxyZGY6bGkKICAgICAgc3RFdnQ6YWN0aW9uPSJzYXZlZCIKICAgICAgc3RFdnQ6Y2hhbmdlZD0iLyIKICAgICAgc3RFdnQ6aW5zdGFuY2VJRD0ieG1wLmlpZDo1YWNhZmVhMC0xZmY5LTRiMmUtYmY0NC02NTM3MzYwMGQzNjEiCiAgICAgIHN0RXZ0OnNvZnR3YXJlQWdlbnQ9IkdpbXAgMi4xMCAoTWFjIE9TKSIKICAgICAgc3RFdnQ6d2hlbj0iMjAyMS0xMC0yMVQxODo0MDoxNiswMTowMCIvPgogICAgPC9yZGY6U2VxPgogICA8L3htcE1NOkhpc3Rvcnk+CiAgPC9yZGY6RGVzY3JpcHRpb24+CiA8L3JkZjpSREY+CjwveDp4bXBtZXRhPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIAogICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAKICAgICAgICAgICAgICAgICAgICAgICAgICAgCjw/eHBhY2tldCBlbmQ9InciPz6528V0AAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAABYlAAAWJQFJUiTwAAAAB3RJTUUH5QoVESgQ+iToFAAAA8xJREFUeNrlW01PU0EUPTPV+oqb4h+wENYKXbmzsjLEKPAHwB1xQ6N7adiboBtrSAT5AaQmBpuYSN25MS17k5Zf0MemFGznungttCkf782bmTels2w6mbnnnnPv3DvzYrBhrMytIT01gz9/f5temkVv/NMUwKsg1MFEGvlizeTy3ALj9zuuGAf4T2QzydEBACwHINXzwwSOE29N7iAWqe7BsoOYsEdITx2ZigcsIupnzqh/8SC0/6Wx+aNy8yTg6X7rWsfEbu96/71JAGQzyY7n/Rg2AcZ3dQdFswA0Exs+je8KYUZ3UDQXA1bmlgFsScwkMFrEx++F4QXgPN/LaZpQR6IxiY2SO6QSGMj3Qd00jpPE5+FkgDz1B3kAMYt8sTQ8AGQzSTTHyqG83z+qcBpplVLQK4Hm2KpC473U2BzLDgcDwgY+QwFRIwP4knLjuwFRIQv0MGB5PgnntKwFAMUs0MMA53Rem/Ge25I4ufvCXgkQVrVXsSSW7JTAq7lpCJQNnK4IEJNhW2jqGdDGsrH6QrB5GyXwWMKXLoi5gdnL8dwuCXjRvy4xs0vjVGDonMa9MNlALQPiJxlJOcvruOlM2yMBzuQ3Q3Al44BFADA8lJ9LrtSKnD2wBwAhe/hhIVIZpWxiQJgG5qHkohYBoPP4q6tks2Qfh1GBzu3xhWQckM0eWgAIfprrBE+SN4LZBACTNIQzF4KO5EAnmxgQwhtckj2WMeBA8gARpqQ9sAcAAfnrbLk4QGBUsQcAHmIzXFLLrbZFDMgXS1KZoN2W1DHVwj6iUH8O4FQKPCcWc3t6AkGCTin0dpUDQPhq6OREgNixD4BmvBBYBlKNTaqpuChVD8B2wQWj98EnOrVA3hf4YHExJLb1l3FUsBeAfLEG0Bef//Y8H28FqSW2VT2p1VgNUi5QLKC4z1qCqoBYt78fkC/WfMWCwMUM21H5oFrzA4n4xrUt724xQy0fxRRVkd/LKQ0lWgHYLrgAvfQXN1vXSYAAmlUeS7VH63yxBMIVUvDdB1jX8S2BmZbYp70scNkRmXtXaQkOXN4b3FJNfbMAAEDzzoLcFRhV4TReaztOGAPAiwdPLgDh8OqUR7M6XoiaB6CbGtts4cLzwbtv1N8Z7hiv+Rsi823xzb0KRB8T7gMA3jxj59dcZoz3snBUY+VpCmD7nautXGcva2Aog8Siqa/Hov1sbuAxJZXgHC/o1Hz0Ehgsmn71/FIxaXz0AAwS8sj0ihYAcBb5CVJ9weFnwLnR1K6PHgC9FyJsFCVwq+9afAQlIITbnxXMjv+6222dh4/VtAAAAABJRU5ErkJggg==
+      mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - nonResourceURLs:
+                - /version
+              verbs:
+                - get
+            - apiGroups:
+                - ""
+              resourceNames:
+                - kube-system
+              resources:
+                - namespaces
+              verbs:
+                - get
+            - apiGroups:
+                - ""
+              resources:
+                - nodes
+              verbs:
+                - list
+          serviceAccountName: mongodb-enterprise-operator
+      deployments:
+        - name: mongodb-enterprise-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/component: controller
+                app.kubernetes.io/instance: mongodb-enterprise-operator
+                app.kubernetes.io/name: mongodb-enterprise-operator
+            strategy: {}
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/component: controller
+                  app.kubernetes.io/instance: mongodb-enterprise-operator
+                  app.kubernetes.io/name: mongodb-enterprise-operator
+              spec:
+                containers:
+                  - args:
+                      - -watch-resource=mongodb
+                      - -watch-resource=opsmanagers
+                      - -watch-resource=mongodbusers
+                    command:
+                      - /usr/local/bin/mongodb-enterprise-operator
+                    env:
+                      - name: OPERATOR_ENV
+                        value: prod
+                      - name: MDB_DEFAULT_ARCHITECTURE
+                        value: non-static
+                      - name: NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: MANAGED_SECURITY_CONTEXT
+                        value: "true"
+                      - name: MDB_OPERATOR_TELEMETRY_COLLECTION_FREQUENCY
+                        value: 1h
+                      - name: MDB_OPERATOR_TELEMETRY_SEND_FREQUENCY
+                        value: 168h
+                      - name: CLUSTER_CLIENT_TIMEOUT
+                        value: "10"
+                      - name: IMAGE_PULL_POLICY
+                        value: Always
+                      - name: MONGODB_ENTERPRISE_DATABASE_IMAGE
+                        value: quay.io/mongodb/mongodb-enterprise-database-ubi
+                      - name: INIT_DATABASE_IMAGE_REPOSITORY
+                        value: quay.io/mongodb/mongodb-enterprise-init-database-ubi
+                      - name: INIT_DATABASE_VERSION
+                        value: 1.32.0
+                      - name: DATABASE_VERSION
+                        value: 1.32.0
+                      - name: OPS_MANAGER_IMAGE_REPOSITORY
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi
+                      - name: INIT_OPS_MANAGER_IMAGE_REPOSITORY
+                        value: quay.io/mongodb/mongodb-enterprise-init-ops-manager-ubi
+                      - name: INIT_OPS_MANAGER_VERSION
+                        value: 1.32.0
+                      - name: INIT_APPDB_IMAGE_REPOSITORY
+                        value: quay.io/mongodb/mongodb-enterprise-init-appdb-ubi
+                      - name: INIT_APPDB_VERSION
+                        value: 1.32.0
+                      - name: OPS_MANAGER_IMAGE_PULL_POLICY
+                        value: Always
+                      - name: AGENT_IMAGE
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:4a687fc5a6ed7ce1f8402abafbe35321b4639573541f5babc5b945f7eff9d202
+                      - name: MDB_AGENT_IMAGE_REPOSITORY
+                        value: quay.io/mongodb/mongodb-agent-ubi
+                      - name: MONGODB_IMAGE
+                        value: mongodb-enterprise-server
+                      - name: MONGODB_REPO_URL
+                        value: quay.io/mongodb
+                      - name: MDB_IMAGE_TYPE
+                        value: ubi8
+                      - name: PERFORM_FAILOVER
+                        value: "true"
+                      - name: MDB_WEBHOOK_REGISTER_CONFIGURATION
+                        value: "false"
+                      - name: MDB_MAX_CONCURRENT_RECONCILES
+                        value: "1"
+                      - name: RELATED_IMAGE_MONGODB_ENTERPRISE_DATABASE_IMAGE_1_32_0
+                        value: quay.io/mongodb/mongodb-enterprise-database-ubi@sha256:2493b87b57a54dd8b18bb69cb9054941f357dd5b9c31935c0f25e1dba9daeb2e
+                      - name: RELATED_IMAGE_INIT_DATABASE_IMAGE_REPOSITORY_1_32_0
+                        value: quay.io/mongodb/mongodb-enterprise-init-database-ubi@sha256:86784de9c23bee4804e2722ea824c09b2a204034485e20ec1b0fd805fed7f836
+                      - name: RELATED_IMAGE_INIT_OPS_MANAGER_IMAGE_REPOSITORY_1_32_0
+                        value: quay.io/mongodb/mongodb-enterprise-init-ops-manager-ubi@sha256:184b3c6ec4f6b433ba8a54ff19a5cb2a9d0297a39d0d35fd8232dcceaaaea12d
+                      - name: RELATED_IMAGE_INIT_APPDB_IMAGE_REPOSITORY_1_32_0
+                        value: quay.io/mongodb/mongodb-enterprise-init-appdb-ubi@sha256:74ed6985878dcafb9d37cb2d5d6d3fc6085f7ca673884c6322dda73150b563ce
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_10_8627_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:726239609832bfd8ca9aef02c2f69f7b3a24365a90136ea5c24f35cfb666fe39
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_10_8627_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:7652118778dbe90c3294d73a8c5696167854cc99e23d48625e30c4feb579e7b6
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_10_8627_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:98c6713147eac4b5c9f8452245ce8e877eab56eeb0ec0126a7840096881cab2b
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_10_8627_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:f3a1bff63fd04e98afd04f067444d6c2537c3b15c627c6c92d4696715cb919d1
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_11_8645_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:5f75df48af7164801d4f44110927f7b5eb13c73577b21413366df4413997a9ab
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_11_8645_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:576b3027d2b06351b4f6c8ad205a5614d7f2fb798f5dd33ad176c69721d7d7fd
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_11_8645_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:56cee946ffd8dcce099ffd268a5d076ed370d0543fefb75ad17c1ffccfd9a491
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_11_8645_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:a133869f0e196bbda5dc0fecb58da0281e152f840d83b7cfaa7b77a9cca07857
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_12_8669_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:7a682a3753ac7d6425e4be06c3f2e792ebbcdc9d9231767f407271da56885eb2
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_12_8669_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:93db364f4ec0aa73d636b5691ad46117199e07d2e260f7f3aa90f76c75d95b72
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_12_8669_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:1fac5a5e347f4048a2baceaa6aae5db23634b0818062d697a1f66b0d171f2c0d
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_12_8669_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:7f550e0b2bb364a1651fffe8da9eeed5593ea707c4e7bb7714c91f8839c97c48
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_13_8702_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:7fcfa630346bba2bd19efcf285004fb71a700ca643ebdd27eab878a6c89e56eb
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_13_8702_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:1c3003205306ce9e80e6ca526721a5a38199eb0ff7d6b70332e113b7a0e26e0b
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_13_8702_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:b605b1bb3a63dfca93abb264ada6793c37f488be6d069f4dffbb6d9456fb87b3
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_13_8702_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:d8a7abfe9c479053a3ad9add6f861a531b90770e8b0c4f799c59e6784e77ea17
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_3_8550_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:e46c1cec1a9e82a0424ec48fb19da0cbb01154067a64ba631b1b825bcfd5a93b
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_3_8550_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:dab7d7c8ca920ab3033e0477075093118a3d57b92616296ce23ebbd776505c88
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_3_8550_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:d55206a6c86060c9b68999b173b5d2dad6ec8efe0d6b2d5dd04e6890ac67d591
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_3_8550_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:3a7aa76d0ae4c273bdbf5896f62354437f6a2e4d52aea13ea497175abbe3a7da
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_4_8567_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:6321aee145a010344719c506fc7cf12aa2ac52e77c03caf01d327a404cc5de59
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_4_8567_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:37db89520906a8cd3b4cd2a91a91afa5b2f12895c02a78ed632b233eeb98bb19
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_4_8567_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:d4926914f1b03824f69a601adc039b7acc76f7ea1b4a09bce5c47562b837d616
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_4_8567_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:790fd9cf21e024462b96ca36d4e5bdf7dd63e48f6b224621677a8f7bfdd07b18
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_6_8587_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:da8a554feef4084c3f68b3a8a222d4614c1399af8a0bd5c16567de6f9dc4098d
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_6_8587_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:44efe6ebeb27229dcb0599bca36db44320335511f84ddd8fcc09b3702356d5a1
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_6_8587_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:0a533f3e40b564b9bbe38e3f44d34d3fa77d54e188fe09f81cbc6552ff8284b6
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_6_8587_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:890fae28afd100b760e6c5e8a9d1fe3609edeeb95ed05f8b87f64b59300faf56
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_7_8596_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:ba1f4f3832db0b486998929527ce805c2fdb1b562b18fff98d211bfccb021b38
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_7_8596_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:36885c50bddc06df485ea8f2642b542ef0d6ca81252a6cf084251c194a073aa6
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_7_8596_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:d3c999d3f601dad8d5a34db08fae795aca43a82aebbf6a7dba4b93423f6b81b5
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_7_8596_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:22beb4871b3e0fa6d2e2c1d2c5b6745cdd5c4b1410b96974a78dd10f06e8bba9
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_8_8615_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:a83fd40a50cd9c9646232d90ab6179233730b77bbf1119cdfc28103d6e5f0143
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_8_8615_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:ed6b15c620603a91789c3d7bfe1f7a8a88731459ebc7dfe219f0f8fe9c31d11a
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_8_8615_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:2b219a73396ba9e90f3c435439bc41dd11f73b17f8b85cb18c10a5027dbf5f40
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_8_8615_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:d1c8cfaf9080c7fc96d9ac4b67f9c231b91200e2f79febe4ef291ff91f3e18a8
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_9_8621_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:5a45e85afaeb5e04b2a37e33650ea03b97dc32c2e001bbffed5da12e7f12f5a8
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_9_8621_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:d86688d698f11d9efd05468606a6c60a4ea281a000991fcad46b7bafb0ab007d
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_9_8621_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:7ffc884e6a58bb2733c76f01bff7a744b15efc30e19b5223a6a7bdc3daeac632
+                      - name: RELATED_IMAGE_AGENT_IMAGE_107_0_9_8621_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:33b5aa9585dc4a90c9b590b9d3d6580bf2c65169186075128b79f0bfa683f7ae
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_0_8694_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:4dd56f1ecf4cc74c55f1ae1755503559e386f2476ec98ef2013425d0e597d8c6
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_0_8694_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:c7e993e7aa8dac0b2286a2878b9b11ae2ac966d3ffc15496cee5dbac5bd9e452
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_0_8694_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:287a1f135bcdd87fef075293719d4bffa0455842553eded3477092e17d4daa63
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_0_8694_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:13a4bc40d42972a077a2dc5f5cb077c1519b56508ee17912c631f602cd9340e2
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_1_8718_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:2b73831ea4bbbf14c6c44c190a3fbce6f63019841887d6e14aee856f94298ca3
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_1_8718_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:b75e0f450d57199e42ee1261fcfaa96b9922c01af9996c0a611dbbe87fdb1d57
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_1_8718_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:2e70081cc750997d2110a948a816b13375fe9f9e975eae7205b6d6e3354b0d25
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_1_8718_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:88386e596801496257f4a924a77e61205fd0d36f4cbbe4806842741c40aec475
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_2_8729_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:4a687fc5a6ed7ce1f8402abafbe35321b4639573541f5babc5b945f7eff9d202
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_2_8729_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:f589fc4efb38588df6bc6dfa951e5f1cf81346b91397c9e0a7ef70dbb20c960b
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_2_8729_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:ee919cebce73265395890b72531256abc4ee8393fc4cde792a11428112588336
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_2_8729_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:f43462902efbe516c0cd1a45884be5459d39235159f478cea0b6bd22c9c94f08
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_3_8758_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:0cb9748f041d821f127a469303791d108985fc74e3e6043213825da71d2ed0b4
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_3_8758_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:31254cf3064c341134c4bf5a9e85bf592753b1d31e8921f4ceddb8d1ca4f3c4b
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_3_8758_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:bd8f7014f8404d8d35e4be518cf1935a86b1dd616a5ed4fde8b3dabc64b39be4
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_3_8758_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:47616bdc91166888d59a3e934648a619299ef72bc5f8c8dbabe23de1eb624858
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_4_8770_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:267cad39be6925299aa57478efd796230be62dbb7c289d8f59639bc7d6ce5e91
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_4_8770_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:7d059be6d0bd305964bc565af8f1b9f9ef2dfe057b745b7ebe8b531d94e1ce33
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_4_8770_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:b4963cfb1613e608a41d85b5e1bfbcb925f3e825e3d1030093e3f79244e79133
+                      - name: RELATED_IMAGE_AGENT_IMAGE_108_0_4_8770_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:71855ecf3269e98def1edd3340ab2eb8c04e1bef0c895b66bfd00795ca1fa925
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_31_7825_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:fc1bd79cf9f1f6c8e401750c08d8c65cfd77cf8a0c3c58421092c5c68ba1e3d9
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_31_7825_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:51d3c23c4fa631f461378895067db828f3177a4f7b93e7caf5328afc4e390dc6
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_31_7825_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:947945dbd136c6712b6532dabbca03c8720515387ca853ffc7fe0e6d2369f0c2
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_31_7825_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:bbc2206fc9d46402d926bf629bfea054d4e9feaab297485895573bccf3ea28be
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_32_7857_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:118674ba4cdde741126be91c8d3ffe54630f984b092325ecd147c349c3c430f3
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_32_7857_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:bae723cf4cce919382b6bd4e9fc7df4c78d9abdc8d2bab1ea3d2f35fea91197e
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_32_7857_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:0a4e0b55ea0e3ced327da95b68a905a3be8466e1df8e09bd636450ba056d8052
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_32_7857_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:34390b3d8fa62aa9df1fa254ef002f68a356e693bce1991e6ef0813befcee717
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_33_7866_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:90e93c997db1939cc33b400ea1d5afad4c6aa0d9d7c1f45d2efa82b10e58e12d
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_33_7866_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:55369b5fe3ed19f0d23828217c564ab9ee5fe4f7e3be927f679e2979e25d5427
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_33_7866_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:28ae7a9996d2136eeec1d003c697ccb63619c6ec9f1be3d772b54ffbda0311bb
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_33_7866_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:82a922e16bdbbe5735477945ac370be5edf923d9cccf809f27ad9309be72bd2c
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_34_7888_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:75df629d403866bb94e2e96b37ed835f5a3a9371a572ddd6819090d8e5226f0e
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_34_7888_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:e34191db2902e7c956ffd4611ea7420be0c0f562798cfb904ac6aceb3f954780
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_34_7888_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:ebf9024cc94e51018847936b6c6543efd0d13ef30dc55b9a9d2ff97bc7c9271a
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_34_7888_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:18a4a1eeb6788929d66a73c6af8b8db9436f6ecbfb163187f53143f3c663712a
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_35_7911_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:8a1eeb0bf9daf5f4ae3147389adf682884db6f27e55013e67b5de86b3a50ac48
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_35_7911_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:305bbcc92dbee805017b2b7a61f152b2dc41ff3901dafb88e80c9bdc78c5a830
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_35_7911_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:eed3dc7ca67c9f6756aef545bc1b7abb58c62e96c3ee10c7c7afd3d1a21c323e
+                      - name: RELATED_IMAGE_AGENT_IMAGE_12_0_35_7911_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:d28197893c4d6126e1712ac2e006b076b7813ddde36dfbdb0c30859471a0180e
+                      - name: RELATED_IMAGE_AGENT_IMAGE_13_30_0_9350_1
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:fca63766b108f4f4623577147a77e8aa6adf1ea1943e16410713e3077ec4a197
+                      - name: RELATED_IMAGE_AGENT_IMAGE_13_30_0_9350_1_1_30_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:08f1b0ab16802c8e0248b7bc92933b32ccb9cab48ad9577a00f1d057f757b29d
+                      - name: RELATED_IMAGE_AGENT_IMAGE_13_30_0_9350_1_1_31_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:e2720fcb7c0bacd01d06eb93f7a5be7f4837d1a32e0b430049300b4120e81369
+                      - name: RELATED_IMAGE_AGENT_IMAGE_13_30_0_9350_1_1_32_0
+                        value: quay.io/mongodb/mongodb-agent-ubi@sha256:ffbce2ee7d6b7b9afa0e62c203ab68ae7f57b3df73d94a62d30a48b629910d34
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_0
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4f0b8dedd3ac933a25bb45867551c8013e4b88da0bc90d29473fb9c3fd36f8d9
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_1
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5422d2a4d0b9e1fb66db77e965eddf0182fae73a49385e28f23c3428ffe3cc46
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_2
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:9a27b21afc08949c108b75a02cba35510083e0e071b907679572ac1562d5fab9
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_3
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:fb2733ee25faf2edd816dc8b5bdb28bd48c53c31b1bf27e63c5b95098f35691a
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_4
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:6ac8d38d2e60681caef3cea9d4b16115acb6ecf52912ec683049679e7071a02c
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_5
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b26f1d03a629ecf00c98ef25054cbd09f89fe71dfbe367c162d216179625f3ca
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_6
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:be20073c475156fb215d73e805e7eedf1b55a3d2eecdd2160a87838b10417d4c
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_7
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c1792e863c8aa7788af9a9c0c11537ed1bf861eb102c7f1f55bca7c02ebf331d
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_8
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5352fbd7858bf6cf7f25b503788c601c21e109ec29ddd127837735b36c628618
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_9
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4d9c9dec17ed423cb7d9ce8fa078486328e2cfcda36b66e4dd2ee87c2d1cbd5a
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_10
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:be402a0672450bb60278c283576ad16a7c6072642069cc01d735c87d4ab1f33e
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_11
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c8ffc5943c4ff07312d40ea686a723f8bebab5800ced91f22778a5aea7a3a44b
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_12
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2c55a8fe1dbafcc1b71fe9e954c090965f11999ec0f9c1f5ea4a5fbd0f886875
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_13
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:663a31aef5ad8f23ccfa77b5446a8c4f78eb68563d7996daa1a5a12c01a7a7f6
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_14
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:87e57019b518c879c5ed1607777522fb6dc7c32dd13b37cf843c5d9d6b88e6d4
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_15
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4e5e633013b62fea134921e158beb8d9db3e2a7f7e7ac828ab7ff8d9e9b82743
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_16
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8dc00cc40fc9efbb143e4e5eb72de90b9b73003b1a8aae1281c3d97ef726e62a
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_17
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b3ee7849b4993279f2f6b9e182adca0d5bba1b1f84b0ee0319981d69ced4f0c0
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_18
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8ab2c611274b7013239b22f1f8d99ff9afb7378d0c323ac407eea787c4ce01db
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_19
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c01e5bb9dd4ebc2dc9543b31705f1ba56d538d25308d25601ab52e78f4360e7f
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_20
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:83f1f0f43fd6ba9f3b7a0356372a69dc21d73d26589259fa6808fb2db2c4de3e
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_21
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2ab3239c8157dedf3ce1ada3acc330126e5b1d708c1e767ace1292b0a8628855
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_22
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:e149dabb175c0725b838b674470185f400e236d272d4676e84fde4ccf47f5be8
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_23
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:755d5f61d4389913bb18defad34af0caaa202180d4d2c217471951d319717300
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_24
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:cc31dffd31b36f69bcf0ac86bc760d23b6f025db4a5e8eb28a57d9270c023639
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_25
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2670ddc75b8deb8ad6a92d293f5e5a3c83eff96cacbca84124c246511d7550ac
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_26
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b2d8dd13ad93969fe8ef5877f792dabfdbeae282590d802d67f69beabf4ddb8b
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_6_0_27
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:56ffc0f71cd751ff1129a1c953b0e1852791f979401b224856def6f581eb14b5
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_0
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5c66c7e20cc1c927ca86e9c40dcf5b4a738bc6fcebc60f33db8d3c04bff6f337
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_1
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b80ea22730e0972ef15a10bd59b538a17096990db895308f41434d395fc79cbd
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_2
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:97727631d1c295036108675a9bc473aa737fb3eda9f5924c10dfe3eeb75a7629
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_3
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:14d4d0c6e2a2ffb87ca35554f00c8256b787ad43339ebe85b970ccb164233b0e
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_4
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:592de1c2d7bd54ebcdf97ebd35460f94ec8338e865ae52c68a2d0ced321ae593
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_6
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:d3706e7018d38276704c189e0cbec4c015a4659fa1083474aa187e08ccd212be
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_7
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:649b9ec473ada7a1ed4abbb7f3f93b110f091ae7fbd749889b1285f4a0911ad5
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_8
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8adb9347cc983c7106f92a5c7014456c8b4eb24c9fed45aa261afdc6615964a0
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_9
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:e551bbba98a689727a463be177f6bef46fbdf5504c70fe9387e547a72188a620
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_10
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:9d19a745adbcc52ac54a1ffbe7f32db73931e1b7a1c69d584746a9ec3c68aa9c
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_11
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:10e106336789b92247875d87c658ff665cd3444c4403d878b51db80d27d589a7
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_12
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:d42352174371e8ed55b1a27436c8adac2d378ac87fb40522f30076744281dd1e
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_13
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:f103807bb6bed92041f8d9452baf7f3945693baa4362638a1ce935c0a2d70e3f
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_7_0_14
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:07f4038b1981f52417887a14339d9ca4f5b7ee7b5d37ac66462a82c47d18f429
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_8_0_0
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:15ffe8d3ec577cab20d244d2226ea6fead3b5bea94de0c2635b3b511c874474d
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_8_0_1
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:036b9630034675cecf07ab4314eb1b3317f83cdb5c16eff6eece8535faec56c4
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_8_0_2
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2a59c451665fd90f0ce63758640308ba29cac97b21518a92883689b1f5d0be83
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_8_0_3
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:335d2eb293e5f590f5407f6d02a8ef50088d14ee41217a47a59ae46465a90139
+                      - name: RELATED_IMAGE_OPS_MANAGER_IMAGE_REPOSITORY_8_0_4
+                        value: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4af319e3e7fb60e64282ed7ab14ba62c4cc5219437b9683b7340dc617a96f427
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_0_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:19925e1297ab652db59c35f53e7b7c8b2b277f8ecdc4215682961aaf2b3e924e
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_1_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:c752a7f0726d21d55f204a359b85fa29cd727a5fe571b37289ae3ea52d6206b0
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_2_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:8d7e5361c2a1604dec3fc671d629806fe6ddc6df524b69a441b86933a4b30093
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_3_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:7885ab6e88214f9289d8babf5189136dde0dd4c84a15a5481ccd3ef512b2e66f
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_4_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:9a3a6496be0d2d446e6d654eb56386c7726e0cd2d7232f6dcec579923edf0014
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_5_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:0fde236fe26d5b20210d6f246aadacd7845874712def516cbe2eec11d79d5181
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_6_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:172e338a43df01ee5408d8d1e3cb038d2c55e77761c1a2ac6ed37959d1525140
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_7_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:15e31285c8949a4666f7702df53416b0905d76945a28575a6028a876cc8a6f0f
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_8_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:11ab324698f919f84a5dab5a964d93fe63f98a48146bb3b86974cba7606d30ec
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_9_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:655896bac9e82de8e9729d59a36c3a31f66235f22b93449260a2ccb7709de084
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_10_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:33a30d11969eb21952681108092fe7f916e25c8e1de43e6a4e40e126025a2bec
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_11_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:1d418c65d82ccad205b7889be4ba161d3cbfa8b1fb75b21c8fcf02de38fad9ca
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_12_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:d21c65780cadc9d8668d2c28935d492625d6993f13ba562722200a819281cbcc
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_13_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:dfd4277f0c16ed476ac7de51894739e8c8d13a65ea5024b9a97b3dce0f6c6975
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_14_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:b00ac773623e1bf422b47e6d783263d2d08737865abe9abbe106d86d1ea25165
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_15_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:ef732e3eea91cc86caf2eabedc0c9115ed235a8d204f33e74bbf090a0b0259fb
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_16_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:67238129df09d33ee4746ff1acb5515d699a29d9f42350eae3f3f69ccb7fbf54
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_17_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:8445d59d491a6d3890ea9c8b421214bcd0fdcfbc420ed40497a790b79f0bc89e
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_18_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:523566f44cbb6bbf0cd12b1adae939a883f2254c78dc4b8c9d0098581337b1db
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_19_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:85c1d669c073caf9cbaac815e4c8ea2ca18b71deefa03bf84cd6d8b8ebd53e12
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_20_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:37af0913742b6de339c7e664b30f35dcef04506529e4a09a9bbbdd57643f7149
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_21_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:aa8683500e8d3632c4588bbcdddb4e3186a01f48aefe1b6d95f8860dae8b6c76
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_0_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:fb8397cbcdbf7c33f6ad142492792771127f0d9a8c46388f350b6927405ee590
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_1_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:d49417ea85ee1ddb84429552a5aac87a82c2843904d8c0300a43b657b7a49e0e
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_2_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:a48a4d5c275fd669a27469649fb39ea38c728dbcf9f0a9da4e7cf27a2ce912ed
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_3_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:3add8b68bfbaa42596fe5dbbee4623ba5ff1a826b18bb71301525adf574dcb94
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_4_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:f2d9a3264a8814f33143b73c56624572fb80afeab184133d3a901713a31c1a87
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_5_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:d323c1bcd14118cc537ac282996ea5a58756d20b6b73f1eec0efa8710d246077
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_6_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:df6081325ea2fe01d1b27d0c70005dec8232aaf51a43d91661b722b8a1761263
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_7_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:aa300abf739e26350a258f643fa8e57aedacd041055c7b923bd22b21ef554cdb
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_8_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:ac38330234ac19500d01b962fdb9d5f5131a5011426b395abe257a9abca6d329
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_9_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:829b2591721a3a437c97b6d1b896dbe0776d349dd472a435a006dcc5e9aebbd6
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_10_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:3cc4011d208424e5888fca4b84f9875f9de88dd1e8b615398a39362e7ebbbef3
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_11_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:0896d7eb032bdd4f68604344ed5307af8e56c93805e7ec861c078930b7cc4b5b
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_12_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:93cbdf61ee10d07f978adc7ca0cc6ea45314e127143ede15709233a452efa913
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_13_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:a087e67bb3df1dab4e1d2b765dd987a6b4e4fb7cf7d797cb269cd87732bc33a7
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_14_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:fc3bd5f1fee1edcbaeb0badd52453100cc2a7d8c22f399a45ff3c24979963920
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_15_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:cc3a238c314f4948c6d3e40822ec2425cb8c7b693816879442682fb7743c45f5
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_16_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:bb1b49303ba2de72f96a34bc022df0e52ae803529aa9aa234de0c1de7e91b3f9
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_17_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:892d65cffac511fc3d9ea5399df626f56d54777d51b29b3db506930d5d4abbf2
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_18_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:bd8e3fea98ef5b67ac2db94d6b7996d1f61b8388f8bb2f5e1fce973b1fde5dc3
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_6_0_0_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:bd14003a9e8bb17f7a129414bd8a0ef6f9e0868a5160e033116693658499a126
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_6_0_1_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:533d8fd8b6b601b13246eefac01fe961d4202e4a0a1839ecb9b7cee4a5a77c4c
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_6_0_2_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:111d3dc1e40c4e7c52cc42898cc23791ba3a8cf1eee07d6df5a25c6a12a301f2
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_6_0_3_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:7692bb3692d2ad59c12b7519a96bd150cc5104e361238a90fc558026fab4c4c5
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_6_0_4_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:ac91e7e0b0e77d71c7955fa85ccb903f82ad69a3bf8dcd7526d1197b7ba9e512
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_6_0_5_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:56aa1385fe3ccb296af1e0f55eed11bfc0e9fb9aedf916a614887f724338a92a
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_8_0_0_ubi8
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:1b7f95157b49b8016c5bbf4f6f40c581d8b351ffc7ea8ea42a974229dca355d3
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_8_0_0_ubi9
+                        value: quay.io/mongodb/mongodb-enterprise-server@sha256:1ef56bed07a96a9823909fb6167663aad92f76723587948a6032ec9f622fe6bb
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_2_11_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:59c4935d7690842c13032497f949ed66b6f17b244f4ca162549c48a4a89a57ad
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_2_2_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:d0e3e7da00ffb341ddcdb7b8a17a8dc33ee47766bcf735a4f152e5b0dfd38e78
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_2_24_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:c6d6cd6f6bc82dc09975f5c1fed8750aae6b4f974e53214d6d486c9f22051bc5
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_2_6_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:699f8ed8124e41263e270791043a5c6b11d8831b40eede97e563cc42c1608638
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_2_8_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:86c46a3a91bf1ac1738b58ff803e14d0f1e3ca735dc6d2b1e26da690facecd96
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_0_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:b0080cd0341b1ab8b9a952dc3ca32382533d9f1bd55ac0b11ad643547f467583
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_11_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:cba8003d08e8a69439a3987d06755d2d31f61c5b75cfad78352a3f1e3fc8938e
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_4_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:47695c3af6fe17dc555fc93ba87f115a47522009c04a43c3cb8e7d657950e92f
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_4_4_21_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:b56ceb6ab7c3bd4114aa0840aea25fe4dd2fcddf3a3f163ab0c83fd130518124
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_1_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:92303076191dfc5b69c3ed942d5317ef697e4c70c4372f4da3aad988aa3f3f55
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_5_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:8fded22168830216d2c8a5dd212a222fe864c22613dd0f791d18f7451d8fdb33
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_6_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:13f899525b80521eb48a229442380de54030f3b89b654d006d90b0ba7303468f
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_7_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:337649c66edc67f5e4c97ce1b05056c8b9b8e9daeafe7e86a75ab99731e89a52
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_14_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:69238ab3d1a936c47554062669105e097f2140449b40eaf715db81161038da46
+                      - name: RELATED_IMAGE_MONGODB_IMAGE_5_0_18_ent
+                        value: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:d408b9080b30944b6f38ccd282b90b311ad442966ce1aca5bd9877d0828c89a0
+                    image: quay.io/mongodb/mongodb-enterprise-operator-ubi@sha256:b278d471d21e9bc210b547c63e95f618972a33dc1d8ebb7b10dc4b8d47bc8d93
+                    imagePullPolicy: Always
+                    name: mongodb-enterprise-operator
+                    resources:
+                      limits:
+                        cpu: 1100m
+                        memory: 1Gi
+                      requests:
+                        cpu: 500m
+                        memory: 200Mi
+                serviceAccountName: mongodb-enterprise-operator
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - services
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - secrets
+                - configmaps
+              verbs:
+                - get
+                - list
+                - create
+                - update
+                - delete
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - create
+                - get
+                - list
+                - watch
+                - delete
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - get
+                - list
+                - watch
+                - delete
+                - deletecollection
+            - apiGroups:
+                - mongodb.com
+              resources:
+                - mongodb
+                - mongodb/finalizers
+                - mongodbusers
+                - mongodbusers/finalizers
+                - opsmanagers
+                - opsmanagers/finalizers
+                - mongodbmulticluster
+                - mongodbmulticluster/finalizers
+                - mongodb/status
+                - mongodbusers/status
+                - opsmanagers/status
+                - mongodbmulticluster/status
+              verbs:
+                - '*'
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims
+              verbs:
+                - get
+                - delete
+                - list
+                - watch
+                - patch
+                - update
+          serviceAccountName: mongodb-enterprise-operator
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  keywords:
+    - mongodb
+    - databases
+    - nosql
+  links:
+    - name: Documentation
+      url: https://docs.opsmanager.mongodb.com/current/tutorial/install-k8s-operator/index.html
+  maintainers:
+    - email: support@mongodb.com
+      name: MongoDB, Inc
+  maturity: stable
+  provider:
+    name: MongoDB, Inc
+  relatedImages:
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7a682a3753ac7d6425e4be06c3f2e792ebbcdc9d9231767f407271da56885eb2
+      name: agent_image_107_0_12_8669_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:1fac5a5e347f4048a2baceaa6aae5db23634b0818062d697a1f66b0d171f2c0d
+      name: agent_image_107_0_12_8669_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:34390b3d8fa62aa9df1fa254ef002f68a356e693bce1991e6ef0813befcee717
+      name: agent_image_12_0_32_7857_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:93db364f4ec0aa73d636b5691ad46117199e07d2e260f7f3aa90f76c75d95b72
+      name: agent-image-107-0-12-8669-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:1ef56bed07a96a9823909fb6167663aad92f76723587948a6032ec9f622fe6bb
+      name: mongodb-image-8-0-0-ubi9
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:4a687fc5a6ed7ce1f8402abafbe35321b4639573541f5babc5b945f7eff9d202
+      name: agent_image_108_0_2_8729_1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:d3706e7018d38276704c189e0cbec4c015a4659fa1083474aa187e08ccd212be
+      name: ops_manager_image_repository_7_0_6
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:1c3003205306ce9e80e6ca526721a5a38199eb0ff7d6b70332e113b7a0e26e0b
+      name: agent-image-107-0-13-8702-1-1-30-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:28ae7a9996d2136eeec1d003c697ccb63619c6ec9f1be3d772b54ffbda0311bb
+      name: agent-image-12-0-33-7866-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:88386e596801496257f4a924a77e61205fd0d36f4cbbe4806842741c40aec475
+      name: agent_image_108_0_1_8718_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:d49417ea85ee1ddb84429552a5aac87a82c2843904d8c0300a43b657b7a49e0e
+      name: mongodb_image_5_0_1_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:97727631d1c295036108675a9bc473aa737fb3eda9f5924c10dfe3eeb75a7629
+      name: ops-manager-image-repository-7-0-2
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:726239609832bfd8ca9aef02c2f69f7b3a24365a90136ea5c24f35cfb666fe39
+      name: agent_image_107_0_10_8627_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:118674ba4cdde741126be91c8d3ffe54630f984b092325ecd147c349c3c430f3
+      name: agent-image-12-0-32-7857-1
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:cba8003d08e8a69439a3987d06755d2d31f61c5b75cfad78352a3f1e3fc8938e
+      name: mongodb-image-4-4-11-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:f3a1bff63fd04e98afd04f067444d6c2537c3b15c627c6c92d4696715cb919d1
+      name: agent_image_107_0_10_8627_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:da8a554feef4084c3f68b3a8a222d4614c1399af8a0bd5c16567de6f9dc4098d
+      name: agent_image_107_0_6_8587_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:890fae28afd100b760e6c5e8a9d1fe3609edeeb95ed05f8b87f64b59300faf56
+      name: agent_image_107_0_6_8587_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2c55a8fe1dbafcc1b71fe9e954c090965f11999ec0f9c1f5ea4a5fbd0f886875
+      name: ops_manager_image_repository_6_0_12
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d4926914f1b03824f69a601adc039b7acc76f7ea1b4a09bce5c47562b837d616
+      name: agent-image-107-0-4-8567-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d1c8cfaf9080c7fc96d9ac4b67f9c231b91200e2f79febe4ef291ff91f3e18a8
+      name: agent-image-107-0-8-8615-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2ab3239c8157dedf3ce1ada3acc330126e5b1d708c1e767ace1292b0a8628855
+      name: ops_manager_image_repository_6_0_21
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:d21c65780cadc9d8668d2c28935d492625d6993f13ba562722200a819281cbcc
+      name: mongodb_image_4_4_12_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:f103807bb6bed92041f8d9452baf7f3945693baa4362638a1ce935c0a2d70e3f
+      name: ops-manager-image-repository-7-0-13
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:df6081325ea2fe01d1b27d0c70005dec8232aaf51a43d91661b722b8a1761263
+      name: mongodb-image-5-0-6-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:0a533f3e40b564b9bbe38e3f44d34d3fa77d54e188fe09f81cbc6552ff8284b6
+      name: agent_image_107_0_6_8587_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:08f1b0ab16802c8e0248b7bc92933b32ccb9cab48ad9577a00f1d057f757b29d
+      name: agent_image_13_30_0_9350_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:0fde236fe26d5b20210d6f246aadacd7845874712def516cbe2eec11d79d5181
+      name: mongodb_image_4_4_5_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:ef732e3eea91cc86caf2eabedc0c9115ed235a8d204f33e74bbf090a0b0259fb
+      name: mongodb_image_4_4_15_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:e34191db2902e7c956ffd4611ea7420be0c0f562798cfb904ac6aceb3f954780
+      name: agent-image-12-0-34-7888-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:d42352174371e8ed55b1a27436c8adac2d378ac87fb40522f30076744281dd1e
+      name: ops-manager-image-repository-7-0-12
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:86c46a3a91bf1ac1738b58ff803e14d0f1e3ca735dc6d2b1e26da690facecd96
+      name: mongodb_image_4_2_8_ent
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:d408b9080b30944b6f38ccd282b90b311ad442966ce1aca5bd9877d0828c89a0
+      name: mongodb_image_5_0_18_ent
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4f0b8dedd3ac933a25bb45867551c8013e4b88da0bc90d29473fb9c3fd36f8d9
+      name: ops-manager-image-repository-6-0-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b2d8dd13ad93969fe8ef5877f792dabfdbeae282590d802d67f69beabf4ddb8b
+      name: ops_manager_image_repository_6_0_26
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:3a7aa76d0ae4c273bdbf5896f62354437f6a2e4d52aea13ea497175abbe3a7da
+      name: agent-image-107-0-3-8550-1-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:0cb9748f041d821f127a469303791d108985fc74e3e6043213825da71d2ed0b4
+      name: agent-image-108-0-3-8758-1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:10e106336789b92247875d87c658ff665cd3444c4403d878b51db80d27d589a7
+      name: ops_manager_image_repository_7_0_11
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:59c4935d7690842c13032497f949ed66b6f17b244f4ca162549c48a4a89a57ad
+      name: mongodb_image_4_2_11_ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d1c8cfaf9080c7fc96d9ac4b67f9c231b91200e2f79febe4ef291ff91f3e18a8
+      name: agent_image_107_0_8_8615_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:bbc2206fc9d46402d926bf629bfea054d4e9feaab297485895573bccf3ea28be
+      name: agent_image_12_0_31_7825_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:bae723cf4cce919382b6bd4e9fc7df4c78d9abdc8d2bab1ea3d2f35fea91197e
+      name: agent-image-12-0-32-7857-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:663a31aef5ad8f23ccfa77b5446a8c4f78eb68563d7996daa1a5a12c01a7a7f6
+      name: ops-manager-image-repository-6-0-13
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:7692bb3692d2ad59c12b7519a96bd150cc5104e361238a90fc558026fab4c4c5
+      name: mongodb-image-6-0-3-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:83f1f0f43fd6ba9f3b7a0356372a69dc21d73d26589259fa6808fb2db2c4de3e
+      name: ops_manager_image_repository_6_0_20
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d8a7abfe9c479053a3ad9add6f861a531b90770e8b0c4f799c59e6784e77ea17
+      name: agent-image-107-0-13-8702-1-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:790fd9cf21e024462b96ca36d4e5bdf7dd63e48f6b224621677a8f7bfdd07b18
+      name: agent-image-107-0-4-8567-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:036b9630034675cecf07ab4314eb1b3317f83cdb5c16eff6eece8535faec56c4
+      name: ops-manager-image-repository-8-0-1
+    - image: quay.io/mongodb/mongodb-enterprise-init-ops-manager-ubi@sha256:184b3c6ec4f6b433ba8a54ff19a5cb2a9d0297a39d0d35fd8232dcceaaaea12d
+      name: init_ops_manager_image_repository_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:a133869f0e196bbda5dc0fecb58da0281e152f840d83b7cfaa7b77a9cca07857
+      name: agent_image_107_0_11_8645_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:6ac8d38d2e60681caef3cea9d4b16115acb6ecf52912ec683049679e7071a02c
+      name: ops_manager_image_repository_6_0_4
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:dab7d7c8ca920ab3033e0477075093118a3d57b92616296ce23ebbd776505c88
+      name: agent-image-107-0-3-8550-1-1-30-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:bd8f7014f8404d8d35e4be518cf1935a86b1dd616a5ed4fde8b3dabc64b39be4
+      name: agent-image-108-0-3-8758-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:335d2eb293e5f590f5407f6d02a8ef50088d14ee41217a47a59ae46465a90139
+      name: ops_manager_image_repository_8_0_3
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:14d4d0c6e2a2ffb87ca35554f00c8256b787ad43339ebe85b970ccb164233b0e
+      name: ops_manager_image_repository_7_0_3
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8adb9347cc983c7106f92a5c7014456c8b4eb24c9fed45aa261afdc6615964a0
+      name: ops_manager_image_repository_7_0_8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:533d8fd8b6b601b13246eefac01fe961d4202e4a0a1839ecb9b7cee4a5a77c4c
+      name: mongodb-image-6-0-1-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:b4963cfb1613e608a41d85b5e1bfbcb925f3e825e3d1030093e3f79244e79133
+      name: agent_image_108_0_4_8770_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:3cc4011d208424e5888fca4b84f9875f9de88dd1e8b615398a39362e7ebbbef3
+      name: mongodb_image_5_0_10_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:1ef56bed07a96a9823909fb6167663aad92f76723587948a6032ec9f622fe6bb
+      name: mongodb_image_8_0_0_ubi9
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:b75e0f450d57199e42ee1261fcfaa96b9922c01af9996c0a611dbbe87fdb1d57
+      name: agent-image-108-0-1-8718-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8dc00cc40fc9efbb143e4e5eb72de90b9b73003b1a8aae1281c3d97ef726e62a
+      name: ops-manager-image-repository-6-0-16
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:ac38330234ac19500d01b962fdb9d5f5131a5011426b395abe257a9abca6d329
+      name: mongodb_image_5_0_8_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:111d3dc1e40c4e7c52cc42898cc23791ba3a8cf1eee07d6df5a25c6a12a301f2
+      name: mongodb-image-6-0-2-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:036b9630034675cecf07ab4314eb1b3317f83cdb5c16eff6eece8535faec56c4
+      name: ops_manager_image_repository_8_0_1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c8ffc5943c4ff07312d40ea686a723f8bebab5800ced91f22778a5aea7a3a44b
+      name: ops-manager-image-repository-6-0-11
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:b605b1bb3a63dfca93abb264ada6793c37f488be6d069f4dffbb6d9456fb87b3
+      name: agent_image_107_0_13_8702_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:e2720fcb7c0bacd01d06eb93f7a5be7f4837d1a32e0b430049300b4120e81369
+      name: agent_image_13_30_0_9350_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:11ab324698f919f84a5dab5a964d93fe63f98a48146bb3b86974cba7606d30ec
+      name: mongodb_image_4_4_8_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:5a45e85afaeb5e04b2a37e33650ea03b97dc32c2e001bbffed5da12e7f12f5a8
+      name: agent-image-107-0-9-8621-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:fca63766b108f4f4623577147a77e8aa6adf1ea1943e16410713e3077ec4a197
+      name: agent-image-13-30-0-9350-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:71855ecf3269e98def1edd3340ab2eb8c04e1bef0c895b66bfd00795ca1fa925
+      name: agent-image-108-0-4-8770-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:10e106336789b92247875d87c658ff665cd3444c4403d878b51db80d27d589a7
+      name: ops-manager-image-repository-7-0-11
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:93cbdf61ee10d07f978adc7ca0cc6ea45314e127143ede15709233a452efa913
+      name: mongodb-image-5-0-12-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:dab7d7c8ca920ab3033e0477075093118a3d57b92616296ce23ebbd776505c88
+      name: agent_image_107_0_3_8550_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:47616bdc91166888d59a3e934648a619299ef72bc5f8c8dbabe23de1eb624858
+      name: agent_image_108_0_3_8758_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-operator-ubi@sha256:b278d471d21e9bc210b547c63e95f618972a33dc1d8ebb7b10dc4b8d47bc8d93
+      name: mongodb-enterprise-operator-ubi-b278d471d21e9bc210b547c63e95f618972a33dc1d8ebb7b10dc4b8d47bc8d93-annotation
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7a682a3753ac7d6425e4be06c3f2e792ebbcdc9d9231767f407271da56885eb2
+      name: agent-image-107-0-12-8669-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d86688d698f11d9efd05468606a6c60a4ea281a000991fcad46b7bafb0ab007d
+      name: agent-image-107-0-9-8621-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:7885ab6e88214f9289d8babf5189136dde0dd4c84a15a5481ccd3ef512b2e66f
+      name: mongodb-image-4-4-3-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:f589fc4efb38588df6bc6dfa951e5f1cf81346b91397c9e0a7ef70dbb20c960b
+      name: agent_image_108_0_2_8729_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:ac91e7e0b0e77d71c7955fa85ccb903f82ad69a3bf8dcd7526d1197b7ba9e512
+      name: mongodb_image_6_0_4_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:fc1bd79cf9f1f6c8e401750c08d8c65cfd77cf8a0c3c58421092c5c68ba1e3d9
+      name: agent-image-12-0-31-7825-1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:c752a7f0726d21d55f204a359b85fa29cd727a5fe571b37289ae3ea52d6206b0
+      name: mongodb-image-4-4-1-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2a59c451665fd90f0ce63758640308ba29cac97b21518a92883689b1f5d0be83
+      name: ops-manager-image-repository-8-0-2
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:790fd9cf21e024462b96ca36d4e5bdf7dd63e48f6b224621677a8f7bfdd07b18
+      name: agent_image_107_0_4_8567_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ebf9024cc94e51018847936b6c6543efd0d13ef30dc55b9a9d2ff97bc7c9271a
+      name: agent_image_12_0_34_7888_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:9a3a6496be0d2d446e6d654eb56386c7726e0cd2d7232f6dcec579923edf0014
+      name: mongodb_image_4_4_4_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:8fded22168830216d2c8a5dd212a222fe864c22613dd0f791d18f7451d8fdb33
+      name: mongodb_image_5_0_5_ent
+    - image: quay.io/mongodb/mongodb-enterprise-database-ubi@sha256:2493b87b57a54dd8b18bb69cb9054941f357dd5b9c31935c0f25e1dba9daeb2e
+      name: mongodb-enterprise-database-image-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:31254cf3064c341134c4bf5a9e85bf592753b1d31e8921f4ceddb8d1ca4f3c4b
+      name: agent-image-108-0-3-8758-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:87e57019b518c879c5ed1607777522fb6dc7c32dd13b37cf843c5d9d6b88e6d4
+      name: ops-manager-image-repository-6-0-14
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:cc3a238c314f4948c6d3e40822ec2425cb8c7b693816879442682fb7743c45f5
+      name: mongodb-image-5-0-15-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:337649c66edc67f5e4c97ce1b05056c8b9b8e9daeafe7e86a75ab99731e89a52
+      name: mongodb-image-5-0-7-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:fc1bd79cf9f1f6c8e401750c08d8c65cfd77cf8a0c3c58421092c5c68ba1e3d9
+      name: agent_image_12_0_31_7825_1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:0896d7eb032bdd4f68604344ed5307af8e56c93805e7ec861c078930b7cc4b5b
+      name: mongodb_image_5_0_11_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:cc3a238c314f4948c6d3e40822ec2425cb8c7b693816879442682fb7743c45f5
+      name: mongodb_image_5_0_15_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:a133869f0e196bbda5dc0fecb58da0281e152f840d83b7cfaa7b77a9cca07857
+      name: agent-image-107-0-11-8645-1-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:88386e596801496257f4a924a77e61205fd0d36f4cbbe4806842741c40aec475
+      name: agent-image-108-0-1-8718-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:c6d6cd6f6bc82dc09975f5c1fed8750aae6b4f974e53214d6d486c9f22051bc5
+      name: mongodb_image_4_2_24_ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:51d3c23c4fa631f461378895067db828f3177a4f7b93e7caf5328afc4e390dc6
+      name: agent-image-12-0-31-7825-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:aa300abf739e26350a258f643fa8e57aedacd041055c7b923bd22b21ef554cdb
+      name: mongodb-image-5-0-7-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:118674ba4cdde741126be91c8d3ffe54630f984b092325ecd147c349c3c430f3
+      name: agent_image_12_0_32_7857_1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c8ffc5943c4ff07312d40ea686a723f8bebab5800ced91f22778a5aea7a3a44b
+      name: ops_manager_image_repository_6_0_11
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:fb8397cbcdbf7c33f6ad142492792771127f0d9a8c46388f350b6927405ee590
+      name: mongodb_image_5_0_0_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:829b2591721a3a437c97b6d1b896dbe0776d349dd472a435a006dcc5e9aebbd6
+      name: mongodb_image_5_0_9_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:0a533f3e40b564b9bbe38e3f44d34d3fa77d54e188fe09f81cbc6552ff8284b6
+      name: agent-image-107-0-6-8587-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:2b73831ea4bbbf14c6c44c190a3fbce6f63019841887d6e14aee856f94298ca3
+      name: agent-image-108-0-1-8718-1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:93cbdf61ee10d07f978adc7ca0cc6ea45314e127143ede15709233a452efa913
+      name: mongodb_image_5_0_12_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:bb1b49303ba2de72f96a34bc022df0e52ae803529aa9aa234de0c1de7e91b3f9
+      name: mongodb-image-5-0-16-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:5f75df48af7164801d4f44110927f7b5eb13c73577b21413366df4413997a9ab
+      name: agent-image-107-0-11-8645-1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5422d2a4d0b9e1fb66db77e965eddf0182fae73a49385e28f23c3428ffe3cc46
+      name: ops-manager-image-repository-6-0-1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5c66c7e20cc1c927ca86e9c40dcf5b4a738bc6fcebc60f33db8d3c04bff6f337
+      name: ops_manager_image_repository_7_0_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:8d7e5361c2a1604dec3fc671d629806fe6ddc6df524b69a441b86933a4b30093
+      name: mongodb_image_4_4_2_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b80ea22730e0972ef15a10bd59b538a17096990db895308f41434d395fc79cbd
+      name: ops-manager-image-repository-7-0-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:2b73831ea4bbbf14c6c44c190a3fbce6f63019841887d6e14aee856f94298ca3
+      name: agent_image_108_0_1_8718_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ed6b15c620603a91789c3d7bfe1f7a8a88731459ebc7dfe219f0f8fe9c31d11a
+      name: agent_image_107_0_8_8615_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:7885ab6e88214f9289d8babf5189136dde0dd4c84a15a5481ccd3ef512b2e66f
+      name: mongodb_image_4_4_3_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:533d8fd8b6b601b13246eefac01fe961d4202e4a0a1839ecb9b7cee4a5a77c4c
+      name: mongodb_image_6_0_1_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:36885c50bddc06df485ea8f2642b542ef0d6ca81252a6cf084251c194a073aa6
+      name: agent-image-107-0-7-8596-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:11ab324698f919f84a5dab5a964d93fe63f98a48146bb3b86974cba7606d30ec
+      name: mongodb-image-4-4-8-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:55369b5fe3ed19f0d23828217c564ab9ee5fe4f7e3be927f679e2979e25d5427
+      name: agent-image-12-0-33-7866-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:ef732e3eea91cc86caf2eabedc0c9115ed235a8d204f33e74bbf090a0b0259fb
+      name: mongodb-image-4-4-15-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7ffc884e6a58bb2733c76f01bff7a744b15efc30e19b5223a6a7bdc3daeac632
+      name: agent_image_107_0_9_8621_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:31254cf3064c341134c4bf5a9e85bf592753b1d31e8921f4ceddb8d1ca4f3c4b
+      name: agent_image_108_0_3_8758_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:bd8f7014f8404d8d35e4be518cf1935a86b1dd616a5ed4fde8b3dabc64b39be4
+      name: agent_image_108_0_3_8758_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:be20073c475156fb215d73e805e7eedf1b55a3d2eecdd2160a87838b10417d4c
+      name: ops_manager_image_repository_6_0_6
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:98c6713147eac4b5c9f8452245ce8e877eab56eeb0ec0126a7840096881cab2b
+      name: agent-image-107-0-10-8627-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:da8a554feef4084c3f68b3a8a222d4614c1399af8a0bd5c16567de6f9dc4098d
+      name: agent-image-107-0-6-8587-1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:b00ac773623e1bf422b47e6d783263d2d08737865abe9abbe106d86d1ea25165
+      name: mongodb_image_4_4_14_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:d42352174371e8ed55b1a27436c8adac2d378ac87fb40522f30076744281dd1e
+      name: ops_manager_image_repository_7_0_12
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:f103807bb6bed92041f8d9452baf7f3945693baa4362638a1ce935c0a2d70e3f
+      name: ops_manager_image_repository_7_0_13
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:0a4e0b55ea0e3ced327da95b68a905a3be8466e1df8e09bd636450ba056d8052
+      name: agent-image-12-0-32-7857-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:90e93c997db1939cc33b400ea1d5afad4c6aa0d9d7c1f45d2efa82b10e58e12d
+      name: agent-image-12-0-33-7866-1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:be402a0672450bb60278c283576ad16a7c6072642069cc01d735c87d4ab1f33e
+      name: ops-manager-image-repository-6-0-10
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:15e31285c8949a4666f7702df53416b0905d76945a28575a6028a876cc8a6f0f
+      name: mongodb-image-4-4-7-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:699f8ed8124e41263e270791043a5c6b11d8831b40eede97e563cc42c1608638
+      name: mongodb-image-4-2-6-ent
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:69238ab3d1a936c47554062669105e097f2140449b40eaf715db81161038da46
+      name: mongodb-image-5-0-14-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d3c999d3f601dad8d5a34db08fae795aca43a82aebbf6a7dba4b93423f6b81b5
+      name: agent-image-107-0-7-8596-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:bbc2206fc9d46402d926bf629bfea054d4e9feaab297485895573bccf3ea28be
+      name: agent-image-12-0-31-7825-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-operator-ubi@sha256:b278d471d21e9bc210b547c63e95f618972a33dc1d8ebb7b10dc4b8d47bc8d93
+      name: mongodb-enterprise-operator
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:5a45e85afaeb5e04b2a37e33650ea03b97dc32c2e001bbffed5da12e7f12f5a8
+      name: agent_image_107_0_9_8621_1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:111d3dc1e40c4e7c52cc42898cc23791ba3a8cf1eee07d6df5a25c6a12a301f2
+      name: mongodb_image_6_0_2_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:b56ceb6ab7c3bd4114aa0840aea25fe4dd2fcddf3a3f163ab0c83fd130518124
+      name: mongodb_image_4_4_21_ent
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:13f899525b80521eb48a229442380de54030f3b89b654d006d90b0ba7303468f
+      name: mongodb_image_5_0_6_ent
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:92303076191dfc5b69c3ed942d5317ef697e4c70c4372f4da3aad988aa3f3f55
+      name: mongodb-image-5-0-1-ent
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:9a27b21afc08949c108b75a02cba35510083e0e071b907679572ac1562d5fab9
+      name: ops_manager_image_repository_6_0_2
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:726239609832bfd8ca9aef02c2f69f7b3a24365a90136ea5c24f35cfb666fe39
+      name: agent-image-107-0-10-8627-1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:be402a0672450bb60278c283576ad16a7c6072642069cc01d735c87d4ab1f33e
+      name: ops_manager_image_repository_6_0_10
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:e551bbba98a689727a463be177f6bef46fbdf5504c70fe9387e547a72188a620
+      name: ops-manager-image-repository-7-0-9
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:8d7e5361c2a1604dec3fc671d629806fe6ddc6df524b69a441b86933a4b30093
+      name: mongodb-image-4-4-2-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:98c6713147eac4b5c9f8452245ce8e877eab56eeb0ec0126a7840096881cab2b
+      name: agent_image_107_0_10_8627_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:28ae7a9996d2136eeec1d003c697ccb63619c6ec9f1be3d772b54ffbda0311bb
+      name: agent_image_12_0_33_7866_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-init-ops-manager-ubi@sha256:184b3c6ec4f6b433ba8a54ff19a5cb2a9d0297a39d0d35fd8232dcceaaaea12d
+      name: init-ops-manager-image-repository-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8ab2c611274b7013239b22f1f8d99ff9afb7378d0c323ac407eea787c4ce01db
+      name: ops-manager-image-repository-6-0-18
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:34390b3d8fa62aa9df1fa254ef002f68a356e693bce1991e6ef0813befcee717
+      name: agent-image-12-0-32-7857-1-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d28197893c4d6126e1712ac2e006b076b7813ddde36dfbdb0c30859471a0180e
+      name: agent-image-12-0-35-7911-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:523566f44cbb6bbf0cd12b1adae939a883f2254c78dc4b8c9d0098581337b1db
+      name: mongodb-image-4-4-18-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:755d5f61d4389913bb18defad34af0caaa202180d4d2c217471951d319717300
+      name: ops_manager_image_repository_6_0_23
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2670ddc75b8deb8ad6a92d293f5e5a3c83eff96cacbca84124c246511d7550ac
+      name: ops_manager_image_repository_6_0_25
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4af319e3e7fb60e64282ed7ab14ba62c4cc5219437b9683b7340dc617a96f427
+      name: ops_manager_image_repository_8_0_4
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:a83fd40a50cd9c9646232d90ab6179233730b77bbf1119cdfc28103d6e5f0143
+      name: agent-image-107-0-8-8615-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:4a687fc5a6ed7ce1f8402abafbe35321b4639573541f5babc5b945f7eff9d202
+      name: agent-image-108-0-2-8729-1
+    - image: quay.io/mongodb/mongodb-enterprise-database-ubi@sha256:2493b87b57a54dd8b18bb69cb9054941f357dd5b9c31935c0f25e1dba9daeb2e
+      name: mongodb_enterprise_database_image_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-init-database-ubi@sha256:86784de9c23bee4804e2722ea824c09b2a204034485e20ec1b0fd805fed7f836
+      name: init_database_image_repository_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ffbce2ee7d6b7b9afa0e62c203ab68ae7f57b3df73d94a62d30a48b629910d34
+      name: agent_image_13_30_0_9350_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:663a31aef5ad8f23ccfa77b5446a8c4f78eb68563d7996daa1a5a12c01a7a7f6
+      name: ops_manager_image_repository_6_0_13
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:c7e993e7aa8dac0b2286a2878b9b11ae2ac966d3ffc15496cee5dbac5bd9e452
+      name: agent-image-108-0-0-8694-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:07f4038b1981f52417887a14339d9ca4f5b7ee7b5d37ac66462a82c47d18f429
+      name: ops-manager-image-repository-7-0-14
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:6321aee145a010344719c506fc7cf12aa2ac52e77c03caf01d327a404cc5de59
+      name: agent_image_107_0_4_8567_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:0a4e0b55ea0e3ced327da95b68a905a3be8466e1df8e09bd636450ba056d8052
+      name: agent_image_12_0_32_7857_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:92303076191dfc5b69c3ed942d5317ef697e4c70c4372f4da3aad988aa3f3f55
+      name: mongodb_image_5_0_1_ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:e2720fcb7c0bacd01d06eb93f7a5be7f4837d1a32e0b430049300b4120e81369
+      name: agent-image-13-30-0-9350-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:19925e1297ab652db59c35f53e7b7c8b2b277f8ecdc4215682961aaf2b3e924e
+      name: mongodb-image-4-4-0-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ffbce2ee7d6b7b9afa0e62c203ab68ae7f57b3df73d94a62d30a48b629910d34
+      name: agent-image-13-30-0-9350-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:337649c66edc67f5e4c97ce1b05056c8b9b8e9daeafe7e86a75ab99731e89a52
+      name: mongodb_image_5_0_7_ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:e46c1cec1a9e82a0424ec48fb19da0cbb01154067a64ba631b1b825bcfd5a93b
+      name: agent_image_107_0_3_8550_1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:172e338a43df01ee5408d8d1e3cb038d2c55e77761c1a2ac6ed37959d1525140
+      name: mongodb_image_4_4_6_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:6321aee145a010344719c506fc7cf12aa2ac52e77c03caf01d327a404cc5de59
+      name: agent-image-107-0-4-8567-1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8adb9347cc983c7106f92a5c7014456c8b4eb24c9fed45aa261afdc6615964a0
+      name: ops-manager-image-repository-7-0-8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ebf9024cc94e51018847936b6c6543efd0d13ef30dc55b9a9d2ff97bc7c9271a
+      name: agent-image-12-0-34-7888-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4e5e633013b62fea134921e158beb8d9db3e2a7f7e7ac828ab7ff8d9e9b82743
+      name: ops-manager-image-repository-6-0-15
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:67238129df09d33ee4746ff1acb5515d699a29d9f42350eae3f3f69ccb7fbf54
+      name: mongodb-image-4-4-16-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:fb8397cbcdbf7c33f6ad142492792771127f0d9a8c46388f350b6927405ee590
+      name: mongodb-image-5-0-0-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:ac38330234ac19500d01b962fdb9d5f5131a5011426b395abe257a9abca6d329
+      name: mongodb-image-5-0-8-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:b0080cd0341b1ab8b9a952dc3ca32382533d9f1bd55ac0b11ad643547f467583
+      name: mongodb-image-4-4-0-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:13a4bc40d42972a077a2dc5f5cb077c1519b56508ee17912c631f602cd9340e2
+      name: agent-image-108-0-0-8694-1-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:267cad39be6925299aa57478efd796230be62dbb7c289d8f59639bc7d6ce5e91
+      name: agent-image-108-0-4-8770-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ee919cebce73265395890b72531256abc4ee8393fc4cde792a11428112588336
+      name: agent_image_108_0_2_8729_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:f43462902efbe516c0cd1a45884be5459d39235159f478cea0b6bd22c9c94f08
+      name: agent_image_108_0_2_8729_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:71855ecf3269e98def1edd3340ab2eb8c04e1bef0c895b66bfd00795ca1fa925
+      name: agent_image_108_0_4_8770_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:67238129df09d33ee4746ff1acb5515d699a29d9f42350eae3f3f69ccb7fbf54
+      name: mongodb_image_4_4_16_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:b56ceb6ab7c3bd4114aa0840aea25fe4dd2fcddf3a3f163ab0c83fd130518124
+      name: mongodb-image-4-4-21-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:2e70081cc750997d2110a948a816b13375fe9f9e975eae7205b6d6e3354b0d25
+      name: agent_image_108_0_1_8718_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:aa8683500e8d3632c4588bbcdddb4e3186a01f48aefe1b6d95f8860dae8b6c76
+      name: mongodb-image-4-4-21-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:47695c3af6fe17dc555fc93ba87f115a47522009c04a43c3cb8e7d657950e92f
+      name: mongodb-image-4-4-4-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:4dd56f1ecf4cc74c55f1ae1755503559e386f2476ec98ef2013425d0e597d8c6
+      name: agent_image_108_0_0_8694_1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b3ee7849b4993279f2f6b9e182adca0d5bba1b1f84b0ee0319981d69ced4f0c0
+      name: ops_manager_image_repository_6_0_17
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:e551bbba98a689727a463be177f6bef46fbdf5504c70fe9387e547a72188a620
+      name: ops_manager_image_repository_7_0_9
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:8445d59d491a6d3890ea9c8b421214bcd0fdcfbc420ed40497a790b79f0bc89e
+      name: mongodb_image_4_4_17_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d55206a6c86060c9b68999b173b5d2dad6ec8efe0d6b2d5dd04e6890ac67d591
+      name: agent-image-107-0-3-8550-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:0fde236fe26d5b20210d6f246aadacd7845874712def516cbe2eec11d79d5181
+      name: mongodb-image-4-4-5-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:f43462902efbe516c0cd1a45884be5459d39235159f478cea0b6bd22c9c94f08
+      name: agent-image-108-0-2-8729-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b3ee7849b4993279f2f6b9e182adca0d5bba1b1f84b0ee0319981d69ced4f0c0
+      name: ops-manager-image-repository-6-0-17
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:56cee946ffd8dcce099ffd268a5d076ed370d0543fefb75ad17c1ffccfd9a491
+      name: agent-image-107-0-11-8645-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:f589fc4efb38588df6bc6dfa951e5f1cf81346b91397c9e0a7ef70dbb20c960b
+      name: agent-image-108-0-2-8729-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c01e5bb9dd4ebc2dc9543b31705f1ba56d538d25308d25601ab52e78f4360e7f
+      name: ops-manager-image-repository-6-0-19
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:335d2eb293e5f590f5407f6d02a8ef50088d14ee41217a47a59ae46465a90139
+      name: ops-manager-image-repository-8-0-3
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:93db364f4ec0aa73d636b5691ad46117199e07d2e260f7f3aa90f76c75d95b72
+      name: agent_image_107_0_12_8669_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:44efe6ebeb27229dcb0599bca36db44320335511f84ddd8fcc09b3702356d5a1
+      name: agent_image_107_0_6_8587_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:90e93c997db1939cc33b400ea1d5afad4c6aa0d9d7c1f45d2efa82b10e58e12d
+      name: agent_image_12_0_33_7866_1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:33a30d11969eb21952681108092fe7f916e25c8e1de43e6a4e40e126025a2bec
+      name: mongodb_image_4_4_10_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:f3a1bff63fd04e98afd04f067444d6c2537c3b15c627c6c92d4696715cb919d1
+      name: agent-image-107-0-10-8627-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b26f1d03a629ecf00c98ef25054cbd09f89fe71dfbe367c162d216179625f3ca
+      name: ops-manager-image-repository-6-0-5
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:f2d9a3264a8814f33143b73c56624572fb80afeab184133d3a901713a31c1a87
+      name: mongodb_image_5_0_4_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:7692bb3692d2ad59c12b7519a96bd150cc5104e361238a90fc558026fab4c4c5
+      name: mongodb_image_6_0_3_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:9a3a6496be0d2d446e6d654eb56386c7726e0cd2d7232f6dcec579923edf0014
+      name: mongodb-image-4-4-4-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:59c4935d7690842c13032497f949ed66b6f17b244f4ca162549c48a4a89a57ad
+      name: mongodb-image-4-2-11-ent
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:d0e3e7da00ffb341ddcdb7b8a17a8dc33ee47766bcf735a4f152e5b0dfd38e78
+      name: mongodb-image-4-2-2-ent
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:d408b9080b30944b6f38ccd282b90b311ad442966ce1aca5bd9877d0828c89a0
+      name: mongodb-image-5-0-18-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:33b5aa9585dc4a90c9b590b9d3d6580bf2c65169186075128b79f0bfa683f7ae
+      name: agent_image_107_0_9_8621_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:15e31285c8949a4666f7702df53416b0905d76945a28575a6028a876cc8a6f0f
+      name: mongodb_image_4_4_7_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:8a1eeb0bf9daf5f4ae3147389adf682884db6f27e55013e67b5de86b3a50ac48
+      name: agent-image-12-0-35-7911-1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:592de1c2d7bd54ebcdf97ebd35460f94ec8338e865ae52c68a2d0ced321ae593
+      name: ops-manager-image-repository-7-0-4
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b2d8dd13ad93969fe8ef5877f792dabfdbeae282590d802d67f69beabf4ddb8b
+      name: ops-manager-image-repository-6-0-26
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:d21c65780cadc9d8668d2c28935d492625d6993f13ba562722200a819281cbcc
+      name: mongodb-image-4-4-12-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:1c3003205306ce9e80e6ca526721a5a38199eb0ff7d6b70332e113b7a0e26e0b
+      name: agent_image_107_0_13_8702_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d4926914f1b03824f69a601adc039b7acc76f7ea1b4a09bce5c47562b837d616
+      name: agent_image_107_0_4_8567_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:fb2733ee25faf2edd816dc8b5bdb28bd48c53c31b1bf27e63c5b95098f35691a
+      name: ops_manager_image_repository_6_0_3
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:1d418c65d82ccad205b7889be4ba161d3cbfa8b1fb75b21c8fcf02de38fad9ca
+      name: mongodb_image_4_4_11_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ba1f4f3832db0b486998929527ce805c2fdb1b562b18fff98d211bfccb021b38
+      name: agent-image-107-0-7-8596-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:18a4a1eeb6788929d66a73c6af8b8db9436f6ecbfb163187f53143f3c663712a
+      name: agent-image-12-0-34-7888-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:b0080cd0341b1ab8b9a952dc3ca32382533d9f1bd55ac0b11ad643547f467583
+      name: mongodb_image_4_4_0_ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d3c999d3f601dad8d5a34db08fae795aca43a82aebbf6a7dba4b93423f6b81b5
+      name: agent_image_107_0_7_8596_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7d059be6d0bd305964bc565af8f1b9f9ef2dfe057b745b7ebe8b531d94e1ce33
+      name: agent_image_108_0_4_8770_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4f0b8dedd3ac933a25bb45867551c8013e4b88da0bc90d29473fb9c3fd36f8d9
+      name: ops_manager_image_repository_6_0_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2a59c451665fd90f0ce63758640308ba29cac97b21518a92883689b1f5d0be83
+      name: ops_manager_image_repository_8_0_2
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:82a922e16bdbbe5735477945ac370be5edf923d9cccf809f27ad9309be72bd2c
+      name: agent-image-12-0-33-7866-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:cc31dffd31b36f69bcf0ac86bc760d23b6f025db4a5e8eb28a57d9270c023639
+      name: ops-manager-image-repository-6-0-24
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:8a1eeb0bf9daf5f4ae3147389adf682884db6f27e55013e67b5de86b3a50ac48
+      name: agent_image_12_0_35_7911_1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5422d2a4d0b9e1fb66db77e965eddf0182fae73a49385e28f23c3428ffe3cc46
+      name: ops_manager_image_repository_6_0_1
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:699f8ed8124e41263e270791043a5c6b11d8831b40eede97e563cc42c1608638
+      name: mongodb_image_4_2_6_ent
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:e149dabb175c0725b838b674470185f400e236d272d4676e84fde4ccf47f5be8
+      name: ops-manager-image-repository-6-0-22
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:655896bac9e82de8e9729d59a36c3a31f66235f22b93449260a2ccb7709de084
+      name: mongodb-image-4-4-9-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:75df629d403866bb94e2e96b37ed835f5a3a9371a572ddd6819090d8e5226f0e
+      name: agent-image-12-0-34-7888-1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2c55a8fe1dbafcc1b71fe9e954c090965f11999ec0f9c1f5ea4a5fbd0f886875
+      name: ops-manager-image-repository-6-0-12
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:2b219a73396ba9e90f3c435439bc41dd11f73b17f8b85cb18c10a5027dbf5f40
+      name: agent_image_107_0_8_8615_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:592de1c2d7bd54ebcdf97ebd35460f94ec8338e865ae52c68a2d0ced321ae593
+      name: ops_manager_image_repository_7_0_4
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:69238ab3d1a936c47554062669105e097f2140449b40eaf715db81161038da46
+      name: mongodb_image_5_0_14_ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:576b3027d2b06351b4f6c8ad205a5614d7f2fb798f5dd33ad176c69721d7d7fd
+      name: agent-image-107-0-11-8645-1-1-30-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:b4963cfb1613e608a41d85b5e1bfbcb925f3e825e3d1030093e3f79244e79133
+      name: agent-image-108-0-4-8770-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:13f899525b80521eb48a229442380de54030f3b89b654d006d90b0ba7303468f
+      name: mongodb-image-5-0-6-ent
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:87e57019b518c879c5ed1607777522fb6dc7c32dd13b37cf843c5d9d6b88e6d4
+      name: ops_manager_image_repository_6_0_14
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:649b9ec473ada7a1ed4abbb7f3f93b110f091ae7fbd749889b1285f4a0911ad5
+      name: ops_manager_image_repository_7_0_7
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c1792e863c8aa7788af9a9c0c11537ed1bf861eb102c7f1f55bca7c02ebf331d
+      name: ops-manager-image-repository-6-0-7
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:1d418c65d82ccad205b7889be4ba161d3cbfa8b1fb75b21c8fcf02de38fad9ca
+      name: mongodb-image-4-4-11-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:890fae28afd100b760e6c5e8a9d1fe3609edeeb95ed05f8b87f64b59300faf56
+      name: agent-image-107-0-6-8587-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:1b7f95157b49b8016c5bbf4f6f40c581d8b351ffc7ea8ea42a974229dca355d3
+      name: mongodb-image-8-0-0-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b26f1d03a629ecf00c98ef25054cbd09f89fe71dfbe367c162d216179625f3ca
+      name: ops_manager_image_repository_6_0_5
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:bd14003a9e8bb17f7a129414bd8a0ef6f9e0868a5160e033116693658499a126
+      name: mongodb_image_6_0_0_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:b605b1bb3a63dfca93abb264ada6793c37f488be6d069f4dffbb6d9456fb87b3
+      name: agent-image-107-0-13-8702-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:eed3dc7ca67c9f6756aef545bc1b7abb58c62e96c3ee10c7c7afd3d1a21c323e
+      name: agent-image-12-0-35-7911-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:56aa1385fe3ccb296af1e0f55eed11bfc0e9fb9aedf916a614887f724338a92a
+      name: mongodb-image-6-0-5-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ba1f4f3832db0b486998929527ce805c2fdb1b562b18fff98d211bfccb021b38
+      name: agent_image_107_0_7_8596_1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:8445d59d491a6d3890ea9c8b421214bcd0fdcfbc420ed40497a790b79f0bc89e
+      name: mongodb-image-4-4-17-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:0896d7eb032bdd4f68604344ed5307af8e56c93805e7ec861c078930b7cc4b5b
+      name: mongodb-image-5-0-11-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5c66c7e20cc1c927ca86e9c40dcf5b4a738bc6fcebc60f33db8d3c04bff6f337
+      name: ops-manager-image-repository-7-0-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:172e338a43df01ee5408d8d1e3cb038d2c55e77761c1a2ac6ed37959d1525140
+      name: mongodb-image-4-4-6-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:a48a4d5c275fd669a27469649fb39ea38c728dbcf9f0a9da4e7cf27a2ce912ed
+      name: mongodb-image-5-0-2-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:c7e993e7aa8dac0b2286a2878b9b11ae2ac966d3ffc15496cee5dbac5bd9e452
+      name: agent_image_108_0_0_8694_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:56aa1385fe3ccb296af1e0f55eed11bfc0e9fb9aedf916a614887f724338a92a
+      name: mongodb_image_6_0_5_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:1fac5a5e347f4048a2baceaa6aae5db23634b0818062d697a1f66b0d171f2c0d
+      name: agent-image-107-0-12-8669-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ee919cebce73265395890b72531256abc4ee8393fc4cde792a11428112588336
+      name: agent-image-108-0-2-8729-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d55206a6c86060c9b68999b173b5d2dad6ec8efe0d6b2d5dd04e6890ac67d591
+      name: agent_image_107_0_3_8550_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:55369b5fe3ed19f0d23828217c564ab9ee5fe4f7e3be927f679e2979e25d5427
+      name: agent_image_12_0_33_7866_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8dc00cc40fc9efbb143e4e5eb72de90b9b73003b1a8aae1281c3d97ef726e62a
+      name: ops_manager_image_repository_6_0_16
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:dfd4277f0c16ed476ac7de51894739e8c8d13a65ea5024b9a97b3dce0f6c6975
+      name: mongodb_image_4_4_13_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:bb1b49303ba2de72f96a34bc022df0e52ae803529aa9aa234de0c1de7e91b3f9
+      name: mongodb_image_5_0_16_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-init-database-ubi@sha256:86784de9c23bee4804e2722ea824c09b2a204034485e20ec1b0fd805fed7f836
+      name: init-database-image-repository-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:ed6b15c620603a91789c3d7bfe1f7a8a88731459ebc7dfe219f0f8fe9c31d11a
+      name: agent-image-107-0-8-8615-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4d9c9dec17ed423cb7d9ce8fa078486328e2cfcda36b66e4dd2ee87c2d1cbd5a
+      name: ops-manager-image-repository-6-0-9
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:bae723cf4cce919382b6bd4e9fc7df4c78d9abdc8d2bab1ea3d2f35fea91197e
+      name: agent_image_12_0_32_7857_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:523566f44cbb6bbf0cd12b1adae939a883f2254c78dc4b8c9d0098581337b1db
+      name: mongodb_image_4_4_18_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:892d65cffac511fc3d9ea5399df626f56d54777d51b29b3db506930d5d4abbf2
+      name: mongodb_image_5_0_17_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:4dd56f1ecf4cc74c55f1ae1755503559e386f2476ec98ef2013425d0e597d8c6
+      name: agent-image-108-0-0-8694-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7d059be6d0bd305964bc565af8f1b9f9ef2dfe057b745b7ebe8b531d94e1ce33
+      name: agent-image-108-0-4-8770-1-1-30-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d86688d698f11d9efd05468606a6c60a4ea281a000991fcad46b7bafb0ab007d
+      name: agent_image_107_0_9_8621_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:18a4a1eeb6788929d66a73c6af8b8db9436f6ecbfb163187f53143f3c663712a
+      name: agent_image_12_0_34_7888_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:d0e3e7da00ffb341ddcdb7b8a17a8dc33ee47766bcf735a4f152e5b0dfd38e78
+      name: mongodb_image_4_2_2_ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:305bbcc92dbee805017b2b7a61f152b2dc41ff3901dafb88e80c9bdc78c5a830
+      name: agent-image-12-0-35-7911-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:56ffc0f71cd751ff1129a1c953b0e1852791f979401b224856def6f581eb14b5
+      name: ops-manager-image-repository-6-0-27
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:cc31dffd31b36f69bcf0ac86bc760d23b6f025db4a5e8eb28a57d9270c023639
+      name: ops_manager_image_repository_6_0_24
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:19925e1297ab652db59c35f53e7b7c8b2b277f8ecdc4215682961aaf2b3e924e
+      name: mongodb_image_4_4_0_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:c752a7f0726d21d55f204a359b85fa29cd727a5fe571b37289ae3ea52d6206b0
+      name: mongodb_image_4_4_1_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:aa8683500e8d3632c4588bbcdddb4e3186a01f48aefe1b6d95f8860dae8b6c76
+      name: mongodb_image_4_4_21_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:d49417ea85ee1ddb84429552a5aac87a82c2843904d8c0300a43b657b7a49e0e
+      name: mongodb-image-5-0-1-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:287a1f135bcdd87fef075293719d4bffa0455842553eded3477092e17d4daa63
+      name: agent_image_108_0_0_8694_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:a087e67bb3df1dab4e1d2b765dd987a6b4e4fb7cf7d797cb269cd87732bc33a7
+      name: mongodb-image-5-0-13-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:37db89520906a8cd3b4cd2a91a91afa5b2f12895c02a78ed632b233eeb98bb19
+      name: agent_image_107_0_4_8567_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:0cb9748f041d821f127a469303791d108985fc74e3e6043213825da71d2ed0b4
+      name: agent_image_108_0_3_8758_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:e34191db2902e7c956ffd4611ea7420be0c0f562798cfb904ac6aceb3f954780
+      name: agent_image_12_0_34_7888_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:9d19a745adbcc52ac54a1ffbe7f32db73931e1b7a1c69d584746a9ec3c68aa9c
+      name: ops_manager_image_repository_7_0_10
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:15ffe8d3ec577cab20d244d2226ea6fead3b5bea94de0c2635b3b511c874474d
+      name: ops_manager_image_repository_8_0_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:44efe6ebeb27229dcb0599bca36db44320335511f84ddd8fcc09b3702356d5a1
+      name: agent-image-107-0-6-8587-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5352fbd7858bf6cf7f25b503788c601c21e109ec29ddd127837735b36c628618
+      name: ops-manager-image-repository-6-0-8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:d323c1bcd14118cc537ac282996ea5a58756d20b6b73f1eec0efa8710d246077
+      name: mongodb_image_5_0_5_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:755d5f61d4389913bb18defad34af0caaa202180d4d2c217471951d319717300
+      name: ops-manager-image-repository-6-0-23
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:14d4d0c6e2a2ffb87ca35554f00c8256b787ad43339ebe85b970ccb164233b0e
+      name: ops-manager-image-repository-7-0-3
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:ac91e7e0b0e77d71c7955fa85ccb903f82ad69a3bf8dcd7526d1197b7ba9e512
+      name: mongodb-image-6-0-4-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:56cee946ffd8dcce099ffd268a5d076ed370d0543fefb75ad17c1ffccfd9a491
+      name: agent_image_107_0_11_8645_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:82a922e16bdbbe5735477945ac370be5edf923d9cccf809f27ad9309be72bd2c
+      name: agent_image_12_0_33_7866_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:83f1f0f43fd6ba9f3b7a0356372a69dc21d73d26589259fa6808fb2db2c4de3e
+      name: ops-manager-image-repository-6-0-20
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2ab3239c8157dedf3ce1ada3acc330126e5b1d708c1e767ace1292b0a8628855
+      name: ops-manager-image-repository-6-0-21
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:3add8b68bfbaa42596fe5dbbee4623ba5ff1a826b18bb71301525adf574dcb94
+      name: mongodb_image_5_0_3_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:75df629d403866bb94e2e96b37ed835f5a3a9371a572ddd6819090d8e5226f0e
+      name: agent_image_12_0_34_7888_1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:07f4038b1981f52417887a14339d9ca4f5b7ee7b5d37ac66462a82c47d18f429
+      name: ops_manager_image_repository_7_0_14
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:be20073c475156fb215d73e805e7eedf1b55a3d2eecdd2160a87838b10417d4c
+      name: ops-manager-image-repository-6-0-6
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:dfd4277f0c16ed476ac7de51894739e8c8d13a65ea5024b9a97b3dce0f6c6975
+      name: mongodb-image-4-4-13-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:576b3027d2b06351b4f6c8ad205a5614d7f2fb798f5dd33ad176c69721d7d7fd
+      name: agent_image_107_0_11_8645_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:a83fd40a50cd9c9646232d90ab6179233730b77bbf1119cdfc28103d6e5f0143
+      name: agent_image_107_0_8_8615_1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:b80ea22730e0972ef15a10bd59b538a17096990db895308f41434d395fc79cbd
+      name: ops_manager_image_repository_7_0_1
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:1b7f95157b49b8016c5bbf4f6f40c581d8b351ffc7ea8ea42a974229dca355d3
+      name: mongodb_image_8_0_0_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7fcfa630346bba2bd19efcf285004fb71a700ca643ebdd27eab878a6c89e56eb
+      name: agent-image-107-0-13-8702-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:47616bdc91166888d59a3e934648a619299ef72bc5f8c8dbabe23de1eb624858
+      name: agent-image-108-0-3-8758-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:cba8003d08e8a69439a3987d06755d2d31f61c5b75cfad78352a3f1e3fc8938e
+      name: mongodb_image_4_4_11_ent
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:b00ac773623e1bf422b47e6d783263d2d08737865abe9abbe106d86d1ea25165
+      name: mongodb-image-4-4-14-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:85c1d669c073caf9cbaac815e4c8ea2ca18b71deefa03bf84cd6d8b8ebd53e12
+      name: mongodb-image-4-4-19-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:f2d9a3264a8814f33143b73c56624572fb80afeab184133d3a901713a31c1a87
+      name: mongodb-image-5-0-4-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:fc3bd5f1fee1edcbaeb0badd52453100cc2a7d8c22f399a45ff3c24979963920
+      name: mongodb-image-5-0-14-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:51d3c23c4fa631f461378895067db828f3177a4f7b93e7caf5328afc4e390dc6
+      name: agent_image_12_0_31_7825_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:eed3dc7ca67c9f6756aef545bc1b7abb58c62e96c3ee10c7c7afd3d1a21c323e
+      name: agent_image_12_0_35_7911_1_1_31_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7652118778dbe90c3294d73a8c5696167854cc99e23d48625e30c4feb579e7b6
+      name: agent-image-107-0-10-8627-1-1-30-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:2e70081cc750997d2110a948a816b13375fe9f9e975eae7205b6d6e3354b0d25
+      name: agent-image-108-0-1-8718-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4d9c9dec17ed423cb7d9ce8fa078486328e2cfcda36b66e4dd2ee87c2d1cbd5a
+      name: ops_manager_image_repository_6_0_9
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:a087e67bb3df1dab4e1d2b765dd987a6b4e4fb7cf7d797cb269cd87732bc33a7
+      name: mongodb_image_5_0_13_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:47695c3af6fe17dc555fc93ba87f115a47522009c04a43c3cb8e7d657950e92f
+      name: mongodb_image_4_4_4_ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:fca63766b108f4f4623577147a77e8aa6adf1ea1943e16410713e3077ec4a197
+      name: agent_image_13_30_0_9350_1
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:5352fbd7858bf6cf7f25b503788c601c21e109ec29ddd127837735b36c628618
+      name: ops_manager_image_repository_6_0_8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:8fded22168830216d2c8a5dd212a222fe864c22613dd0f791d18f7451d8fdb33
+      name: mongodb-image-5-0-5-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7652118778dbe90c3294d73a8c5696167854cc99e23d48625e30c4feb579e7b6
+      name: agent_image_107_0_10_8627_1_1_30_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7f550e0b2bb364a1651fffe8da9eeed5593ea707c4e7bb7714c91f8839c97c48
+      name: agent_image_107_0_12_8669_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:22beb4871b3e0fa6d2e2c1d2c5b6745cdd5c4b1410b96974a78dd10f06e8bba9
+      name: agent_image_107_0_7_8596_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:33b5aa9585dc4a90c9b590b9d3d6580bf2c65169186075128b79f0bfa683f7ae
+      name: agent-image-107-0-9-8621-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:892d65cffac511fc3d9ea5399df626f56d54777d51b29b3db506930d5d4abbf2
+      name: mongodb-image-5-0-17-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:c6d6cd6f6bc82dc09975f5c1fed8750aae6b4f974e53214d6d486c9f22051bc5
+      name: mongodb-image-4-2-24-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:5f75df48af7164801d4f44110927f7b5eb13c73577b21413366df4413997a9ab
+      name: agent_image_107_0_11_8645_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:305bbcc92dbee805017b2b7a61f152b2dc41ff3901dafb88e80c9bdc78c5a830
+      name: agent_image_12_0_35_7911_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:bd8e3fea98ef5b67ac2db94d6b7996d1f61b8388f8bb2f5e1fce973b1fde5dc3
+      name: mongodb_image_5_0_18_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:08f1b0ab16802c8e0248b7bc92933b32ccb9cab48ad9577a00f1d057f757b29d
+      name: agent-image-13-30-0-9350-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:37af0913742b6de339c7e664b30f35dcef04506529e4a09a9bbbdd57643f7149
+      name: mongodb-image-4-4-20-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:bd14003a9e8bb17f7a129414bd8a0ef6f9e0868a5160e033116693658499a126
+      name: mongodb-image-6-0-0-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-appdb-database-ubi@sha256:86c46a3a91bf1ac1738b58ff803e14d0f1e3ca735dc6d2b1e26da690facecd96
+      name: mongodb-image-4-2-8-ent
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:36885c50bddc06df485ea8f2642b542ef0d6ca81252a6cf084251c194a073aa6
+      name: agent_image_107_0_7_8596_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:85c1d669c073caf9cbaac815e4c8ea2ca18b71deefa03bf84cd6d8b8ebd53e12
+      name: mongodb_image_4_4_19_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:a48a4d5c275fd669a27469649fb39ea38c728dbcf9f0a9da4e7cf27a2ce912ed
+      name: mongodb_image_5_0_2_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:aa300abf739e26350a258f643fa8e57aedacd041055c7b923bd22b21ef554cdb
+      name: mongodb_image_5_0_7_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:33a30d11969eb21952681108092fe7f916e25c8e1de43e6a4e40e126025a2bec
+      name: mongodb-image-4-4-10-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:3add8b68bfbaa42596fe5dbbee4623ba5ff1a826b18bb71301525adf574dcb94
+      name: mongodb-image-5-0-3-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d8a7abfe9c479053a3ad9add6f861a531b90770e8b0c4f799c59e6784e77ea17
+      name: agent_image_107_0_13_8702_1_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:b75e0f450d57199e42ee1261fcfaa96b9922c01af9996c0a611dbbe87fdb1d57
+      name: agent_image_108_0_1_8718_1_1_30_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:e149dabb175c0725b838b674470185f400e236d272d4676e84fde4ccf47f5be8
+      name: ops_manager_image_repository_6_0_22
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:56ffc0f71cd751ff1129a1c953b0e1852791f979401b224856def6f581eb14b5
+      name: ops_manager_image_repository_6_0_27
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:97727631d1c295036108675a9bc473aa737fb3eda9f5924c10dfe3eeb75a7629
+      name: ops_manager_image_repository_7_0_2
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:df6081325ea2fe01d1b27d0c70005dec8232aaf51a43d91661b722b8a1761263
+      name: mongodb_image_5_0_6_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:22beb4871b3e0fa6d2e2c1d2c5b6745cdd5c4b1410b96974a78dd10f06e8bba9
+      name: agent-image-107-0-7-8596-1-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7ffc884e6a58bb2733c76f01bff7a744b15efc30e19b5223a6a7bdc3daeac632
+      name: agent-image-107-0-9-8621-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:9d19a745adbcc52ac54a1ffbe7f32db73931e1b7a1c69d584746a9ec3c68aa9c
+      name: ops-manager-image-repository-7-0-10
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:3a7aa76d0ae4c273bdbf5896f62354437f6a2e4d52aea13ea497175abbe3a7da
+      name: agent_image_107_0_3_8550_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:37af0913742b6de339c7e664b30f35dcef04506529e4a09a9bbbdd57643f7149
+      name: mongodb_image_4_4_20_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:6ac8d38d2e60681caef3cea9d4b16115acb6ecf52912ec683049679e7071a02c
+      name: ops-manager-image-repository-6-0-4
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:2670ddc75b8deb8ad6a92d293f5e5a3c83eff96cacbca84124c246511d7550ac
+      name: ops-manager-image-repository-6-0-25
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7fcfa630346bba2bd19efcf285004fb71a700ca643ebdd27eab878a6c89e56eb
+      name: agent_image_107_0_13_8702_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:267cad39be6925299aa57478efd796230be62dbb7c289d8f59639bc7d6ce5e91
+      name: agent_image_108_0_4_8770_1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:947945dbd136c6712b6532dabbca03c8720515387ca853ffc7fe0e6d2369f0c2
+      name: agent_image_12_0_31_7825_1_1_31_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:fb2733ee25faf2edd816dc8b5bdb28bd48c53c31b1bf27e63c5b95098f35691a
+      name: ops-manager-image-repository-6-0-3
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:3cc4011d208424e5888fca4b84f9875f9de88dd1e8b615398a39362e7ebbbef3
+      name: mongodb-image-5-0-10-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4af319e3e7fb60e64282ed7ab14ba62c4cc5219437b9683b7340dc617a96f427
+      name: ops-manager-image-repository-8-0-4
+    - image: quay.io/mongodb/mongodb-enterprise-init-appdb-ubi@sha256:74ed6985878dcafb9d37cb2d5d6d3fc6085f7ca673884c6322dda73150b563ce
+      name: init_appdb_image_repository_1_32_0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:13a4bc40d42972a077a2dc5f5cb077c1519b56508ee17912c631f602cd9340e2
+      name: agent_image_108_0_0_8694_1_1_32_0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c1792e863c8aa7788af9a9c0c11537ed1bf861eb102c7f1f55bca7c02ebf331d
+      name: ops_manager_image_repository_6_0_7
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:4e5e633013b62fea134921e158beb8d9db3e2a7f7e7ac828ab7ff8d9e9b82743
+      name: ops_manager_image_repository_6_0_15
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:c01e5bb9dd4ebc2dc9543b31705f1ba56d538d25308d25601ab52e78f4360e7f
+      name: ops_manager_image_repository_6_0_19
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:287a1f135bcdd87fef075293719d4bffa0455842553eded3477092e17d4daa63
+      name: agent-image-108-0-0-8694-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:649b9ec473ada7a1ed4abbb7f3f93b110f091ae7fbd749889b1285f4a0911ad5
+      name: ops-manager-image-repository-7-0-7
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:655896bac9e82de8e9729d59a36c3a31f66235f22b93449260a2ccb7709de084
+      name: mongodb_image_4_4_9_ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:e46c1cec1a9e82a0424ec48fb19da0cbb01154067a64ba631b1b825bcfd5a93b
+      name: agent-image-107-0-3-8550-1
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:37db89520906a8cd3b4cd2a91a91afa5b2f12895c02a78ed632b233eeb98bb19
+      name: agent-image-107-0-4-8567-1-1-30-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:15ffe8d3ec577cab20d244d2226ea6fead3b5bea94de0c2635b3b511c874474d
+      name: ops-manager-image-repository-8-0-0
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:d323c1bcd14118cc537ac282996ea5a58756d20b6b73f1eec0efa8710d246077
+      name: mongodb-image-5-0-5-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:bd8e3fea98ef5b67ac2db94d6b7996d1f61b8388f8bb2f5e1fce973b1fde5dc3
+      name: mongodb-image-5-0-18-ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:fc3bd5f1fee1edcbaeb0badd52453100cc2a7d8c22f399a45ff3c24979963920
+      name: mongodb_image_5_0_14_ubi8
+    - image: quay.io/mongodb/mongodb-enterprise-init-appdb-ubi@sha256:74ed6985878dcafb9d37cb2d5d6d3fc6085f7ca673884c6322dda73150b563ce
+      name: init-appdb-image-repository-1-32-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:7f550e0b2bb364a1651fffe8da9eeed5593ea707c4e7bb7714c91f8839c97c48
+      name: agent-image-107-0-12-8669-1-1-32-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:d3706e7018d38276704c189e0cbec4c015a4659fa1083474aa187e08ccd212be
+      name: ops-manager-image-repository-7-0-6
+    - image: quay.io/mongodb/mongodb-enterprise-server@sha256:829b2591721a3a437c97b6d1b896dbe0776d349dd472a435a006dcc5e9aebbd6
+      name: mongodb-image-5-0-9-ubi8
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:2b219a73396ba9e90f3c435439bc41dd11f73b17f8b85cb18c10a5027dbf5f40
+      name: agent-image-107-0-8-8615-1-1-31-0
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:947945dbd136c6712b6532dabbca03c8720515387ca853ffc7fe0e6d2369f0c2
+      name: agent-image-12-0-31-7825-1-1-31-0
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:8ab2c611274b7013239b22f1f8d99ff9afb7378d0c323ac407eea787c4ce01db
+      name: ops_manager_image_repository_6_0_18
+    - image: quay.io/mongodb/mongodb-enterprise-ops-manager-ubi@sha256:9a27b21afc08949c108b75a02cba35510083e0e071b907679572ac1562d5fab9
+      name: ops-manager-image-repository-6-0-2
+    - image: quay.io/mongodb/mongodb-agent-ubi@sha256:d28197893c4d6126e1712ac2e006b076b7813ddde36dfbdb0c30859471a0180e
+      name: agent_image_12_0_35_7911_1_1_32_0
+  replaces: mongodb-enterprise.v1.31.0
+  version: 1.32.0
+  webhookdefinitions:
+    - admissionReviewVersions:
+        - v1
+      deploymentName: mongodb-enterprise-operator
+      failurePolicy: Ignore
+      generateName: validate-mongodb.mongodb.com
+      rules:
+        - apiGroups:
+            - mongodb.com
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - mongodb
+      sideEffects: None
+      timeoutSeconds: 5
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mongodb-com-v1-mongodb
+    - admissionReviewVersions:
+        - v1
+      deploymentName: mongodb-enterprise-operator
+      failurePolicy: Ignore
+      generateName: validate-mongodbmulticluster.mongodb.com
+      rules:
+        - apiGroups:
+            - mongodb.com
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - mongodbmulticluster
+      sideEffects: None
+      timeoutSeconds: 5
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mongodb-com-v1-mongodbmulticluster
+    - admissionReviewVersions:
+        - v1
+      deploymentName: mongodb-enterprise-operator
+      failurePolicy: Ignore
+      generateName: validate-opsmanagers.mongodb.com
+      rules:
+        - apiGroups:
+            - mongodb.com
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - opsmanagers
+      sideEffects: None
+      timeoutSeconds: 5
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-mongodb-com-v1-mongodbopsmanager

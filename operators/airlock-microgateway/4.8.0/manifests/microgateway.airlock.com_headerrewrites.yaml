@@ -1,0 +1,2557 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    app.kubernetes.io/name: airlock-microgateway-operator
+    app.kubernetes.io/version: 4.8.0
+  name: headerrewrites.microgateway.airlock.com
+spec:
+  group: microgateway.airlock.com
+  names:
+    categories:
+    - airlock-microgateway
+    kind: HeaderRewrites
+    listKind: HeaderRewritesList
+    plural: headerrewrites
+    singular: headerrewrites
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HeaderRewrites defines a policy for restricting, injecting and
+          mutating request and response headers.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired header rewriting configuration.
+            properties:
+              request:
+                description: request defines manipulations on upstream request headers.
+                properties:
+                  add:
+                    description: add defines which request headers will be added before
+                      forwarding to the upstream.
+                    properties:
+                      custom:
+                        description: |-
+                          custom allows configuring additional upstream request headers.
+                          Add selected headers.
+                        items:
+                          description: Rule for adding additional headers.
+                          properties:
+                            headers:
+                              description: headers to add.
+                              items:
+                                description: A Name value pair representing a header
+                                properties:
+                                  name:
+                                    description: name defines the name of the header.
+                                    maxLength: 512
+                                    minLength: 1
+                                    type: string
+                                  value:
+                                    description: |-
+                                      value defines the value of the header.
+                                      Note: This field supports dynamic values via [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators), e.g., `value: "%STREAM_ID%"`. Percentage signs not part of command operators must be escaped using `%%`.
+                                    maxLength: 8192
+                                    pattern: ^[^%]*(%([A-Z][A-Z_]*(\([^()\s"]+\)(:\d+)?)?)?%[^%]*)*$
+                                    type: string
+                                required:
+                                - name
+                                - value
+                                type: object
+                              maxItems: 64
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            mode:
+                              default: AddIfAbsent
+                              description: mode defines the header addition strategy.
+                              enum:
+                              - AddIfAbsent
+                              - OverwriteOrAdd
+                              type: string
+                            name:
+                              description: name describing the configured operation.
+                              maxLength: 1024
+                              minLength: 1
+                              type: string
+                            requestConditions:
+                              description: requestConditions defines additional request
+                                properties which must all be matched in order for
+                                this operation to be applied.
+                              properties:
+                                header:
+                                  description: header defines the matching headers
+                                    of a request.
+                                  properties:
+                                    name:
+                                      description: name defines the name of a header.
+                                      properties:
+                                        matcher:
+                                          description: matcher defines the way to
+                                            match a string. In comparison to a normal
+                                            StringMatcher, a value is always matched
+                                            ignoring the case and can't be inverted.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                    value:
+                                      description: value defines the value of a header.
+                                      properties:
+                                        matcher:
+                                          description: StringMatcher defines the way
+                                            to match a string.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            ignoreCase:
+                                              default: false
+                                              description: ignoreCase indicates whether
+                                                the matching should be case-insensitive.
+                                                In case of a regex match, the regex
+                                                gets wrapped with a group `(?i:...)`.
+                                              type: boolean
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                  type: object
+                                invert:
+                                  default: false
+                                  description: invert indicates whether the request
+                                    condition should be inverted.
+                                  type: boolean
+                                mediaType:
+                                  description: mediaType defines the matching media
+                                    type from the content-type header of a request.
+                                  properties:
+                                    matcher:
+                                      description: |-
+                                        NonInvertableCaseInsensitiveStringMatcher defines the way to match a string.
+                                        In comparison to a normal StringMatcher, a value is always matched ignoring the case and can't be inverted.
+                                      properties:
+                                        contains:
+                                          description: |-
+                                            contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        exact:
+                                          description: |-
+                                            exact defines an explicit match on the string specified here.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        prefix:
+                                          description: |-
+                                            prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        regex:
+                                          description: |-
+                                            regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                            The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        suffix:
+                                          description: |-
+                                            suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                  required:
+                                  - matcher
+                                  type: object
+                                method:
+                                  description: method defines the matching methods
+                                    of a request.
+                                  items:
+                                    description: Method defines common HTTP methods.
+                                    enum:
+                                    - GET
+                                    - HEAD
+                                    - POST
+                                    - PUT
+                                    - PATCH
+                                    - DELETE
+                                    - CONNECT
+                                    - OPTIONS
+                                    - TRACE
+                                    type: string
+                                  maxItems: 16
+                                  type: array
+                                  x-kubernetes-list-type: set
+                                path:
+                                  description: path defines the matching path of a
+                                    request.
+                                  properties:
+                                    matcher:
+                                      description: StringMatcher defines the way to
+                                        match a string.
+                                      properties:
+                                        contains:
+                                          description: |-
+                                            contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        exact:
+                                          description: |-
+                                            exact defines an explicit match on the string specified here.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        ignoreCase:
+                                          default: false
+                                          description: ignoreCase indicates whether
+                                            the matching should be case-insensitive.
+                                            In case of a regex match, the regex gets
+                                            wrapped with a group `(?i:...)`.
+                                          type: boolean
+                                        prefix:
+                                          description: |-
+                                            prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        regex:
+                                          description: |-
+                                            regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                            The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        suffix:
+                                          description: |-
+                                            suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                  required:
+                                  - matcher
+                                  type: object
+                                remoteIP:
+                                  description: |-
+                                    remoteIP defines the matching remote IPs of a request.
+                                    Note: Depending on your setup you may need to adapt the `remoteIP` configuration in the `SidecarGateway` / `GatewayParameters` resource to ensure correct client IP detection.
+                                  properties:
+                                    cidrRanges:
+                                      description: cidrRanges defines the IPv4 or
+                                        IPv6 CIDR ranges, e.g. ``196.148.3.128/26``
+                                        or ``2001:db8::/28``.
+                                      items:
+                                        description: CIDRRange defines an IPv4 or
+                                          IPv6 CIDR range, e.g. “196.148.3.128/26“
+                                          or “2001:db8::/28“.
+                                        format: cidr
+                                        maxLength: 49
+                                        minLength: 1
+                                        type: string
+                                      maxItems: 1024
+                                      minItems: 1
+                                      type: array
+                                      x-kubernetes-list-type: set
+                                    invert:
+                                      default: false
+                                      description: invert indicates whether the match
+                                        should be inverted.
+                                      type: boolean
+                                  required:
+                                  - cidrRanges
+                                  type: object
+                              type: object
+                          required:
+                          - headers
+                          - name
+                          type: object
+                        maxItems: 128
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                    type: object
+                  allow:
+                    description: |-
+                      allow defines which request headers will be forwarded to the upstream.
+                      This can either be allHeaders or matchingHeaders.
+                      Default: matchingHeaders: {...}
+                    properties:
+                      allHeaders:
+                        description: allHeaders specifies that all request headers
+                          should be forwarded.
+                        type: object
+                      matchingHeaders:
+                        description: matchingHeaders specifies which request headers
+                          should be forwarded.
+                        properties:
+                          builtIn:
+                            description: builtIn allows configuring a set of predefined
+                              upstream request headers.
+                            properties:
+                              standardHeaders:
+                                default: true
+                                description: standardHeaders defines whether the request
+                                  headers which are forwarded to the upstream will
+                                  be restricted to a set of common request headers.
+                                type: boolean
+                              tracingHeaders:
+                                default: false
+                                description: tracingHeaders defines whether to allow
+                                  common tracing headers to be forwarded to the upstream.
+                                type: boolean
+                            type: object
+                          custom:
+                            description: custom allows configuring additional upstream
+                              request headers.
+                            items:
+                              description: Rule for allowing additional headers.
+                              properties:
+                                headers:
+                                  description: headers to allow.
+                                  items:
+                                    description: |-
+                                      HeaderMatcher defines a matcher for an HTTP header.
+                                      At least one of name and value must be set.
+                                    properties:
+                                      name:
+                                        description: name defines the name of a header.
+                                        properties:
+                                          matcher:
+                                            description: matcher defines the way to
+                                              match a string. In comparison to a normal
+                                              StringMatcher, a value is always matched
+                                              ignoring the case and can't be inverted.
+                                            properties:
+                                              contains:
+                                                description: |-
+                                                  contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              exact:
+                                                description: |-
+                                                  exact defines an explicit match on the string specified here.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              prefix:
+                                                description: |-
+                                                  prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              regex:
+                                                description: |-
+                                                  regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                  The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              suffix:
+                                                description: |-
+                                                  suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                            type: object
+                                        required:
+                                        - matcher
+                                        type: object
+                                      value:
+                                        description: value defines the value of a
+                                          header.
+                                        properties:
+                                          matcher:
+                                            description: StringMatcher defines the
+                                              way to match a string.
+                                            properties:
+                                              contains:
+                                                description: |-
+                                                  contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              exact:
+                                                description: |-
+                                                  exact defines an explicit match on the string specified here.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              ignoreCase:
+                                                default: false
+                                                description: ignoreCase indicates
+                                                  whether the matching should be case-insensitive.
+                                                  In case of a regex match, the regex
+                                                  gets wrapped with a group `(?i:...)`.
+                                                type: boolean
+                                              prefix:
+                                                description: |-
+                                                  prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              regex:
+                                                description: |-
+                                                  regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                  The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              suffix:
+                                                description: |-
+                                                  suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                            type: object
+                                        required:
+                                        - matcher
+                                        type: object
+                                    type: object
+                                  maxItems: 64
+                                  minItems: 1
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                name:
+                                  description: name describing the configured operation.
+                                    Must be unique.
+                                  maxLength: 1024
+                                  minLength: 1
+                                  type: string
+                                requestConditions:
+                                  description: requestConditions defines additional
+                                    request properties which must be all matched in
+                                    order for this operation to be applied.
+                                  properties:
+                                    header:
+                                      description: header defines the matching headers
+                                        of a request.
+                                      properties:
+                                        name:
+                                          description: name defines the name of a
+                                            header.
+                                          properties:
+                                            matcher:
+                                              description: matcher defines the way
+                                                to match a string. In comparison to
+                                                a normal StringMatcher, a value is
+                                                always matched ignoring the case and
+                                                can't be inverted.
+                                              properties:
+                                                contains:
+                                                  description: |-
+                                                    contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                exact:
+                                                  description: |-
+                                                    exact defines an explicit match on the string specified here.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                prefix:
+                                                  description: |-
+                                                    prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                regex:
+                                                  description: |-
+                                                    regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                    The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                suffix:
+                                                  description: |-
+                                                    suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                              type: object
+                                          required:
+                                          - matcher
+                                          type: object
+                                        value:
+                                          description: value defines the value of
+                                            a header.
+                                          properties:
+                                            matcher:
+                                              description: StringMatcher defines the
+                                                way to match a string.
+                                              properties:
+                                                contains:
+                                                  description: |-
+                                                    contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                exact:
+                                                  description: |-
+                                                    exact defines an explicit match on the string specified here.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                ignoreCase:
+                                                  default: false
+                                                  description: ignoreCase indicates
+                                                    whether the matching should be
+                                                    case-insensitive. In case of a
+                                                    regex match, the regex gets wrapped
+                                                    with a group `(?i:...)`.
+                                                  type: boolean
+                                                prefix:
+                                                  description: |-
+                                                    prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                regex:
+                                                  description: |-
+                                                    regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                    The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                suffix:
+                                                  description: |-
+                                                    suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                              type: object
+                                          required:
+                                          - matcher
+                                          type: object
+                                      type: object
+                                    invert:
+                                      default: false
+                                      description: invert indicates whether the request
+                                        condition should be inverted.
+                                      type: boolean
+                                    mediaType:
+                                      description: mediaType defines the matching
+                                        media type from the content-type header of
+                                        a request.
+                                      properties:
+                                        matcher:
+                                          description: |-
+                                            NonInvertableCaseInsensitiveStringMatcher defines the way to match a string.
+                                            In comparison to a normal StringMatcher, a value is always matched ignoring the case and can't be inverted.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                    method:
+                                      description: method defines the matching methods
+                                        of a request.
+                                      items:
+                                        description: Method defines common HTTP methods.
+                                        enum:
+                                        - GET
+                                        - HEAD
+                                        - POST
+                                        - PUT
+                                        - PATCH
+                                        - DELETE
+                                        - CONNECT
+                                        - OPTIONS
+                                        - TRACE
+                                        type: string
+                                      maxItems: 16
+                                      type: array
+                                      x-kubernetes-list-type: set
+                                    path:
+                                      description: path defines the matching path
+                                        of a request.
+                                      properties:
+                                        matcher:
+                                          description: StringMatcher defines the way
+                                            to match a string.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            ignoreCase:
+                                              default: false
+                                              description: ignoreCase indicates whether
+                                                the matching should be case-insensitive.
+                                                In case of a regex match, the regex
+                                                gets wrapped with a group `(?i:...)`.
+                                              type: boolean
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                    remoteIP:
+                                      description: |-
+                                        remoteIP defines the matching remote IPs of a request.
+                                        Note: Depending on your setup you may need to adapt the `remoteIP` configuration in the `SidecarGateway` / `GatewayParameters` resource to ensure correct client IP detection.
+                                      properties:
+                                        cidrRanges:
+                                          description: cidrRanges defines the IPv4
+                                            or IPv6 CIDR ranges, e.g. ``196.148.3.128/26``
+                                            or ``2001:db8::/28``.
+                                          items:
+                                            description: CIDRRange defines an IPv4
+                                              or IPv6 CIDR range, e.g. “196.148.3.128/26“
+                                              or “2001:db8::/28“.
+                                            format: cidr
+                                            maxLength: 49
+                                            minLength: 1
+                                            type: string
+                                          maxItems: 1024
+                                          minItems: 1
+                                          type: array
+                                          x-kubernetes-list-type: set
+                                        invert:
+                                          default: false
+                                          description: invert indicates whether the
+                                            match should be inverted.
+                                          type: boolean
+                                      required:
+                                      - cidrRanges
+                                      type: object
+                                  type: object
+                              required:
+                              - headers
+                              - name
+                              type: object
+                            maxItems: 128
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                        type: object
+                    type: object
+                  remove:
+                    description: remove defines which request headers will be removed
+                      before forwarding to the upstream.
+                    properties:
+                      builtIn:
+                        description: builtIn allows configuring a set of predefined
+                          upstream request headers.
+                        properties:
+                          alternativeForwardedHeaders:
+                            default: true
+                            description: |-
+                              alternativeForwardedHeaders removes downstream request headers which could potentially
+                              be abused to alter the upstream's view of the remote connection.
+                            type: boolean
+                        type: object
+                      custom:
+                        description: custom allows configuring additional upstream
+                          request headers.
+                        items:
+                          description: Rule for removing additional headers.
+                          properties:
+                            headers:
+                              description: headers to remove.
+                              items:
+                                description: |-
+                                  HeaderMatcher defines a matcher for an HTTP header.
+                                  At least one of name and value must be set.
+                                properties:
+                                  name:
+                                    description: name defines the name of a header.
+                                    properties:
+                                      matcher:
+                                        description: matcher defines the way to match
+                                          a string. In comparison to a normal StringMatcher,
+                                          a value is always matched ignoring the case
+                                          and can't be inverted.
+                                        properties:
+                                          contains:
+                                            description: |-
+                                              contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          exact:
+                                            description: |-
+                                              exact defines an explicit match on the string specified here.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          prefix:
+                                            description: |-
+                                              prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          regex:
+                                            description: |-
+                                              regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                              The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          suffix:
+                                            description: |-
+                                              suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                        type: object
+                                    required:
+                                    - matcher
+                                    type: object
+                                  value:
+                                    description: value defines the value of a header.
+                                    properties:
+                                      matcher:
+                                        description: StringMatcher defines the way
+                                          to match a string.
+                                        properties:
+                                          contains:
+                                            description: |-
+                                              contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          exact:
+                                            description: |-
+                                              exact defines an explicit match on the string specified here.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          ignoreCase:
+                                            default: false
+                                            description: ignoreCase indicates whether
+                                              the matching should be case-insensitive.
+                                              In case of a regex match, the regex
+                                              gets wrapped with a group `(?i:...)`.
+                                            type: boolean
+                                          prefix:
+                                            description: |-
+                                              prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          regex:
+                                            description: |-
+                                              regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                              The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          suffix:
+                                            description: |-
+                                              suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                        type: object
+                                    required:
+                                    - matcher
+                                    type: object
+                                type: object
+                              maxItems: 64
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            name:
+                              description: name describing the configured operation.
+                                Must be unique.
+                              maxLength: 1024
+                              minLength: 1
+                              type: string
+                            requestConditions:
+                              description: requestConditions defines additional request
+                                properties which must all be matched in order for
+                                this operation to be applied.
+                              properties:
+                                header:
+                                  description: header defines the matching headers
+                                    of a request.
+                                  properties:
+                                    name:
+                                      description: name defines the name of a header.
+                                      properties:
+                                        matcher:
+                                          description: matcher defines the way to
+                                            match a string. In comparison to a normal
+                                            StringMatcher, a value is always matched
+                                            ignoring the case and can't be inverted.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                    value:
+                                      description: value defines the value of a header.
+                                      properties:
+                                        matcher:
+                                          description: StringMatcher defines the way
+                                            to match a string.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            ignoreCase:
+                                              default: false
+                                              description: ignoreCase indicates whether
+                                                the matching should be case-insensitive.
+                                                In case of a regex match, the regex
+                                                gets wrapped with a group `(?i:...)`.
+                                              type: boolean
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                  type: object
+                                invert:
+                                  default: false
+                                  description: invert indicates whether the request
+                                    condition should be inverted.
+                                  type: boolean
+                                mediaType:
+                                  description: mediaType defines the matching media
+                                    type from the content-type header of a request.
+                                  properties:
+                                    matcher:
+                                      description: |-
+                                        NonInvertableCaseInsensitiveStringMatcher defines the way to match a string.
+                                        In comparison to a normal StringMatcher, a value is always matched ignoring the case and can't be inverted.
+                                      properties:
+                                        contains:
+                                          description: |-
+                                            contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        exact:
+                                          description: |-
+                                            exact defines an explicit match on the string specified here.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        prefix:
+                                          description: |-
+                                            prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        regex:
+                                          description: |-
+                                            regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                            The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        suffix:
+                                          description: |-
+                                            suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                  required:
+                                  - matcher
+                                  type: object
+                                method:
+                                  description: method defines the matching methods
+                                    of a request.
+                                  items:
+                                    description: Method defines common HTTP methods.
+                                    enum:
+                                    - GET
+                                    - HEAD
+                                    - POST
+                                    - PUT
+                                    - PATCH
+                                    - DELETE
+                                    - CONNECT
+                                    - OPTIONS
+                                    - TRACE
+                                    type: string
+                                  maxItems: 16
+                                  type: array
+                                  x-kubernetes-list-type: set
+                                path:
+                                  description: path defines the matching path of a
+                                    request.
+                                  properties:
+                                    matcher:
+                                      description: StringMatcher defines the way to
+                                        match a string.
+                                      properties:
+                                        contains:
+                                          description: |-
+                                            contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        exact:
+                                          description: |-
+                                            exact defines an explicit match on the string specified here.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        ignoreCase:
+                                          default: false
+                                          description: ignoreCase indicates whether
+                                            the matching should be case-insensitive.
+                                            In case of a regex match, the regex gets
+                                            wrapped with a group `(?i:...)`.
+                                          type: boolean
+                                        prefix:
+                                          description: |-
+                                            prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        regex:
+                                          description: |-
+                                            regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                            The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        suffix:
+                                          description: |-
+                                            suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                  required:
+                                  - matcher
+                                  type: object
+                                remoteIP:
+                                  description: |-
+                                    remoteIP defines the matching remote IPs of a request.
+                                    Note: Depending on your setup you may need to adapt the `remoteIP` configuration in the `SidecarGateway` / `GatewayParameters` resource to ensure correct client IP detection.
+                                  properties:
+                                    cidrRanges:
+                                      description: cidrRanges defines the IPv4 or
+                                        IPv6 CIDR ranges, e.g. ``196.148.3.128/26``
+                                        or ``2001:db8::/28``.
+                                      items:
+                                        description: CIDRRange defines an IPv4 or
+                                          IPv6 CIDR range, e.g. “196.148.3.128/26“
+                                          or “2001:db8::/28“.
+                                        format: cidr
+                                        maxLength: 49
+                                        minLength: 1
+                                        type: string
+                                      maxItems: 1024
+                                      minItems: 1
+                                      type: array
+                                      x-kubernetes-list-type: set
+                                    invert:
+                                      default: false
+                                      description: invert indicates whether the match
+                                        should be inverted.
+                                      type: boolean
+                                  required:
+                                  - cidrRanges
+                                  type: object
+                              type: object
+                          required:
+                          - headers
+                          - name
+                          type: object
+                        maxItems: 128
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                    type: object
+                type: object
+              response:
+                description: response defines manipulations on upstream response headers.
+                properties:
+                  add:
+                    description: add defines which response headers will be added
+                      before forwarding to the downstream.
+                    properties:
+                      builtIn:
+                        description: builtIn allows configuring a set of predefined
+                          upstream response headers.
+                        properties:
+                          csp:
+                            default: false
+                            description: |-
+                              csp sets a content security policy which allows only same-origin requests except for images
+                              if the 'Content-Security-Policy' header is not set by the upstream.
+                            type: boolean
+                          featurePolicy:
+                            default: false
+                            description: |-
+                              featurePolicy sets a feature policy which prevents cross-origin use of several browser features
+                              if the 'Feature-Policy' header is not set by the upstream.
+
+                              Deprecated: Use permissionsPolicy instead.
+                            type: boolean
+                          hsts:
+                            default: true
+                            description: hsts enforces the use of HTTPS if the 'Strict-Transport-Security'
+                              header is not already set by the upstream.
+                            type: boolean
+                          hstsPreload:
+                            default: false
+                            description: hstsPreload enforces the use of HTTPS including
+                              for subdomains and enables HSTS preload.
+                            type: boolean
+                          permissionsPolicy:
+                            default: true
+                            description: |-
+                              permissionsPolicy sets a permissions policy which prevents cross-origin use of several browser features
+                              if the 'Permissions-Policy' header is not set by the upstream.
+                            type: boolean
+                          referrerPolicy:
+                            default: true
+                            description: |-
+                              referrerPolicy ensures that no 'Referer' header is sent for cross-origin requests
+                              if the 'Referrer-Policy' header is not set by the upstream.
+                            type: boolean
+                          xContentTypeOptions:
+                            default: true
+                            description: xContentTypeOptions sets 'X-Content-Type-Options'
+                              to 'nosniff' if it is not set by the upstream.
+                            type: boolean
+                          xFrameOptions:
+                            default: true
+                            description: xFrameOptions sets 'X-Frame-Options' to SAMEORIGIN
+                              if it is not set by the upstream.
+                            type: boolean
+                        type: object
+                      custom:
+                        description: custom allows configuring additional upstream
+                          response headers.
+                        items:
+                          properties:
+                            headers:
+                              description: headers to add.
+                              items:
+                                description: A Name value pair representing a header
+                                properties:
+                                  name:
+                                    description: name defines the name of the header.
+                                    maxLength: 512
+                                    minLength: 1
+                                    type: string
+                                  value:
+                                    description: |-
+                                      value defines the value of the header.
+                                      Note: This field supports dynamic values via [Envoy command operators](https://www.envoyproxy.io/docs/envoy/latest/configuration/observability/access_log/usage#command-operators), e.g., `value: "%STREAM_ID%"`. Percentage signs not part of command operators must be escaped using `%%`.
+                                    maxLength: 8192
+                                    pattern: ^[^%]*(%([A-Z][A-Z_]*(\([^()\s"]+\)(:\d+)?)?)?%[^%]*)*$
+                                    type: string
+                                required:
+                                - name
+                                - value
+                                type: object
+                              maxItems: 64
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            mode:
+                              default: AddIfAbsent
+                              description: mode defines the header addition strategy.
+                              enum:
+                              - AddIfAbsent
+                              - OverwriteOrAdd
+                              type: string
+                            name:
+                              description: name describing the configured operation.
+                              maxLength: 1024
+                              minLength: 1
+                              type: string
+                            requestConditions:
+                              description: requestConditions defines additional request
+                                properties which must all be matched in order for
+                                this operation to be applied.
+                              properties:
+                                header:
+                                  description: header defines the matching headers
+                                    of a request.
+                                  properties:
+                                    name:
+                                      description: name defines the name of a header.
+                                      properties:
+                                        matcher:
+                                          description: matcher defines the way to
+                                            match a string. In comparison to a normal
+                                            StringMatcher, a value is always matched
+                                            ignoring the case and can't be inverted.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                    value:
+                                      description: value defines the value of a header.
+                                      properties:
+                                        matcher:
+                                          description: StringMatcher defines the way
+                                            to match a string.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            ignoreCase:
+                                              default: false
+                                              description: ignoreCase indicates whether
+                                                the matching should be case-insensitive.
+                                                In case of a regex match, the regex
+                                                gets wrapped with a group `(?i:...)`.
+                                              type: boolean
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                  type: object
+                                invert:
+                                  default: false
+                                  description: invert indicates whether the request
+                                    condition should be inverted.
+                                  type: boolean
+                                mediaType:
+                                  description: mediaType defines the matching media
+                                    type from the content-type header of a request.
+                                  properties:
+                                    matcher:
+                                      description: |-
+                                        NonInvertableCaseInsensitiveStringMatcher defines the way to match a string.
+                                        In comparison to a normal StringMatcher, a value is always matched ignoring the case and can't be inverted.
+                                      properties:
+                                        contains:
+                                          description: |-
+                                            contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        exact:
+                                          description: |-
+                                            exact defines an explicit match on the string specified here.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        prefix:
+                                          description: |-
+                                            prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        regex:
+                                          description: |-
+                                            regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                            The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        suffix:
+                                          description: |-
+                                            suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                  required:
+                                  - matcher
+                                  type: object
+                                method:
+                                  description: method defines the matching methods
+                                    of a request.
+                                  items:
+                                    description: Method defines common HTTP methods.
+                                    enum:
+                                    - GET
+                                    - HEAD
+                                    - POST
+                                    - PUT
+                                    - PATCH
+                                    - DELETE
+                                    - CONNECT
+                                    - OPTIONS
+                                    - TRACE
+                                    type: string
+                                  maxItems: 16
+                                  type: array
+                                  x-kubernetes-list-type: set
+                                path:
+                                  description: path defines the matching path of a
+                                    request.
+                                  properties:
+                                    matcher:
+                                      description: StringMatcher defines the way to
+                                        match a string.
+                                      properties:
+                                        contains:
+                                          description: |-
+                                            contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        exact:
+                                          description: |-
+                                            exact defines an explicit match on the string specified here.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        ignoreCase:
+                                          default: false
+                                          description: ignoreCase indicates whether
+                                            the matching should be case-insensitive.
+                                            In case of a regex match, the regex gets
+                                            wrapped with a group `(?i:...)`.
+                                          type: boolean
+                                        prefix:
+                                          description: |-
+                                            prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        regex:
+                                          description: |-
+                                            regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                            The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        suffix:
+                                          description: |-
+                                            suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                  required:
+                                  - matcher
+                                  type: object
+                                remoteIP:
+                                  description: |-
+                                    remoteIP defines the matching remote IPs of a request.
+                                    Note: Depending on your setup you may need to adapt the `remoteIP` configuration in the `SidecarGateway` / `GatewayParameters` resource to ensure correct client IP detection.
+                                  properties:
+                                    cidrRanges:
+                                      description: cidrRanges defines the IPv4 or
+                                        IPv6 CIDR ranges, e.g. ``196.148.3.128/26``
+                                        or ``2001:db8::/28``.
+                                      items:
+                                        description: CIDRRange defines an IPv4 or
+                                          IPv6 CIDR range, e.g. “196.148.3.128/26“
+                                          or “2001:db8::/28“.
+                                        format: cidr
+                                        maxLength: 49
+                                        minLength: 1
+                                        type: string
+                                      maxItems: 1024
+                                      minItems: 1
+                                      type: array
+                                      x-kubernetes-list-type: set
+                                    invert:
+                                      default: false
+                                      description: invert indicates whether the match
+                                        should be inverted.
+                                      type: boolean
+                                  required:
+                                  - cidrRanges
+                                  type: object
+                              type: object
+                          required:
+                          - headers
+                          - name
+                          type: object
+                        maxItems: 128
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                    type: object
+                  allow:
+                    description: |-
+                      allow defines which response headers will be forwarded to the downstream.
+                      This can either be allHeaders or matchingHeaders.
+                      Default: allHeaders: {}
+                    properties:
+                      allHeaders:
+                        description: allHeaders specifies that all response headers
+                          should be forwarded.
+                        type: object
+                      matchingHeaders:
+                        description: matchingHeaders specifies which response headers
+                          should be forwarded.
+                        properties:
+                          builtIn:
+                            description: builtIn allows configuring a set of predefined
+                              upstream response header.
+                            properties:
+                              standardHeaders:
+                                default: false
+                                description: standardHeaders defines whether the response
+                                  headers which are forwarded to the downstream will
+                                  be restricted to a set of common response headers.
+                                type: boolean
+                            type: object
+                          custom:
+                            description: custom allows configuring additional upstream
+                              response headers.
+                            items:
+                              properties:
+                                headers:
+                                  description: headers to allow.
+                                  items:
+                                    description: |-
+                                      HeaderMatcher defines a matcher for an HTTP header.
+                                      At least one of name and value must be set.
+                                    properties:
+                                      name:
+                                        description: name defines the name of a header.
+                                        properties:
+                                          matcher:
+                                            description: matcher defines the way to
+                                              match a string. In comparison to a normal
+                                              StringMatcher, a value is always matched
+                                              ignoring the case and can't be inverted.
+                                            properties:
+                                              contains:
+                                                description: |-
+                                                  contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              exact:
+                                                description: |-
+                                                  exact defines an explicit match on the string specified here.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              prefix:
+                                                description: |-
+                                                  prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              regex:
+                                                description: |-
+                                                  regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                  The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              suffix:
+                                                description: |-
+                                                  suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                            type: object
+                                        required:
+                                        - matcher
+                                        type: object
+                                      value:
+                                        description: value defines the value of a
+                                          header.
+                                        properties:
+                                          matcher:
+                                            description: StringMatcher defines the
+                                              way to match a string.
+                                            properties:
+                                              contains:
+                                                description: |-
+                                                  contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              exact:
+                                                description: |-
+                                                  exact defines an explicit match on the string specified here.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              ignoreCase:
+                                                default: false
+                                                description: ignoreCase indicates
+                                                  whether the matching should be case-insensitive.
+                                                  In case of a regex match, the regex
+                                                  gets wrapped with a group `(?i:...)`.
+                                                type: boolean
+                                              prefix:
+                                                description: |-
+                                                  prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              regex:
+                                                description: |-
+                                                  regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                  The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                              suffix:
+                                                description: |-
+                                                  suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                  Only one of exact, prefix, suffix, regex or contains can be set.
+                                                maxLength: 1024
+                                                minLength: 1
+                                                type: string
+                                            type: object
+                                        required:
+                                        - matcher
+                                        type: object
+                                    type: object
+                                  maxItems: 64
+                                  minItems: 1
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                name:
+                                  description: name describing the configured operation.
+                                    Must be unique.
+                                  maxLength: 1024
+                                  minLength: 1
+                                  type: string
+                                requestConditions:
+                                  description: requestConditions defines additional
+                                    request properties which must all be matched in
+                                    order for this operation to be applied.
+                                  properties:
+                                    header:
+                                      description: header defines the matching headers
+                                        of a request.
+                                      properties:
+                                        name:
+                                          description: name defines the name of a
+                                            header.
+                                          properties:
+                                            matcher:
+                                              description: matcher defines the way
+                                                to match a string. In comparison to
+                                                a normal StringMatcher, a value is
+                                                always matched ignoring the case and
+                                                can't be inverted.
+                                              properties:
+                                                contains:
+                                                  description: |-
+                                                    contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                exact:
+                                                  description: |-
+                                                    exact defines an explicit match on the string specified here.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                prefix:
+                                                  description: |-
+                                                    prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                regex:
+                                                  description: |-
+                                                    regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                    The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                suffix:
+                                                  description: |-
+                                                    suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                              type: object
+                                          required:
+                                          - matcher
+                                          type: object
+                                        value:
+                                          description: value defines the value of
+                                            a header.
+                                          properties:
+                                            matcher:
+                                              description: StringMatcher defines the
+                                                way to match a string.
+                                              properties:
+                                                contains:
+                                                  description: |-
+                                                    contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                exact:
+                                                  description: |-
+                                                    exact defines an explicit match on the string specified here.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                ignoreCase:
+                                                  default: false
+                                                  description: ignoreCase indicates
+                                                    whether the matching should be
+                                                    case-insensitive. In case of a
+                                                    regex match, the regex gets wrapped
+                                                    with a group `(?i:...)`.
+                                                  type: boolean
+                                                prefix:
+                                                  description: |-
+                                                    prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                regex:
+                                                  description: |-
+                                                    regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                    The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                                suffix:
+                                                  description: |-
+                                                    suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                    Only one of exact, prefix, suffix, regex or contains can be set.
+                                                  maxLength: 1024
+                                                  minLength: 1
+                                                  type: string
+                                              type: object
+                                          required:
+                                          - matcher
+                                          type: object
+                                      type: object
+                                    invert:
+                                      default: false
+                                      description: invert indicates whether the request
+                                        condition should be inverted.
+                                      type: boolean
+                                    mediaType:
+                                      description: mediaType defines the matching
+                                        media type from the content-type header of
+                                        a request.
+                                      properties:
+                                        matcher:
+                                          description: |-
+                                            NonInvertableCaseInsensitiveStringMatcher defines the way to match a string.
+                                            In comparison to a normal StringMatcher, a value is always matched ignoring the case and can't be inverted.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                    method:
+                                      description: method defines the matching methods
+                                        of a request.
+                                      items:
+                                        description: Method defines common HTTP methods.
+                                        enum:
+                                        - GET
+                                        - HEAD
+                                        - POST
+                                        - PUT
+                                        - PATCH
+                                        - DELETE
+                                        - CONNECT
+                                        - OPTIONS
+                                        - TRACE
+                                        type: string
+                                      maxItems: 16
+                                      type: array
+                                      x-kubernetes-list-type: set
+                                    path:
+                                      description: path defines the matching path
+                                        of a request.
+                                      properties:
+                                        matcher:
+                                          description: StringMatcher defines the way
+                                            to match a string.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            ignoreCase:
+                                              default: false
+                                              description: ignoreCase indicates whether
+                                                the matching should be case-insensitive.
+                                                In case of a regex match, the regex
+                                                gets wrapped with a group `(?i:...)`.
+                                              type: boolean
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                    remoteIP:
+                                      description: |-
+                                        remoteIP defines the matching remote IPs of a request.
+                                        Note: Depending on your setup you may need to adapt the `remoteIP` configuration in the `SidecarGateway` / `GatewayParameters` resource to ensure correct client IP detection.
+                                      properties:
+                                        cidrRanges:
+                                          description: cidrRanges defines the IPv4
+                                            or IPv6 CIDR ranges, e.g. ``196.148.3.128/26``
+                                            or ``2001:db8::/28``.
+                                          items:
+                                            description: CIDRRange defines an IPv4
+                                              or IPv6 CIDR range, e.g. “196.148.3.128/26“
+                                              or “2001:db8::/28“.
+                                            format: cidr
+                                            maxLength: 49
+                                            minLength: 1
+                                            type: string
+                                          maxItems: 1024
+                                          minItems: 1
+                                          type: array
+                                          x-kubernetes-list-type: set
+                                        invert:
+                                          default: false
+                                          description: invert indicates whether the
+                                            match should be inverted.
+                                          type: boolean
+                                      required:
+                                      - cidrRanges
+                                      type: object
+                                  type: object
+                              required:
+                              - headers
+                              - name
+                              type: object
+                            maxItems: 128
+                            minItems: 1
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                        type: object
+                    type: object
+                  remove:
+                    description: remove defines which response headers will be removed
+                      before forwarding to the downstream.
+                    properties:
+                      builtIn:
+                        description: builtIn allows configuring a set of predefined
+                          upstream response headers.
+                        properties:
+                          auth:
+                            description: auth defines the categories of headers concerning
+                              authentication.
+                            properties:
+                              basic:
+                                default: false
+                                description: basic removes upstream response headers
+                                  that advise clients to authenticate with Basic Authentication.
+                                type: boolean
+                              negotiate:
+                                default: true
+                                description: negotiate removes upstream response headers
+                                  that advise clients to authenticate with Negotiate.
+                                type: boolean
+                              ntlm:
+                                default: true
+                                description: |-
+                                  ntlm removes upstream response headers that advise clients to authenticate with NTLM.
+                                  By default, these headers are removed, because NTLM pass-through is not supported.
+                                type: boolean
+                            type: object
+                          informationLeakage:
+                            description: informationLeakage defines the categories
+                              of headers concerning information leakage.
+                            properties:
+                              application:
+                                default: true
+                                description: application removes upstream response
+                                  headers that leak information about the deployed
+                                  software.
+                                type: boolean
+                              server:
+                                default: true
+                                description: server removes upstream response headers
+                                  that leak information about the server.
+                                type: boolean
+                            type: object
+                          permissiveCors:
+                            default: true
+                            description: permissiveCors removes upstream response
+                              headers for CORS (Cross-Origin Resource Sharing) which
+                              have no restrictions and therefore reduce client-side
+                              security.
+                            type: boolean
+                        type: object
+                      custom:
+                        description: custom allows configuring additional upstream
+                          response headers.
+                        items:
+                          properties:
+                            headers:
+                              description: headers to remove.
+                              items:
+                                description: |-
+                                  HeaderMatcher defines a matcher for an HTTP header.
+                                  At least one of name and value must be set.
+                                properties:
+                                  name:
+                                    description: name defines the name of a header.
+                                    properties:
+                                      matcher:
+                                        description: matcher defines the way to match
+                                          a string. In comparison to a normal StringMatcher,
+                                          a value is always matched ignoring the case
+                                          and can't be inverted.
+                                        properties:
+                                          contains:
+                                            description: |-
+                                              contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          exact:
+                                            description: |-
+                                              exact defines an explicit match on the string specified here.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          prefix:
+                                            description: |-
+                                              prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          regex:
+                                            description: |-
+                                              regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                              The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          suffix:
+                                            description: |-
+                                              suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                        type: object
+                                    required:
+                                    - matcher
+                                    type: object
+                                  value:
+                                    description: value defines the value of a header.
+                                    properties:
+                                      matcher:
+                                        description: StringMatcher defines the way
+                                          to match a string.
+                                        properties:
+                                          contains:
+                                            description: |-
+                                              contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          exact:
+                                            description: |-
+                                              exact defines an explicit match on the string specified here.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          ignoreCase:
+                                            default: false
+                                            description: ignoreCase indicates whether
+                                              the matching should be case-insensitive.
+                                              In case of a regex match, the regex
+                                              gets wrapped with a group `(?i:...)`.
+                                            type: boolean
+                                          prefix:
+                                            description: |-
+                                              prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          regex:
+                                            description: |-
+                                              regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                              The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                          suffix:
+                                            description: |-
+                                              suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                              Only one of exact, prefix, suffix, regex or contains can be set.
+                                            maxLength: 1024
+                                            minLength: 1
+                                            type: string
+                                        type: object
+                                    required:
+                                    - matcher
+                                    type: object
+                                type: object
+                              maxItems: 64
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-type: atomic
+                            name:
+                              description: name describing the configured remove operation.
+                                Must be unique.
+                              maxLength: 1024
+                              minLength: 1
+                              type: string
+                            requestConditions:
+                              description: requestConditions defines additional request
+                                properties which must all be matched in order for
+                                this operation to be applied.
+                              properties:
+                                header:
+                                  description: header defines the matching headers
+                                    of a request.
+                                  properties:
+                                    name:
+                                      description: name defines the name of a header.
+                                      properties:
+                                        matcher:
+                                          description: matcher defines the way to
+                                            match a string. In comparison to a normal
+                                            StringMatcher, a value is always matched
+                                            ignoring the case and can't be inverted.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                    value:
+                                      description: value defines the value of a header.
+                                      properties:
+                                        matcher:
+                                          description: StringMatcher defines the way
+                                            to match a string.
+                                          properties:
+                                            contains:
+                                              description: |-
+                                                contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            exact:
+                                              description: |-
+                                                exact defines an explicit match on the string specified here.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            ignoreCase:
+                                              default: false
+                                              description: ignoreCase indicates whether
+                                                the matching should be case-insensitive.
+                                                In case of a regex match, the regex
+                                                gets wrapped with a group `(?i:...)`.
+                                              type: boolean
+                                            prefix:
+                                              description: |-
+                                                prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            regex:
+                                              description: |-
+                                                regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                                The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                            suffix:
+                                              description: |-
+                                                suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                                Only one of exact, prefix, suffix, regex or contains can be set.
+                                              maxLength: 1024
+                                              minLength: 1
+                                              type: string
+                                          type: object
+                                      required:
+                                      - matcher
+                                      type: object
+                                  type: object
+                                invert:
+                                  default: false
+                                  description: invert indicates whether the request
+                                    condition should be inverted.
+                                  type: boolean
+                                mediaType:
+                                  description: mediaType defines the matching media
+                                    type from the content-type header of a request.
+                                  properties:
+                                    matcher:
+                                      description: |-
+                                        NonInvertableCaseInsensitiveStringMatcher defines the way to match a string.
+                                        In comparison to a normal StringMatcher, a value is always matched ignoring the case and can't be inverted.
+                                      properties:
+                                        contains:
+                                          description: |-
+                                            contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        exact:
+                                          description: |-
+                                            exact defines an explicit match on the string specified here.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        prefix:
+                                          description: |-
+                                            prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        regex:
+                                          description: |-
+                                            regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                            The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        suffix:
+                                          description: |-
+                                            suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                  required:
+                                  - matcher
+                                  type: object
+                                method:
+                                  description: method defines the matching methods
+                                    of a request.
+                                  items:
+                                    description: Method defines common HTTP methods.
+                                    enum:
+                                    - GET
+                                    - HEAD
+                                    - POST
+                                    - PUT
+                                    - PATCH
+                                    - DELETE
+                                    - CONNECT
+                                    - OPTIONS
+                                    - TRACE
+                                    type: string
+                                  maxItems: 16
+                                  type: array
+                                  x-kubernetes-list-type: set
+                                path:
+                                  description: path defines the matching path of a
+                                    request.
+                                  properties:
+                                    matcher:
+                                      description: StringMatcher defines the way to
+                                        match a string.
+                                      properties:
+                                        contains:
+                                          description: |-
+                                            contains defines a substring match on the substring specified here. Empty contains match is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        exact:
+                                          description: |-
+                                            exact defines an explicit match on the string specified here.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        ignoreCase:
+                                          default: false
+                                          description: ignoreCase indicates whether
+                                            the matching should be case-insensitive.
+                                            In case of a regex match, the regex gets
+                                            wrapped with a group `(?i:...)`.
+                                          type: boolean
+                                        prefix:
+                                          description: |-
+                                            prefix defines a prefix match on the prefix specified here. Empty prefix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        regex:
+                                          description: |-
+                                            regex defines a regex match on the regular expression specified here. Google's [RE2 regex engine](https://github.com/google/re2/wiki/Syntax) is used.
+                                            The regex matches only single-line by default, even with ".*". To match a multi-line string prepend (?s) to your regex.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                        suffix:
+                                          description: |-
+                                            suffix defines a suffix match on the suffix specified here. Empty suffix is not allowed, please use regex instead.
+                                            Only one of exact, prefix, suffix, regex or contains can be set.
+                                          maxLength: 1024
+                                          minLength: 1
+                                          type: string
+                                      type: object
+                                  required:
+                                  - matcher
+                                  type: object
+                                remoteIP:
+                                  description: |-
+                                    remoteIP defines the matching remote IPs of a request.
+                                    Note: Depending on your setup you may need to adapt the `remoteIP` configuration in the `SidecarGateway` / `GatewayParameters` resource to ensure correct client IP detection.
+                                  properties:
+                                    cidrRanges:
+                                      description: cidrRanges defines the IPv4 or
+                                        IPv6 CIDR ranges, e.g. ``196.148.3.128/26``
+                                        or ``2001:db8::/28``.
+                                      items:
+                                        description: CIDRRange defines an IPv4 or
+                                          IPv6 CIDR range, e.g. “196.148.3.128/26“
+                                          or “2001:db8::/28“.
+                                        format: cidr
+                                        maxLength: 49
+                                        minLength: 1
+                                        type: string
+                                      maxItems: 1024
+                                      minItems: 1
+                                      type: array
+                                      x-kubernetes-list-type: set
+                                    invert:
+                                      default: false
+                                      description: invert indicates whether the match
+                                        should be inverted.
+                                      type: boolean
+                                  required:
+                                  - cidrRanges
+                                  type: object
+                              type: object
+                          required:
+                          - headers
+                          - name
+                          type: object
+                        maxItems: 128
+                        minItems: 1
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                    type: object
+                type: object
+              settings:
+                description: settings configures the HeaderRewrites filter.
+                properties:
+                  operationalMode:
+                    default: Production
+                    description: operationalMode defines the behavior of the filter.
+                      In integration mode more information is logged about the requests
+                      and responses.
+                    enum:
+                    - Production
+                    - Integration
+                    type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

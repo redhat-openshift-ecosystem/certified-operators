@@ -1,0 +1,354 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "backup.seawise.cloud/v1alpha1",
+          "kind": "Seawise",
+          "metadata": {
+            "name": "seawise-sample"
+          },
+          "spec": {
+            "app": {
+              "veleroNamespace": "openshift-adp"
+            },
+            "image": {
+              "repository": "quay.io/marcellshwcloud/seawise-dashboard",
+              "tag": "v1.6.6-ubi"
+            },
+            "persistence": {
+              "accessMode": "ReadWriteOnce",
+              "enabled": true,
+              "size": "1Gi"
+            },
+            "replicaCount": 1,
+            "route": {
+              "enabled": true
+            },
+            "service": {
+              "port": 80,
+              "targetPort": 8080
+            }
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Storage,Backup & Recovery
+    containerImage: quay.io/marcellshwcloud/seawise-operator@sha256:2a7d180ed55933068bfcdd146ccd56a1892a835f28d9bbb5801fe9a2c7f3e027
+    createdAt: "2026-06-23T19:28:11Z"
+    description: Web interface for managing Velero/OADP backups and restores on OpenShift
+      and Kubernetes.
+    operators.operatorframework.io/builder: operator-sdk-v1.42.2
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    repository: https://github.com/shwcloudapp/seawise-backup
+    support: Seawise
+  name: seawise-operator.v0.1.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: Seawise
+      name: seawises.backup.seawise.cloud
+      version: v1alpha1
+  description: |
+    # Seawise Backup Dashboard
+
+    Seawise Backup Dashboard provides a modern web interface for managing
+    **Velero/OADP** backups and restores on OpenShift, Rancher, and Kubernetes
+    clusters.
+
+    ## Features
+
+    - Complete backup & restore management
+    - Scheduled backups with cron policies
+    - Automatic volume backup with pod annotation
+    - Multi-cloud support (AWS, Azure, GCP)
+    - Data Protection Application (DPA) management for OpenShift OADP
+    - Role-based authentication and user management
+    - PDF report generation
+
+    ## Installation
+
+    Once installed, create a `Seawise` custom resource to deploy the dashboard.
+    See the provided sample for configuration options.
+  displayName: Seawise Backup Dashboard
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - backup.seawise.cloud
+          resources:
+          - seawises
+          - seawises/status
+          - seawises/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - persistentvolumeclaims
+          - serviceaccounts
+          - services
+          verbs:
+          - '*'
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - rolebindings
+          - roles
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - statefulsets
+          - daemonsets
+          - replicasets
+          verbs:
+          - '*'
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - '*'
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          verbs:
+          - '*'
+        - apiGroups:
+          - velero.io
+          resources:
+          - backups
+          - restores
+          - schedules
+          - backupstoragelocations
+          - volumesnapshotlocations
+          - podvolumebackups
+          - podvolumerestores
+          - deletebackuprequests
+          - downloadrequests
+          - resticrepositories
+          - serverstatusrequests
+          - datauploads
+          - datadownloads
+          - backuprepositories
+          verbs:
+          - '*'
+        - apiGroups:
+          - oadp.openshift.io
+          resources:
+          - dataprotectionapplications
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          - componentstatuses
+          - pods
+          verbs:
+          - '*'
+        - apiGroups:
+          - config.openshift.io
+          resources:
+          - clusterversions
+          verbs:
+          - '*'
+        - apiGroups:
+          - operators.coreos.com
+          resources:
+          - clusterserviceversions
+          verbs:
+          - '*'
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - '*'
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: seawise-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: seawise-operator
+          control-plane: controller-manager
+        name: seawise-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: seawise-operator
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                app.kubernetes.io/name: seawise-operator
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --metrics-require-rbac
+                - --metrics-secure
+                - --metrics-bind-address=:8443
+                - --leader-elect
+                - --leader-election-id=seawise-operator
+                - --health-probe-bind-address=:8081
+                image: quay.io/marcellshwcloud/seawise-operator@sha256:2a7d180ed55933068bfcdd146ccd56a1892a835f28d9bbb5801fe9a2c7f3e027
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: seawise-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: seawise-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - velero
+  - backup
+  - oadp
+  - disaster-recovery
+  - openshift
+  links:
+  - name: Website
+    url: https://seawise.cloud
+  - name: GitHub
+    url: https://github.com/shwcloudapp/seawise-backup
+  maintainers:
+  - email: suporte@seawise.cloud
+    name: Seawise
+  maturity: alpha
+  provider:
+    name: Seawise
+    url: https://seawise.cloud
+  relatedImages:
+  - name: seawise-operator
+    image: quay.io/marcellshwcloud/seawise-operator@sha256:2a7d180ed55933068bfcdd146ccd56a1892a835f28d9bbb5801fe9a2c7f3e027
+  - name: seawise-dashboard
+    image: quay.io/marcellshwcloud/seawise-dashboard@sha256:5166fe10650081bd917886170b8d3ebef2f024ba002c39dd84104d58df683de9
+  version: 0.1.0

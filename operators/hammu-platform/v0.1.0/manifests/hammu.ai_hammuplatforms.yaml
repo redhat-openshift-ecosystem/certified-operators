@@ -1,0 +1,272 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: hammuplatforms.hammu.ai
+spec:
+  group: hammu.ai
+  names:
+    kind: HammuPlatform
+    listKind: HammuPlatformList
+    plural: hammuplatforms
+    singular: hammuplatform
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HammuPlatform is the Schema for the hammuplatforms API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: HammuPlatformSpec defines the desired state of HammuPlatform.
+              Fields mirror the Helm chart's values.yaml — the operator merges
+              spec into chart values at reconciliation time.
+            type: object
+            properties:
+              version:
+                description: Operand release version (informational). Image tags
+                  fall back to .Chart.AppVersion when image.tag is empty.
+                type: string
+              app:
+                description: Flask Console application — replicas, image, resources,
+                  OpenShift Route.
+                type: object
+                properties:
+                  replicas:
+                    type: integer
+                  image:
+                    type: object
+                    properties:
+                      repository: { type: string }
+                      tag: { type: string }
+                      pullPolicy: { type: string }
+                  resources:
+                    type: object
+                    properties:
+                      requests:
+                        type: object
+                        properties:
+                          memory: { type: string }
+                          cpu: { type: string }
+                      limits:
+                        type: object
+                        properties:
+                          memory: { type: string }
+                          cpu: { type: string }
+                  route:
+                    type: object
+                    properties:
+                      enabled: { type: boolean }
+                      host: { type: string }
+                      tls:
+                        type: object
+                        properties:
+                          termination: { type: string }
+                          insecureRedirect: { type: boolean }
+              postgresql:
+                description: PostgreSQL backing store. Operator-managed by default;
+                  set .enabled=false and populate .external to point at an external
+                  Postgres.
+                type: object
+                properties:
+                  enabled: { type: boolean }
+                  image:
+                    type: object
+                    properties:
+                      repository: { type: string }
+                      tag: { type: string }
+                      pullPolicy: { type: string }
+                  storage:
+                    type: object
+                    properties:
+                      size: { type: string }
+                      storageClassName: { type: string }
+                  resources:
+                    type: object
+                    properties:
+                      requests:
+                        type: object
+                        properties:
+                          memory: { type: string }
+                          cpu: { type: string }
+                      limits:
+                        type: object
+                        properties:
+                          memory: { type: string }
+                          cpu: { type: string }
+                  external:
+                    type: object
+                    properties:
+                      host: { type: string }
+                      port: { type: integer }
+                      database: { type: string }
+                      passwordSecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+              chroma:
+                description: ChromaDB vector store (disabled by default). The chromadb/chroma
+                  image is not Red Hat certified; enabling acknowledges that.
+                type: object
+                properties:
+                  enabled: { type: boolean }
+                  image:
+                    type: object
+                    properties:
+                      repository: { type: string }
+                      tag: { type: string }
+                      pullPolicy: { type: string }
+                  storage:
+                    type: object
+                    properties:
+                      size: { type: string }
+                      storageClassName: { type: string }
+                  resources:
+                    type: object
+                    properties:
+                      requests:
+                        type: object
+                        properties:
+                          memory: { type: string }
+                          cpu: { type: string }
+                      limits:
+                        type: object
+                        properties:
+                          memory: { type: string }
+                          cpu: { type: string }
+              inferenceProviders:
+                description: API key Secret references for LLM inference providers.
+                  Empty .name on a provider disables that provider.
+                type: object
+                properties:
+                  anthropic:
+                    type: object
+                    properties:
+                      apiKeySecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+                  groq:
+                    type: object
+                    properties:
+                      apiKeySecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+                  xai:
+                    type: object
+                    properties:
+                      apiKeySecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+                  deepinfra:
+                    type: object
+                    properties:
+                      apiKeySecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+                  google:
+                    type: object
+                    properties:
+                      apiKeySecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+                  openai:
+                    type: object
+                    properties:
+                      apiKeySecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+                  ollama:
+                    type: object
+                    properties:
+                      url: { type: string }
+              integrations:
+                description: Optional external integrations (Kanboard task tracking,
+                  Forgejo git). Off unless explicitly enabled.
+                type: object
+                properties:
+                  kanboard:
+                    type: object
+                    properties:
+                      enabled: { type: boolean }
+                      url: { type: string }
+                      passwordSecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+                  forgejo:
+                    type: object
+                    properties:
+                      enabled: { type: boolean }
+                      url: { type: string }
+                      tokenSecretRef:
+                        type: object
+                        properties:
+                          name: { type: string }
+                          key: { type: string }
+              initialization:
+                description: Database seed Job that loads the atos and atos_banking
+                  schemas on first install.
+                type: object
+                properties:
+                  seedDatabases: { type: boolean }
+                  additionalTenants:
+                    type: array
+                    items: { type: string }
+                  image:
+                    type: object
+                    properties:
+                      repository: { type: string }
+                      tag: { type: string }
+                      pullPolicy: { type: string }
+              instance:
+                description: Instance metadata surfaced to the Flask app via ConfigMap.
+                type: object
+                properties:
+                  name: { type: string }
+                  role: { type: string }
+              serviceAccount:
+                description: ServiceAccount under which operand pods run.
+                type: object
+                properties:
+                  name: { type: string }
+          status:
+            description: HammuPlatformStatus defines the observed state of HammuPlatform.
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

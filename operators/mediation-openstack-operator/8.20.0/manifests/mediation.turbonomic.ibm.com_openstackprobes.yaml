@@ -1,0 +1,193 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  creationTimestamp: null
+  name: openstackprobes.mediation.turbonomic.ibm.com
+spec:
+  group: mediation.turbonomic.ibm.com
+  names:
+    kind: OpenstackProbe
+    listKind: OpenstackProbeList
+    plural: openstackprobes
+    singular: openstackprobe
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: OpenstackProbe is the Schema for the openstackprobes API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: OpenstackProbeSpec defines the desired state of OpenstackProbe.
+            properties:
+              automatedNumaConfigDiscovery:
+                description: Kubernetes pod exec based NUMA discovery configuration
+                properties:
+                  computeNodeIPMapping:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      ComputeNodeIPMapping maps hypervisor hostnames to SSH-accessible IP addresses
+                      Use this when the IP from "openstack hypervisor list" is not SSH-accessible from the openstackclient pod
+                      Example: {"compute-node-1.example.com": "10.0.0.10", "compute-node-2.example.com": "10.0.0.11"}
+                    type: object
+                  connectionTimeout:
+                    default: 30s
+                    description: ConnectionTimeout for pod exec and SSH operations
+                      (e.g., "30s", "1m")
+                    type: string
+                  discoveryIntervalSec:
+                    default: 1800
+                    description: DiscoveryIntervalSec is the interval in seconds to
+                      cache discovered NUMA topology before re-discovering
+                    type: integer
+                  enabled:
+                    default: false
+                    description: Enable pod exec + SSH based NUMA discovery. When
+                      disabled, the probe uses the configmap NUMA configuration.
+                    type: boolean
+                  kubeconfigPath:
+                    description: KubeconfigPath is the path to kubeconfig file (empty
+                      string means use in-cluster config)
+                    type: string
+                  maxConcurrency:
+                    default: 0
+                    description: MaxConcurrency is the maximum number of compute nodes
+                      to discover in parallel (1 for sequential, 0 = auto-detect based
+                      on node count)
+                    type: integer
+                  openstackClientPodName:
+                    default: openstackclient
+                    description: Name of the openstackclient pod used as the exec
+                      jump host.
+                    type: string
+                  openstackClientPodNamespace:
+                    default: openstack
+                    description: Namespace of the openstackclient pod used as the
+                      exec jump host.
+                    type: string
+                  perNodeTimeoutSec:
+                    default: 60
+                    description: 'PerNodeTimeoutSec is the timeout in seconds for
+                      discovering a single compute node (default: 60 seconds)'
+                    type: integer
+                  sshUser:
+                    description: 'SSHUser is the SSH username for compute nodes (default:
+                      "")'
+                    type: string
+                type: object
+              image:
+                description: Image for the openstack probe
+                properties:
+                  imagePullPolicy:
+                    default: IfNotPresent
+                    type: string
+                  imagePullSecrets:
+                    items:
+                      description: |-
+                        LocalObjectReference contains enough information to let you locate the
+                        referenced object inside the same namespace.
+                      properties:
+                        name:
+                          default: ""
+                          description: |-
+                            Name of the referent.
+                            This field is effectively required, but due to backwards compatibility is
+                            allowed to be empty. Instances of this type with an empty value here are
+                            almost certainly wrong.
+                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          type: string
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    type: array
+                  registry:
+                    type: string
+                  version:
+                    type: string
+                required:
+                - version
+                type: object
+              numaConfig:
+                description: NUMA topology, given as a JSON object
+                type: string
+              turboProbeConfig:
+                description: Config specific to the openstack probe
+                properties:
+                  discoveryConfig:
+                    properties:
+                      chunkSendDelayMillis:
+                        format: int32
+                        type: integer
+                      entityIdSuffix:
+                        type: string
+                      numObjectsPerChunk:
+                        format: int32
+                        type: integer
+                      requestPageSize:
+                        type: integer
+                    required:
+                    - chunkSendDelayMillis
+                    - entityIdSuffix
+                    - numObjectsPerChunk
+                    type: object
+                  loggingLevel:
+                    default: 3
+                    type: integer
+                  restAPIConfig:
+                    properties:
+                      proxy:
+                        description: Proxy server address
+                        type: string
+                      turboServer:
+                        default: https://Turbo_server_URL
+                        description: URL for Turbo Server endpoint
+                        type: string
+                      turbonomicSecretCredentialsName:
+                        description: Name of k8s secret that contains the turbo credentials
+                        type: string
+                    type: object
+                required:
+                - discoveryConfig
+                - loggingLevel
+                - restAPIConfig
+                type: object
+            required:
+            - image
+            - numaConfig
+            - turboProbeConfig
+            type: object
+          status:
+            description: OpenstackProbeStatus defines the observed state of OpenstackProbe.
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

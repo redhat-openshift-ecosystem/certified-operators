@@ -115,6 +115,9 @@ spec:
                     default: "120"
                     type: string
                 type: object
+                x-kubernetes-validations:
+                - message: baseUrl is required when ai.external is true
+                  rule: '!self.external || (has(self.baseUrl) && self.baseUrl != '''')'
               app:
                 description: |-
                   AppSpec holds application-wide secrets and config. Empty secret values are
@@ -391,12 +394,19 @@ spec:
                         groupId:
                           type: string
                         topic:
+                          minLength: 1
                           type: string
                       required:
                       - topic
                       type: object
                     type: array
                   saslMechanism:
+                    enum:
+                    - PLAIN
+                    - SCRAM-SHA-256
+                    - SCRAM-SHA-512
+                    - GSSAPI
+                    - OAUTHBEARER
                     type: string
                   saslPassword:
                     type: string
@@ -420,12 +430,18 @@ spec:
                         groupId:
                           type: string
                         topic:
+                          minLength: 1
                           type: string
                       required:
                       - topic
                       type: object
                     type: array
                 type: object
+                x-kubernetes-validations:
+                - message: saslMechanism is required when securityProtocol is SaslPlaintext
+                    or SaslSsl
+                  rule: '!(self.securityProtocol in [''SaslPlaintext'',''SaslSsl''])
+                    || (has(self.saslMechanism) && self.saslMechanism != '''')'
               licensing:
                 description: LicensingSpec configures trial + node-count strategy.
                 properties:
@@ -710,9 +726,17 @@ spec:
                         properties:
                           insecureEdgeTerminationPolicy:
                             default: Redirect
+                            enum:
+                            - None
+                            - Allow
+                            - Redirect
                             type: string
                           termination:
                             default: edge
+                            enum:
+                            - edge
+                            - passthrough
+                            - reencrypt
                             type: string
                         type: object
                     type: object
@@ -730,20 +754,29 @@ spec:
                         properties:
                           insecureEdgeTerminationPolicy:
                             default: Redirect
+                            enum:
+                            - None
+                            - Allow
+                            - Redirect
                             type: string
                           termination:
                             default: edge
+                            enum:
+                            - edge
+                            - passthrough
+                            - reencrypt
                             type: string
                         type: object
                     type: object
                 type: object
               version:
-                default: v7.1.0
+                default: v8.7.0
                 description: |-
-                  Version sets the image tag for ALL six Axera component images at once
-                  (api, proxy, allowdropmonitor, radar, networkpolicywatcher, frontend),
-                  e.g. "v7.1.0". A per-image tag under .spec.images.<name>.tag overrides it.
-                  This is the single knob the operator uses to drive rolling upgrades.
+                  Version is informational in the certified build: the six Axera images are
+                  digest-pinned in the bundle's relatedImages, so the operand version moves by
+                  installing a new operator bundle, NOT by editing this field. status.version
+                  always reports the actual deployed platform version (the chart appVersion).
+                  It still fans out to the image tag for any image that has no pinned digest.
                 type: string
             type: object
           status:

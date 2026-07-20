@@ -1,0 +1,70 @@
+---
+# Configuration consumed by Red Hat's certified-operators pipeline. Copied at
+# release time by openshift-operator-release.yml into the certified-operators
+# fork at operators/visionone-containersecurity/ci.yaml.
+#
+# cert_project_id corresponds to the "trendai-container-security-operator-bundle"
+# Operator Bundle Image component in Red Hat Partner Connect (Component PID
+# visible in the Partner Connect UI). Not sensitive — every certified operator's
+# cert_project_id is publicly visible at
+# https://github.com/redhat-openshift-ecosystem/certified-operators/tree/main/operators
+#
+# reviewers list controls who can approve PRs for visionone-containersecurity
+# in the certified-operators repo. Update via normal PR review when team
+# membership changes.
+cert_project_id: 69fa6ec2c1416d8c67ff8dec
+reviewers:
+  - ishhan
+  - zayaanmoez
+  - trend-container-security-bot
+
+# This operator uses the File-Based Catalog (FBC) submission model — each
+# bundle ships a `release-config.yaml` produced by openshift-operator's
+# scripts/create_release_config.sh (Makefile target: release-config). Red
+# Hat's static-tests rejects bundles that contain release-config.yaml unless
+# ci.yaml explicitly opts in via fbc.enabled=true (check_bundle_release_config
+# error: "Bundle's 'release-config.yaml' is used but FBC is not enabled for
+# the operator"). The openshift-operator repo defaults CATALOG_MODE to fbc
+# (see Makefile line ~42), so this is the correct setting.
+#
+# catalog_mapping declares which catalog template the bundle's
+# release-config.yaml references, and which OpenShift catalog versions
+# it should render into. Three things MUST stay in lock-step:
+#
+#   1. template_name here ("basic.yaml") matches what
+#      openshift-operator/scripts/create_release_config.sh writes into
+#      bundle/release-config.yaml.
+#   2. catalog_names here matches the SUPPORTED_OPENSHIFT_VERSIONS range
+#      declared in openshift-operator/Makefile (currently v4.12-v4.21), which
+#      becomes the bundle's com.redhat.openshift.versions annotation. If the
+#      bundle advertises v4.21 support but catalog_mapping stops at v4.20,
+#      Red Hat can't render the catalog for v4.21 even though the bundle
+#      claims to support it. Keep both ranges identical.
+#   3. type matches the OPM template type produced by Makefile's
+#      catalog-generate target ("opm alpha convert-template basic").
+#
+# Without this section, Red Hat's static-tests fails with
+# "release-config.yaml contains a catalog template 'basic.yaml' that is not
+# defined in the ci.yaml file under 'catalog_mapping'".
+#
+# We map the single basic.yaml template to all supported OpenShift catalog
+# versions. Other certified operators (tigera, portworx, couchbase) use one
+# template file per OCP version, which is more flexible but requires
+# multi-template support in our release script — revisit if/when we need
+# version-specific bundle differences.
+fbc:
+  enabled: true
+  catalog_mapping:
+    - template_name: basic.yaml
+      catalog_names:
+        - v4.12
+        - v4.13
+        - v4.14
+        - v4.15
+        - v4.16
+        - v4.17
+        - v4.18
+        - v4.19
+        - v4.20
+        - v4.21
+      type: olm.template.basic

@@ -1,0 +1,108 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.0
+    minkms.min.io/version: RELEASE.2026-07-16T23-53-30Z
+  creationTimestamp: null
+  name: minkmsenclaves.minkms.min.io
+spec:
+  group: minkms.min.io
+  names:
+    kind: MinKMSEnclave
+    listKind: MinKMSEnclaveList
+    plural: minkmsenclaves
+    shortNames:
+    - mke
+    singular: minkmsenclave
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.enclaveName
+      name: Enclave
+      type: string
+    - jsonPath: .spec.kmsRef.name
+      name: KMS
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              deletionPolicy:
+                default: Retain
+                enum:
+                - Retain
+                - Delete
+                type: string
+              enclaveName:
+                maxLength: 63
+                pattern: ^[a-zA-Z0-9_.-]+$
+                type: string
+                x-kubernetes-validations:
+                - message: enclaveName is immutable
+                  rule: self == oldSelf
+              kmsRef:
+                properties:
+                  name:
+                    default: ""
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+                x-kubernetes-validations:
+                - message: kmsRef is immutable
+                  rule: self == oldSelf
+              scopedNamespaces:
+                items:
+                  type: string
+                type: array
+            required:
+            - kmsRef
+            type: object
+          status:
+            properties:
+              enclaveName:
+                type: string
+              message:
+                type: string
+              minkmsCreatedAt:
+                format: date-time
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              state:
+                enum:
+                - Pending
+                - WaitingForKMS
+                - Provisioning
+                - Ready
+                - Error
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

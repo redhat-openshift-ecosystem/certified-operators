@@ -1,0 +1,296 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: reverseprotectiongroups.multicluster.portworx.com
+spec:
+  group: multicluster.portworx.com
+  names:
+    kind: ReverseProtectionGroup
+    listKind: ReverseProtectionGroupList
+    plural: reverseprotectiongroups
+    singular: reverseprotectiongroup
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ReverseProtectionGroup is the Schema for the reverseprotectiongroups API.
+          It represents the reverse direction configuration for a ProtectionGroup,
+          allowing users to override settings for the reverse DR direction (secondary to primary).
+          This CRD has a 1:1 mapping with ProtectionGroup and is managed by the ProtectionGroup controller.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ReverseProtectionGroupSpec defines the configuration for reverse direction disaster recovery.
+              This contains the settings needed to protect data in the opposite direction (from secondary back to primary).
+              This type is shared between the ProtectionGroup subresource and the standalone ReverseProtectionGroup CRD.
+            properties:
+              advanceConfiguration:
+                description: |-
+                  AdvanceConfiguration provides fine-grained migration control options for reverse direction.
+                  If not specified, the AdvanceConfiguration from the main ProtectionGroup is used.
+                properties:
+                  applicationLifecycleHooks:
+                    description: ApplicationLifecycleHooks defines the hooks that
+                      should be executed before and after application migration.
+                    properties:
+                      postMigrationHook:
+                        description: PostMigrationHook is the list of hooks that should
+                          be executed after application migration completes.
+                        type: object
+                        x-kubernetes-embedded-resource: true
+                        x-kubernetes-preserve-unknown-fields: true
+                        x-kubernetes-validations:
+                        - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                          rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                        - message: kind must be Rule
+                          rule: has(self.kind) && self.kind == 'Rule'
+                        - message: metadata.name is required
+                          rule: has(self.metadata) && has(self.metadata.name) && self.metadata.name.size()
+                            > 0
+                      preMigrationHook:
+                        description: PreMigrationHook is the list of hooks that should
+                          be executed before application migration starts.
+                        type: object
+                        x-kubernetes-embedded-resource: true
+                        x-kubernetes-preserve-unknown-fields: true
+                        x-kubernetes-validations:
+                        - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                          rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                        - message: kind must be Rule
+                          rule: has(self.kind) && self.kind == 'Rule'
+                        - message: metadata.name is required
+                          rule: has(self.metadata) && has(self.metadata.name) && self.metadata.name.size()
+                            > 0
+                    type: object
+                  ignoreDeletedNamespacesAtSource:
+                    description: SkipDeletedNamespaces determines whether namespaces
+                      that have been deleted should be skipped during migration.
+                    type: boolean
+                  ignoreOwnerReferencesValidation:
+                    description: IgnoreOwnerReferencesValidation specifies whether
+                      the migration should ignore checks related to owner references.
+                    type: boolean
+                  purgeDeletedResourcesAtSource:
+                    description: PurgeDeletedResources specifies whether deleted resources
+                      (that existed before but no longer exist) should be removed
+                      from destination cluster.
+                    type: boolean
+                  resourceTransformations:
+                    description: ResourceTransformations is a list of transformation
+                      specifications that should be applied to Kubernetes resources
+                      before they are migrated.
+                    items:
+                      description: InlineResourceTransformation stores a full stork.libopenstorage.org/v1alpha1
+                        ResourceTransformation object inline.
+                      type: object
+                      x-kubernetes-embedded-resource: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      x-kubernetes-validations:
+                      - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                        rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                      - message: kind must be ResourceTransformation
+                        rule: has(self.kind) && self.kind == 'ResourceTransformation'
+                      - message: metadata.name is required
+                        rule: has(self.metadata) && has(self.metadata.name) && self.metadata.name.size()
+                          > 0
+                    type: array
+                  skipServiceUpdate:
+                    description: SkipServiceUpdate determines whether service updates
+                      should be skipped during migration.
+                    type: boolean
+                type: object
+              namespaceSelection:
+                description: |-
+                  NamespaceSelection controls which namespaces are in the reverse protection group.
+                  If not specified, the NamespaceSelection from the main ProtectionGroup is used.
+                properties:
+                  namespaceSelectors:
+                    description: NamespaceSelectors selects namespaces by label.
+                    items:
+                      description: CustomLabelSelector defines a label selector for
+                        filtering resources.
+                      properties:
+                        label:
+                          description: Key is the label key to match.
+                          type: string
+                        operator:
+                          description: Operator is the label operator to use.
+                          enum:
+                          - equal
+                          type: string
+                          x-kubernetes-validations:
+                          - message: operator must be 'equal'
+                            rule: self == 'equal'
+                        value:
+                          description: Value is the label value to match.
+                          type: string
+                      type: object
+                    type: array
+                  namespaces:
+                    description: Namespaces is the explicit list of namespaces that
+                      are part of this
+                    items:
+                      type: string
+                    type: array
+                type: object
+              replicationSchedulePolicy:
+                description: |-
+                  ReplicationSchedulePolicy defines the replication schedule for the reverse direction.
+                  If not specified, the ReplicationSchedulePolicy from the main ProtectionGroup is used.
+                properties:
+                  interval:
+                    description: Interval policy that will be triggered at the specified
+                      interval
+                    properties:
+                      intervalMinutes:
+                        description: IntervalMinutes specifies the interval in minutes
+                          between triggers.
+                        minimum: 1
+                        type: integer
+                      retain:
+                        description: |-
+                          Retain specifies the number of backups to retain
+                          @DefaultIntervalPolicyRetain
+                        type: integer
+                    required:
+                    - intervalMinutes
+                    type: object
+                  suspend:
+                    description: Suspend indicates whether the migrations for the
+                      protection group are to be suspended.
+                    type: boolean
+                type: object
+              resourceConfiguration:
+                description: |-
+                  ResourceConfiguration for the reverse direction.
+                  If not specified, the ResourceConfiguration from the main ProtectionGroup is used.
+                properties:
+                  customSelection:
+                    description: ResourceSelector controls which resources and volumes
+                      within the selected namespaces are protected.
+                    properties:
+                      excludeLabelSelectors:
+                        description: ExcludeFilters is a set of label-based selectors
+                          used to filter the objects that should be excluded from
+                          the migration.
+                        items:
+                          description: CustomLabelSelector defines a label selector
+                            for filtering resources.
+                          properties:
+                            label:
+                              description: Key is the label key to match.
+                              type: string
+                            operator:
+                              description: Operator is the label operator to use.
+                              enum:
+                              - equal
+                              type: string
+                              x-kubernetes-validations:
+                              - message: operator must be 'equal'
+                                rule: self == 'equal'
+                            value:
+                              description: Value is the label value to match.
+                              type: string
+                          type: object
+                        type: array
+                      includeApplicationVolumes:
+                        description: |-
+                          IncludeApplicationVolumes specifies whether application volumes (PVCs) should
+                          be included in the protection group.
+                        type: boolean
+                      includeCIDRBasedNetworkPolicies:
+                        description: IncludeCIDRBasedNetworkPolicies specifies whether
+                          network policies with CIDR-based rules should be included
+                          in the migration.
+                        type: boolean
+                      includeLabelSelectors:
+                        description: IncludeLabelSelectors is a set of label-based
+                          selectors used to filter the objects that should be included
+                          in the migration.
+                        items:
+                          description: CustomLabelSelector defines a label selector
+                            for filtering resources.
+                          properties:
+                            label:
+                              description: Key is the label key to match.
+                              type: string
+                            operator:
+                              description: Operator is the label operator to use.
+                              enum:
+                              - equal
+                              type: string
+                              x-kubernetes-validations:
+                              - message: operator must be 'equal'
+                                rule: self == 'equal'
+                            value:
+                              description: Value is the label value to match.
+                              type: string
+                          type: object
+                        type: array
+                      resourceTypeSelector:
+                        description: ResourceTypeSelector controls which resource
+                          kinds are included or excluded from protection.
+                        properties:
+                          exclude:
+                            description: Exclude is a list of resource types that
+                              should be excluded from the migration.
+                            items:
+                              type: string
+                            type: array
+                          include:
+                            description: Include is a list of optional Kubernetes
+                              resource types that should be included in the migration.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      startApplicationsAfterFailover:
+                        description: StartApplicationsAfterFailover determines whether
+                          migrated applications should be started after failover.
+                        type: boolean
+                    type: object
+                  includeAllResources:
+                    description: IncludeAllResources specifies whether all resources
+                      in the selected namespaces should be included in the protection
+                      group.
+                    type: boolean
+                type: object
+            type: object
+          status:
+            description: ReverseProtectionGroupStatus defines the observed state of
+              ReverseProtectionGroup.
+            properties:
+              phase:
+                description: Phase represents the current phase of the reverse protection
+                  group.
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

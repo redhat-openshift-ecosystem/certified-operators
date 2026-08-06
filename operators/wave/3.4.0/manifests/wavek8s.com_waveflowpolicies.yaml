@@ -1,0 +1,186 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  creationTimestamp: null
+  name: waveflowpolicies.wavek8s.com
+spec:
+  group: wavek8s.com
+  names:
+    kind: WaveFlowPolicy
+    plural: waveflowpolicies
+    singular: waveflowpolicy
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for WaveFlowPolicySpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              description:
+                description: Optional description of this policy set.
+                nullable: true
+                type: string
+              enabled:
+                description: Whether this policy set is currently active. Defaults
+                  to true.
+                type: boolean
+              priorityClasses:
+                default: []
+                description: List of priority class configurations.
+                items:
+                  description: Priority Class — a traffic priority class with its
+                    rules and shedding behavior.
+                  properties:
+                    concurrencyLimit:
+                      description: Maximum concurrent requests allowed for this class.
+                      format: int32
+                      nullable: true
+                      type: integer
+                    matchRules:
+                      description: Rules for matching requests to this class. Evaluated
+                        with OR logic.
+                      items:
+                        description: Priority Class Rule — a single rule for matching
+                          requests to a priority class.
+                        properties:
+                          headers:
+                            default: []
+                            description: HTTP headers to match. All conditions must
+                              match (AND logic).
+                            items:
+                              description: Priority Class Rule Condition — a specific
+                                condition within a matching rule.
+                              properties:
+                                name:
+                                  description: Name of the header to match.
+                                  type: string
+                                value:
+                                  description: Value to match against.
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          methods:
+                            default: []
+                            description: HTTP methods to match. All conditions must
+                              match (AND logic).
+                            items:
+                              type: string
+                            type: array
+                          paths:
+                            default: []
+                            description: HTTP path prefixes to match. All conditions
+                              must match (AND logic).
+                            items:
+                              description: Path Match Condition — represents a path
+                                prefix matching condition.
+                              properties:
+                                prefix:
+                                  description: Path prefix to match.
+                                  type: string
+                              required:
+                              - prefix
+                              type: object
+                            type: array
+                        type: object
+                      nullable: true
+                      type: array
+                    name:
+                      description: Name of the priority class (CRITICAL, IMPORTANT,
+                        MODERATE, BULK).
+                      type: string
+                    shed:
+                      default: disabled
+                      description: Shedding strategy for this class (disabled, auto,
+                        force).
+                      enum:
+                      - disabled
+                      - auto
+                      - force
+                      type: string
+                    shedBool:
+                      description: Optional boolean shed override.
+                      nullable: true
+                      type: boolean
+                  required:
+                  - name
+                  type: object
+                type: array
+              targets:
+                default: []
+                description: List of workload targets this policy set applies to.
+                items:
+                  description: |-
+                    Priority Class Target — a workload target to which a policy set is applied.
+                    Identified by `namespace` + `name`.
+                  properties:
+                    name:
+                      description: Kubernetes resource name.
+                      type: string
+                    namespace:
+                      description: Kubernetes namespace.
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  type: object
+                type: array
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    Shared status condition shape — mirrors metav1.Condition.
+                    Used by all 15 `WaveXStatus` structs (added in Tasks 6-8).
+
+                    No `Default` derive on purpose: an all-empty-string condition (empty `type`/
+                    `status`/`reason`) is never valid, so we never want one constructed implicitly.
+                    `WaveXStatus` structs default their `conditions` to an empty `Vec`, which does
+                    not require `WaveCondition: Default`.
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: WaveFlowPolicy
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

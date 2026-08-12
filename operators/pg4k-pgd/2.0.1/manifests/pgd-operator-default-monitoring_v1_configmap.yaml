@@ -1,0 +1,1046 @@
+apiVersion: v1
+data:
+  queries: |
+    # Query for getting PGD node state for each individual node
+    #
+    bdr_node_state:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          node_name,
+          node_group_name,
+          node_kind_name,
+          peer_state_name as node_current_state,
+          peer_target_state_name as node_target_state,
+          (peer_state_name='ACTIVE')::integer as node_active,
+          (peer_state_name='PARTED')::integer as node_parted,
+          (peer_state_name in ('PART_START', 'PARTING', 'PART_CATCHUP', 'PART_CLEANUP'))::integer as node_parting,
+          (peer_state_name in ('CATCHUP', 'JOINING'))::integer as node_joining
+        FROM bdr.node_summary;
+      metrics:
+        - node_name:
+            usage: "LABEL"
+            description: "Name of the node"
+        - node_group_name:
+            usage: "LABEL"
+            description: "Name of the group node resides in"
+        - node_kind_name:
+            usage: "LABEL"
+            description: "Kind of the node, data or witness"
+        - node_current_state:
+            usage: "LABEL"
+            description: "Current state of the node"
+        - node_target_state:
+            usage: "LABEL"
+            description: "Target state of the node"
+        - node_active:
+            usage: "GAUGE"
+            description: "1 if the node is active, 0 for not"
+        - node_parted:
+            usage: "GAUGE"
+            description: "1 if the node is already parted, 0 for not"
+        - node_parting:
+            usage: "GAUGE"
+            description: "1 if the node is in parting status, 0 for not"
+        - node_joining:
+            usage: "GAUGE"
+            description: "1 if the node is in joining phase, 0 for not"
+
+    # This series exposes changing info about PGD replication slots.
+    #
+    bdr_node_slots:
+      predicate_query: |
+         SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          slot_name,
+          coalesce(active_pid, 0) as active_pid,
+          coalesce(age(xmin), 0) as xmin_age,
+          coalesce(age(catalog_xmin), 0) as catalog_xmin_age,
+          coalesce(restart_lsn - pg_lsn '0/0', -1) AS restart_lsn,
+          coalesce(confirmed_flush_lsn - pg_lsn '0/0', -1) AS confirmed_flush_lsn,
+          coalesce(sent_lag_bytes, 0) as sent_lag_bytes,
+          coalesce(write_lag_bytes, 0) as write_lag_bytes,
+          coalesce(flush_lag_bytes, 0) as flush_lag_bytes,
+          coalesce(replay_lag_bytes, 0) as replay_lag_bytes,
+          extract(epoch from write_lag) as write_lag_seconds,
+          extract(epoch from flush_lag) as flush_lag_seconds,
+          extract(epoch from replay_lag) as replay_lag_seconds
+        FROM bdr.node_slots
+        WHERE
+          slot_type = 'logical';
+      metrics:
+        - slot_name:
+            usage: "LABEL"
+            description: "Name of the replication slot. Constant over the life of the slot. Join key."
+        - active_pid:
+            usage: "GAUGE"
+            description: "active_pid or 0 if no walsender active. See also cnp_bdr_node_slots_state_info{state}. Use active_pid!=0 for active."
+        - xmin_age:
+            usage: "GAUGE"
+            description: "xmin age"
+        - catalog_xmin_age:
+            usage: "GAUGE"
+            description: "catalog_xmin age"
+        - restart_lsn:
+            usage: "GAUGE"
+            description: "restart_lsn as int64"
+        - confirmed_flush_lsn:
+            usage: "GAUGE"
+            description: "confirmed_flush_lsn as int64"
+        - sent_lag_bytes:
+            usage: "GAUGE"
+            description: "BDR sent lag bytes"
+        - write_lag_bytes:
+            usage: "GAUGE"
+            description: "BDR write lag bytes"
+        - flush_lag_bytes:
+            usage: "GAUGE"
+            description: "flush_lag in bytes"
+        - replay_lag_bytes:
+            usage: "GAUGE"
+            description: "replay_lag in bytes"
+        - write_lag_seconds:
+            usage: "GAUGE"
+            description: "BDR write lag in seconds based on commit timestamps. Inaccurate when idle."
+        - flush_lag_seconds:
+            usage: "GAUGE"
+            description: "BDR flush lag in seconds based on commit timestamps. Inaccurate when idle."
+        - replay_lag_seconds:
+            usage: "GAUGE"
+            description: "BDR replay lag in seconds based on commit timestamps. Inaccurate when idle."
+
+    # Info-metric for PGD slots. It should be named bdr_node_slot_info but CNPG scraper limitations
+    # prevent that. Intended for use when joining with cnp_bdr_node_slot_info
+    # and the cnp_bdr_node_slots metrics.
+    #
+    bdr_node_slotmeta:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          slot_name,
+          COALESCE (node_group_name, 'NULL') as node_group_name,
+          origin_name,
+          target_name AS peer_name,
+          CASE
+            WHEN is_group_slot THEN 'group'
+            WHEN is_decoder_slot THEN 'decoder'
+            WHEN slot_name LIKE 'bdr_world_%' THEN 'world'
+            WHEN target_name <> '' THEN 'peer'
+            ELSE 'unknown'
+          END AS slot_usage,
+          CASE
+            WHEN temporary THEN 'temporary'
+            ELSE 'persistent' END
+          AS slot_persistence,
+          1 AS info
+        FROM bdr.node_slots
+        WHERE
+          slot_type = 'logical';
+      metrics:
+        - slot_name:
+            usage: "LABEL"
+            description: "Name of the replication slot. Constant over the life of the slot. Join key."
+        - node_group_name:
+            usage: "LABEL"
+            description: "Nodegroup name for the originating nodegroup for the slot."
+        - origin_name:
+            usage: "LABEL"
+            description: "Node name of the peer this slot tracks the data source for. This is usually the same as the local node, but in cascaded replication and catchup cases may not be."
+        - peer_name:
+            usage: "LABEL"
+            description: "Node name of the peer this slot connects to (target_name)."
+        - slot_usage:
+            usage: "LABEL"
+            description: "Slot usage - world, group, decoder, peer or unknown. A peer slot is a 'normal' slot."
+        - slot_persistence:
+            usage: "LABEL"
+            description: "Slot persistence - 'temporary' or 'persistent'."
+        - info:
+            usage: "GAUGE"
+            description: "Constant information about PGD replication slots, for joining with bdr_node_slots metrics and bdr_node_slot_info"
+
+    bdr_node_slots_state:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          slot_name,
+          state AS slot_state,
+          1 AS info
+        FROM bdr.node_slots
+        WHERE
+          slot_type = 'logical';
+      metrics:
+        - slot_name:
+            usage: "LABEL"
+            description: "Replication slot name. Join key."
+        - slot_state:
+            usage: "LABEL"
+            description: "Slot state string. States from pg_catalog.pg_stat_replication.state or the string 'disconnected' if not connected."
+        - info:
+            usage: "GAUGE"
+            description: "Always 1, the state is in the slot_state label. If you want a numeric form, use bdr_node_slots_active_pid!=0 instead."
+
+    bdr_global_locking:
+      # Global locking long waits, long holds
+      # For each lock type, find the row with the oldest local_lock_request_time
+      # then report one row per lock type with seconds since request
+      # and if granted, seconds since grant.
+      #
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          CASE lock_type
+              when 'GLOBAL_LOCK_DML' then 'DML'
+              when 'GLOBAL_LOCK_DDL' then 'DDL'
+              when 'GLOBAL_LOCK_ADVISORY' then 'ADVISORY'
+            end as lock_type,
+          coalesce(extract(epoch from current_timestamp - local_request_time), -1) as since_locally_requested_s,
+          coalesce(extract(epoch from current_timestamp - local_acquired_time), -1) as since_local_granted_s
+        FROM (
+          SELECT
+            lock_type,
+            local_lock_request_time,
+            min(local_lock_request_time)
+              over (partition by lock_type order by local_lock_request_time) as local_request_time,
+            CASE WHEN acquire_stage = 'acquired' THEN
+              min(last_state_change_time)
+                over (partition by lock_type order by local_lock_request_time)
+            END AS local_acquired_time
+          from bdr.global_locks
+        ) oldest_for_each_lock_type
+        group by lock_type, since_locally_requested_s, since_local_granted_s;
+      metrics:
+        - lock_type:
+            usage: "LABEL"
+            description: "lock_type"
+        - since_locally_requested_s:
+            usage: "GAUGE"
+            description: "since_locally_requested_s"
+        - since_local_granted_s:
+            usage: "GAUGE"
+            description: "since_local_granted_s"
+
+    bdr_group_settings:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          node_group_name as group_name,
+          node_group_type as group_type,
+          coalesce(enable_wal_decoder, false)::integer as enable_wal_decoder,
+          coalesce(enable_routing, false)::integer as enable_routing,
+          coalesce(enable_raft, false)::integer as enable_raft
+        FROM bdr.node_group_summary;
+      metrics:
+      - group_name:
+          usage: "LABEL"
+          description: "Name of PGD group this info relates to"
+      - group_type:
+          usage: "LABEL"
+          description: "Type of PGD group this info relates to"
+      - enable_wal_decoder:
+          usage: "GAUGE"
+          description: "1 enabled for this group, 0 disabled for this group"
+      - enable_proxy_routing:
+          usage: "GAUGE"
+          description: "1 routing is enabled for this group, 0 disabled for this group"
+      - enable_raft:
+          usage: "GAUGE"
+          description: "1 raft is enabled for this group, 0 disabled for this group"
+
+    # This query returns the all the possible raft statuses and the value
+    # column denotes which one of those is the current status. For example,
+    # in the table below, the node is in RAFT_FOLLOWER for both node groups:
+    #  node_group_name |  raft_status   | value
+    # -----------------+----------------+-------
+    #  world           | RAFT_FOLLOWER  |     1
+    #  world           | RAFT_CANDIDATE |     0
+    #  world           | RAFT_LEADER    |     0
+    #  world           | RAFT_STOPPED   |     0
+    #  p-pdnv85rj5g-a  | RAFT_FOLLOWER  |     1
+    #  p-pdnv85rj5g-a  | RAFT_CANDIDATE |     0
+    #  p-pdnv85rj5g-a  | RAFT_LEADER    |     0
+    #  p-pdnv85rj5g-a  | RAFT_STOPPED   |     0
+    #
+    #  See also bdr_raft_summary, bdr_raft_leader
+    #
+    bdr_raft:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          srs.group_name,
+          prs.raft_state AS raft_status,
+          coalesce(srs.raft_state = prs.raft_state, false)::integer AS status
+        FROM
+          bdr.stat_raft_state srs
+        CROSS JOIN (VALUES ('RAFT_FOLLOWER'), ('RAFT_CANDIDATE'), ('RAFT_LEADER'), ('RAFT_STOPPED')) prs(raft_state)
+      metrics:
+        - group_name:
+            usage: "LABEL"
+            description: "Name of the BDR node group"
+        - raft_status:
+            usage: "LABEL"
+            description: "Returns the possible raft statuses"
+        - status:
+            usage: "GAUGE"
+            description: "Returns 1 if the raft_status is the active status, otherwise it will return 0"
+
+    # Expose current Raft leader name as a separate info-metric from bdr_raft_state
+    # to manage series churn.
+    #
+    bdr_raft_leader:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          group_name,
+          leader_name,
+          1 as info
+        FROM
+          bdr.stat_raft_state;
+      metrics:
+        - group_name:
+            usage: "LABEL"
+            description: "Name of PGD group this info relates to"
+        - leader_name:
+            usage: "LABEL"
+            description: "Which node is considered to be the current leader by the local node"
+        - info:
+            usage: "GAUGE"
+            description: "Info-metric for current Raft leader name, see leader_name label"
+
+    # Query for getting PGD Raft follower information.
+    #
+    # This only shows anything when run in Raft leader, and only when there is >1
+    # node so follower nodes can exist.
+    #
+    # See also bdr_raft_summary, bdr_raft_leader
+    #
+    bdr_raft_follower_summary:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          group_name,
+          node_name,
+          sent_commit_index,
+          match_index,
+          coalesce(last_message_time,'1970-01-01 00:00:00+00'::timestamp with time zone) as last_message_time,
+          coalesce(last_heartbeat_send_time,'1970-01-01 00:00:00+00'::timestamp with time zone) as last_heartbeat_send_time,
+          coalesce(last_heartbeat_response_time,'1970-01-01 00:00:00+00'::timestamp with time zone) as last_heartbeat_response_time,
+          coalesce(approx_clock_drift_ms,-1) AS approx_clock_drift_ms
+        FROM
+          bdr.stat_raft_followers_state;
+      metrics:
+      - group_name:
+          usage: "LABEL"
+          description: "Name of PGD group this info relates to"
+      - node_name:
+          usage: "LABEL"
+          description: "Name of follower node this info relates to"
+      - sent_commit_index:
+          usage: "GAUGE"
+          description: "Raft commit index sent to the node"
+      - match_index:
+          usage: "GAUGE"
+          description: "Raft commit index confirmed by the node"
+      - last_message_time:
+          usage: "GAUGE"
+          description: "Seen most recent message from a node"
+      - last_heartbeat_send_time:
+          usage: "GAUGE"
+          description: "Last time leader sent heartbeat to a node"
+      - last_heartbeat_response_time:
+          usage: "GAUGE"
+          description: "Last time node responded to heartbeat from leader"
+      - approx_clock_drift_ms:
+          usage: "GAUGE"
+          description: "Approximate clock drift (in milliseconds) detected against the node, or -1 if unknown"
+
+    # Summary of Raft state on current PGD node.
+    #
+    bdr_raft_summary:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          group_name,
+          is_voting,
+          heartbeat_timeout_ms,
+          heartbeat_elapsed_ms,
+          current_term,
+          commit_index,
+          apply_index,
+          last_log_term,
+          last_log_index,
+          oldest_log_index,
+          newest_prunable_log_index,
+          snapshot_term,
+          snapshot_index,
+          nnodes,
+          nvoting_nodes
+        FROM
+          bdr.stat_raft_state;
+      metrics:
+        - group_name:
+            usage: "LABEL"
+            description: "Name of PGD group this info relates to"
+        - is_voting:
+            usage: "GAUGE"
+            description: "Is the local node a voting node (when false the local node is just a learner)"
+        - heartbeat_timeout_ms:
+            usage: "GAUGE"
+            description: "What's the heartbeat election timeout in current Raft term on local node"
+        - heartbeat_elapsed_ms:
+            usage: "GAUGE"
+            description: "How long since the local node received heartbeat from leader"
+        - current_term:
+            usage: "GAUGE"
+            description: "Current Raft term on the local node"
+        - commit_index:
+            usage: "GAUGE"
+            description: "Current Raft commit index on local node"
+        - apply_index:
+            usage: "GAUGE"
+            description: "Last applied Raft index on local node"
+        - last_log_term:
+            usage: "GAUGE"
+            description: "Last request term"
+        - last_log_index:
+            usage: "GAUGE"
+            description: "Last request index"
+        - oldest_log_index:
+            usage: "GAUGE"
+            description: "Oldest index in the Raft log"
+        - newest_prunable_log_index:
+            usage: "GAUGE"
+            description: "Newest not needed index in the Raft log"
+        - snapshot_term:
+            usage: "GAUGE"
+            description: "Raft term of the last snapshot made"
+        - snapshot_index:
+            usage: "GAUGE"
+            description: "Raft index of the last snapshot made"
+        - nnodes:
+            usage: "GAUGE"
+            description: "How many total nodes are in this Raft group"
+        - nvoting_nodes:
+            usage: "GAUGE"
+            description: "How many voting nodes are in this Raft group"
+
+    bdr_rep_lag:
+      # Replication lag and rate (upstream view)
+      #
+      predicate_query: |
+         SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT target_name AS peer_name,
+          coalesce(extract(epoch from replay_lag), -1) as replay_lag_s,
+          coalesce(replay_lag_bytes,0) as replay_lag_bytes,
+          coalesce(apply_rate,0) as apply_rate,
+          coalesce(extract(epoch from catchup_interval),-1) as catchup_interval_s
+        FROM bdr.node_replication_rates;
+      metrics:
+        - peer_name:
+            usage: "LABEL"
+            description: "peer_name"
+        - replay_lag_s:
+            usage: "GAUGE"
+            description: "replay_lag_s"
+        - replay_lag_bytes:
+            usage: "GAUGE"
+            description: "replay_lag_bytes"
+        - apply_rate:
+            usage: "GAUGE"
+            description: "apply_rate estimate. Can be inaccurate when big txns are in progress."
+        - catchup_interval_s:
+            usage: "GAUGE"
+            description: "catchup_interval_s estimate. Can be inaccurate when big txns are in progress."
+
+    # Replication slot statistics
+    #
+    bdr_rep_slot_stats:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT ns.target_name AS peer_name,
+          ns.slot_name,
+          rs.spill_txns, rs.spill_count, rs.spill_bytes,
+          rs.stream_txns, rs.stream_count, rs.stream_bytes,
+          rs.total_txns, rs.total_bytes
+        FROM pg_catalog.pg_stat_replication_slots rs
+        JOIN bdr.node_slots ns USING (slot_name);
+      runonserver: ">=14.0.0"
+      metrics:
+        - peer_name:
+            usage: "LABEL"
+            description: "peer_name"
+        - slot_name:
+            usage: "LABEL"
+            description: "slot_name"
+        - spill_txns:
+            usage: "COUNTER"
+            description: "spill_txns"
+        - spill_count:
+            usage: "COUNTER"
+            description: "spill_count"
+        - spill_bytes:
+            usage: "COUNTER"
+            description: "spill_bytes"
+        - stream_txns:
+            usage: "COUNTER"
+            description: "stream_txns"
+        - stream_count:
+            usage: "COUNTER"
+            description: "stream_count"
+        - stream_bytes:
+            usage: "COUNTER"
+            description: "stream_bytes"
+        - total_txns:
+            usage: "COUNTER"
+            description: "total_txns"
+        - total_bytes:
+            usage: "COUNTER"
+            description: "total_bytes"
+
+    # Replication health and slot status
+    # See also bdr_node_slots, pg_stat_replication, bdr_rep_slot_stats, pg_replication_slots
+    #
+    bdr_rep_status:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          rs.origin_node_name AS origin_name,
+          rs.node_name AS peer_name,
+          replication_blocked::integer,
+          extract(epoch from uptime) as uptime_s
+        FROM bdr.replication_status rs
+      metrics:
+        - origin_name:
+            usage: "LABEL"
+            description: "Originating node name, usually same as current node but may vary in cascading replication, catchup etc."
+        - peer_name:
+            usage: "LABEL"
+            description: "peer_name"
+        - replication_blocked:
+            usage: "GAUGE"
+            description: "replication_blocked"
+        - uptime_s:
+            usage: "GAUGE"
+            description: "uptime_s"
+
+    # information about receiver workers. Use in conjunction with bdr_worker_summary and bdr_receiver_info
+    # joining by pid
+    #
+    bdr_receiver_summary:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          worker_pid AS pid,
+          CASE worker_state
+            WHEN 'running' THEN 1
+            WHEN 'down' THEN 0
+            ELSE -1
+          END AS state_up,
+          extract(epoch from sub_apply_delay) AS sub_apply_delay_s,
+          COALESCE(pg_catalog.pg_wal_lsn_diff(receive_lsn,'0/0'::pg_lsn), 0) AS receive_lsn,
+          COALESCE(pg_catalog.pg_wal_lsn_diff(receive_commit_lsn,'0/0'::pg_lsn), 0) AS receive_commit_lsn,
+          COALESCE(pg_catalog.pg_wal_lsn_diff(xact_apply_lsn,'0/0'::pg_lsn), 0) AS last_xact_replay_lsn,
+          COALESCE(pg_catalog.pg_wal_lsn_diff(xact_flush_lsn,'0/0'::pg_lsn), 0) AS last_xact_flush_lsn,
+          xact_apply_timestamp AS last_xact_replay_timestamp
+        FROM bdr.stat_receiver
+      metrics:
+        - pid:
+            usage: "LABEL"
+            description: "PID of the receiver, for joining on bdr_worker_summary, bdr_receiver_info etc"
+        - state_up:
+            usage: "GAUGE"
+            description: "Worker state: 1 for running, 0 for down, -1 for unknown"
+        - sub_apply_delay_s:
+            usage: "GAUGE"
+            description: "Delay for applying changes, in fractional seconds"
+        - receive_lsn:
+            usage: "GAUGE"
+            description: "Last received LSN"
+        - receive_commit_lsn:
+            usage: "GAUGE"
+            description: "Last received COMMIT LSN"
+        - last_xact_replay_lsn:
+            usage: "GAUGE"
+            description: "Last reported replay LSN"
+        - last_xact_flush_lsn:
+            usage: "GAUGE"
+            description: "Last reported flush LSN"
+        - last_xact_replay_timestamp:
+            usage: "GAUGE"
+            description: "Last reported commit timestamp"
+
+    # Info-metrics about BDR receivers for joining on bdr_receiver_summary metrics,
+    # bdr_worker_summary etc. These are kept separate from bdr_receiver_summary metrics
+    # to limit issues with label churn and total label width.
+    bdr_receiver_info:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          worker_pid AS pid,
+          sub_name,
+          sub_slot_name,
+          origin_name,
+          source_name,
+          subscription_mode,
+          sub_replication_sets,
+          1 as info
+        FROM bdr.stat_receiver
+      metrics:
+        # pid is the identifying label for this info-metric
+        - pid:
+            usage: "LABEL"
+            description: "PID of the receiver, for joining on bdr_worker_summary, bdr_receiver_summary series etc"
+        # remaining labels are informational, for join purposes
+        - sub_name:
+            usage: "LABEL"
+            description: "Subscription of the receiver"
+        - sub_slot_name:
+            usage: "LABEL"
+            description: "Replication slot name used by the receiver"
+        - origin_name:
+            usage: "LABEL"
+            description: "Name of origin node for replicated changes"
+        - source_name:
+            usage: "LABEL"
+            description: "Name of the source node for replicated changes (usually same as above except for resynchronization)"
+        - subscription_mode:
+            usage: "LABEL"
+            description: "Mode of the subscription (NORMAL, CATCHUP, FORWARD)"
+        - sub_replication_sets:
+            usage: "LABEL"
+            description: "Replication sets subscribed"
+        - info:
+            usage: "GAUGE"
+            description: "Receiver info metrics, by pid. See also bdr_receiver_summary, bdr_worker_summary"
+
+    bdr_routing_candidate:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          node_group_name AS group_name,
+          node_name,
+          node_route_fence::integer AS node_route_fenced,
+          node_route_reads::integer AS node_reads_enabled,
+          node_route_writes::integer AS node_writes_enabled,
+          node_route_priority,
+          EXTRACT(EPOCH FROM last_message_time) AS last_message_time_epoch
+        FROM bdr.stat_routing_candidate_state;
+      metrics:
+        - group_name:
+            usage: "LABEL"
+            description: "Name of PGD group this info relates to"
+        - node_name:
+            usage: "LABEL"
+            description: "Name of the candidate node"
+        - node_route_fenced:
+            usage: "GAUGE"
+            description: "1 if the node is fenced (can't be used for routing), 0 for normal operation"
+        - node_reads_enabled:
+            usage: "GAUGE"
+            description: "1 if the node can be used for routing reads"
+        - node_writes_enabled:
+            usage: "GAUGE"
+            description: "1 if the node can be used for routing writes"
+        - node_route_priority:
+            usage: "GAUGE"
+            description: "Node priority when picking new leader (higher value means higher priority)"
+        - last_message_time_epoch:
+            usage: "GAUGE"
+            description: "Last time the Raft leader has received any message from given node (epoch time)"
+
+    # Info on PGD query routing.
+    #
+    # Sample query on the underlying view:
+    #
+    #    bdrdb=# select * from bdr.stat_routing_state;
+    #    -[ RECORD 1 ]------------+-----------------------------------------------------
+    #    node_group_name          | p-epbf9ucd3x-a
+    #    write_lead_name          | p-epbf9ucd3x-a-3
+    #    previous_write_lead_name | p-epbf9ucd3x-a-3
+    #    read_names               | {p-epbf9ucd3x-a-1,p-epbf9ucd3x-a-2}
+    #    write_candidate_names    | {p-epbf9ucd3x-a-1,p-epbf9ucd3x-a-3,p-epbf9ucd3x-a-2}
+    #    read_candidate_names     | {p-epbf9ucd3x-a-1,p-epbf9ucd3x-a-3,p-epbf9ucd3x-a-2}
+    #
+    # This query will emit metrics like
+    #
+    #     bdr_routing_write_lead{group_name="p-epbf9ucd3x-a",node_name="p-epbf9ucd3x-a-1"} 0
+    #     bdr_routing_write_lead{group_name="p-epbf9ucd3x-a",node_name="p-epbf9ucd3x-a-2"} 0
+    #     bdr_routing_write_lead{group_name="p-epbf9ucd3x-a",node_name="p-epbf9ucd3x-a-2"} 1
+    #
+    # to indicate the leader and the candidates.
+    #
+    bdr_routing_write:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          node_group_name AS group_name,
+          candidate_leader AS node_name,
+          (write_lead_name = candidate_leader)::integer AS lead
+        FROM bdr.stat_routing_state CROSS JOIN LATERAL unnest(write_candidate_names) AS candidate_leader;
+      metrics:
+        - group_name:
+            usage: "LABEL"
+            description: "Name of PGD group this info relates to"
+        - node_name:
+            usage: "LABEL"
+            description: "Name of the PGD write leader candidate node"
+        - lead:
+            usage: "GAUGE"
+            description: "1 if the node with this node_name label is the leader, 0 for leader-candidates that are not currently leaders"
+
+    # Info and status metrics on PGD workers.
+    #
+    bdr_worker_summary:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          worker_role AS role_name,
+          worker_pid AS pid,
+          sub_name,
+          worker_start,
+          worker_xact_start AS xact_start,
+          worker_query_start AS query_start,
+          worker_backend_state_change AS backend_state_change,
+          CASE worker_backend_state
+            WHEN 'active' THEN 1
+            WHEN 'idle' THEN 2
+            WHEN 'idle in transaction' THEN 3
+            WHEN 'idle in transaction (aborted)' THEN  4
+            WHEN 'fastpath function call' THEN 5
+            WHEN 'disabled' THEN -1
+            ELSE -1
+          END AS backend_state,
+          coalesce( array_length(blocked_by_pids, 1), 0 ) AS n_blocker_pids,
+          worker_xid AS local_xid,
+          worker_xmin AS local_xmin
+        FROM bdr.stat_worker;
+      metrics:
+        - role_name:
+            usage: "LABEL"
+            description: "Worker role"
+        # It is necessary to have the pid as a label since (role_name, sub_name) are not
+        # sufficient to ensure uniqueness of a worker entry.
+        - pid:
+            usage: "LABEL"
+            description: "Worker PID, for joining on other metrics"
+        - sub_name:
+            usage: "LABEL"
+            description: "Subscription of the worker (if any)"
+        - worker_start:
+            usage: "GAUGE"
+            description: "Time when the worker has started"
+        - xact_start:
+            usage: "GAUGE"
+            description: "Time when current transaction has started (if any)"
+        - query_start:
+            usage: "GAUGE"
+            description: "Time of current query start (if any, usually NULL)"
+        - backend_state_change:
+            usage: "GAUGE"
+            description: "Last time backend state has changed, see pg_stat_activity documentation"
+        - backend_state:
+            usage: "GAUGE"
+            description: "Enumeration of backend state. active: 1, idle: 2, idle in tx: 3, idle in aborted tx: 4, fastpath call: 5, unknown or disabled tracking: -1"
+        - n_blocker_pids:
+            usage: "GAUGE"
+            description: "Number of other processes being waited on (e.g. for locks). Zero indicates not blocked by other pids, but might still be blocked by LWLocks or non-pid waits like xid waits."
+        - local_xid:
+            usage: "GAUGE"
+            description: "Current xid of the worker (if any)"
+        - local_xmin:
+            usage: "GAUGE"
+            description: "Current xmin of the worker (if any)"
+
+    # Extract wait-event details for PGD workers into their own separate info-metric series so
+    # that the label churn this imposes on the other bdr_worker_summary metrics is mitigated.
+    #
+    bdr_worker_wait_event:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          worker_pid AS pid,
+          wait_event_type,
+          wait_event,
+          1 AS info
+        FROM bdr.stat_worker;
+      metrics:
+        - pid:
+            usage: "LABEL"
+            description: "Worker PID, for joining on other metrics"
+        - wait_event_type:
+            usage: "LABEL"
+            description: "What type of event the worker is waiting for (if any), see pg_stat_activity documentation"
+        - wait_event:
+            usage: "LABEL"
+            description: "What exact event the worker is waiting for (if any), see pg_stat_activity documentation"
+        - info:
+            usage: "GAUGE"
+            description: "info-metric tracking current wait-events for PGD workers, for joining on bdr_worker_summary etc"
+
+    # Extract backend state details for PGD workers into their own separate info-metric series so
+    # that the label churn this imposes on the other bdr_worker_summary metrics is mitigated.
+    #
+    bdr_worker_state:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          worker_pid AS pid,
+          worker_backend_state AS backend_state,
+          1 AS info
+        FROM bdr.stat_worker;
+      metrics:
+        - pid:
+            usage: "LABEL"
+            description: "Worker PID, for joining on other metrics"
+        - backend_state:
+            usage: "LABEL"
+            description: "Current backend state for the worker, see pg_stat_activity documentation"
+        - info:
+            usage: "GAUGE"
+            description: "info-metric tracking current worker state for PGD workers, for joining on bdr_worker_summary etc"
+
+    # This metrics returns the all the possible PGD Write Leader nodes
+    #
+    bdr_write_lead:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          node_group_name,
+          write_lead AS write_leader_name,
+          1 AS info
+        FROM bdr.node_group_routing_summary;
+      metrics:
+        - node_group_name:
+            usage: "LABEL"
+            description: "Name of the BDR node group"
+        - write_leader_name:
+            usage: "LABEL"
+            description: "Write leader name of the BDR node group"
+        - info:
+            usage: "GAUGE"
+            description: "Info metric with labels identifying PGD write leader"
+
+    # Information about PGD writer processes.
+    #
+    bdr_writer_summary:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          sub_name,
+          writer_nr,
+          worker_pid AS pid,
+          CASE worker_state
+            WHEN 'running' THEN 1
+            WHEN 'down' THEN 0
+            ELSE -1
+          END AS state_up,
+          coalesce(xact_source_xid::text::bigint, BIGINT '0') AS remote_xid,
+          coalesce(pg_catalog.pg_wal_lsn_diff(xact_source_commit_lsn, '0/0'::pg_lsn), 0) AS remote_commit_lsn,
+          commit_queue_position,
+          nxacts,
+          ncommits,
+          naborts,
+          xact_nchanges,
+          CASE WHEN streaming_allowed THEN 1 ELSE 0 END as streaming_allowed,
+          CASE WHEN is_streaming THEN 1 ELSE 0 END AS is_streaming,
+          nstream_file,
+          nstream_writer,
+          1 as info
+        FROM bdr.stat_writer;
+      metrics:
+        # sub_name and writer_nr are the identifying labels for these series
+        - sub_name:
+            usage: "LABEL"
+            description: "Subscription of the writer"
+        - writer_nr:
+            usage: "LABEL"
+            description: "Index of the writer in the parallel apply group, stable over writer lifetime"
+        # pid is needed as a label to allow for joining on bdr_worker_summary etc
+        - pid:
+            usage: "LABEL"
+            description: "Process ID of this writer, for joining on bdr_worker_summary etc"
+        - state_up:
+            usage: "GAUGE"
+            description: "Worker state: 1 for running, 0 for down, -1 for unknown"
+        - remote_xid:
+            usage: "GAUGE"
+            description: "What's the origin's XID the worker is currently processing"
+        - remote_commit_lsn:
+            usage: "GAUGE"
+            description: "What's the origin's commit LSN (if known) of transaction the worker is currently processing"
+        - commit_queue_position:
+            usage: "GAUGE"
+            description: "What's the writer's position in the parallel apply commit queue"
+        - nxacts:
+            usage: "COUNTER"
+            description: "Number of transactions processed by the writer since it started"
+        - ncommits:
+            usage: "COUNTER"
+            description: "Number of commits done by the writer since it started"
+        - naborts:
+            usage: "COUNTER"
+            description: "Number of aborts done by the writer since it started"
+        - xact_nchanges:
+            usage: "GAUGE"
+            description: "How many changes in current transaction the writer has processed (updated every 1000 changes, useful when working with large data loads)"
+        - streaming_allowed:
+            usage: "GAUGE"
+            description: "1 if this writer can be used for transaction streaming otherwise 0"
+        - is_streaming:
+            usage: "GAUGE"
+            description: "1 if the writer is currently streaming a txn otherwise 0"
+        - nstream_file:
+            usage: "COUNTER"
+            description: "How many temp files for streaming were processed by the writer since it started"
+        - nstream_writer:
+            usage: "COUNTER"
+            description: "How many direct streaming transactions were processed by the writer since it started"
+        - info:
+            usage: "GAUGE"
+            description: "info"
+
+    # Information about progress of long running commands (index creation,
+    # cluster command, etc) that writer might be running. Only returns anything
+    # if there is supported command being run by the PGD writer.
+    #
+    bdr_writer_command_progress:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          worker_pid AS pid,
+          command_progress_cmdtag AS command_tag,
+          coalesce(command_progress_phase_nr, -1) AS phase_num,
+          coalesce(command_progress_count, -1) AS phase_count,
+          coalesce(command_progress_tuples_done, -1) AS phase_tuples_done,
+          coalesce(command_progress_phase_tuples_total, -1) AS phase_tuples_total
+        FROM bdr.stat_writer
+        WHERE command_progress_cmdtag IS NOT NULL;
+      metrics:
+        # pid is needed as a label to allow for joining on bdr_worker_summary etc
+        - pid:
+            usage: "LABEL"
+            description: "process ID of this writer, for joining on bdr_writer_summary, bdr_worker_summary etc"
+        - command_tag:
+            usage: "LABEL"
+            description: "Command tag being executed by writer"
+        # These gauges will churn whenever the command tag changes, but that's
+        # somewhat desirable in this case because the metric series will only
+        # make sense for that specific command tag's execution. The churn won't
+        # be enough worse than a single _info series dedicated to the tag to
+        # make it worth splitting these off into a separate series with an
+        # auxiliary info-metric. It's a bit trickier to consume directly due to instant
+        # vector staleness issues, but meh.
+        - phase_num:
+            usage: "GAUGE"
+            description: "Number of the phase the current command is in (out of phase_count)"
+        - phase_count:
+            usage: "GAUGE"
+            description: "Total number of phases the current command has"
+        - phase_tuples_done:
+            usage: "GAUGE"
+            description: "Out of phase_tuples_total, how many are done"
+        - phase_tuples_total:
+            usage: "GAUGE"
+            description: "How many rows the current command has to process (if any)"
+
+    bdr_version:
+      predicate_query: |
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_extension WHERE extname='bdr' AND extversion ~ '^6\.')
+      query: |
+        SELECT
+          bdr.bdr_version_num() AS num,
+          bdr.bdr_version() AS semver;
+      metrics:
+        - num:
+            usage: "GAUGE"
+            description: "BDR version expressed as an integer"
+        - semver:
+            usage: "LABEL"
+            description: "BDR version expressed as SEMVER"
+
+    connections:
+      query: |
+        WITH maxconns AS (
+          SELECT
+            current_setting('max_connections')::integer AS max_connections,
+            current_setting('superuser_reserved_connections')::integer AS superuser_reserved_connections,
+            coalesce(current_setting('reserved_connections', true)::integer, 0) AS reserved_connections
+        ),
+        conns AS (
+          SELECT sum(d.numbackends) as numbackends
+          FROM pg_catalog.pg_stat_database d
+        )
+        SELECT
+          m.max_connections AS max,
+          m.max_connections - m.superuser_reserved_connections - m.reserved_connections AS max_unreserved,
+          c.numbackends AS current,
+          (c.numbackends / m.max_connections::float4) * 100 AS current_percent,
+          (c.numbackends / (m.max_connections - m.superuser_reserved_connections - m.reserved_connections)::float4) * 100 AS current_unreserved_percent
+        FROM conns AS c
+        CROSS JOIN maxconns m
+      metrics:
+        - max:
+            usage: "GAUGE"
+            description: "max_connections setting including any superuser_reserved_connections reserved slots"
+        # Once this is reached, only superuser or (on pg16) pg_use_reserved_connections member can connect
+        - max_unreserved:
+            usage: "GAUGE"
+            description: "max connections available to normal users before any reserved connections margin"
+        # connections_current
+        - current:
+            usage: "GAUGE"
+            description: "total connections across all databases including superuser connections"
+        # connections_current_percent
+        # This is a convenience metric for current/max, relied upon by datadog. We could compute
+        # it with recording rules in Prometheus, but that'd be more costly than generating it here,
+        # and we can't (currently) compute it in the otel collector where it's really needed.
+        - current_percent:
+            usage: "GAUGE"
+            description: "percent of max_connections used on this postgres instance"
+        - current_unreserved_percent:
+            usage: "GAUGE"
+            description: "percent of max_connections used on this postgres instance before any reserved connections margin"
+
+    clock_time:
+      # This inspired from https://github.com/EnterpriseDB/pgd-cli/blob/v5.3.0/internal/pgd/cmd/show_clockskew.go
+      # As the query is not directly related to BDR and could be applicable to all types of PG nodes
+      # We can be compare the value of now with the
+      # timestamp on the metric scrape. This returns the following
+      #       now
+      # -------------------
+      # 1709788818.737367
+      query: |
+        SELECT EXTRACT(EPOCH FROM NOW()) AS now;
+      metrics:
+        - now:
+            usage: "GAUGE"
+            description: "The current time in seconds since epoch as reported by the database server"
+kind: ConfigMap
+metadata:
+  labels:
+    app.kubernetes.io/name: pgd-operator
+    k8s.enterprisedb.io/reload: ""
+  name: pgd-operator-default-monitoring

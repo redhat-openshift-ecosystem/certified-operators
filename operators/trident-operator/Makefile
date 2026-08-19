@@ -81,7 +81,7 @@ clean: create-catalog-dir
 
 
 OS=$(shell uname -s | tr '[:upper:]' '[:lower:]')
-ARCH=$(shell uname -m | sed 's/x86_64/amd64/')
+ARCH=$(shell uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
 
 # Automatically download the binaries and scripts and place them in the bin directory
 OPM_VERSION ?= v1.46.0

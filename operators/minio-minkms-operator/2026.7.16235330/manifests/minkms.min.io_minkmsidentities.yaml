@@ -1,0 +1,133 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.0
+    minkms.min.io/version: RELEASE.2026-07-16T23-53-30Z
+  creationTimestamp: null
+  name: minkmsidentities.minkms.min.io
+spec:
+  group: minkms.min.io
+  names:
+    kind: MinKMSIdentity
+    listKind: MinKMSIdentityList
+    plural: minkmsidentities
+    shortNames:
+    - mki
+    singular: minkmsidentity
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.identity
+      name: Identity
+      type: string
+    - jsonPath: .spec.enclaveRef.name
+      name: Enclave
+      type: string
+    - jsonPath: .spec.privilege
+      name: Priv
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              apiKeySecret:
+                properties:
+                  identityKey:
+                    default: identity
+                    type: string
+                  key:
+                    default: apikey
+                    type: string
+                  name:
+                    type: string
+                type: object
+              deletionPolicy:
+                default: Retain
+                enum:
+                - Retain
+                - Delete
+                type: string
+              enclaveRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                type: object
+                x-kubernetes-validations:
+                - message: enclaveRef is immutable
+                  rule: self == oldSelf
+              policyRef:
+                type: string
+              privilege:
+                enum:
+                - Admin
+                - User
+                type: string
+            required:
+            - enclaveRef
+            - privilege
+            type: object
+            x-kubernetes-validations:
+            - message: policyRef is required when privilege is User
+              rule: self.privilege == 'Admin' || (has(self.policyRef) && size(self.policyRef)
+                > 0)
+          status:
+            properties:
+              apiKeySecretRef:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+              identity:
+                type: string
+              message:
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              resolvedEnclave:
+                type: string
+              state:
+                enum:
+                - Pending
+                - WaitingForKMS
+                - WaitingForEnclave
+                - Provisioning
+                - Ready
+                - Error
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

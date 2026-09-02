@@ -1,0 +1,418 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: "[\n  {\n    \"apiVersion\": \"csi.san.synology.com/v1alpha1\",\n\
+      \    \"kind\": \"SynologyCSIDriver\",\n    \"metadata\": {\n      \"name\":\
+      \ \"synologycsidriver-sample\"\n    },\n    \"spec\": {\n      \"clientInfoSecret\"\
+      : {\n        \"create\": false,\n        \"name\": \"client-info-secret\"\n\
+      \      },\n      \"storageClasses\": {\n        \"synology-iscsi-storage\":\
+      \ {\n          \"reclaimPolicy\": \"Retain\"\n        }\n      },\n      \"\
+      volumeSnapshotClasses\": {\n        \"synology-snapshotclass\": {\n        \
+      \  \"deletionPolicy\": \"Delete\"\n        }\n      }\n    }\n  }\n]"
+    capabilities: Basic Install
+    categories: Storage
+    containerImage: quay.io/synostt/synology-csi-operator@sha256:d7526eb49faa86ebd3454c86ae2777f27e192b9c7c59db82c4712b70bb385b85
+    createdAt: '2026-09-02T02:24:12Z'
+    description: Deploys and manages the Synology CSI driver, providing persistent
+      storage backed by Synology NAS.
+    features.operators.openshift.io/csi: 'true'
+    features.operators.openshift.io/disconnected: 'false'
+    features.operators.openshift.io/fips-compliant: 'false'
+    features.operators.openshift.io/proxy-aware: 'false'
+    features.operators.openshift.io/tls-profiles: 'false'
+    features.operators.openshift.io/token-auth-aws: 'false'
+    features.operators.openshift.io/token-auth-azure: 'false'
+    features.operators.openshift.io/token-auth-gcp: 'false'
+    operators.openshift.io/valid-subscription: '["No subscription required — free
+      to use with Synology NAS"]'
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    repository: https://github.com/SynologyOpenSource/synology-csi
+    support: Synology Inc.
+  name: synology-csi-operator.v0.4.2
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Deploys the Synology CSI driver with the given configuration.
+      displayName: Synology CSI Driver
+      kind: SynologyCSIDriver
+      name: synologycsidrivers.csi.san.synology.com
+      version: v1alpha1
+  description: "The Synology CSI Operator installs, configures and upgrades the\n\
+    [Synology CSI driver](https://github.com/SynologyOpenSource/synology-csi),\nwhich\
+    \ provides persistent storage for Kubernetes and OpenShift backed by\nSynology\
+    \ NAS over iSCSI, NFS and SMB — including dynamic provisioning,\nvolume expansion,\
+    \ snapshots and restore.\n\n## Prerequisites\n\n* A Synology NAS running DSM 7.x\
+    \ reachable from the cluster nodes.\n* A dedicated DSM account for the driver,\
+    \ provided through a pre-created\n  secret referenced by the `SynologyCSIDriver`\
+    \ custom resource\n  (`clientInfoSecret.name`); credentials never pass through\
+    \ the CR.\n\n## Usage\n\nCreate a `SynologyCSIDriver` resource. Any value of the\
+    \ bundled Helm chart\ncan be overridden through the CR; unset fields keep the\
+    \ chart defaults,\nwhich use the Red Hat certified CSI sidecar images.\n"
+  displayName: Synology CSI Operator
+  icon:
+  - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3QgeD0iOCIgeT0iMTIiIHdpZHRoPSI0OCIgaGVpZ2h0PSIxNCIgcng9IjQiIGZpbGw9IiMzYjZlYTUiLz4KICA8cmVjdCB4PSI4IiB5PSIzMCIgd2lkdGg9IjQ4IiBoZWlnaHQ9IjE0IiByeD0iNCIgZmlsbD0iIzU1ODhjMCIvPgogIDxjaXJjbGUgY3g9IjE2IiBjeT0iMTkiIHI9IjIuNSIgZmlsbD0iI2ZmZiIvPgogIDxjaXJjbGUgY3g9IjE2IiBjeT0iMzciIHI9IjIuNSIgZmlsbD0iI2ZmZiIvPgogIDxwYXRoIGQ9Ik0zMiA0OHY4bTAgMGwtNi02bTYgNmw2LTYiIHN0cm9rZT0iIzNiNmVhNSIgc3Ryb2tlLXdpZHRoPSIzIiBmaWxsPSJub25lIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ''
+          resources:
+          - namespaces
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - ''
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ''
+          resources:
+          - events
+          verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+          - patch
+        - apiGroups:
+          - csi.san.synology.com
+          resources:
+          - synologycsidrivers
+          - synologycsidrivers/status
+          - synologycsidrivers/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ''
+          resources:
+          - serviceaccounts
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - statefulsets
+          - daemonsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          - clusterrolebindings
+          - rolebindings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - csidrivers
+          - storageclasses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotclasses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ''
+          resources:
+          - persistentvolumeclaims
+          - persistentvolumeclaims/status
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+          - patch
+        - apiGroups:
+          - ''
+          resources:
+          - persistentvolumes
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ''
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - ''
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - csinodes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - csi.storage.k8s.io
+          resources:
+          - csinodeinfos
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - volumeattachments
+          - volumeattachments/status
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+          - patch
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshots
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotcontents
+          verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotcontents/status
+          verbs:
+          - update
+          - patch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - privileged
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: synology-csi-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: synology-csi-operator
+          control-plane: controller-manager
+        name: synology-csi-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: synology-csi-operator
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                app.kubernetes.io/name: synology-csi-operator
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --metrics-require-rbac
+                - --metrics-secure
+                - --metrics-bind-address=:8443
+                - --leader-elect
+                - --leader-election-id=synology-csi-operator
+                - --health-probe-bind-address=:8081
+                image: quay.io/synostt/synology-csi-operator@sha256:d7526eb49faa86ebd3454c86ae2777f27e192b9c7c59db82c4712b70bb385b85
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: synology-csi-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ''
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ''
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: synology-csi-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - synology
+  - csi
+  - storage
+  - iscsi
+  - nfs
+  - smb
+  links:
+  - name: Synology CSI Driver
+    url: https://github.com/SynologyOpenSource/synology-csi
+  maintainers:
+  - email: synologyopensource@synology.com
+    name: Synology
+  maturity: alpha
+  minKubeVersion: 1.20.0
+  provider:
+    name: Synology Inc.
+    url: https://www.synology.com
+  version: 0.4.2
+  relatedImages:
+  - image: registry.redhat.io/openshift4/ose-csi-external-provisioner-rhel9@sha256:c70a55a715647b75cb8115ccf062352b020c02fb021dd160f8e9f3836bf803c5
+    name: csi-provisioner
+  - image: registry.redhat.io/openshift4/ose-csi-external-attacher-rhel9@sha256:190c1144373a1625cbf4e54204ca94fa41bc44cf492a29e134052bd99bd32653
+    name: csi-attacher
+  - image: registry.redhat.io/openshift4/ose-csi-external-resizer-rhel9@sha256:763b5263b9ea7d5fb7a221b49febe4f647604c871ef9a8794c5cc0cb62728619
+    name: csi-resizer
+  - image: registry.redhat.io/openshift4/ose-csi-external-snapshotter-rhel9@sha256:a12947c452cb315cb3db93f035b849543e607102b48c07bf20acfbf634c95d72
+    name: csi-snapshotter
+  - image: registry.redhat.io/openshift4/ose-csi-node-driver-registrar-rhel9@sha256:6d4b8be8609b3debbe7c9efdccf84282581d94ae334e02f34945a10e86e70d68
+    name: csi-node-driver-registrar
+  - image: quay.io/synostt/synology-csi@sha256:1bdb570f0f357f00cfa537c8207d2fc60ab51856a0fff37837ba8c9a0d911783
+    name: synology-csi-driver
+  - image: quay.io/synostt/synology-csi-operator@sha256:d7526eb49faa86ebd3454c86ae2777f27e192b9c7c59db82c4712b70bb385b85
+    name: synology-csi-operator

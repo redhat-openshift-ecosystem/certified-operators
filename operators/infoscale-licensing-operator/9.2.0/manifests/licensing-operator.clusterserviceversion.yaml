@@ -1,0 +1,389 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "vlic.veritas.com/v1",
+          "kind": "License",
+          "metadata": {
+            "name": "license-dev"
+          },
+          "spec": {}
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Storage
+    containerImage: registry.connect.redhat.com/arctera/infoscale-license-operator@sha256:1b15d15c6eaa18a5fe3891e2aaba58de556c0ec50d3b5925cf08883583034ea3
+    createdAt: "2025-09-10T10:17:07Z"
+    description: InfoScale™ Licensing Operator manages the lifecycle of the Licensing for InfoScale™ cluster
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "true"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operatorframework.io/suggested-namespace: infoscale-vtas
+    operators.operatorframework.io/builder: operator-sdk-v1.41.1
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    support: Arctera US LLC
+  name: infoscale-licensing-operator.v9.2.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: License is the Schema for the licenses API
+      displayName: License
+      kind: License
+      name: licenses.vlic.veritas.com
+      version: v1
+  description: InfoScale™ Licensing Operator provides license to use InfoScale™ Products.
+  displayName: InfoScale™ Licensing Operator
+  icon:
+  - base64data: iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAOdEVYdFNvZnR3YXJlAEZpZ21hnrGWYwAAATNJREFUeAHtls1Nw0AQhd+Y5UYk0gEgcU8H1EAHpIOAxJlQAJASXAIluATuCGQ6AIWbf4ZZYucQWcrE8awVyZ+09nq81j7t8z6boGR5d/HARDMCTtEhpBnkJwfRHAZEmkEMuoERKgFE3S777gKAVxihEpAVxS2MRKhewprf2eWEHe9sR1mWk4joBfsKaMvy/uwK5VHSdE9lgSXOH6xCZvT0sXWFXR0yQbxoILIMGZUAy5BRCZD2hh6J8qKYiv8pesKNF2kq53OLkFEJqDsni/dWVkjIsIQM2tJ7EA0CggjIM3w11QmcBhFQ7bRks86MOJgFkjfXkjexdL//G/N89Pz56BAIWQU/8bRqa4ZdMAg4fAF5dvzTVPchgxACxquvaLJZ9yEDBZ1YUP3UxNXlOmQ0z/4BSAxhPUWcSQMAAAAASUVORK5CYII=
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - get
+          - list
+          - patch
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          verbs:
+          - list
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates
+          - clusterissuers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates/finalizers
+          - clusterissuers/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - cert-manager.io
+          resources:
+          - certificates/status
+          - clusterissuers/status
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - infoscale.veritas.com
+          resources:
+          - infoscaleclusters
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - vlic.veritas.com
+          resources:
+          - licenses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - vlic.veritas.com
+          resources:
+          - licenses/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - vlic.veritas.com
+          resources:
+          - licenses/status
+          verbs:
+          - get
+          - patch
+          - update
+        serviceAccountName: infoscale-licensing-operator
+      deployments:
+      - label:
+          control-plane: infoscale-licensing-operator
+        name: infoscale-licensing-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: infoscale-licensing-operator
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: infoscale-licensing-operator
+            spec:
+              containers:
+              - args:
+                - --config=controller_manager_config.yaml
+                command:
+                - /manager
+                env:
+                - name: nodeName
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: podname
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: LICO_DEPLOYMENT_NS
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: LICO_DEPLOYMENT_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.labels['control-plane']
+                - name: TLS_CIPHER_SUITES
+                  value: TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+                image: registry.connect.redhat.com/arctera/infoscale-license-operator@sha256:1b15d15c6eaa18a5fe3891e2aaba58de556c0ec50d3b5925cf08883583034ea3
+                imagePullPolicy: IfNotPresent
+                lifecycle:
+                  preStop:
+                    exec:
+                      command:
+                      - /manager --manage-certs=delete-issuers
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources: {}
+                securityContext:
+                  allowPrivilegeEscalation: false
+                volumeMounts:
+                - mountPath: /tmp/k8s-webhook-server/serving-certs
+                  name: cert
+                  readOnly: true
+                - mountPath: /controller_manager_config.yaml
+                  name: lico-manager-config
+                  subPath: controller_manager_config.yaml
+                - mountPath: /infoscale-licenses
+                  name: license
+              initContainers:
+              - args:
+                - --manage-certs=create
+                command:
+                - /manager
+                env:
+                - name: LICO_DEPLOYMENT_NS
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: LICO_DEPLOYMENT_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.labels['control-plane']
+                - name: nodeName
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: podname
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                image: registry.connect.redhat.com/arctera/infoscale-license-operator@sha256:1b15d15c6eaa18a5fe3891e2aaba58de556c0ec50d3b5925cf08883583034ea3
+                imagePullPolicy: IfNotPresent
+                name: pre-manager
+                resources: {}
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: infoscale-licensing-operator
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - name: cert
+                secret:
+                  defaultMode: 420
+                  optional: true
+                  secretName: lico-tls-cert
+              - configMap:
+                  name: lico-manager-config
+                  optional: true
+                name: lico-manager-config
+              - emptyDir: {}
+                name: license
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        serviceAccountName: infoscale-licensing-operator
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - InfoScale
+  - Licensing
+  - VLIC
+  - Storage
+  - Data Storage
+  - SDS
+  - Software Defined Storage
+  links:
+  - name: InfoScale™ Licensing Operator
+    url: https://www.infoscale.com/container-resilience
+  maturity: stable
+  minKubeVersion: 1.17.0
+  provider:
+    name: Arctera US LLC
+    url: https://www.infoscale.com
+  relatedImages:
+  - name: manager
+    image: registry.connect.redhat.com/arctera/infoscale-license-operator@sha256:1b15d15c6eaa18a5fe3891e2aaba58de556c0ec50d3b5925cf08883583034ea3
+  - name: pre-manager
+    image: registry.connect.redhat.com/arctera/infoscale-license-operator@sha256:1b15d15c6eaa18a5fe3891e2aaba58de556c0ec50d3b5925cf08883583034ea3
+  - name: infoscale-license-operator-1ebab8aec17e0e5260678616696be43b720f801127c97820b3a07f3a8cb73e6a-annotation
+    image: registry.connect.redhat.com/arctera/infoscale-license-operator@sha256:1b15d15c6eaa18a5fe3891e2aaba58de556c0ec50d3b5925cf08883583034ea3
+  - name: infoscale-license-operator-1b15d15c6eaa18a5fe3891e2aaba58de556c0ec50d3b5925cf08883583034ea3-annotation
+    image: registry.connect.redhat.com/arctera/infoscale-license-operator@sha256:1b15d15c6eaa18a5fe3891e2aaba58de556c0ec50d3b5925cf08883583034ea3
+  replaces: infoscale-licensing-operator.v9.1.2
+  version: 9.2.0
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-licensing-operator
+    failurePolicy: Fail
+    generateName: lico-mutate.veritas.com
+    rules:
+    - apiGroups:
+      - vlic.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - licenses
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-vlic-veritas-com-v1-license
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: infoscale-licensing-operator
+    failurePolicy: Fail
+    generateName: lico-validate.veritas.com
+    rules:
+    - apiGroups:
+      - vlic.veritas.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - licenses
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-vlic-veritas-com-v1-license

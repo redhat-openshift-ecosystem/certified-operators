@@ -1,0 +1,389 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: axeraforces.platform.axerasecurity.com
+spec:
+  group: platform.axerasecurity.com
+  names:
+    categories:
+    - axera
+    kind: AxeraForce
+    listKind: AxeraForceList
+    plural: axeraforces
+    shortNames:
+    - axforce
+    singular: axeraforce
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.numberReady
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          AxeraForce is the Schema for the combined flow+process (OneBox) agent — one CR
+          per monitored cluster.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              AxeraForceSpec is the combined flow+process "OneBox" agent for one monitored
+              cluster: a single DaemonSet in the `axera` namespace running the eBPF agent +
+              flowlogs-pipeline + Tetragon + fluent-bit shipper as sidecars, sharing one
+              ServiceAccount / RBAC / SCC and ONE Kafka endpoint. Mirrors deploy/Axera-OneBox.
+
+              The OneBox invariant: both writers share one broker + one credential set, so the
+              Kafka block is hoisted to the top level (not split under flow/process).
+
+              PREREQUISITE: the Tetragon CRDs must be installed on the cluster first.
+            properties:
+              clusterName:
+                description: Identity of THIS cluster (flow ClusterName + default
+                  topics).
+                minLength: 1
+                pattern: ^[a-zA-Z0-9][a-zA-Z0-9._-]*$
+                type: string
+              clusterPublicIP:
+                description: |-
+                  This cluster's own public/egress IP as a /32 (multi_cluster_division self-label).
+                  Only meaningful when multiCluster is set.
+                pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/32$
+                type: string
+              createSCC:
+                default: true
+                description: Create the OpenShift SecurityContextConstraints (privileged
+                  + hostNetwork).
+                type: boolean
+              flow:
+                description: Flow-specific knobs.
+                properties:
+                  direction:
+                    default: both
+                    description: 'Capture direction: ingress | egress | both.'
+                    enum:
+                    - ingress
+                    - egress
+                    - both
+                    type: string
+                  enableDnsTracking:
+                    default: true
+                    type: boolean
+                  enablePktTranslation:
+                    default: true
+                    type: boolean
+                  enableRtt:
+                    default: true
+                    type: boolean
+                  excludeInterfaces:
+                    default: lo
+                    description: Interfaces to exclude from capture.
+                    type: string
+                  externalTopic:
+                    default: external-flows
+                    description: External / egress-flow topic (FLP `out3`).
+                    type: string
+                  topic:
+                    description: Per-cluster flow topic (FLP `out`). Defaults to clusterName.
+                    type: string
+                type: object
+              images:
+                description: Container images (four containers + init).
+                properties:
+                  ebpfAgent:
+                    default: quay.io/netobserv/netobserv-ebpf-agent:v1.11.3-community
+                    type: string
+                  flp:
+                    default: quay.io/netobserv/flowlogs-pipeline:v1.11.5-community
+                    description: |-
+                      OneBox needs a SASL-capable FLP (the community build; the Axera rebuild lacks
+                      the kafka `sasl` encoder field).
+                    type: string
+                  shipper:
+                    default: cr.fluentbit.io/fluent/fluent-bit:3.1.9
+                    type: string
+                  tetragon:
+                    default: quay.io/cilium/tetragon:v1.4.0
+                    type: string
+                type: object
+              kafka:
+                description: |-
+                  SHARED central Kafka for BOTH writers (flow FLP + process shipper). One broker,
+                  one credential set — the OneBox invariant.
+                properties:
+                  bootstrapServers:
+                    description: host:port of the central broker listener the agent
+                      produces to.
+                    minLength: 1
+                    type: string
+                  caCert:
+                    description: |-
+                      Broker CA certificate (PEM) for TLS trust. Rendered into the agent's kafka
+                      Secret and referenced by the writers' caCertPath / ssl.ca.location.
+                    type: string
+                  createSecret:
+                    default: true
+                    description: |-
+                      Create the agent's kafka Secret (CA + SASL creds) from the values above
+                      (default true), or set false to bring your OWN pre-created Secret and keep
+                      credentials out of the CR. When false, pre-create the Secret with keys:
+                        ca.crt, username, password
+                      named per kind: axera-flow-kafka (flow), axera-process-kafka (process); the
+                      force/OneBox agent uses TWO Secrets — kafka-ca (key ca.crt) + kafka-sasl
+                      (keys username, password).
+                    type: boolean
+                  insecureSkipVerify:
+                    default: false
+                    description: Skip broker certificate verification (dev / self-signed
+                      only).
+                    type: boolean
+                  saslMechanism:
+                    default: ScramSha512
+                    description: |-
+                      SASL/SCRAM mechanism (only used for the Sasl* protocols). The chart maps this
+                      ONE value to the FLP (`scramSHA512`) and fluent-bit (`SCRAM-SHA-512`) spellings —
+                      it is never emitted verbatim.
+                    enum:
+                    - Plain
+                    - ScramSha256
+                    - ScramSha512
+                    type: string
+                  saslPassword:
+                    type: string
+                  saslUsername:
+                    type: string
+                  securityProtocol:
+                    default: Plaintext
+                    description: Wire security. Plaintext | Ssl | SaslPlaintext |
+                      SaslSsl.
+                    enum:
+                    - Plaintext
+                    - Ssl
+                    - SaslPlaintext
+                    - SaslSsl
+                    type: string
+                required:
+                - bootstrapServers
+                type: object
+              localNetworkCIDR:
+                default: 192.168.0.0/16
+                description: On-prem / corporate network CIDR (FLP LocalNetwork enrichment
+                  label).
+                type: string
+              multiCluster:
+                description: Cross-cluster flow correlation. OMIT for a single-cluster
+                  install.
+                properties:
+                  cidr:
+                    description: CIDR covering every peer cluster's public IP (FLP
+                      MultiCluster enrich label).
+                    pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$
+                    type: string
+                  peers:
+                    description: |-
+                      Peer clusters (name → public IP /32). List only the OTHER clusters here —
+                      this cluster's own name+IP come from clusterName / clusterPublicIP.
+                    items:
+                      description: |-
+                        AgentClusterPeer maps a peer cluster's public/egress IP to its name so
+                        cross-cluster egress is attributed correctly (FLP multi_cluster_division stage).
+                      properties:
+                        name:
+                          minLength: 1
+                          type: string
+                        publicIP:
+                          description: Peer public/egress IP as a /32 CIDR, e.g. 31.210.78.251/32.
+                          pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/32$
+                          type: string
+                      required:
+                      - name
+                      - publicIP
+                      type: object
+                    minItems: 1
+                    type: array
+                required:
+                - cidr
+                - peers
+                type: object
+              podCIDR:
+                description: Pod network CIDR (FLP ClusterSubnet enrichment). REQUIRED
+                  — e.g. "10.128.0.0/14".
+                pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$
+                type: string
+              process:
+                description: Process-specific knobs.
+                properties:
+                  installTracingPolicy:
+                    default: true
+                    description: Apply the observe-only tcp_connect TracingPolicy
+                      (requires the Tetragon CRDs).
+                    type: boolean
+                  topic:
+                    description: Per-cluster process topic (fluent-bit shipper). Default
+                      "<clusterName>-process".
+                    type: string
+                  tracingPolicyPodSelector:
+                    description: podSelector for the TracingPolicy (empty = all pods).
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
+                type: object
+            required:
+            - clusterName
+            - kafka
+            - podCIDR
+            type: object
+          status:
+            description: AgentStatus is the DaemonSet-centric observed state shared
+              by every agent kind.
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              desiredScheduled:
+                description: Nodes the agent DaemonSet wants a pod on.
+                format: int32
+                type: integer
+              numberReady:
+                description: Agent pods currently Ready.
+                format: int32
+                type: integer
+              observedGeneration:
+                description: Generation last reconciled.
+                format: int64
+                type: integer
+              phase:
+                description: 'Coarse phase: Pending | Ready | Degraded.'
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

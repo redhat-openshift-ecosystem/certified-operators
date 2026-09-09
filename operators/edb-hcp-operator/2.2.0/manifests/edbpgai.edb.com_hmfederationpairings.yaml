@@ -1,0 +1,152 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/name: edb-hcp-operator
+    control-plane: edb-hcp-operator
+  name: hmfederationpairings.edbpgai.edb.com
+spec:
+  group: edbpgai.edb.com
+  names:
+    kind: HMFederationPairing
+    listKind: HMFederationPairingList
+    plural: hmfederationpairings
+    singular: hmfederationpairing
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.role
+      name: Role
+      type: string
+    - jsonPath: .spec.peerDomain
+      name: PeerDomain
+      type: string
+    - jsonPath: .status.state
+      name: State
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: HMFederationPairing is the Schema for the hmfederationpairings
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of HMFederationPairing
+            properties:
+              adopted:
+                description: |-
+                  Adopted indicates whether this pairing was created by the adoption pass
+                  for bucket-bootstrapped federations. It is set to true on adopted pairings
+                  and false on all other pairings.
+                type: boolean
+              peerDomain:
+                description: |-
+                  PeerDomain is the portal domain of the peer to dial during the pairing
+                  exchange (e.g. "portal-eks-secondary.aws.hcp.enterprisedb.network").
+
+                  Required when Role is secondary: the operator reaches the peer's
+                  https://<PeerDomain>:<PeerPort>/federation/pair endpoint. Ignored when
+                  Role is primary, where the operator only serves the endpoint and learns
+                  the peer's trust domain from the bundle that is pushed to it.
+                type: string
+              peerPort:
+                description: |-
+                  PeerPort is the HTTPS port the peer's portal is reachable on: the global
+                  portal_port behind a load balancer, or the istio gateway's
+                  ingress_https_node_port when the peer is exposed via NodePort. Empty
+                  means 443. Like PeerDomain, it is only used when Role is secondary.
+                type: string
+                x-kubernetes-validations:
+                - message: peerPort must be a valid TCP port (1-65535)
+                  rule: self == '' || (self.matches('^[0-9]{1,5}$') && int(self) >=
+                    1 && int(self) <= 65535)
+              role:
+                description: |-
+                  Role selects which side of the pairing exchange this object drives.
+                  It mirrors the cluster-level spec.clusterGroups.role vocabulary.
+                enum:
+                - primary
+                - secondary
+                type: string
+              tokenSecretRef:
+                description: |-
+                  TokenSecretRef references the Secret holding the bearer token used to
+                  dial the peer's /federation/pair endpoint. Set on the secondary side (the
+                  joiner needs it). Empty on primary-side pairings, which are records the
+                  operator creates when a secondary joins, and on adopted pairings (created
+                  by the migration adoption pass for bucket-bootstrapped federations).
+                properties:
+                  name:
+                    description: name is unique within a namespace to reference a
+                      secret resource.
+                    type: string
+                  namespace:
+                    description: namespace defines the space within which the secret
+                      name must be unique.
+                    type: string
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - role
+            type: object
+            x-kubernetes-validations:
+            - message: peerDomain is required when role is secondary
+              rule: self.role != 'secondary' || (has(self.peerDomain) && size(self.peerDomain)
+                > 0)
+          status:
+            description: status defines the observed state of HMFederationPairing
+            properties:
+              lastTransitionTime:
+                description: LastTransitionTime is when State last changed.
+                format: date-time
+                type: string
+              message:
+                description: |-
+                  Message provides additional human-readable detail about the current
+                  state, especially for Failed / Expired.
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the last spec generation reconciled
+                  into status.
+                format: int64
+                type: integer
+              state:
+                description: State is the current lifecycle state of the pairing.
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

@@ -1,0 +1,252 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |
+      [
+        {
+          "apiVersion": "merak.example.com/v1alpha1",
+          "kind": "MerakAIAgent",
+          "metadata": {
+            "name": "merakaiagent-sample"
+          },
+          "spec": {}
+        }
+      ]
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/custom-scc: "false"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    createdAt: "2026-09-08T09:30:16Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  name: merak-ai-agent.v0.1.0
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: MerakAIAgent
+      name: merakaiagents.merak.example.com
+      version: v1alpha1
+  description: Merak AI Agent Operator
+  displayName: Merak AI Agent Operator
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - merak.example.com
+          resources:
+          - merakaiagents
+          - merakaiagents/status
+          - merakaiagents/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          - services/finalizers
+          - endpoints
+          - persistentvolumeclaims
+          - events
+          - configmaps
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: merak-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: merak-operator
+          control-plane: controller-manager
+        name: merak-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: merak-operator
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                app.kubernetes.io/name: merak-operator
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --metrics-require-rbac
+                - --metrics-secure
+                - --metrics-bind-address=:8443
+                - --leader-elect
+                - --leader-election-id=merak-operator
+                - --health-probe-bind-address=:8081
+                image: registry.cn-beijing.aliyuncs.com/myspace01/merak-operator@sha256:727d74888e7b3074a4385264b29da34bd1c251aa95d6cd895d4c281247dc8b48
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: merak-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: merak-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - type: OwnNamespace
+    supported: true
+  - type: SingleNamespace
+    supported: true
+  - type: MultiNamespace
+    supported: true
+  - type: AllNamespaces
+    supported: true
+  keywords:
+  - ai
+  - agent
+  - digital-employee
+  - automation
+  links:
+  - name: Merak AI Agent Operator
+    url: https://merak-operator.domain
+  maturity: alpha
+  provider:
+    name: Isoftstone
+  minKubeVersion: "1.22.0"
+  version: 0.1.0
+relatedImages:
+- name: operator
+  image: registry.cn-beijing.aliyuncs.com/myspace01/merak-operator@sha256:727d74888e7b3074a4385264b29da34bd1c251aa95d6cd895d4c281247dc8b48
+- name: backend
+  image: registry.cn-beijing.aliyuncs.com/myspace01/workmate@sha256:9d7122e620521cc16c762bf3170e684507b320fe544efe323f3bc963bbf78c51
+- name: web
+  image: registry.cn-beijing.aliyuncs.com/myspace01/workmate@sha256:72da7c54a93ec7acffc135849992a1b1b78b1aadc15e27ffc5d1fe9c72d86af6
+- name: postgres
+  image: registry.redhat.io/rhel9/postgresql-18@sha256:3cf7ccce208cac6483b9c4c195664564e321b1e8f2da62553e4d53a6033e1a9e
+- name: redis
+  image: registry.redhat.io/rhel9/redis-7@sha256:299dacbc6197ad4c297911b9c66d8c1c4ddfbc2cdb47c0ab7af1b34ec2114fa0

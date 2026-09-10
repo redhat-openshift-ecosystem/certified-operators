@@ -1,0 +1,915 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "piraeus.io/v1",
+          "kind": "LinstorCluster",
+          "metadata": {
+            "name": "linstorcluster"
+          },
+          "spec": {},
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "piraeus.io/v1",
+          "kind": "LinstorNodeConnection",
+          "metadata": {
+            "name": "example-connection"
+          },
+          "spec": {},
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "piraeus.io/v1",
+          "kind": "LinstorSatellite",
+          "metadata": {
+            "name": "example-satellite"
+          },
+          "spec": {
+            "clusterRef": {
+              "name": "linstorcluster"
+            }
+          },
+          "status": {
+            "conditions": []
+          }
+        },
+        {
+          "apiVersion": "piraeus.io/v1",
+          "kind": "LinstorSatelliteConfiguration",
+          "metadata": {
+            "name": "all-satellites"
+          },
+          "spec": {},
+          "status": {
+            "conditions": []
+          }
+        }
+      ]
+    capabilities: Full Lifecycle
+    categories: Storage
+    com.redhat.openshift.versions: v4.7
+    createdAt: "2026-07-10T07:16:24Z"
+    description: LINSTOR Operator deploys LINBIT SDS in the cluster.
+    features.operators.openshift.io/csi: "true"
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operatorframework.io/suggested-namespace: linbit-sds
+    operators.openshift.io/valid-subscription: '[''LINBIT SDS Subscription'']'
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
+    operators.operatorframework.io/internal-objects: '["linstorsatellites.piraeus.io"]'
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    support: LINBIT
+    containerImage: drbd.io/linstor-operator@sha256:f46c713fc64bc201d504ac5f02e2880e665c1f1bf93755208f6f38dde1f9c690
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/os.linux: supported
+  name: linstor-operator.v2.10.8
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: Cluster-wide configuration for LINSTOR.
+        displayName: Linstor Cluster
+        kind: LinstorCluster
+        name: linstorclusters.piraeus.io
+        resources:
+          - kind: LinstorCluster
+            name: linstorcluster
+            version: v1
+        statusDescriptors:
+          - description: Conditions describe the current state of the LINSTOR Cluster
+            displayName: Cluster Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+        version: v1
+      - description: Configuration for connections between specific nodes.
+        displayName: Linstor Node Connection
+        kind: LinstorNodeConnection
+        name: linstornodeconnections.piraeus.io
+        resources:
+          - kind: LinstorNodeConnection
+            name: example-connection
+            version: v1
+        statusDescriptors:
+          - description: Conditions describe the current state of the LINSTOR Node Connection
+            displayName: Node Connection Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+        version: v1
+      - description: Configuration for specific Satellites/Nodes in the LINSTOR Cluster.
+        displayName: Linstor Satellite Configuration
+        kind: LinstorSatelliteConfiguration
+        name: linstorsatelliteconfigurations.piraeus.io
+        resources:
+          - kind: LinstorSatelliteConfiguration
+            name: all-satellites
+            version: v1
+        statusDescriptors:
+          - description: Conditions decsribe the current state of the LINSTOR Satellite Configuration
+            displayName: Satellite Configuration Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+        version: v1
+      - description: Resource to configure a single satellite, managed by the Operator itself.
+        displayName: Linstor Satellite
+        kind: LinstorSatellite
+        name: linstorsatellites.piraeus.io
+        resources:
+          - kind: LinstorSatellite
+            name: example-satellite
+            version: v1
+        specDescriptors:
+          - description: Reference to the LINSTOR Cluster resource this Satellite is a part of.
+            displayName: Cluster Reference
+            path: clusterRef
+        statusDescriptors:
+          - description: Conditions describe the current state of the LINSTOR Satellite
+            displayName: Satellite Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+        version: v1
+  description: |
+    ## Overview
+
+    The LINSTOR Operator deploys and manages [LINBIT SDS](https://linbit.com/linbit-sds/), a resilient software-defined
+    storage solution for OpenShift and Kubernetes built on [LINSTOR](https://github.com/LINBIT/linstor-server) and
+    [DRBD](https://github.com/LINBIT/drbd).
+
+    LINBIT SDS provides persistent storage volumes with synchronous replication across nodes, enabling high availability
+    for stateful workloads. The operator handles the full lifecycle of all storage stack components — from initial
+    deployment through upgrades and configuration changes.
+
+    ## Components managed by the operator
+
+    * **DRBD** — kernel-level block device replication
+    * **LINSTOR Controller** — cluster-wide storage management plane
+    * **LINSTOR Satellites** — per-node storage agents
+    * **LINSTOR CSI Driver** — Kubernetes CSI integration for dynamic provisioning
+    * **LINSTOR HA Controller** — automatic failover for stateful workloads
+
+    ## Prerequisites
+
+    A valid [LINBIT SDS Subscription](https://my.linbit.com) is required to pull the container images. The subscription
+    credentials must be provided as an image pull secret named `drbdio-pull-secret` in the operator namespace
+    (`linbit-sds` by default).
+
+    ## Getting Started
+
+    After installing the operator from OperatorHub, create the pull secret with your LINBIT credentials:
+
+    ```
+    oc create secret docker-registry drbdio-pull-secret \
+      --namespace=linbit-sds \
+      --docker-server=drbd.io \
+      --docker-username=MY_LINBIT_USER \
+      --docker-password=MY_LINBIT_PASSWORD
+    ```
+
+    Then deploy the full LINBIT SDS stack by creating a `LinstorCluster` resource:
+
+    ```yaml
+    apiVersion: piraeus.io/v1
+    kind: LinstorCluster
+    metadata:
+      name: linstorcluster
+    spec: {}
+    ```
+
+    The operator will deploy all components and configure the CSI driver. Storage backends and storage classes
+    must be configured separately based on the available storage on your nodes.
+
+    ## Configuring Storage
+
+    Storage pools are configured via `LinstorSatelliteConfiguration`. The following example sets up an LVM thin pool
+    on a dedicated disk on every node:
+
+    ```yaml
+    apiVersion: piraeus.io/v1
+    kind: LinstorSatelliteConfiguration
+    metadata:
+      name: storage-pool
+    spec:
+      storagePools:
+        - name: pool1
+          lvmThinPool: {}
+          source:
+            hostDevices:
+              - /dev/sdb
+    ```
+
+    Once the pool is configured, create a `StorageClass` referencing it. The example below provisions replicated
+    volumes with 2 replicas:
+
+    ```yaml
+    apiVersion: storage.k8s.io/v1
+    kind: StorageClass
+    metadata:
+      name: linbit-sds
+    provisioner: linstor.csi.linbit.com
+    allowVolumeExpansion: true
+    volumeBindingMode: WaitForFirstConsumer
+    parameters:
+      linstor.csi.linbit.com/storagePool: pool1
+      linstor.csi.linbit.com/placementCount: "2"
+    ```
+
+    ## Documentation
+
+    * [User Guide](https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/#s-kubernetes-deploy-linstor-operator-v2)
+    * [API Reference](https://linbit.github.io/linstor-operator-builder/)
+    * [Source Code](https://github.com/LINBIT/linstor-operator-builder)
+  displayName: LINSTOR Operator
+  icon:
+    - base64data: |
+        PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWw6c3BhY2U9InByZXNlcnZlIiBpZD0iTGF5ZXJfMSIgeD0iMCIgeT0iMCIgdmVyc2lvbj0iMS4xIiB2aWV3Qm94PSIwIDAgMTAwMCAxMDAwIj48c3R5bGU+LnN0MHtkaXNwbGF5Om5vbmV9LnN0MXtkaXNwbGF5OmlubGluZX0uc3QzLC5zdDR7Y2xpcC1wYXRoOnVybCgjU1ZHSURfNF8pO2ZpbGw6I2YyOGUyNn0uc3Q0e2ZpbGw6IzFlMjkzYX0uc3Q2LC5zdDd7Y2xpcC1wYXRoOnVybCgjU1ZHSURfOF8pO2ZpbGw6IzI3MmMzYn0uc3Q3e2ZpbGw6I2YyOGQwM30uc3QxMCwuc3Q5e2NsaXAtcGF0aDp1cmwoI1NWR0lEXzEyXyk7ZmlsbDojZjI4ZDIzfS5zdDEwe2ZpbGw6IzFlMjkzYX0uc3QxMiwuc3QxM3tjbGlwLXBhdGg6dXJsKCNTVkdJRF8xNl8pO2ZpbGw6I2YyOGQyM30uc3QxM3tmaWxsOiNmZmZ9PC9zdHlsZT48ZyBpZD0iQXJ0d29ya183XzFfIj48ZGVmcz48cGF0aCBpZD0iU1ZHSURfMTdfIiBkPSJNMjQyLjIgMGg1MTUuN3YxMDAwSDI0Mi4yeiIvPjwvZGVmcz48Y2xpcFBhdGggaWQ9IlNWR0lEXzE4XyI+PHVzZSB4bGluazpocmVmPSIjU1ZHSURfMTdfIiBzdHlsZT0ib3ZlcmZsb3c6dmlzaWJsZSIvPjwvY2xpcFBhdGg+PGcgc3R5bGU9ImNsaXAtcGF0aDp1cmwoI1NWR0lEXzE4XykiPjxkZWZzPjxwYXRoIGlkPSJTVkdJRF8xOV8iIGQ9Ik0yNDIuMiAwaDUxNS43djEwMDBIMjQyLjJ6Ii8+PC9kZWZzPjxjbGlwUGF0aCBpZD0iU1ZHSURfMjBfIj48dXNlIHhsaW5rOmhyZWY9IiNTVkdJRF8xOV8iIHN0eWxlPSJvdmVyZmxvdzp2aXNpYmxlIi8+PC9jbGlwUGF0aD48cGF0aCBkPSJtNzEyIDEwNi45LTE2Ni4yLTk2Yy0yNS4yLTE0LjUtNjYuNS0xNC41LTkxLjYgMGwtMTY2LjIgOTZjLTIzLjYgMTMuNi00Mi40IDQ1LjUtNDQuOSA3My41LS4yIDEuOS0uOSA0LS45IDUuOXYxOTEuOWMwIDEuOS44IDQgLjkgNS45IDIuMiAyNC42IDE3LjIgNTEuNSAzNyA2Ny4xbDEzMi42LTc2LjVjMzEuNS0xOC4yIDY0LjktMjIgODcuMy0yMiAyMi41IDAgNTUuOSAzLjggODcuNCAyMi4xbDEzMi41IDc2LjVjMjEuMy0xNi44IDM3LjktNDcuMSAzNy45LTczVjE4Ni4yYzAtMjkuMS0yMC42LTY0LjgtNDUuOC03OS4zIiBzdHlsZT0iY2xpcC1wYXRoOnVybCgjU1ZHSURfMjBfKTtmaWxsOiNmMjhkMjMiLz48cGF0aCBkPSJNNzE5LjkgNTQ4LjljLTIuNy0yLjEtNS4xLTQuOC03LjgtNi40TDYzOC40IDUwMGwtOTIuNi01My41Yy0xMi42LTcuMy0yOS4yLTEwLjktNDUuOC0xMC45cy0zMy4yIDMuNi00NS44IDEwLjlMMzYxLjYgNTAwIDI4OCA1NDIuNWMtMi44IDEuNi01LjIgNC4zLTcuOSA2LjQtMTkuOCAxNS42LTM0LjggNDIuNS0zNyA2Ny4xLS4yIDEuOS0uOSA0LS45IDUuOXYxOTEuOWMwIDEuOS44IDQgLjkgNS45IDIuNCAyNy45IDIxLjMgNTkuOSA0NC45IDczLjVsMTY2LjIgOTZjMTIuNiA3LjMgMjkuMiAxMC45IDQ1LjggMTAuOXMzMy4yLTMuNiA0NS44LTEwLjlsMTY2LjItOTZjMjUuMi0xNC41IDQ1LjgtNTAuMiA0NS44LTc5LjNWNjIxLjhjMC0yNS44LTE2LjYtNTYuMi0zNy45LTcyLjkiIHN0eWxlPSJjbGlwLXBhdGg6dXJsKCNTVkdJRF8yMF8pO2ZpbGw6IzFlMjkzYSIvPjwvZz48L2c+PC9zdmc+
+      mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - events
+                - persistentvolumes
+                - pods
+                - secrets
+                - serviceaccounts
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - nodes
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims
+              verbs:
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - persistentvolumeclaims/status
+              verbs:
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - pods/eviction
+              verbs:
+                - create
+            - apiGroups:
+                - ""
+              resources:
+                - pods/exec
+              verbs:
+                - create
+                - get
+            - apiGroups:
+                - apiextensions.k8s.io
+              resources:
+                - customresourcedefinitions
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - daemonsets
+                - deployments
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - replicasets
+              verbs:
+                - get
+            - apiGroups:
+                - cert-manager.io
+              resources:
+                - certificates
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - cluster.x-k8s.io
+              resources:
+                - machines
+              verbs:
+                - get
+                - update
+            - apiGroups:
+                - discovery.k8s.io
+              resources:
+                - endpointslices
+                - endpointslices/restricted
+              verbs:
+                - create
+                - delete
+            - apiGroups:
+                - events.k8s.io
+              resources:
+                - events
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - groupsnapshot.storage.k8s.io
+              resources:
+                - volumegroupsnapshotclasses
+                - volumesnapshots
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - groupsnapshot.storage.k8s.io
+              resources:
+                - volumegroupsnapshotcontents
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - groupsnapshot.storage.k8s.io
+              resources:
+                - volumegroupsnapshotcontents/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - internal.linstor.linbit.com
+              resources:
+                - '*'
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - piraeus.io
+              resources:
+                - linstorclusters
+                - linstornodeconnections
+                - linstorsatellites
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - piraeus.io
+              resources:
+                - linstorclusters/finalizers
+                - linstornodeconnections/finalizers
+                - linstorsatellites/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - piraeus.io
+              resources:
+                - linstorclusters/status
+                - linstornodeconnections/status
+                - linstorsatelliteconfigurations/status
+                - linstorsatellites/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - piraeus.io
+              resources:
+                - linstorsatelliteconfigurations
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - clusterrolebindings
+                - clusterroles
+                - rolebindings
+                - roles
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - security.openshift.io
+              resourceNames:
+                - privileged
+              resources:
+                - securitycontextconstraints
+              verbs:
+                - use
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshotclasses
+                - volumesnapshots
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshotcontents
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshotcontents/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - csidrivers
+                - csistoragecapacities
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - csinodes
+              verbs:
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - storageclasses
+                - volumeattributesclasses
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - volumeattachments
+              verbs:
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - storage.k8s.io
+              resources:
+                - volumeattachments/status
+              verbs:
+                - patch
+          serviceAccountName: linstor-operator-controller-manager
+      deployments:
+        - label:
+            app.kubernetes.io/component: piraeus-operator
+            app.kubernetes.io/name: linbit-sds
+          name: linstor-operator-controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/component: piraeus-operator
+                app.kubernetes.io/name: linbit-sds
+            strategy: {}
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  app.kubernetes.io/component: piraeus-operator
+                  app.kubernetes.io/name: linbit-sds
+              spec:
+                containers:
+                  - args:
+                      - --leader-elect
+                      - --metrics-bind-address=0
+                      - --namespace=$(NAMESPACE)
+                      - --zap-devel=$(ZAP_DEVEL)
+                      - --image-config-map-name=$(IMAGE_CONFIG_MAP_NAME)
+                      - --requeue-interval=$(REQUEUE_INTERVAL)
+                      - --cluster-api-kubeconfig=$(CLUSTER_API_KUBECONFIG)
+                    command:
+                      - /manager
+                    env:
+                      - name: PULL_SECRET
+                        value: drbdio-pull-secret
+                      - name: NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: ZAP_DEVEL
+                        value: "false"
+                      - name: IMAGE_CONFIG_MAP_NAME
+                        value: linstor-operator-image-config
+                      - name: REQUEUE_INTERVAL
+                        value: 1m
+                      - name: CLUSTER_API_KUBECONFIG
+                      - name: RELATED_IMAGE_csi-attacher_ose-csi-external-attacher-rhel9
+                        value: registry.redhat.io/openshift4/ose-csi-external-attacher-rhel9@sha256:db02739b53ae0af27b90424924fb4e403021154bf4425be0f4ffeb689d73bbf6
+                      - name: RELATED_IMAGE_csi-external-health-monitor-controller
+                        value: registry.k8s.io/sig-storage/csi-external-health-monitor-controller@sha256:430c1f2267152ce6e4547ebbad225a2b399d03e5894f2f39ba233a38e4750a47
+                      - name: RELATED_IMAGE_csi-livenessprobe_ose-csi-livenessprobe-rhel9
+                        value: registry.redhat.io/openshift4/ose-csi-livenessprobe-rhel9@sha256:b083249a3963559ae50d137ea929f1529bc4a1104de9b0553b541ffc63862957
+                      - name: RELATED_IMAGE_csi-node-driver-registrar_ose-csi-node-driver-registrar-rhel9
+                        value: registry.redhat.io/openshift4/ose-csi-node-driver-registrar-rhel9@sha256:2258a4abd2d704d08d6f94e674c4d7d90e28da89be61ff1be75d50b77fb73f6a
+                      - name: RELATED_IMAGE_csi-provisioner_ose-csi-external-provisioner-rhel9
+                        value: registry.redhat.io/openshift4/ose-csi-external-provisioner-rhel9@sha256:974a3f8aa688c646b4f88d61436afc8fc184221c79fadf1392b0ea1b63d56248
+                      - name: RELATED_IMAGE_csi-resizer_ose-csi-external-resizer-rhel9
+                        value: registry.redhat.io/openshift4/ose-csi-external-resizer-rhel9@sha256:56eb6d65c6631d587239e5813a9056a957a5b6df89b761908b925b3d8d4a05c7
+                      - name: RELATED_IMAGE_csi-snapshotter_ose-csi-external-snapshotter-rhel9
+                        value: registry.redhat.io/openshift4/ose-csi-external-snapshotter-rhel9@sha256:059b9b65cc97477480c95439fc8783cd7b530f64d7aad04e93c24163dc130702
+                      - name: RELATED_IMAGE_drbd-module-loader_drbd9-rhel8
+                        value: drbd.io/drbd9-rhel8@sha256:b7808674768a6d1b278b8f92e3ca4978a18e1cc461d7446786ca1392f79b307f
+                      - name: RELATED_IMAGE_drbd-module-loader_drbd9-rhel10
+                        value: drbd.io/drbd9-rhel10@sha256:36ed46b065f6c0d47a5db4c0988abb77d172d9c09af9fdeda2a28729825c0469
+                      - name: RELATED_IMAGE_drbd-module-loader_drbd9-rhel7
+                        value: drbd.io/drbd9-rhel7@sha256:f495f9b338397b64f65f4bd2e4cefc1e399615312796d37efcea188da5f37cb4
+                      - name: RELATED_IMAGE_drbd-module-loader_drbd9-rhel9
+                        value: drbd.io/drbd9-rhel9@sha256:02b1ab37a9b8b40318d64f63fa7c08eb473cba552d786de7822d0a8fa3e39e42
+                      - name: RELATED_IMAGE_drbd-reactor
+                        value: drbd.io/drbd-reactor@sha256:f9459826dd517744f2177f7d85e3325ce97a5806e9ac3e48916ec759ee4056b6
+                      - name: RELATED_IMAGE_drbd-shutdown-guard
+                        value: drbd.io/drbd-shutdown-guard@sha256:16793f5aa10b46b198806c9198216fbd1aaec31269c28adea7e526dd17ff6f57
+                      - name: RELATED_IMAGE_ha-controller_linstor-k8s-ha-controller
+                        value: drbd.io/linstor-k8s-ha-controller@sha256:6373cac061702973b5460f742678adeb81167e23d774b0c1151252f2893b1c85
+                      - name: RELATED_IMAGE_ktls-utils
+                        value: drbd.io/ktls-utils@sha256:3351a6e0fc048fe1544499095cdb8fdd221e832cecfa8a9a01f046c271991138
+                      - name: RELATED_IMAGE_linstor-affinity-controller
+                        value: drbd.io/linstor-affinity-controller@sha256:79b2e6b2afe8f1580ca68dbf58bd6185558ae96ffcf22fb15aadf19dad7b23aa
+                      - name: RELATED_IMAGE_linstor-controller
+                        value: drbd.io/linstor-controller@sha256:1dd44e9d18df31204a83b8cb141f2eedc93f5a506352186377200e56d6c216d9
+                      - name: RELATED_IMAGE_linstor-csi
+                        value: drbd.io/linstor-csi@sha256:526e9fed6d8563caa764b47e0f4f37027627481efead854c89ba628282589d79
+                      - name: RELATED_IMAGE_linstor-satellite
+                        value: drbd.io/linstor-satellite@sha256:341cfe2c83e50a0d29c12a5e111260a7bb4152a86a09b91aad7c9164f96a6a50
+                      - name: RELATED_IMAGE_manager_linstor-operator
+                        value: drbd.io/linstor-operator@sha256:f46c713fc64bc201d504ac5f02e2880e665c1f1bf93755208f6f38dde1f9c690
+                      - name: RELATED_IMAGE_nfs-server
+                        value: drbd.io/nfs-server@sha256:647cd2bf7931b9652815a1652e9dc94788fbb9d7e3d283e0cd30ce9acaaf834b
+                    image: drbd.io/linstor-operator@sha256:f46c713fc64bc201d504ac5f02e2880e665c1f1bf93755208f6f38dde1f9c690
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    name: manager
+                    ports:
+                      - containerPort: 9443
+                        name: webhook-server
+                        protocol: TCP
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 256Mi
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                imagePullSecrets:
+                  - name: drbdio-pull-secret
+                priorityClassName: system-cluster-critical
+                securityContext:
+                  runAsNonRoot: true
+                serviceAccountName: linstor-operator-controller-manager
+                terminationGracePeriodSeconds: 10
+                tolerations:
+                  - effect: NoSchedule
+                    key: drbd.linbit.com/lost-quorum
+                  - effect: NoSchedule
+                    key: drbd.linbit.com/force-io-error
+      permissions:
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+          serviceAccountName: linstor-operator-controller-manager
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: false
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: false
+      type: AllNamespaces
+  keywords:
+    - storage
+  links:
+    - name: User Guide
+      url: https://linbit.com/drbd-user-guide/linstor-guide-1_0-en/
+    - name: LINSTOR Operator
+      url: https://charts.linstor.io/
+    - name: Source Code
+      url: https://github.com/LINBIT/linstor-operator-builder
+  maintainers:
+    - email: support@linbit.com
+      name: LINBIT
+  maturity: stable
+  minKubeVersion: 1.20.0
+  nativeAPIs:
+    - group: ""
+      kind: ConfigMap
+      version: v1
+    - group: ""
+      kind: Service
+      version: v1
+    - group: ""
+      kind: ServiceAccount
+      version: v1
+    - group: apps
+      kind: DaemonSet
+      version: v1
+    - group: apps
+      kind: Deployment
+      version: v1
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRole
+      version: v1
+    - group: rbac.authorization.k8s.io
+      kind: ClusterRoleBinding
+      version: v1
+    - group: rbac.authorization.k8s.io
+      kind: Role
+      version: v1
+    - group: rbac.authorization.k8s.io
+      kind: RoleBinding
+      version: v1
+    - group: storage.k8s.io
+      kind: CSIDriver
+      version: v1
+  provider:
+    name: LINBIT
+    url: https://linbit.com
+  version: 2.10.8
+  webhookdefinitions:
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: linstor-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vlinstorcluster.kb.io
+      rules:
+        - apiGroups:
+            - piraeus.io
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - linstorclusters
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-piraeus-io-v1-linstorcluster
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: linstor-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vlinstornodeconnection.kb.io
+      rules:
+        - apiGroups:
+            - piraeus.io
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - linstornodeconnections
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-piraeus-io-v1-linstornodeconnection
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: linstor-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vlinstorsatellite.kb.io
+      rules:
+        - apiGroups:
+            - piraeus.io
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - linstorsatellites
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-piraeus-io-v1-linstorsatellite
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: linstor-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vlinstorsatelliteconfiguration.kb.io
+      rules:
+        - apiGroups:
+            - piraeus.io
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - linstorsatelliteconfigurations
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-piraeus-io-v1-linstorsatelliteconfiguration
+    - admissionReviewVersions:
+        - v1
+      containerPort: 443
+      deploymentName: linstor-operator-controller-manager
+      failurePolicy: Fail
+      generateName: vstorageclass.kb.io
+      rules:
+        - apiGroups:
+            - storage.k8s.io
+          apiVersions:
+            - v1
+          operations:
+            - CREATE
+            - UPDATE
+          resources:
+            - storageclasses
+      sideEffects: None
+      targetPort: 9443
+      type: ValidatingAdmissionWebhook
+      webhookPath: /validate-storage-k8s-io-v1-storageclass
+  relatedImages:
+    - name: csi-attacher_ose-csi-external-attacher-rhel9
+      image: registry.redhat.io/openshift4/ose-csi-external-attacher-rhel9@sha256:db02739b53ae0af27b90424924fb4e403021154bf4425be0f4ffeb689d73bbf6
+    - name: csi-external-health-monitor-controller
+      image: registry.k8s.io/sig-storage/csi-external-health-monitor-controller@sha256:430c1f2267152ce6e4547ebbad225a2b399d03e5894f2f39ba233a38e4750a47
+    - name: csi-livenessprobe_ose-csi-livenessprobe-rhel9
+      image: registry.redhat.io/openshift4/ose-csi-livenessprobe-rhel9@sha256:b083249a3963559ae50d137ea929f1529bc4a1104de9b0553b541ffc63862957
+    - name: csi-node-driver-registrar_ose-csi-node-driver-registrar-rhel9
+      image: registry.redhat.io/openshift4/ose-csi-node-driver-registrar-rhel9@sha256:2258a4abd2d704d08d6f94e674c4d7d90e28da89be61ff1be75d50b77fb73f6a
+    - name: csi-provisioner_ose-csi-external-provisioner-rhel9
+      image: registry.redhat.io/openshift4/ose-csi-external-provisioner-rhel9@sha256:974a3f8aa688c646b4f88d61436afc8fc184221c79fadf1392b0ea1b63d56248
+    - name: csi-resizer_ose-csi-external-resizer-rhel9
+      image: registry.redhat.io/openshift4/ose-csi-external-resizer-rhel9@sha256:56eb6d65c6631d587239e5813a9056a957a5b6df89b761908b925b3d8d4a05c7
+    - name: csi-snapshotter_ose-csi-external-snapshotter-rhel9
+      image: registry.redhat.io/openshift4/ose-csi-external-snapshotter-rhel9@sha256:059b9b65cc97477480c95439fc8783cd7b530f64d7aad04e93c24163dc130702
+    - name: drbd-module-loader_drbd9-rhel8
+      image: drbd.io/drbd9-rhel8@sha256:b7808674768a6d1b278b8f92e3ca4978a18e1cc461d7446786ca1392f79b307f
+    - name: drbd-module-loader_drbd9-rhel10
+      image: drbd.io/drbd9-rhel10@sha256:36ed46b065f6c0d47a5db4c0988abb77d172d9c09af9fdeda2a28729825c0469
+    - name: drbd-module-loader_drbd9-rhel7
+      image: drbd.io/drbd9-rhel7@sha256:f495f9b338397b64f65f4bd2e4cefc1e399615312796d37efcea188da5f37cb4
+    - name: drbd-module-loader_drbd9-rhel9
+      image: drbd.io/drbd9-rhel9@sha256:02b1ab37a9b8b40318d64f63fa7c08eb473cba552d786de7822d0a8fa3e39e42
+    - name: drbd-reactor
+      image: drbd.io/drbd-reactor@sha256:f9459826dd517744f2177f7d85e3325ce97a5806e9ac3e48916ec759ee4056b6
+    - name: drbd-shutdown-guard
+      image: drbd.io/drbd-shutdown-guard@sha256:16793f5aa10b46b198806c9198216fbd1aaec31269c28adea7e526dd17ff6f57
+    - name: ha-controller_linstor-k8s-ha-controller
+      image: drbd.io/linstor-k8s-ha-controller@sha256:6373cac061702973b5460f742678adeb81167e23d774b0c1151252f2893b1c85
+    - name: ktls-utils
+      image: drbd.io/ktls-utils@sha256:3351a6e0fc048fe1544499095cdb8fdd221e832cecfa8a9a01f046c271991138
+    - name: linstor-affinity-controller
+      image: drbd.io/linstor-affinity-controller@sha256:79b2e6b2afe8f1580ca68dbf58bd6185558ae96ffcf22fb15aadf19dad7b23aa
+    - name: linstor-controller
+      image: drbd.io/linstor-controller@sha256:1dd44e9d18df31204a83b8cb141f2eedc93f5a506352186377200e56d6c216d9
+    - name: linstor-csi
+      image: drbd.io/linstor-csi@sha256:526e9fed6d8563caa764b47e0f4f37027627481efead854c89ba628282589d79
+    - name: linstor-satellite
+      image: drbd.io/linstor-satellite@sha256:341cfe2c83e50a0d29c12a5e111260a7bb4152a86a09b91aad7c9164f96a6a50
+    - name: manager_linstor-operator
+      image: drbd.io/linstor-operator@sha256:f46c713fc64bc201d504ac5f02e2880e665c1f1bf93755208f6f38dde1f9c690
+    - name: nfs-server
+      image: drbd.io/nfs-server@sha256:647cd2bf7931b9652815a1652e9dc94788fbb9d7e3d283e0cd30ce9acaaf834b

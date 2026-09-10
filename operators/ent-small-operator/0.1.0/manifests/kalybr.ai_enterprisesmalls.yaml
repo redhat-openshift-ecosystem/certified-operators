@@ -1,0 +1,327 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.5
+  name: enterprisesmalls.kalybr.ai
+spec:
+  group: kalybr.ai
+  names:
+    categories:
+    - kalybr
+    kind: EnterpriseSmall
+    listKind: EnterpriseSmallList
+    plural: enterprisesmalls
+    shortNames:
+    - ensm
+    singular: enterprisesmall
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.agentCapacity
+      name: Capacity
+      type: integer
+    - jsonPath: .spec.semanticSearch.enabled
+      name: Semantic
+      type: boolean
+    - jsonPath: .status.platform
+      name: Platform
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: EnterpriseSmall is the Schema for the co-located single-pod Enterprise
+          Small stack.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: EnterpriseSmallSpec is the desired state of an Enterprise
+              Small appliance.
+            properties:
+              access:
+                description: Access configures external exposure (CON-2.1, §8). Default
+                  auto (Route/Ingress).
+                properties:
+                  adminWebNodePort:
+                    default: 31301
+                    description: AdminWebNodePort exposes ent-admin-web (nodePort
+                      mode).
+                    format: int32
+                    type: integer
+                  gatewayNodePort:
+                    default: 31080
+                    description: GatewayNodePort exposes the api-gateway (nodePort
+                      mode).
+                    format: int32
+                    type: integer
+                  mode:
+                    default: auto
+                    description: Mode is "auto" (default), "ingress", "nodePort",
+                      or "route".
+                    enum:
+                    - auto
+                    - ingress
+                    - nodePort
+                    - route
+                    type: string
+                  nodeIP:
+                    description: |-
+                      NodeIP is the externally-reachable node address (nodePort mode) used to build the
+                      consoles' NEXT_PUBLIC_API_URL and the OAuth redirect allowlist.
+                    type: string
+                  publicWebNodePort:
+                    default: 31300
+                    description: PublicWebNodePort exposes ent-public-web (nodePort
+                      mode).
+                    format: int32
+                    type: integer
+                type: object
+              agentCapacity:
+                default: 100
+                description: AgentCapacity is the capacity step that sizes the co-located
+                  pod + DB (FR-4).
+                enum:
+                - 100
+                - 500
+                - 1000
+                format: int32
+                type: integer
+              backup:
+                description: Backup configures scheduled DB backups (FR-2.2). Default
+                  off.
+                properties:
+                  enabled:
+                    default: false
+                    description: Enabled turns on scheduled pg_dump backups.
+                    type: boolean
+                  retention:
+                    default: 7
+                    description: Retention is how many successful backups to keep
+                      (CronJob history limit).
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  schedule:
+                    default: 0 2 * * *
+                    description: Schedule is the cron expression for the backup CronJob.
+                      Default nightly 02:00.
+                    type: string
+                type: object
+              globalDiscovery:
+                description: GlobalDiscovery is the sole optional external dependency
+                  (CON-6), default bundled.
+                properties:
+                  url:
+                    description: URL of an external discovery-svc. Empty means use
+                      the bundled snapshot.
+                    type: string
+                type: object
+              hardened:
+                default: true
+                description: |-
+                  Hardened applies rootless/arbitrary-UID SecurityContexts + PSA "restricted" namespace
+                  enforcement (the certified posture, CON-2). Default true. Set false for the current
+                  Debian/Node operand images (s6-overlay + postgres start as root) until the UBI
+                  conversion lands — the requirements doc's CON-2 image gap.
+                type: boolean
+              imageTag:
+                description: |-
+                  ImageTag pins the ent-small image tag for all workloads. Empty uses the
+                  operator's default. Digest-pinning is applied at bundle build time (CON-2).
+                type: string
+              migration:
+                description: Migration toggles operator-driven schema migration on
+                  upgrade (FR-2.2). Default on.
+                properties:
+                  enabled:
+                    default: true
+                    description: |-
+                      Enabled runs the ledger-tracked migration Job when the image tag changes. Set false
+                      when an external step owns schema convergence (e.g. deploy-ent runs migrate.sh as the
+                      postgres superuser over the DB pod's unix socket — a privilege a separate Job lacks).
+                    type: boolean
+                type: object
+              platform:
+                default: auto
+                description: Platform selects the render target (FR-8). Default "auto"
+                  detects at reconcile.
+                enum:
+                - openshift
+                - kubernetes
+                - auto
+                type: string
+              publicWeb:
+                description: PublicWeb controls the optional public console (FR-5.1).
+                properties:
+                  enabled:
+                    default: true
+                    description: Enabled deploys ent-public-web. Default true. Set
+                      false for admin-only installs.
+                    type: boolean
+                type: object
+              semanticSearch:
+                description: SemanticSearch is optional at every capacity (FR-3),
+                  default off.
+                properties:
+                  embedderUrl:
+                    description: |-
+                      EmbedderURL points at a customer-supplied external embedder endpoint (FR-3.1a).
+                      When empty and Enabled is true, the operator sources the embedder per the
+                      operator-deployed Technology Preview path (FR-3.1b). Never an in-image model.
+                    type: string
+                  enabled:
+                    default: false
+                    description: |-
+                      Enabled turns on semantic/vector search. Default false — the certified default
+                      is lexical (tsvector/BM25) + reputation rerank.
+                    type: boolean
+                type: object
+              storage:
+                description: Storage configures the DB data volume (CON-2.1). Default
+                  PVC.
+                properties:
+                  hostPath:
+                    default: /var/lib/ent-small-db
+                    description: HostPath is the node-local PGDATA directory when
+                      Mode is "hostPath".
+                    type: string
+                  mode:
+                    default: pvc
+                    description: Mode is "pvc" (default, certified) or "hostPath"
+                      (single-node, no StorageClass).
+                    enum:
+                    - pvc
+                    - hostPath
+                    type: string
+                type: object
+              svcImageTag:
+                description: |-
+                  SvcImageTag overrides just the ent-small-svc image tag, so a fast svc-only iteration
+                  can roll the multi-process pod without re-tagging the DB/UI images (which stay at
+                  ImageTag). Empty falls back to ImageTag.
+                type: string
+            type: object
+          status:
+            description: EnterpriseSmallStatus is the observed state of the appliance
+              (NFR-7.3).
+            properties:
+              activeAgentCapacity:
+                description: ActiveAgentCapacity is the capacity step currently reconciled
+                  (NFR-7.3).
+                enum:
+                - 100
+                - 500
+                - 1000
+                format: int32
+                type: integer
+              conditions:
+                description: |-
+                  Conditions follow the standard metav1.Condition contract
+                  (Ready / DatabaseReady / Degraded).
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              migratedTag:
+                description: |-
+                  MigratedTag is the image tag whose DB migrations have been applied (FR-2.2).
+                  Empty until the first migration Job succeeds.
+                type: string
+              observedAgentCount:
+                description: |-
+                  ObservedAgentCount is the live agent count reported by the appliance (NFR-7.3).
+                  Zero until the appliance reports; populated by a later phase.
+                format: int32
+                type: integer
+              observedGeneration:
+                description: ObservedGeneration is the .metadata.generation last reconciled.
+                format: int64
+                type: integer
+              platform:
+                description: |-
+                  Platform is the platform resolved for this appliance ("openshift"/"kubernetes"),
+                  after applying spec.platform + detection (FR-8).
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

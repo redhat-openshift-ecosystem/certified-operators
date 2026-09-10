@@ -1,0 +1,215 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: ent-small-operator.v0.1.0
+  namespace: placeholder
+  annotations:
+    # Operator Capability Level 4 (requirements FR-2, AC-2).
+    capabilities: Deep Insights
+    categories: "Application Runtime, Database"
+    description: >-
+      Installs and manages the Enterprise Small co-located single-pod Kalybr appliance
+      (ent-small-svc, ent-small-db, ent-public-web, ent-admin-web) with backup/restore,
+      migration-on-upgrade, and capacity scaling.
+    containerImage: ghcr.io/autonous-systems/ent-small-operator@sha256:d23397b9082159661ae5c7a63afec321c68bbda525e40e506670cf6418924e78
+    repository: https://github.com/autonous-systems/kalybr
+    support: Autonous
+    # Red Hat certified-operator infrastructure features. disconnected=true: every operand is a
+    # digest-pinned relatedImage resolved from RELATED_IMAGE_* env, so `oc mirror` installs air-gapped
+    # (the externalized TP embedder is optional/off by default and outside the certified bundle, CON-3).
+    # The rest are declared false (not yet validated) — honest declaration is what cert requires.
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    createdAt: "2026-07-27T00:00:00Z"
+    olm.skipRange: "<0.1.0"
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "kalybr.ai/v1alpha1",
+          "kind": "EnterpriseSmall",
+          "metadata": { "name": "acme", "namespace": "ent-small" },
+          "spec": {
+            "agentCapacity": 100,
+            "platform": "auto",
+            "semanticSearch": { "enabled": false },
+            "publicWeb": { "enabled": true },
+            "backup": { "enabled": false }
+          }
+        }
+      ]
+spec:
+  displayName: Enterprise Small Operator
+  description: |
+    The Enterprise Small operator packages the co-located single-pod Kalybr appliance as
+    a platform-aware Kubernetes operator. It targets OpenShift (Route, restricted-v2 SCC,
+    user-workload monitoring) and, from the same codebase, upstream Kubernetes.
+
+    ## Capabilities (Level 4 — Deep Insights)
+    - Install + seamless upgrades of the full stack via OLM.
+    - Lifecycle: DB-readiness-gated schema migration on upgrade; scheduled pg_dump backup.
+    - Vertical capacity steps (100 / 500 / 1000 agents) with no data loss on change.
+    - Optional semantic search with an externalized embedder (never baked into the image).
+    - Metrics/alerts/status via ServiceMonitor + PrometheusRule and CR .status conditions.
+  version: 0.1.0
+  maturity: alpha
+  minKubeVersion: 1.27.0
+  icon:
+    - mediatype: image/svg+xml
+      base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJFbnRlcnByaXNlIFNtYWxsIj4KICA8cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHJ4PSIxMiIgZmlsbD0iIzFmMjkzMyIvPgogIDxyZWN0IHg9IjE2IiB5PSIxNSIgd2lkdGg9IjMyIiBoZWlnaHQ9IjEwIiByeD0iMyIgZmlsbD0iIzRmNDZlNSIvPgogIDxyZWN0IHg9IjE2IiB5PSIyNyIgd2lkdGg9IjMyIiBoZWlnaHQ9IjEwIiByeD0iMyIgZmlsbD0iIzYzNjZmMSIvPgogIDxyZWN0IHg9IjE2IiB5PSIzOSIgd2lkdGg9IjMyIiBoZWlnaHQ9IjEwIiByeD0iMyIgZmlsbD0iIzgxOGNmOCIvPgogIDxjaXJjbGUgY3g9IjIxIiBjeT0iMjAiIHI9IjEuOCIgZmlsbD0iI2U1ZTdlYiIvPgogIDxjaXJjbGUgY3g9IjIxIiBjeT0iMzIiIHI9IjEuOCIgZmlsbD0iI2U1ZTdlYiIvPgogIDxjaXJjbGUgY3g9IjIxIiBjeT0iNDQiIHI9IjEuOCIgZmlsbD0iI2U1ZTdlYiIvPgo8L3N2Zz4K
+  provider:
+    name: Autonous
+  maintainers:
+    - name: Autonous
+      email: support@autonous.ai
+  links:
+    - name: Source
+      url: https://github.com/autonous-systems/kalybr
+  keywords:
+    - kalybr
+    - ent-small
+    - agents
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: false
+    - type: AllNamespaces
+      supported: true
+  customresourcedefinitions:
+    owned:
+      - name: enterprisesmalls.kalybr.ai
+        kind: EnterpriseSmall
+        version: v1alpha1
+        displayName: Enterprise Small
+        description: A co-located single-pod Kalybr appliance.
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+        - serviceAccountName: ent-small-operator
+          rules:
+            - apiGroups: [""]
+              resources: [events]
+              verbs: [create, patch]
+            - apiGroups: [""]
+              resources: [namespaces]
+              verbs: [get, list, patch, watch]
+            - apiGroups: [""]
+              resources: [persistentvolumeclaims, services]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [apps]
+              resources: [deployments]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [batch]
+              resources: [jobs, cronjobs]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [kalybr.ai]
+              resources: [enterprisesmalls]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [kalybr.ai]
+              resources: [enterprisesmalls/finalizers]
+              verbs: [update]
+            - apiGroups: [kalybr.ai]
+              resources: [enterprisesmalls/status]
+              verbs: [get, patch, update]
+            - apiGroups: [monitoring.coreos.com]
+              resources: [prometheusrules, servicemonitors]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [networking.k8s.io]
+              resources: [ingresses]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [route.openshift.io]
+              resources: [routes]
+              verbs: [create, delete, get, list, patch, update, watch]
+      permissions:
+        - serviceAccountName: ent-small-operator
+          rules:
+            - apiGroups: [coordination.k8s.io]
+              resources: [leases]
+              verbs: [create, get, list, update, watch]
+            - apiGroups: [""]
+              resources: [events]
+              verbs: [create, patch]
+      deployments:
+        - name: ent-small-operator
+          label:
+            app.kubernetes.io/name: ent-small-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: ent-small-operator
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: ent-small-operator
+              spec:
+                serviceAccountName: ent-small-operator
+                securityContext:
+                  runAsNonRoot: true
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: manager
+                    image: ghcr.io/autonous-systems/ent-small-operator@sha256:d23397b9082159661ae5c7a63afec321c68bbda525e40e506670cf6418924e78
+                    args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=:8080
+                      - --leader-elect=true
+                    # Digest-pinned operand images (Red Hat disconnected/air-gap). The operator resolves
+                    # each operand from these RELATED_IMAGE_* vars; they mirror the relatedImages list below.
+                    # scripts/pin-bundle-digests.sh rewrites BOTH these values and relatedImages to @sha256
+                    # at certification time. No embedder here — it is externalized (CON-3).
+                    env:
+                      - name: RELATED_IMAGE_ENT_SMALL_SVC
+                        value: ghcr.io/autonous-systems/ent-small-svc@sha256:abab70d6f612995682cec213b6cc33ac3eed78749002c3d6c80b47221cfdffa8
+                      - name: RELATED_IMAGE_ENT_SMALL_DB
+                        value: ghcr.io/autonous-systems/ent-small-db@sha256:ff187308408de33f92e0deb7edd8885fd0c488953842aa50dd686cea8ef029cc
+                      - name: RELATED_IMAGE_ENT_PUBLIC_WEB
+                        value: ghcr.io/autonous-systems/ent-public-web@sha256:8f415f6a17d634c48a4c24cd9d43ace8cceef7cfd829acf88eebc170f0c314e4
+                      - name: RELATED_IMAGE_ENT_ADMIN_WEB
+                        value: ghcr.io/autonous-systems/ent-admin-web@sha256:a44d7489c49b1a18bc536e52061e418bc89d1eb744c147c6ad9f96598c4c3477
+                    ports:
+                      - name: metrics
+                        containerPort: 8080
+                      - name: probe
+                        containerPort: 8081
+                    livenessProbe:
+                      httpGet: {path: /healthz, port: probe}
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    readinessProbe:
+                      httpGet: {path: /readyz, port: probe}
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities:
+                        drop: [ALL]
+                    resources:
+                      requests: {cpu: 50m, memory: 64Mi}
+                      limits: {cpu: 500m, memory: 256Mi}
+  # relatedImages keeps the bundle air-gap complete (CON-6.1) — every operand image the
+  # operator may render is enumerated so `oc mirror` pulls them. Digest-pin at cert time.
+  relatedImages:
+    - name: operator
+      image: ghcr.io/autonous-systems/ent-small-operator@sha256:d23397b9082159661ae5c7a63afec321c68bbda525e40e506670cf6418924e78
+    - name: ent-small-svc
+      image: ghcr.io/autonous-systems/ent-small-svc@sha256:abab70d6f612995682cec213b6cc33ac3eed78749002c3d6c80b47221cfdffa8
+    - name: ent-small-db
+      image: ghcr.io/autonous-systems/ent-small-db@sha256:ff187308408de33f92e0deb7edd8885fd0c488953842aa50dd686cea8ef029cc
+    - name: ent-public-web
+      image: ghcr.io/autonous-systems/ent-public-web@sha256:8f415f6a17d634c48a4c24cd9d43ace8cceef7cfd829acf88eebc170f0c314e4
+    - name: ent-admin-web
+      image: ghcr.io/autonous-systems/ent-admin-web@sha256:a44d7489c49b1a18bc536e52061e418bc89d1eb744c147c6ad9f96598c4c3477

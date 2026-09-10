@@ -1,0 +1,514 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: disasterrecoverypairs.multicluster.portworx.com
+spec:
+  group: multicluster.portworx.com
+  names:
+    kind: DisasterRecoveryPair
+    listKind: DisasterRecoveryPairList
+    plural: disasterrecoverypairs
+    singular: disasterrecoverypair
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DisasterRecoveryPair is the Schema for the DisasterRecoveryPair
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DisasterRecoveryPairSpec defines the desired state of DisasterRecoveryPair
+            properties:
+              backupLocation:
+                description: |-
+                  BackupLocation specifies the object storage configuration for disaster recovery replication;
+                  defines where backup data and application manifests are stored for cross-cluster recovery operations.
+                properties:
+                  azureConfig:
+                    description: Azure Blob Storage backup location configuration
+                      for disaster recovery pair
+                    properties:
+                      clientID:
+                        description: |-
+                          ClientID is the Azure service principal application/client ID;
+                          optional; required only for Service Principal authentication used in Azure management operations
+                          (object lock, immutability policies); pairs with ClientSecret and TenantID; not required for basic blob storage access.
+                        minLength: 1
+                        type: string
+                      clientSecret:
+                        description: |-
+                          ClientSecret is the Azure service principal client secret (password);
+                          optional; required only for Service Principal authentication used in Azure management operations
+                          (object lock, immutability policies); pairs with ClientID and TenantID; not required for basic blob storage access using StorageAccountKey.
+                        minLength: 1
+                        type: string
+                      containerName:
+                        description: |-
+                          ContainerName is the name of the storage location.
+                          Stork will try to create the container if it does not exist.
+                          Backup snapshot will be successful but won't be uploaded to storage location if container creation fails.
+                        minLength: 1
+                        type: string
+                      environment:
+                        description: |-
+                          Environment specifies the Azure cloud environment type for blob storage;
+                          defaults to empty (uses AzurePublicCloud);
+                          supported values: "AzurePublicCloud" (default), "AzureChinaCloud".
+                        enum:
+                        - AzurePublicCloud
+                        - AzureChinaCloud
+                        type: string
+                      resourceGroupName:
+                        description: |-
+                          ResourceGroupName is the Azure resource group name where storage resources are located;
+                          optional; used for resource organization and management operations.
+                        minLength: 1
+                        type: string
+                      storageAccountKey:
+                        description: |-
+                          StorageAccountKey is the Azure Storage account access key for authentication;
+                          pairs with StorageAccountName for credential-based blob storage access;
+                          required for basic backup/restore operations when not using Service Principal.
+                        minLength: 1
+                        type: string
+                      storageAccountName:
+                        description: |-
+                          StorageAccountName is the Azure Storage account name where the backup container is located;
+                          required for accessing Azure Blob Storage; pairs with StorageAccountKey for credential-based authentication.
+                        minLength: 1
+                        type: string
+                      subscriptionID:
+                        description: |-
+                          SubscriptionID is the Azure subscription ID where cluster resources are located;
+                          optional; required only for Service Principal authentication used in Azure management operations
+                          (object lock, immutability policies); not required for basic blob storage access.
+                        minLength: 1
+                        type: string
+                      tenantID:
+                        description: |-
+                          TenantID is the Azure Active Directory (AAD) tenant ID;
+                          optional; required only for Service Principal authentication used in Azure management operations
+                          (object lock, immutability policies); not required for basic blob storage access.
+                        minLength: 1
+                        type: string
+                    required:
+                    - containerName
+                    - storageAccountKey
+                    - storageAccountName
+                    type: object
+                    x-kubernetes-validations:
+                    - message: storageAccountName is required
+                      rule: has(self.storageAccountName) && size(self.storageAccountName)
+                        > 0
+                    - message: storageAccountKey is required
+                      rule: has(self.storageAccountKey) && size(self.storageAccountKey)
+                        > 0
+                    - message: containerName is required
+                      rule: has(self.containerName) && size(self.containerName) >
+                        0
+                  encryptionKey:
+                    description: EncryptionKey is used for client-side encryption
+                      of application resource manifests (Kubernetes YAMLs) before
+                      uploading to object storage.
+                    minLength: 1
+                    type: string
+                  googleConfig:
+                    description: Google Cloud Storage backup location configuration
+                      for disaster recovery pair
+                    properties:
+                      accountKey:
+                        description: |-
+                          AccountKey is the Google Cloud service account JSON key;
+                          required for authentication to Google Cloud Storage;
+                          contains the JWT credentials used to generate OAuth2 tokens for GCS access.
+                        minLength: 1
+                        type: string
+                      bucketName:
+                        description: |-
+                          BucketName is the name of the storage bucket.
+                          Stork will try to create the bucket if it does not exist.
+                          Backup snapshot will be successful but won't be uploaded to storage location if bucket creation fails.
+                        minLength: 1
+                        type: string
+                      projectID:
+                        description: |-
+                          ProjectID is the Google Cloud Platform (GCP) project ID;
+                          required for creating GCS buckets and managing GCP compute snapshots;
+                          used for both object storage operations and volume snapshot operations.
+                        minLength: 1
+                        type: string
+                    required:
+                    - accountKey
+                    - bucketName
+                    - projectID
+                    type: object
+                    x-kubernetes-validations:
+                    - message: projectID is required
+                      rule: has(self.projectID) && size(self.projectID) > 0
+                    - message: accountKey is required
+                      rule: has(self.accountKey) && size(self.accountKey) > 0
+                    - message: bucketName is required
+                      rule: has(self.bucketName) && size(self.bucketName) > 0
+                  nfsConfig:
+                    description: NFS backup location configuration for disaster recovery
+                      pair
+                    properties:
+                      exportPath:
+                        description: |-
+                          ExportPath is an optional sub-directory within the NFS export for organizing backups;
+                          full NFS path: ServerAddress:SubPath/ExportPath;
+                        type: string
+                      ioTimeoutInSecs:
+                        default: 60
+                        description: |-
+                          IOTimeoutInSecs specifies the NFS I/O timeout in seconds (e.g., 24);
+                          optional; used to configure timeout for NFS operations; stored in backup location configuration.
+                        minimum: 1
+                        type: integer
+                      mountOptions:
+                        description: |-
+                          MountOptions specifies NFS mount options (e.g., "--vers=4.0", "nfsvers=4.1");
+                          optional; passed to the NFS PersistentVolume mount for controlling NFS protocol version and behavior.
+                        type: string
+                      serverAddress:
+                        description: |-
+                          ServerAddress is the NFS server address (hostname or IP);
+                          required for NFS backup location; used to mount the NFS share for backup/restore operations.
+                        minLength: 1
+                        type: string
+                      subPath:
+                        description: |-
+                          SubPath is the export path on the NFS server (e.g., "/stork-nfs");
+                          required; specifies the NFS export directory to mount for backup/restore operations.
+                        minLength: 1
+                        type: string
+                    required:
+                    - ioTimeoutInSecs
+                    - serverAddress
+                    - subPath
+                    type: object
+                    x-kubernetes-validations:
+                    - message: serverAddress is required
+                      rule: has(self.serverAddress) && size(self.serverAddress) >
+                        0
+                    - message: subPath is required
+                      rule: has(self.subPath) && size(self.subPath) > 0
+                    - message: ioTimeoutInSecs is required and must be at least 1
+                      rule: has(self.ioTimeoutInSecs) && self.ioTimeoutInSecs >= 1
+                  s3Config:
+                    description: AWS S3 backup location configuration for disaster
+                      recovery pair
+                    properties:
+                      accessKeyID:
+                        description: |-
+                          AccessKeyID is the AWS access key ID credential used for S3 authentication;
+                          required when useIam is false or not set; ignored when useIam is true (uses EC2 instance IAM roles instead).
+                        type: string
+                      bucketName:
+                        description: |-
+                          BucketName is the S3 bucket name for the backup location.
+                          Stork will try to create the bucket if it does not exist.
+                          Backup snapshot will be successful but won't be uploaded to storage location if bucket creation fails.
+                        minLength: 1
+                        type: string
+                      disableSSL:
+                        description: DisableSSL when true, uses HTTP instead of HTTPS;
+                          defaults to false; set to true to use HTTP for S3-compatible
+                          stores without SSL enabled.
+                        type: boolean
+                      endpoint:
+                        description: Endpoint is the S3 API endpoint URL; required;
+                          set to "s3.amazonaws.com" for AWS S3, or custom URL for
+                          S3-compatible stores (MinIO, Ceph, etc.).
+                        minLength: 1
+                        type: string
+                      region:
+                        description: Region is the AWS region for the S3 bucket; required;
+                          set to appropriate AWS region (e.g., "us-east-1") or region
+                          for S3-compatible stores.
+                        minLength: 1
+                        type: string
+                      secretAccessKey:
+                        description: |-
+                          SecretAccessKey is the AWS secret access key credential that pairs with AccessKeyID for S3 authentication;
+                          required when useIam is false or not set; ignored when useIam is true.
+                        type: string
+                      sse:
+                        description: SSE (Server Side Encryption) type for the S3
+                          bucket; optional.
+                        enum:
+                        - AES256
+                        - aws:kms
+                        type: string
+                      storageClass:
+                        description: StorageClass specifies the S3 storage class for
+                          uploaded objects (e.g., STANDARD, STANDARD_IA); defaults
+                          to empty (uses bucket default); Glacier classes not supported.
+                        minLength: 1
+                        type: string
+                      useIam:
+                        description: UseIam when true, uses the IAM role attached
+                          to the node where Stork pods run instead of AccessKeyID/SecretAccessKey;
+                          defaults to false.
+                        type: boolean
+                    required:
+                    - bucketName
+                    - endpoint
+                    - region
+                    type: object
+                    x-kubernetes-validations:
+                    - message: bucketName is required
+                      rule: has(self.bucketName) && size(self.bucketName) > 0
+                    - message: endpoint is required
+                      rule: has(self.endpoint) && size(self.endpoint) > 0
+                    - message: region is required
+                      rule: has(self.region) && size(self.region) > 0
+                    - message: accessKeyID must be non-empty when useIam is false
+                        or not set
+                      rule: (has(self.useIam) && self.useIam) || (has(self.accessKeyID)
+                        && size(self.accessKeyID) > 0)
+                    - message: secretAccessKey must be non-empty when useIam is false
+                        or not set
+                      rule: (has(self.useIam) && self.useIam) || (has(self.secretAccessKey)
+                        && size(self.secretAccessKey) > 0)
+                  type:
+                    description: Type of backup location
+                    enum:
+                    - s3
+                    - azure
+                    - google
+                    - nfs
+                    type: string
+                required:
+                - type
+                type: object
+                x-kubernetes-validations:
+                - message: 'type must be one of: s3, azure, google, nfs'
+                  rule: self.type in ['s3', 'azure', 'google', 'nfs']
+                - message: s3Config is required when type is s3
+                  rule: self.type != 's3' || has(self.s3Config)
+                - message: azureConfig is required when type is azure
+                  rule: self.type != 'azure' || has(self.azureConfig)
+                - message: googleConfig is required when type is google
+                  rule: self.type != 'google' || has(self.googleConfig)
+                - message: nfsConfig is required when type is nfs
+                  rule: self.type != 'nfs' || has(self.nfsConfig)
+              destinationCluster:
+                description: DestinationCluster defines the destination cluster name
+                minLength: 1
+                type: string
+              disasterRecoveryType:
+                default: ASYNC
+                description: DisasterRecoveryType defines the type of disaster recovery
+                  is desired
+                enum:
+                - SYNC
+                - ASYNC
+                type: string
+              pairType:
+                default: BI-DIRECTIONAL
+                description: PairType defines the type of cluster pairing is desired
+                enum:
+                - UNI-DIRECTIONAL
+                - BI-DIRECTIONAL
+                type: string
+              sourceCluster:
+                description: SourceCluster defines the source cluster name
+                minLength: 1
+                type: string
+            required:
+            - backupLocation
+            - destinationCluster
+            - disasterRecoveryType
+            - pairType
+            - sourceCluster
+            type: object
+            x-kubernetes-validations:
+            - message: pairType is immutable
+              rule: self.pairType == oldSelf.pairType
+            - message: disasterRecoveryType is immutable
+              rule: self.disasterRecoveryType == oldSelf.disasterRecoveryType
+            - message: sourceCluster is immutable
+              rule: self.sourceCluster == oldSelf.sourceCluster
+            - message: destinationCluster is immutable
+              rule: self.destinationCluster == oldSelf.destinationCluster
+            - message: sourceCluster and destinationCluster must be different
+              rule: self.sourceCluster != self.destinationCluster
+          status:
+            description: DisasterRecoveryPairStatus stores the current status of the
+              Disaster Recovery Pair
+            properties:
+              compliant:
+                description: Compliant represents the compliance status of the disaster
+                  recovery pair.
+                properties:
+                  reason:
+                    description: Reason is short description of why the resource is
+                      in non compliant state.
+                    type: string
+                  status:
+                    description: 'Status: is true then resource is compliant and operational.'
+                    type: boolean
+                required:
+                - status
+                type: object
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the DisasterRecoveryPair's state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              destinationCluster:
+                description: Destination Clusters DisasterRecovery Pair status
+                properties:
+                  references:
+                    additionalProperties:
+                      items:
+                        type: string
+                      type: array
+                    description: |-
+                      Cluster's DisasterRecovery Pair Created Object Details
+                      Map of Kubernetes resource kind to array of object references in format: <uid>#<name>#<namespace>
+                    type: object
+                  schedulerStatus:
+                    description: Status of the pairing with the scheduler
+                    enum:
+                    - Initial
+                    - Pending
+                    - Ready
+                    - Error
+                    - Degraded
+                    - Deleting
+                    - NotProvided
+                    type: string
+                  storageStatus:
+                    description: Status of pairing with the storage driver
+                    enum:
+                    - Initial
+                    - Pending
+                    - Ready
+                    - Error
+                    - Degraded
+                    - Deleting
+                    - NotProvided
+                    type: string
+                type: object
+              lastAgentUpdateTimestamp:
+                description: LastAgentUpdateTimestamp is the time when the disaster
+                  recovery pair status was last updated by the agent
+                format: date-time
+                type: string
+              sourceCluster:
+                description: Source Cluster's DisasterRecovery Pair status
+                properties:
+                  references:
+                    additionalProperties:
+                      items:
+                        type: string
+                      type: array
+                    description: |-
+                      Cluster's DisasterRecovery Pair Created Object Details
+                      Map of Kubernetes resource kind to array of object references in format: <uid>#<name>#<namespace>
+                    type: object
+                  schedulerStatus:
+                    description: Status of the pairing with the scheduler
+                    enum:
+                    - Initial
+                    - Pending
+                    - Ready
+                    - Error
+                    - Degraded
+                    - Deleting
+                    - NotProvided
+                    type: string
+                  storageStatus:
+                    description: Status of pairing with the storage driver
+                    enum:
+                    - Initial
+                    - Pending
+                    - Ready
+                    - Error
+                    - Degraded
+                    - Deleting
+                    - NotProvided
+                    type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

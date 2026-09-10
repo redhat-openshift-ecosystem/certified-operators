@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 OPERATOR_NAME  := eqube-operator
 TEMPLATE_FILE  := catalog-templates/basic_template.yaml
-CATALOG_DIR    := catalog
+CATALOG_DIR    := ../../catalogs
 CATALOG_VERSIONS := v4.19 v4.20 v4.21 v4.22
 
 .PHONY: catalogs

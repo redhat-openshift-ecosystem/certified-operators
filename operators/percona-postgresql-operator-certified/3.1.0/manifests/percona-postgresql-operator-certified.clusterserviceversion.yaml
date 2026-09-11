@@ -1,0 +1,1104 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: "percona-postgresql-operator-certified.v3.1.0"
+  annotations:
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    support: percona.com
+    categories: Database
+    capabilities: Deep Insights
+    description: >-
+      Percona Operator for PostgreSQL manages the lifecycle of Percona PostgreSQL
+      cluster instances.
+    createdAt: '2026-09-11T16:09:36Z'
+    repository: https://github.com/percona/percona-postgresql-operator
+    containerImage: registry.connect.redhat.com/percona/percona-postgresql-operator@sha256:0f8ae7286e331e2c1d26b3fb8c8df69e9e6076fa4367edc68ed995c639f76af8
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "pgv2.percona.com/v2",
+          "kind": "PerconaPGCluster",
+          "metadata": {
+            "name": "cluster1"
+          },
+          "spec": {
+            "crVersion": "3.1.0",
+            "initContainer": {
+              "image": "registry.connect.redhat.com/percona/percona-postgresql-operator@sha256:0f8ae7286e331e2c1d26b3fb8c8df69e9e6076fa4367edc68ed995c639f76af8"
+            },
+            "image": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:79ed3ec2a6ed860d0acc6d5ca2c3f42e1be5e09667e7e81ce679ebddf0a0c521",
+            "imagePullPolicy": "Always",
+            "postgresVersion": 18,
+            "instances": [
+              {
+                "name": "instance1",
+                "replicas": 3,
+                "affinity": {
+                  "podAntiAffinity": {
+                    "preferredDuringSchedulingIgnoredDuringExecution": [
+                      {
+                        "weight": 1,
+                        "podAffinityTerm": {
+                          "labelSelector": {
+                            "matchLabels": {
+                              "postgres-operator.crunchydata.com/data": "postgres"
+                            }
+                          },
+                          "topologyKey": "kubernetes.io/hostname"
+                        }
+                      }
+                    ]
+                  }
+                },
+                "dataVolumeClaimSpec": {
+                  "accessModes": [
+                    "ReadWriteOnce"
+                  ],
+                  "resources": {
+                    "requests": {
+                      "storage": "1Gi"
+                    }
+                  }
+                }
+              }
+            ],
+            "proxy": {
+              "pgBouncer": {
+                "replicas": 3,
+                "image": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:42c8629f5dd0f271e41d704250f04d96fa12a1a678a13c3743f38b64be3c1218",
+                "affinity": {
+                  "podAntiAffinity": {
+                    "preferredDuringSchedulingIgnoredDuringExecution": [
+                      {
+                        "weight": 1,
+                        "podAffinityTerm": {
+                          "labelSelector": {
+                            "matchLabels": {
+                              "postgres-operator.crunchydata.com/role": "pgbouncer"
+                            }
+                          },
+                          "topologyKey": "kubernetes.io/hostname"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "backups": {
+              "pgbackrest": {
+                "image": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:c43a1e6444d3ea6d7f6421be7d030f6fb8e77692029042a1ab7975a5ac29fb20",
+                "repoHost": {
+                  "affinity": {
+                    "podAntiAffinity": {
+                      "preferredDuringSchedulingIgnoredDuringExecution": [
+                        {
+                          "weight": 1,
+                          "podAffinityTerm": {
+                            "labelSelector": {
+                              "matchLabels": {
+                                "postgres-operator.crunchydata.com/data": "pgbackrest"
+                              }
+                            },
+                            "topologyKey": "kubernetes.io/hostname"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "manual": {
+                  "repoName": "repo1",
+                  "options": [
+                    "--type=full"
+                  ]
+                },
+                "repos": [
+                  {
+                    "name": "repo1",
+                    "schedules": {
+                      "full": "0 0 * * 6"
+                    },
+                    "volume": {
+                      "volumeClaimSpec": {
+                        "accessModes": [
+                          "ReadWriteOnce"
+                        ],
+                        "resources": {
+                          "requests": {
+                            "storage": "1Gi"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ],
+                "restore": {
+                  "enabled": false,
+                  "repoName": "repo1"
+                }
+              },
+              "volumeSnapshots": {
+                "className": "default",
+                "mode": "offline",
+                "offlineConfig": {
+                  "checkpoint": {
+                    "enabled": true,
+                    "timeoutSeconds": 300
+                  }
+                }
+              }
+            },
+            "pmm": {
+              "enabled": false,
+              "image": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:6b4309035f1fc4c0dcb6b7374ac7a01526319374a071759282a21eb016f754bf",
+              "secret": "cluster1-pmm-secret",
+              "serverHost": "monitoring-service"
+            },
+            "logcollector": {
+              "enabled": true,
+              "image": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:332ac2386031925cef314367366abea5cb6ec1ac0bc601b824422753346bc5df"
+            },
+            "extensions": {
+              "pg_tde": {
+                "vault": null
+              }
+            }
+          }
+        },
+        {
+          "apiVersion": "pgv2.percona.com/v2",
+          "kind": "PerconaPGBackup",
+          "metadata": {
+            "name": "backup1"
+          },
+          "spec": {
+            "pgCluster": "cluster1",
+            "repoName": "repo1"
+          }
+        },
+        {
+          "apiVersion": "pgv2.percona.com/v2",
+          "kind": "PerconaPGRestore",
+          "metadata": {
+            "name": "restore1"
+          },
+          "spec": {
+            "pgCluster": "cluster1",
+            "repoName": "repo1"
+          }
+        },
+        {
+          "apiVersion": "pgv2.percona.com/v2",
+          "kind": "PerconaPGUpgrade",
+          "metadata": {
+            "name": "cluster1-17-to-18"
+          },
+          "spec": {
+            "postgresClusterName": "cluster1",
+            "image": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:381fd23351231c5daf4e3c0165fb0a7766ff54e6b825fb980146bcd532f92164",
+            "fromPostgresVersion": 17,
+            "toPostgresVersion": 18,
+            "toPostgresImage": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:79ed3ec2a6ed860d0acc6d5ca2c3f42e1be5e09667e7e81ce679ebddf0a0c521",
+            "toPgBouncerImage": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:42c8629f5dd0f271e41d704250f04d96fa12a1a678a13c3743f38b64be3c1218",
+            "toPgBackRestImage": "registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:c43a1e6444d3ea6d7f6421be7d030f6fb8e77692029042a1ab7975a5ac29fb20"
+          }
+        }
+      ]
+    certified: 'true'
+spec:
+  displayName: Percona Operator for PostgreSQL
+  provider:
+    name: Percona
+    url: "https://www.percona.com/"
+  keywords:
+    - postgres
+    - postgresql
+    - database
+    - sql
+    - operator
+    - percona
+  description: |-
+    ## Percona is Cloud Native
+
+
+    Percona Operator for PostgreSQL automates and simplifies deploying and managing
+    open source PostgreSQL clusters on Kubernetes. Percona Operator for PostgreSQL is based on Postgres Operator developed by Crunchy Data.
+
+    Whether you need to get a simple PostgreSQL cluster up and running, need to deploy a high availability,
+    fault tolerant cluster in production, or are running your own database-as-a-service, the Operator provides the essential
+    features you need to keep your clusters healthy.
+
+    Consult the
+    [documentation](https://docs.percona.com/percona-operator-for-postgresql/index.html)
+    on the Percona Operator for PostgreSQL for complete details on capabilities
+    and options.
+
+    ### Supported Features
+
+    * **PostgreSQL Cluster Provisioning**
+
+    Create, Scale, & Delete PostgreSQL clusters with ease, while fully customizing your Pods and PostgreSQL configuration.
+
+    * **High Availability**
+
+        Safe, automated failover backed by a distributed consensus based high-availability solution. Uses Pod Anti-Affinity to help resiliency; you can configure how much
+        enforced this can be. Failed primaries automatically heal, allowing for faster recovery time. Support for standby PostgreSQL clusters that work both within and
+        across multiple Kubernetes clusters.
+
+    * **Disaster Recovery**
+
+        Backups and restores leverage the open source pgBackRest utility and includes support for full, incremental, and differential backups as well as efficient delta
+        restores. Set how long you want your backups retained for. Works great with very large databases!
+
+    * **Communication Security**
+
+        Secure communication between your applications and data servers by enabling TLS for your PostgreSQL servers, including the ability to enforce all of your connections
+        to use TLS.
+
+    * **Monitoring**
+
+        Track the health of your PostgreSQL clusters with Percona Monitoring and Management (PMM).
+
+    * **PostgreSQL User Management**
+
+        Quickly add and remove users from your PostgreSQL clusters with powerful commands. Manage password expiration policies or use your preferred PostgreSQL authentication
+        scheme.
+
+    * **Updates Management**
+
+        Safely apply PostgreSQL updates with minimal availability impact to your PostgreSQL clusters.
+
+    * **Advanced Replication Support**
+
+        Choose between asynchronous replication and synchronous replication for workloads that are sensitive to losing transactions.
+
+    * **Clone**
+
+        Create new clusters from your existing clusters or backups.
+
+    * **Connection Pooling**
+
+        Use pgBouncer for connection pooling.
+
+    * **Affinity and Tolerations**
+
+        Have your PostgreSQL clusters deployed to Kubernetes Nodes of your preference with node affinity, or designate which nodes Kubernetes can schedule PostgreSQL instances
+        to with Kubernetes  tolerations.
+
+    * **Scheduled Backups**
+
+        Choose the type of backup (full, incremental, differential) and how frequently you want it to occur on each PostgreSQL cluster.
+
+    * **Backup to S3**
+
+        Store your backups in Amazon S3 or any object storage system that supports the S3 protocol. The Operator can backup, restore, and create new clusters from these backups.
+
+    * **Multi-Namespace Support**
+
+        You can control how the Operator leverages Kubernetes Namespaces with several different deployment models:
+
+        * Deploy the Operator and all PostgreSQL clusters to the same namespace
+        * Deploy the Operator to one Namespace, and all PostgreSQL clusters to a different Namespace
+        * Deploy the Operator to one Namespace, and have your PostgreSQL clusters managed across multiple Namespaces
+
+    * **Full Customizability**
+
+        The Operator not only makes it easy to get PostgreSQL up and running on Kubernetes-enabled platforms, but also allows you to further customize your deployments:
+
+        * Selecting different storage classes for your primary, replica, and backup storage
+        * Select your own container resources class for each PostgreSQL cluster deployment; differentiate between resources applied for primary and replica clusters
+        * Use your own container image repository, including `imagePullSecrets` and private repositories  support
+        * Customize your PostgreSQL configuration
+        * Bring your own trusted certificate authority (CA) for use with the Operator API server
+        * Override your PostgreSQL configuration for each cluster
+        * Use your own custom images, re-define the image for each container separately
+  version: "3.1.0"
+  links:
+    - name: Percona
+      url: "https://www.percona.com/"
+    - name: Documentation
+      url: "https://docs.percona.com/percona-operator-for-postgresql/index.html"
+    - name: Cloud Native Landing Page
+      url: "https://www.percona.com/cloud-native/"
+    - name: GitHub
+      url: "https://github.com/percona/percona-postgresql-operator"
+  maintainers:
+    - name: Percona
+      email: info@percona.com
+  maturity: stable
+  customresourcedefinitions:
+    owned:
+      - name: crunchybridgeclusters.upstream.pgv2.percona.com
+        version: v1beta1
+        kind: CrunchyBridgeCluster
+        displayName: CrunchyBridgeCluster
+        description: CrunchyBridgeCluster CRD
+      - name: perconapgbackups.pgv2.percona.com
+        version: v2
+        kind: PerconaPGBackup
+        displayName: PerconaPGBackup
+        description: PerconaPGBackup CRD
+      - name: perconapgclusters.pgv2.percona.com
+        version: v2
+        kind: PerconaPGCluster
+        displayName: PerconaPGCluster
+        description: PerconaPGCluster CRD
+      - name: perconapgrestores.pgv2.percona.com
+        version: v2
+        kind: PerconaPGRestore
+        displayName: PerconaPGRestore
+        description: PerconaPGRestore CRD
+      - name: perconapgupgrades.pgv2.percona.com
+        version: v2
+        kind: PerconaPGUpgrade
+        displayName: PerconaPGUpgrade
+        description: PerconaPGUpgrade CRD
+      - name: pgadmins.upstream.pgv2.percona.com
+        version: v1beta1
+        kind: PGAdmin
+        displayName: PGAdmin
+        description: PGAdmin CRD
+      - name: pgupgrades.upstream.pgv2.percona.com
+        version: v1beta1
+        kind: PGUpgrade
+        displayName: PGUpgrade
+        description: PGUpgrade CRD
+      - name: postgresclusters.upstream.pgv2.percona.com
+        version: v1beta1
+        kind: PostgresCluster
+        displayName: PostgresCluster
+        description: PostgresCluster CRD
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: true
+      type: MultiNamespace
+    - supported: true
+      type: AllNamespaces
+  install:
+    strategy: deployment
+    spec:
+      permissions:
+        - serviceAccountName: percona-postgresql-operator
+          rules:
+            - apiGroups:
+                - ''
+              resources:
+                - configmaps
+                - persistentvolumeclaims
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ''
+              resources:
+                - endpoints
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ''
+              resources:
+                - endpoints/restricted
+                - pods/exec
+                - services
+              verbs:
+                - create
+            - apiGroups:
+                - ''
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - ''
+              resources:
+                - pods
+                - secrets
+                - serviceaccounts
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - replicasets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - batch
+              resources:
+                - cronjobs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - cert-manager.io
+                - certmanager.k8s.io
+              resources:
+                - certificaterequests
+                - certificates
+                - issuers
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - update
+                - watch
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgbackups
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgbackups/finalizers
+                - perconapgclusters/status
+                - perconapgrestores/finalizers
+                - perconapgrestores/status
+                - perconapgupgrades/finalizers
+                - perconapgupgrades/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgbackups/status
+              verbs:
+                - create
+                - patch
+                - update
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgclusters
+                - perconapgupgrades
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgclusters/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgrestores
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - policy
+              resources:
+                - poddisruptionbudgets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - postgres-operator.crunchydata.com
+              resources:
+                - pgupgrades
+                - postgresclusters
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - rolebindings
+                - roles
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshots
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - crunchybridgeclusters
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - crunchybridgeclusters/finalizers
+                - crunchybridgeclusters/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - pgadmins
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - pgadmins/finalizers
+                - pgupgrades/finalizers
+                - postgresclusters/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - pgadmins/status
+                - pgupgrades/status
+              verbs:
+                - patch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - pgupgrades
+                - postgresclusters
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - postgresclusters/status
+              verbs:
+                - create
+                - patch
+                - update
+      deployments:
+        - name: percona-postgresql-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/component: operator
+                app.kubernetes.io/instance: percona-postgresql-operator
+                app.kubernetes.io/name: percona-postgresql-operator
+                app.kubernetes.io/part-of: percona-postgresql-operator
+                pgv2.percona.com/control-plane: postgres-operator
+            strategy:
+              type: Recreate
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/component: operator
+                  app.kubernetes.io/instance: percona-postgresql-operator
+                  app.kubernetes.io/name: percona-postgresql-operator
+                  app.kubernetes.io/part-of: percona-postgresql-operator
+                  pgv2.percona.com/control-plane: postgres-operator
+              spec:
+                containers:
+                  - env:
+                      - name: WATCH_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            apiVersion: v1
+                            fieldPath: metadata.annotations['olm.targetNamespaces']
+                      - name: PGO_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: LOG_STRUCTURED
+                        value: 'false'
+                      - name: LOG_LEVEL
+                        value: INFO
+                      - name: DISABLE_TELEMETRY
+                        value: 'false'
+                      - name: PGO_WORKERS
+                        value: '1'
+                      - name: PPROF_BIND_ADDRESS
+                        value: '0'
+                      - name: PGO_CONTROLLER_LEADER_ELECTION_ENABLED
+                        value: 'true'
+                      - name: PGO_CONTROLLER_LEASE_NAME
+                        value: ''
+                      - name: PGO_CONTROLLER_LEASE_DURATION
+                        value: 60s
+                      - name: PGO_CONTROLLER_RENEW_DEADLINE
+                        value: 40s
+                      - name: PGO_CONTROLLER_RETRY_PERIOD
+                        value: 10s
+                      - name: PGO_FEATURE_GATES
+                        value: ''
+                    image: registry.connect.redhat.com/percona/percona-postgresql-operator@sha256:0f8ae7286e331e2c1d26b3fb8c8df69e9e6076fa4367edc68ed995c639f76af8
+                    imagePullPolicy: Always
+                    livenessProbe:
+                      failureThreshold: 3
+                      httpGet:
+                        path: /metrics
+                        port: metrics
+                        scheme: HTTP
+                    name: operator
+                    ports:
+                      - containerPort: 8080
+                        name: metrics
+                        protocol: TCP
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                      readOnlyRootFilesystem: true
+                      runAsNonRoot: true
+                serviceAccountName: percona-postgresql-operator
+      clusterPermissions:
+        - serviceAccountName: percona-postgresql-operator
+          rules:
+            - apiGroups:
+                - ''
+              resources:
+                - configmaps
+                - persistentvolumeclaims
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ''
+              resources:
+                - endpoints
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - ''
+              resources:
+                - endpoints/restricted
+                - pods/exec
+                - services
+              verbs:
+                - create
+            - apiGroups:
+                - ''
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - ''
+              resources:
+                - pods
+                - secrets
+                - serviceaccounts
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - deployments
+                - replicasets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - batch
+              resources:
+                - cronjobs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - batch
+              resources:
+                - jobs
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - cert-manager.io
+                - certmanager.k8s.io
+              resources:
+                - certificaterequests
+                - certificates
+                - issuers
+              verbs:
+                - create
+                - delete
+                - deletecollection
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - update
+                - watch
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgbackups
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgbackups/finalizers
+                - perconapgclusters/status
+                - perconapgrestores/finalizers
+                - perconapgrestores/status
+                - perconapgupgrades/finalizers
+                - perconapgupgrades/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgbackups/status
+              verbs:
+                - create
+                - patch
+                - update
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgclusters
+                - perconapgupgrades
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgclusters/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - pgv2.percona.com
+              resources:
+                - perconapgrestores
+              verbs:
+                - create
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - policy
+              resources:
+                - poddisruptionbudgets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - postgres-operator.crunchydata.com
+              resources:
+                - pgupgrades
+                - postgresclusters
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - rbac.authorization.k8s.io
+              resources:
+                - rolebindings
+                - roles
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - snapshot.storage.k8s.io
+              resources:
+                - volumesnapshots
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - watch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - crunchybridgeclusters
+              verbs:
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - crunchybridgeclusters/finalizers
+                - crunchybridgeclusters/status
+              verbs:
+                - patch
+                - update
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - pgadmins
+              verbs:
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - pgadmins/finalizers
+                - pgupgrades/finalizers
+                - postgresclusters/finalizers
+              verbs:
+                - update
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - pgadmins/status
+                - pgupgrades/status
+              verbs:
+                - patch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - pgupgrades
+                - postgresclusters
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - upstream.pgv2.percona.com
+              resources:
+                - postgresclusters/status
+              verbs:
+                - create
+                - patch
+                - update
+  skips:
+    - percona-postgresql-operator-certified.v2.5.0
+    - percona-postgresql-operator-certified.v2.6.0
+    - percona-postgresql-operator-certified.v2.6.1
+    - percona-postgresql-operator-certified.v2.7.0
+    - percona-postgresql-operator-certified.v2.8.0
+    - percona-postgresql-operator-certified.v2.8.1
+    - percona-postgresql-operator-certified.v2.8.2
+    - percona-postgresql-operator-certified.v2.9.0
+    - percona-postgresql-operator-certified.v2.9.0-cw
+    - percona-postgresql-operator-certified.v3.0.0
+  icon:
+    - mediatype: image/svg+xml
+      base64data: PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMTIiIGRhdGEtbmFtZT0iTGF5ZXIgMTIiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjI1MCIgdmlld0JveD0iMCAwIDExMjMuNTEgMTEyMy41MSI+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5jbHMtMSB7CiAgICAgICAgZmlsbDogIzJhYTZkZjsKICAgICAgfQogICAgPC9zdHlsZT4KICA8L2RlZnM+CiAgPGcgaWQ9IkJhY2tncm91bmQiPgogICAgPGc+CiAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTEwNzkuNzksMTAxMC44OUg0My43MUw1NjEuNzUsMTEzLjYybDUxOC4wNCw4OTcuMjdaTTcyLjAzLDk5NC41NGg5NzkuNDRMNTYxLjc1LDE0Ni4zMiw3Mi4wMyw5OTQuNTRaIi8+CiAgICAgIDxnPgogICAgICAgIDxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTI4NS40Niw4MTUuMzFsMzEuMDIsODIuNjNoNDUyLjU2bDY4LjU4LTgyLjYzSDI4NS40NloiLz4KICAgICAgICA8cG9seWxpbmUgY2xhc3M9ImNscy0xIiBwb2ludHM9IjMzOC41OCA3ODYuMjQgNDg1LjI0IDUyOC41MiA1MDQuNzggNTYyLjI2IDM3Ni45MyA3ODYuMjQiLz4KICAgICAgICA8cG9seWdvbiBjbGFzcz0iY2xzLTEiIHBvaW50cz0iNjA3LjExIDcwNi40MyA2NTMuMTkgNzg2LjI0IDgwMS4zOSA3ODYuMjQgNjA3LjExIDQ0OS43NCA0MTIuODMgNzg2LjI0IDU2MS4wMyA3ODYuMjQgNjA3LjExIDcwNi40MyIvPgogICAgICAgIDxwb2x5Z29uIGNsYXNzPSJjbHMtMSIgcG9pbnRzPSI0NzEuNjUgNDQ5Ljc0IDUyMS4wOSA1MzUuMzggNTcwLjU0IDQ0OS43NCA0NzEuNjUgNDQ5Ljc0Ii8+CiAgICAgIDwvZz4KICAgIDwvZz4KICA8L2c+Cjwvc3ZnPg==
+  relatedImages:
+    - name: postgres-18
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:79ed3ec2a6ed860d0acc6d5ca2c3f42e1be5e09667e7e81ce679ebddf0a0c521
+    - name: postgis-18
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:7fe794a0509a7d9c7435e568cf1a5834425e8e9988ecaab08bf731119c3485f9
+    - name: postgres-17
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:7fc2e29866f325e219a504c0c2338b43a179849914813eddfe88d1808d96632b
+    - name: postgis-17
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:b29f2d90df44f40439ad571844166a20a0f057fd4bb222cf015d885db0d09744
+    - name: postgres-16
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:7c21c743abeeddc83dab34755a077cd82051f361c23b351a1f8db9c330396032
+    - name: postgis-16
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:5d4fdfb3c86c007b71bcd5a2afcc48e9d2d5c2a4ce31cdf82dc8dbc1e1951088
+    - name: postgres-15
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:34244ac13650a82f5609fa5e0e5dadf8441762f3a3bcc3a7ceb64068906c2115
+    - name: postgis-15
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:91f43dbb0dfc6c8ec9d92ddff626d91c3f1ce113f1707f7e64e8f3d0c407de57
+    - name: postgres-14
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:bca1baae17f76318fd60a6b8d89f62b7243188c48c32451c8522b5ed52f40078
+    - name: postgis-14
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:c0ad4e559f3fc14a312aed9177b9455bd313c4ff32dafb285beecf94ff41e368
+    - name: pgbackrest
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:c43a1e6444d3ea6d7f6421be7d030f6fb8e77692029042a1ab7975a5ac29fb20
+    - name: pgbouncer
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:42c8629f5dd0f271e41d704250f04d96fa12a1a678a13c3743f38b64be3c1218
+    - name: pmm
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:6b4309035f1fc4c0dcb6b7374ac7a01526319374a071759282a21eb016f754bf
+    - name: logcollector
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:332ac2386031925cef314367366abea5cb6ec1ac0bc601b824422753346bc5df
+    - name: operator
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator@sha256:0f8ae7286e331e2c1d26b3fb8c8df69e9e6076fa4367edc68ed995c639f76af8
+    - name: pgupgrade
+      image: registry.connect.redhat.com/percona/percona-postgresql-operator-containers@sha256:381fd23351231c5daf4e3c0165fb0a7766ff54e6b825fb980146bcd532f92164

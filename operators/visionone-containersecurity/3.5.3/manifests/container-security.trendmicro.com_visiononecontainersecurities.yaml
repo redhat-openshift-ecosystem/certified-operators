@@ -1,0 +1,489 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: visiononecontainersecurities.container-security.trendmicro.com
+spec:
+  group: container-security.trendmicro.com
+  names:
+    kind: VisionOneContainerSecurity
+    listKind: VisionOneContainerSecurityList
+    plural: visiononecontainersecurities
+    singular: visiononecontainersecurity
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: VisionOneContainerSecurity is the Schema for the visiononecontainersecurities
+          API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: VisionOneContainerSecuritySpec defines the desired state
+              of VisionOneContainerSecurity.
+            properties:
+              auditLogCollection:
+                description: |
+                  Kubernetes API server audit log collection (RBAC tracking).
+                  Top-level switch only — provider-specific configuration
+                  (selfManaged / eks / aks / gke / gardener) and the chosen
+                  provider's required fields must be supplied via
+                  spec.auditLogCollection.
+                properties:
+                  enabled:
+                    description: Enable audit log collection.
+                    type: boolean
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              images:
+                description: |
+                  Container image registry overrides. Required for disconnected,
+                  air-gapped, or private-mirror OpenShift clusters. Per-component
+                  digest pinning and FIPS image variants are advanced fields —
+                  set them via spec.images.<component>.
+                properties:
+                  defaults:
+                    description: Default registry, project, tag, pull policy, and
+                      pull secret applied to all component images.
+                    properties:
+                      imagePullSecret:
+                        description: |
+                          Name of a kubernetes.io/dockerconfigjson secret used to
+                          pull component images from a private registry. The
+                          secret must exist in the operator's target namespace.
+                        type: string
+                      project:
+                        description: |
+                          Default project / organization within the registry. Can
+                          be overridden per-image via
+                          spec.images.<component>.project.
+                          Default: trendmicro/container-security.
+                        type: string
+                      pullPolicy:
+                        description: 'Kubernetes image pull policy applied to all
+                          component images. Default: IfNotPresent.'
+                        enum:
+                        - Always
+                        - IfNotPresent
+                        - Never
+                        type: string
+                      registry:
+                        description: |
+                          Default registry to pull images from. Can be overridden
+                          per-image via spec.images.<component>.registry.
+                          If unset, images are pulled from the chart default
+                          (typically Amazon ECR Public Gallery).
+                          Default: public.ecr.aws.
+                        type: string
+                      tag:
+                        description: |
+                          Default image tag for all component images. Typically
+                          set to the helm chart version for consistency. Can be
+                          overridden per-image via
+                          spec.images.<component>.tag.
+                        type: string
+                    type: object
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              proxy:
+                description: |
+                  Outbound proxy configuration for in-cluster components. Covers
+                  the full proxy surface: HTTP(S) endpoints, credentials, the
+                  Kubernetes-service-host bypass toggle, and self-signed
+                  certificate mounts.
+                properties:
+                  excludeKubernetesServiceHost:
+                    description: |
+                      If true, Container Security controllers will not use a
+                      proxy when communicating with the Kubernetes service host.
+                      Default: true.
+                    type: boolean
+                  httpProxy:
+                    description: |
+                      httpProxy, if set, will be used as the proxy for outbound
+                      HTTP traffic. The value may be either a complete URL,
+                      http://host[:port] for an HTTP proxy, or socks5://host[:port]
+                      for a SOCKS proxy.
+                    type: string
+                  httpsProxy:
+                    description: |
+                      httpsProxy, if set, will be used as the proxy for outbound
+                      HTTPS traffic. If httpsProxy is not set, httpProxy is also
+                      checked and will be used if set. The value may be either a
+                      complete URL, http://host[:port] for an HTTP proxy, or
+                      socks5://host[:port] for a SOCKS proxy.
+                    type: string
+                  noProxy:
+                    description: |
+                      noProxy is a comma-separated list of hosts or CIDR blocks
+                      that should not be proxied. Example: "localhost,127.0.0.0/8".
+                    type: string
+                  password:
+                    description: |
+                      Password to provide to the outbound proxy when making
+                      requests. Treat this value as sensitive — consider
+                      referencing an existing secret via
+                      spec.useExistingSecrets.outboundProxy instead.
+                    type: string
+                  selfSignedCertificates:
+                    description: |
+                      Self-signed certificates to mount into each in-cluster
+                      component's /etc/ssl/certs/ folder. Each entry sources a
+                      certificate from a hostPath, Kubernetes Secret, or
+                      ConfigMap. The "type" field selects the source.
+                    items:
+                      properties:
+                        configMapName:
+                          description: Name of the Kubernetes ConfigMap holding the
+                            certificate. Used when type is "configMap".
+                          type: string
+                        key:
+                          description: Key within the Secret or ConfigMap to mount
+                            (mounted as /etc/ssl/certs/<key>). Used when type is "secret"
+                            or "configMap".
+                          type: string
+                        name:
+                          description: Unique volume name for this certificate mount.
+                          type: string
+                        path:
+                          description: Absolute path to the certificate file or directory
+                            on the host. Used when type is "hostPath".
+                          type: string
+                        secretName:
+                          description: Name of the Kubernetes Secret holding the certificate.
+                            Used when type is "secret".
+                          type: string
+                        type:
+                          description: Source type for the certificate mount.
+                          enum:
+                          - hostPath
+                          - secret
+                          - configMap
+                          type: string
+                      type: object
+                    type: array
+                  username:
+                    description: Username to provide to the outbound proxy when making
+                      requests.
+                    type: string
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              serviceGateway:
+                description: |
+                  Trend Service Gateway proxy support for outbound traffic.
+                  When enabled, outbound traffic is routed through one or more
+                  Service Gateway appliances using a Client Security Network
+                  (CSN) credential.
+                properties:
+                  allAppliances:
+                    description: |
+                      When true, retrieves all available Service Gateway
+                      appliances automatically. When false, only the entries in
+                      the appliances list are used. Default: false.
+                    type: boolean
+                  appliances:
+                    description: |
+                      List of Service Gateway appliance endpoints. Each entry
+                      should be in the format "ip:port". Only used when
+                      allAppliances is false.
+                    items:
+                      type: string
+                    type: array
+                  auth:
+                    description: Service Gateway authentication credentials.
+                    properties:
+                      expiredDateTime:
+                        description: |
+                          Expiration date for the CSN credential. Format:
+                          "2024-12-31T23:59:59Z".
+                        type: string
+                      password:
+                        description: |
+                          Client Security Network (CSN) credential for Service
+                          Gateway authentication. Stored in a Kubernetes secret if
+                          the secret does not yet exist; the secret is used on
+                          subsequent reconciles.
+                        type: string
+                    type: object
+                  enabled:
+                    description: 'Enabled controls whether Service Gateway functionality
+                      is enabled. Default: false.'
+                    type: boolean
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              visionOne:
+                description: TrendAI Vision One Container Security feature configuration.
+                properties:
+                  admissionController:
+                    description: |
+                      Validating admission webhook for pod admission and image
+                      signature verification. Advanced tuning (failurePolicy,
+                      validationNamespaceSelector, webhookTimeoutSeconds,
+                      scannerValidation, trustedScanOperators, certificate SANs
+                      and lifetime, readPullSecretsFrom, logLevel) is available
+                      via spec.visionOne.admissionController.
+                    properties:
+                      enabled:
+                        description: Enable the admission controller webhook.
+                        type: boolean
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  bootstrapToken:
+                    description: |
+                      Bootstrap token to be used with TrendAI Vision One Container
+                      Security. Required unless clusterRegistrationKey is enabled
+                      (which authenticates via a separate registration-key secret)
+                      or an existing auth secret is referenced via
+                      spec.useExistingSecrets.containerSecurityAuth.
+                    type: string
+                  clusterName:
+                    description: |
+                      Cluster name to be used during automated cluster registration.
+                      Takes precedence over clusterNamePrefix. Must be less than 64
+                      characters. Ignored when clusterRegistrationKey is false.
+                    type: string
+                  clusterNamePrefix:
+                    description: |
+                      Cluster name prefix to be used during automated cluster
+                      registration when clusterName is not set. Must be less than
+                      16 characters. A random suffix is appended to form the final
+                      cluster name.
+                    type: string
+                  clusterRegistrationKey:
+                    default: false
+                    description: |
+                      Enable automated cluster registration with TrendAI Vision One.
+                      When true, the operator reads the Kubernetes secret named
+                      "trendmicro-container-security-registration-key" (data key:
+                      registration.key) — a Vision One API key with the
+                      "Automatically register cluster" permission — and registers
+                      the cluster on install / unregisters on uninstall.
+                      groupId is required when this flag is true; clusterName,
+                      clusterNamePrefix, and policyId are optional.
+                      This is a boolean flag, not the registration key itself —
+                      the actual key lives in the Kubernetes secret named above.
+                    type: boolean
+                  complianceScan:
+                    description: |
+                      Compliance scanning (e.g. CIS Kubernetes Benchmark). Tune
+                      activeDeadlineSeconds (default 600) via
+                      spec.visionOne.complianceScan.
+                    properties:
+                      enabled:
+                        description: Enable compliance scanning.
+                        type: boolean
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  endpoint:
+                    description: |
+                      Endpoint is the URL of the TrendAI Vision One Container Security
+                      service. Allows for a full endpoint URL to be provided or a
+                      Vision One region shortcut (e.g. "us-1").
+                      Default: https://api.xdr.trendmicro.com/external/v2/direct/vcs/external/vcs
+                    type: string
+                  exclusion:
+                    description: Namespace exclusions for runtime event generation
+                      and OpenShift privileged-namespace handling.
+                    properties:
+                      namespaces:
+                        description: |
+                          List of namespaces for which events will not be generated.
+                          This setting helps reduce unnecessary runtime event counts
+                          for known privileged components.
+                        items:
+                          type: string
+                        type: array
+                      osNsPrefixes:
+                        description: |
+                          OpenShift considers the namespaces listed here as privileged.
+                          These namespaces are excluded to prevent critical components
+                          from being affected by admission control policies or
+                          mitigation mechanisms. Meaning for each prefix:
+                          - openshift: excludes all namespaces with the openshift prefix
+                          - kube:      excludes all namespaces with the kube prefix
+                          - default:   excludes the default namespace
+                          - dedicated-admin: excludes OpenShift's dedicated admin namespace
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  fileIntegrityMonitoring:
+                    description: |
+                      File integrity monitoring (FIM) of container filesystems.
+                      Tune sweepInterval (the rate at which FIM refreshes containers)
+                      via spec.visionOne.fileIntegrityMonitoring.sweepInterval.
+                    properties:
+                      enabled:
+                        description: Enable file integrity monitoring.
+                        type: boolean
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  groupId:
+                    description: |
+                      Group ID used during automated cluster registration. Defaults
+                      to the default cluster group. Required for automated cluster
+                      registration when clusterRegistrationKey is true.
+                    type: string
+                  inventoryCollection:
+                    description: |
+                      Kubernetes resource inventory collection. Inventory is uploaded
+                      periodically to TrendAI Vision One. Tune the collection period
+                      (minimum 5m, maximum 1d) via
+                      spec.visionOne.inventoryCollection.period.
+                    properties:
+                      enabled:
+                        description: Enable inventory collection.
+                        type: boolean
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  malwareScanning:
+                    description: |
+                      Malware scanning of running workloads. Tune scanner autoscaling,
+                      cache, log level, and maximumEventCount via
+                      spec.visionOne.malwareScanning.
+                    properties:
+                      enabled:
+                        description: Enable malware scanning.
+                        type: boolean
+                      excludedPaths:
+                        description: |
+                          Container filesystem paths to skip during malware scans,
+                          in addition to chart defaults like /proc, /dev, /sys.
+                        items:
+                          type: string
+                        type: array
+                      scanTimeoutSeconds:
+                        description: 'Maximum duration in seconds for a single malware
+                          scan operation. Default: 300.'
+                        type: integer
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  oversight:
+                    description: |
+                      Oversight controller. Periodically re-evaluates running pods
+                      against Vision One policy. Tune syncPeriod (default 3600s,
+                      minimum 600s), pageSize (default 100), and logLevel via
+                      spec.visionOne.oversight.
+                    properties:
+                      enabled:
+                        description: Enable the oversight controller.
+                        type: boolean
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  policyId:
+                    description: |
+                      Policy ID to be used when registering the cluster. Takes
+                      precedence over policy-as-code
+                      (policyOperator.clusterPolicyName).
+                    type: string
+                  policyOperator:
+                    description: |
+                      Policy operator (policy-as-code) configuration. Advanced
+                      tuning (reconciliationPeriod, policySyncInterval,
+                      enableNetworkPolicyCreation, enableRuntimeMitigation,
+                      logLevel, ports) is available via
+                      spec.visionOne.policyOperator.
+                    properties:
+                      clusterPolicyName:
+                        description: |
+                          clusterPolicyName is the name of the policy that will be
+                          reconciled by the policy operator. Only one policy can
+                          be reconciled by the policy operator and applied to the
+                          cluster. Use the name defined here as the name of the
+                          ClusterPolicy custom resource. The policy name will also
+                          be used as the Vision One policy name.
+                          Default: trendmicro-cluster-policy.
+                        type: string
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  runtimeSecurity:
+                    description: |
+                      Runtime security monitoring (Falco-based). Advanced tuning
+                      (customRules, OCI ruleset repositories, ruleset tags) is
+                      available via spec.visionOne.runtimeSecurity.
+                    properties:
+                      enabled:
+                        description: Enable runtime security monitoring.
+                        type: boolean
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  secretScanning:
+                    description: |
+                      Scanning of container filesystems for exposed secrets and
+                      credentials. Tune maxFileSize (default 2097152 bytes) and
+                      scanTimeoutSeconds (default 300) via
+                      spec.visionOne.secretScanning.
+                    properties:
+                      enabled:
+                        description: Enable secret scanning.
+                        type: boolean
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  vulnerabilityScanning:
+                    description: Image vulnerability scanning of running and admitted
+                      workloads.
+                    properties:
+                      enabled:
+                        description: Enable vulnerability scanning.
+                        type: boolean
+                    type: object
+                required:
+                - endpoint
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+            required:
+            - visionOne
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of VisionOneContainerSecurity
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of an object's state.
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - type
+                  - status
+                  type: object
+                type: array
+              deployedRelease:
+                description: Information about the deployed Helm release
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

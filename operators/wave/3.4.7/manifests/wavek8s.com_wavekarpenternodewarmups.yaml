@@ -1,0 +1,165 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  creationTimestamp: null
+  name: wavekarpenternodewarmups.wavek8s.com
+spec:
+  group: wavek8s.com
+  names:
+    kind: WaveKarpenterNodeWarmup
+    plural: wavekarpenternodewarmups
+    singular: wavekarpenternodewarmup
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for WaveKarpenterNodeWarmupSpec via
+          `CustomResource`
+        properties:
+          spec:
+            properties:
+              enableImagePrepull:
+                default: false
+                type: boolean
+              enabled:
+                type: boolean
+              nodepoolName:
+                description: NodePool name (portable across clusters). Reconciler
+                  resolves to uid.
+                type: string
+              options:
+                description: |-
+                  Flat spec mirroring all fields from the three `WarmupOptions` DB variants:
+                  `MaxPodAlwaysOptions`, `MaxPodScheduledOptions`, and `TriggerScheduledOptions`.
+
+                  All fields are optional; the reconciler selects the relevant subset based on
+                  `warmup_type` + `schedule_type` and constructs the correct DB enum variant.
+
+                  Note: `PartialEq` is implemented manually below because `node_vcpus` and
+                  `node_memory_gi` are `f64`. The derive macro uses `==` (IEEE bit comparison),
+                  which is standard for config-layer equality checks here.
+                nullable: true
+                properties:
+                  consolidationDisabledMin:
+                    description: Minutes to keep consolidation disabled after warmup
+                      completes.
+                    format: uint32
+                    minimum: 0
+                    nullable: true
+                    type: integer
+                  cronDurationMin:
+                    description: Duration (minutes) the warmup node stays provisioned
+                      per cron firing.
+                    format: uint32
+                    minimum: 0
+                    nullable: true
+                    type: integer
+                  cronExpression:
+                    description: Cron expression controlling when warmup activates.
+                    nullable: true
+                    type: string
+                  excludeStatefulsetPods:
+                    description: |-
+                      Exclude StatefulSet pods from max-pod-size calculation.
+                      Defaults to true at API/task layer when absent.
+                    nullable: true
+                    type: boolean
+                  nodeMemoryGi:
+                    description: Target memory (GiB) for trigger-based warmup nodes.
+                    format: double
+                    nullable: true
+                    type: number
+                  nodeTargetCount:
+                    description: Number of warm nodes to maintain for trigger-based
+                      warmup.
+                    format: uint32
+                    minimum: 0
+                    nullable: true
+                    type: integer
+                  nodeVcpus:
+                    description: Target vCPU count for trigger-based warmup nodes.
+                    format: double
+                    nullable: true
+                    type: number
+                  podSizeBufferPct:
+                    description: Percentage buffer above current max pod size to provision
+                      for.
+                    format: uint32
+                    minimum: 0
+                    nullable: true
+                    type: integer
+                  useAllAzs:
+                    description: Spread warmup nodes across all availability zones.
+                    nullable: true
+                    type: boolean
+                type: object
+              scheduleType:
+                description: |-
+                  Mirrors `WarmupScheduleType` DB enum (`always` | `scheduled`).
+                  Free String at CRD layer; reconciler parses via FromStr.
+                type: string
+              warmupType:
+                description: |-
+                  Mirrors `WarmupType` DB enum (`max_pod` | `trigger`).
+                  Free String at CRD layer; reconciler parses via FromStr.
+                type: string
+            required:
+            - nodepoolName
+            - scheduleType
+            - warmupType
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    Shared status condition shape — mirrors metav1.Condition.
+                    Used by all 15 `WaveXStatus` structs (added in Tasks 6-8).
+
+                    No `Default` derive on purpose: an all-empty-string condition (empty `type`/
+                    `status`/`reason`) is never valid, so we never want one constructed implicitly.
+                    `WaveXStatus` structs default their `conditions` to an empty `Vec`, which does
+                    not require `WaveCondition: Default`.
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: WaveKarpenterNodeWarmup
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

@@ -1,0 +1,128 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  creationTimestamp: null
+  name: wavealerts.wavek8s.com
+spec:
+  group: wavek8s.com
+  names:
+    kind: WaveAlert
+    plural: wavealerts
+    singular: wavealert
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for WaveAlertSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              alertMessages:
+                default: []
+                description: |-
+                  Optional. Channels the alert fans out to. May be omitted or left empty —
+                  the rule is still evaluated, but the alert delivers nowhere until at least
+                  one message (with a `channelRef`) is added. The reconciler skips channel
+                  resolution when this is empty.
+                items:
+                  properties:
+                    channelRef:
+                      description: Name of a `WaveAlertChannel` CR. Resolved to `uuidv5("WaveAlertChannel",
+                        channel_ref)`.
+                      type: string
+                    message:
+                      description: |-
+                        Message template. Rendered as a JS template literal, so interpolate context
+                        variables with `${var}` (e.g. `${namespace}/${workload_name}`). Available
+                        variables depend on the alert's `eventType`. Go-template `{{.var}}` is NOT
+                        substituted and would be emitted verbatim.
+                      type: string
+                  required:
+                  - channelRef
+                  - message
+                  type: object
+                type: array
+              eventRuleCheckIntervalMin:
+                default: 1
+                description: |-
+                  Optional. How often (minutes) the rule is evaluated. Defaults to 1 when
+                  omitted, matching the per-event-type default the UI seeds from
+                  `AlertEventType::default_values()` (core/types). NOTE: that backend
+                  default is per-type; today all types use 1, so this constant stays in
+                  sync. Revisit if any type's default diverges from 1.
+                format: int32
+                type: integer
+              eventRuleExpression:
+                type: string
+              eventTargets:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              eventType:
+                description: |-
+                  One of `deployment_workload_metrics | deployment_scheduling_phase |
+                  autopilot_logs_missing` (matches `AlertEventType::FromStr` in
+                  `core/types/src/models/events.rs`). Free string at the CRD layer.
+                type: string
+              title:
+                type: string
+            required:
+            - eventRuleExpression
+            - eventTargets
+            - eventType
+            - title
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    Shared status condition shape — mirrors metav1.Condition.
+                    Used by all 15 `WaveXStatus` structs (added in Tasks 6-8).
+
+                    No `Default` derive on purpose: an all-empty-string condition (empty `type`/
+                    `status`/`reason`) is never valid, so we never want one constructed implicitly.
+                    `WaveXStatus` structs default their `conditions` to an empty `Vec`, which does
+                    not require `WaveCondition: Default`.
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: WaveAlert
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

@@ -1,0 +1,442 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  creationTimestamp: null
+  name: zabbixagent2s.operator.zabbix.com
+spec:
+  group: operator.zabbix.com
+  names:
+    kind: ZabbixAgent2
+    listKind: ZabbixAgent2List
+    plural: zabbixagent2s
+    singular: zabbixagent2
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.agentStatus
+      name: Status
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Zabbix agent 2 is a new generation of Zabbix agent and may be
+          used in place of Zabbix agent.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ZabbixAgent2Spec defines the desired state of ZabbixAgent2.
+            properties:
+              activeAllow:
+                description: Enables or disables active checks.
+                type: boolean
+              activeServers:
+                description: Zabbix server or proxy addresses, or cluster configurations,
+                  from which to get active checks.
+                items:
+                  pattern: ^[^,\s]+$
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+              agentImage:
+                description: Full Zabbix agent image reference, including a tag or
+                  digest
+                pattern: ^\S+$
+                type: string
+              allowKey:
+                description: |-
+                  Allows execution of item keys that match a pattern.
+                  See also: https://www.zabbix.com/documentation/6.0/en/manual/config/items/restrict_checks
+                type: string
+              bufferSend:
+                description: Maximum time in seconds that values may remain in the
+                  memory buffer.
+                format: int32
+                maximum: 3600
+                minimum: 1
+                type: integer
+              bufferSize:
+                description: Maximum number of values in a memory buffer.
+                format: int32
+                maximum: 65535
+                minimum: 2
+                type: integer
+              debugLevel:
+                description: Debug level for the agent.
+                enum:
+                - 0
+                - 1
+                - 2
+                - 3
+                - 4
+                - 5
+                format: int32
+                type: integer
+              denyKey:
+                description: |-
+                  Denies execution of item keys that match a pattern.
+                  See also: https://www.zabbix.com/documentation/6.0/en/manual/config/items/restrict_checks
+                type: string
+              enablePersistentBuffer:
+                description: Enables local persistent storage for active items.
+                type: boolean
+              enableStatusPort:
+                description: Makes the agent listen on TCP port 31999 for HTTP status
+                  requests.
+                type: boolean
+              extConfigMap:
+                description: ConfigMap containing additional agent configuration.
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              forceActiveChecksOnStart:
+                description: Performs active checks immediately after restart for
+                  the first received configuration.
+                type: boolean
+              globalEnv:
+                description: Global environment settings
+                properties:
+                  debug:
+                    description: Enable component debugging
+                    type: boolean
+                type: object
+              hostAccessMode:
+                default: container
+                description: |-
+                  Node access granted to the agent. Container mode observes only the pod,
+                  host mode adds read-only host filesystems and the host PID namespace, and
+                  privileged mode additionally exposes raw host devices. When omitted,
+                  container mode is used.
+                enum:
+                - container
+                - host
+                - privileged
+                type: string
+              hostInterface:
+                description: Optional host interface.
+                maxLength: 255
+                type: string
+              hostInterfaceItem:
+                description: Optional item used to obtain the host interface.
+                type: string
+              hostname:
+                description: Unique, case-sensitive hostname.
+                type: string
+              hostnameItem:
+                description: Item used to generate the hostname when hostname is not
+                  defined.
+                type: string
+              imagePullPolicy:
+                description: Image pull policy for operand containers
+                enum:
+                - Always
+                - IfNotPresent
+                - Never
+                type: string
+              imagePullSecrets:
+                description: Image pull secrets
+                items:
+                  description: LocalResourceName is a name of a Kubernetes resource
+                    in the custom resource namespace
+                  maxLength: 253
+                  minLength: 1
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                  type: string
+                maxItems: 32
+                type: array
+              logRemoteCommands:
+                description: Enables logging of executed shell commands as warnings.
+                type: boolean
+              maxLinesPerSecond:
+                description: Maximum number of new lines sent per second when processing
+                  log active checks.
+                format: int32
+                maximum: 1000
+                minimum: 1
+                type: integer
+              metadata:
+                description: Optional host metadata.
+                maxLength: 255
+                type: string
+              metadataItem:
+                description: Optional agent item used to obtain host metadata.
+                type: string
+              passiveAllow:
+                description: Enables or disables passive checks.
+                type: boolean
+              passiveServers:
+                description: IP addresses, CIDR ranges, or DNS names of Zabbix servers
+                  and proxies allowed to connect.
+                items:
+                  pattern: ^[^,\s]+$
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+              persistentBufferClaim:
+                description: |-
+                  PersistentVolumeClaim used for the agent 2 persistent-buffer SQLite database.
+                  Multi-node DaemonSets require ReadWriteMany storage with SQLite-compatible locking and sync semantics.
+                  Each node uses pbuffer/<namespace>/<CR name>/<node name>; directories must be writable by the agent.
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              persistentBufferPeriod:
+                description: Time for which data is stored when there is no connection
+                  to a server or proxy.
+                pattern: ^(\d+|\d+[smhdw])$
+                type: string
+              pluginTimeout:
+                description: Timeout for connections with loadable plugins.
+                format: int32
+                maximum: 30
+                minimum: 1
+                type: integer
+              podMetadata:
+                description: Metadata added to managed Pod templates. Operator-managed
+                  labels take precedence on conflicts.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Additional annotations
+                    maxProperties: 128
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Additional labels
+                    maxProperties: 64
+                    type: object
+                type: object
+              refreshActiveChecks:
+                description: Interval in seconds at which the list of active checks
+                  is refreshed.
+                format: int32
+                maximum: 3600
+                minimum: 60
+                type: integer
+              serverHost:
+                description: Main Zabbix server or proxy for passive and active checks.
+                pattern: ^\S+$
+                type: string
+              serviceMetadata:
+                description: Metadata added to managed Services. Operator-managed
+                  labels take precedence on conflicts.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Additional annotations
+                    maxProperties: 128
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Additional labels
+                    maxProperties: 64
+                    type: object
+                type: object
+              timeout:
+                description: Maximum time in seconds spent processing a request.
+                format: int32
+                maximum: 30
+                minimum: 1
+                type: integer
+              tlsAccept:
+                description: |-
+                  Incoming connection types to accept.
+                  See also: https://www.zabbix.com/documentation/6.0/manual/encryption
+                items:
+                  description: |-
+                    TLSConnectionType identifies a transport accepted from an incoming Zabbix
+                    peer. A slice of these values is rendered as the comma-delimited TLSAccept
+                    parameter expected by Zabbix components.
+                  enum:
+                  - unencrypted
+                  - psk
+                  - cert
+                  type: string
+                maxItems: 3
+                minItems: 1
+                type: array
+                x-kubernetes-list-type: set
+              tlsCAFileName:
+                description: |-
+                  Top-level CA certificate file used for peer certificate verification.
+                  Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                type: string
+              tlsCRLFileName:
+                description: |-
+                  Certificate revocation list file used for encrypted communication.
+                  Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                type: string
+              tlsCertFileName:
+                description: |-
+                  Agent certificate or certificate chain file used for encrypted communication.
+                  Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                type: string
+              tlsConnect:
+                description: Connection type used when connecting to a Zabbix server
+                  or proxy.
+                enum:
+                - unencrypted
+                - psk
+                - cert
+                type: string
+              tlsEncSecret:
+                description: Secret containing certificates and/or PSK files used
+                  for encrypted communication.
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              tlsKeyFileName:
+                description: |-
+                  Agent private key file used for encrypted communication.
+                  Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                type: string
+              tlsPSKFileName:
+                description: |-
+                  Agent pre-shared key file used for encrypted communication.
+                  Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                type: string
+              tlsPSKIdentity:
+                description: Pre-shared key identity used for encrypted communication
+                  with a Zabbix server.
+                type: string
+              tlsServerCertIssuer:
+                description: Allowed server or proxy certificate issuer.
+                type: string
+              tlsServerCertSubject:
+                description: Allowed server or proxy certificate subject.
+                type: string
+              unsafeUserParameters:
+                description: Allows all characters in arguments to user-defined parameters.
+                type: boolean
+              useHostNodeName:
+                default: true
+                description: Uses the node name as the hostname.
+                type: boolean
+            required:
+            - serverHost
+            type: object
+            x-kubernetes-validations:
+            - message: persistentBufferClaim is required when enablePersistentBuffer
+                is true
+              rule: '!has(self.enablePersistentBuffer) || !self.enablePersistentBuffer
+                || has(self.persistentBufferClaim)'
+            - message: useHostNodeName must be false when hostname or hostnameItem
+                is specified
+              rule: (!has(self.hostname) && !has(self.hostnameItem)) || (has(self.useHostNodeName)
+                && !self.useHostNodeName)
+            - message: hostname and hostnameItem cannot be specified together
+              rule: '!(has(self.hostname) && has(self.hostnameItem))'
+          status:
+            description: ZabbixAgent2Status defines the observed state of ZabbixAgent2.
+            properties:
+              agentStatus:
+                description: Status of agent 2 deployment operation.
+                type: string
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the resource state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              observedGeneration:
+                description: ObservedGeneration is the generation last processed by
+                  the controller
+                format: int64
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

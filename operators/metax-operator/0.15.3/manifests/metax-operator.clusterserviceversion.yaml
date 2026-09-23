@@ -1,0 +1,679 @@
+---
+# Copyright (c) 2026 MetaX Integrated Circuits (Shanghai) Co., Ltd. All rights reserved.
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "gpu.metax-tech.com/v1alpha1",
+          "kind": "ClusterOperator",
+          "metadata": {
+            "name": "cluster-operator"
+          },
+          "spec": {
+            "cluster": {
+              "type": "auto",
+              "version": "auto"
+            },
+            "dataExporter": {
+              "deploy": false,
+              "image": {
+                "name": "mx-exporter",
+                "pullPolicy": "IfNotPresent",
+                "registry": "cr.metax-tech.com/cloud",
+                "version": "sha256:caeeeff3858857b4a1e7611462ffed95460eea81be2ec869758eceeff99927a7"
+              },
+              "service": {
+                "port": 30445,
+                "type": "ClusterIP"
+              }
+            },
+            "devicePlugin": {
+              "cmInit": {
+                "config": {
+                  "cluster-config": "mode: \"native\"\nsgpuHybrid: null\nshareNums: 4\ndeviceAllocationStrategy: \"native\"\n",
+                  "version": "v1"
+                }
+              },
+              "connectDetectPeriod": "0s",
+              "deploy": true,
+              "healthyInterval": 5,
+              "image": {
+                "name": "gpu-device",
+                "pullPolicy": "IfNotPresent",
+                "registry": "cr.metax-tech.com/cloud",
+                "version": "sha256:491fdaba59bb198b838614ce58040163608b0a3ffc424a12d6ae670ff6501f4c"
+              },
+              "log": {
+                "dir": "/var/log/metax",
+                "format": "json",
+                "level": "info",
+                "maxAge": "26w",
+                "rotationTime": "1w"
+              }
+            },
+            "driver": {
+              "cmInit": {
+                "config": {
+                  "module-params": "null\n",
+                  "node-module-params": "null\n",
+                  "node-vfnums": "nodes:\n  sample-node:\n    vfnum: 4\n  sample-node2:\n    vfnum: 2\n",
+                  "nodes-config": "",
+                  "version": "v1"
+                },
+                "vfio": {
+                  "vfio": "- nodeName: worker-node1\n  gpus: \"\"\n"
+                }
+              },
+              "deploy": true,
+              "deployPolicy": "PreferCloud",
+              "deviceAsRootGroup": false,
+              "fwEffectPolicy": "NextReboot",
+              "fwEnableVirt": false,
+              "fwUpgradePolicy": "Never",
+              "image": {
+                "name": "driver-manager",
+                "pullPolicy": "IfNotPresent",
+                "registry": "cr.metax-tech.com/cloud",
+                "version": "sha256:c005ab78e7b796baadee2fd217847071b1619b0f3f4c82f56fdab59fa10dd888"
+              },
+              "log": {
+                "dir": "/var/log/metax",
+                "format": "json",
+                "level": "info",
+                "maxAge": "26w",
+                "rotationTime": "1w"
+              },
+              "payload": {
+                "name": "driver-image",
+                "pullPolicy": "IfNotPresent",
+                "registry": "cr.metax-tech.com/cloud",
+                "version": ""
+              },
+              "upgradePolicy": {
+                "enableRollout": false,
+                "fallback": "pause",
+                "maxFailureThreshold": 5,
+                "maxParallel": "100%",
+                "maxUnavailable": "0%",
+                "pause": false,
+                "upgradeSteps": [
+                  {
+                    "pauseDuration": 30000,
+                    "replicas": 1
+                  },
+                  {
+                    "pauseDuration": 0,
+                    "replicas": "100%"
+                  }
+                ]
+              }
+            },
+            "gpuScheduler": {
+              "deploy": false,
+              "v1": {
+                "gpuAware": {
+                  "image": {
+                    "name": "gpu-aware",
+                    "pullPolicy": "IfNotPresent",
+                    "registry": "cr.metax-tech.com/cloud",
+                    "version": "sha256:5d46e535066ca6ee8ce27b0cf828edb8cc850039675ca87814e0970bc5160e69"
+                  },
+                  "log": {
+                    "dir": "/var/log/metax",
+                    "format": "json",
+                    "level": "info",
+                    "maxAge": "26w",
+                    "rotationTime": "1w"
+                  }
+                },
+                "image": {
+                  "name": "kube-scheduler",
+                  "pullPolicy": "",
+                  "registry": "",
+                  "version": ""
+                }
+              },
+              "v2": {
+                "image": {
+                  "name": "gpu-scheduler",
+                  "pullPolicy": "IfNotPresent",
+                  "registry": "cr.metax-tech.com/cloud",
+                  "version": "sha256:2e8dad72fa0ec4cc86c3ddad5dec7198e56ab64a9e26d41485a570e60b04115a"
+                }
+              },
+              "version": "v1"
+            },
+            "labelgen": {
+              "deploy": true,
+              "image": {
+                "name": "gpu-label",
+                "pullPolicy": "IfNotPresent",
+                "registry": "cr.metax-tech.com/cloud",
+                "version": "sha256:e252276a733ac41796a0efa3de81453ab536725c64cfc1fed04582c123d96ef6"
+              },
+              "log": {
+                "dir": "/var/log/metax",
+                "format": "json",
+                "level": "info",
+                "maxAge": "26w",
+                "rotationTime": "1w"
+              }
+            },
+            "maca": {
+              "cmInit": {
+                "config": {
+                  "cleanup": "threshold: 5\ncleanupPolicy: Never\n"
+                }
+              },
+              "deploy": true,
+              "image": {
+                "name": "driver-manager",
+                "pullPolicy": "IfNotPresent",
+                "registry": "cr.metax-tech.com/cloud",
+                "version": "sha256:c005ab78e7b796baadee2fd217847071b1619b0f3f4c82f56fdab59fa10dd888"
+              },
+              "log": {
+                "dir": "/var/log/metax",
+                "format": "json",
+                "level": "info",
+                "maxAge": "26w",
+                "rotationTime": "1w"
+              },
+              "payload": {
+                "images": [],
+                "pullPolicy": "IfNotPresent",
+                "registry": "cr.metax-tech.com/library"
+              },
+              "resources": {
+                "limits": {
+                  "memory": "10Gi"
+                },
+                "requests": {
+                  "memory": "1Gi"
+                }
+              }
+            },
+            "openshift": {
+              "deploy": null
+            },
+            "runtime": {
+              "config": {
+                "cdiMode": "env"
+              },
+              "deploy": true,
+              "image": {
+                "name": "container-runtime",
+                "pullPolicy": "IfNotPresent",
+                "registry": "cr.metax-tech.com/cloud",
+                "version": "sha256:e2c5b0c407aabfd0872836cf8a6886db977c33491ffa08462039634cc5d33150"
+              },
+              "log": {
+                "dir": "/var/log/metax",
+                "format": "json",
+                "level": "info",
+                "maxAge": "26w",
+                "rotationTime": "1w"
+              }
+            },
+            "topoDiscovery": {
+              "deploy": false,
+              "dragonfly": {
+                "enableTraining": false,
+                "nodeNumber": 2
+              },
+              "master": {
+                "image": {
+                  "name": "topo-master",
+                  "pullPolicy": "IfNotPresent",
+                  "registry": "cr.metax-tech.com/cloud",
+                  "version": "sha256:83112ba33c0978513d2c2db70f0c9b2db6d50936691997b5361e5248ef634a33"
+                },
+                "log": {
+                  "dir": "/var/log/metax",
+                  "format": "json",
+                  "level": "info",
+                  "maxAge": "26w",
+                  "rotationTime": "1w"
+                },
+                "podTemplateSpec": {
+                  "spec": {
+                    "affinity": {
+                      "nodeAffinity": {
+                        "preferredDuringSchedulingIgnoredDuringExecution": [
+                          {
+                            "preference": {
+                              "matchExpressions": [
+                                {
+                                  "key": "node-role.kubernetes.io/master",
+                                  "operator": "In",
+                                  "values": [
+                                    ""
+                                  ]
+                                }
+                              ]
+                            },
+                            "weight": 1
+                          },
+                          {
+                            "preference": {
+                              "matchExpressions": [
+                                {
+                                  "key": "node-role.kubernetes.io/control-plane",
+                                  "operator": "In",
+                                  "values": [
+                                    ""
+                                  ]
+                                }
+                              ]
+                            },
+                            "weight": 1
+                          }
+                        ]
+                      }
+                    },
+                    "tolerations": [
+                      {
+                        "effect": "NoSchedule",
+                        "key": "node-role.kubernetes.io/master",
+                        "operator": "Equal",
+                        "value": ""
+                      },
+                      {
+                        "effect": "NoSchedule",
+                        "key": "node-role.kubernetes.io/control-plane",
+                        "operator": "Equal",
+                        "value": ""
+                      }
+                    ]
+                  }
+                },
+                "serverPort": 9001
+              },
+              "mode": "config",
+              "rpcServerPort": 10001,
+              "switchbox": {
+                "clusterManagerAddress": null,
+                "clusterManagerPassword": null,
+                "clusterManagerPollEventPeriod": 10,
+                "clusterManagerPollTopoPeriod": 30,
+                "clusterManagerUser": null,
+                "enableTraining": false,
+                "nodeNumber": 2
+              },
+              "worker": {
+                "image": {
+                  "name": "topo-worker",
+                  "pullPolicy": "IfNotPresent",
+                  "registry": "cr.metax-tech.com/cloud",
+                  "version": "sha256:62c5d0d8eccd70f7dbb3be54748fd028203352415d41e7bfef3cbbac86171b46"
+                },
+                "log": {
+                  "dir": "/var/log/metax",
+                  "format": "json",
+                  "level": "info",
+                  "maxAge": "26w",
+                  "rotationTime": "1w"
+                },
+                "metricsPort": 9002
+              }
+            },
+            "vendor": {
+              "charDev": null,
+              "domain": null,
+              "driver": null,
+              "vendorID": null,
+              "virtDriver": null
+            }
+          }
+        }
+      ]
+    capabilities: Full Lifecycle
+    categories: AI/Machine Learning, OpenShift Optional
+    containerImage: cr.metax-tech.com/cloud/operator-controller@sha256:052c0226bf55006a70207703844ffe23fe639fd48a99d7772de2ac3e9861e9a5
+    createdAt: "2026-08-21T05:59:32Z"
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "true"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/os.linux: supported
+    repository: ""
+    support: Metax Tech
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/os.linux: supported
+  name: metax-operator.v0.15.3
+  namespace: placeholder
+spec:
+  customresourcedefinitions:
+    owned:
+    - description: Manages ClusterOperator resources
+      displayName: ClusterOperator
+      kind: ClusterOperator
+      name: clusteroperators.gpu.metax-tech.com
+      version: v1alpha1
+  description: |
+    The Metax Operator manages the full lifecycle of GPU drivers,
+    MACA runtime, device plugins, and monitoring components on Kubernetes clusters.
+    It automates the deployment, configuration, and maintenance of GPU infrastructure
+    for AI/ML workloads.
+  displayName: Metax Operator
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - events
+          - nodes
+          - persistentvolumeclaims
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+          - edit
+          - exec
+        - apiGroups:
+          - ""
+          resources:
+          - endpoints
+          - namespaces
+          - pods
+          - serviceaccounts
+          - services
+          - services/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - deployments
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+          - get
+          - list
+          - update
+        - apiGroups:
+          - gpu.metax-tech.com
+          resources:
+          - '*'
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - node.k8s.io
+          resources:
+          - runtimeclasses
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          - rolebindings
+          - roles
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - scheduling.k8s.io
+          resources:
+          - priorityclasses
+          verbs:
+          - create
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - certificates.k8s.io
+          resources:
+          - certificatesigningrequests
+          verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+          - delete
+        - apiGroups:
+          - certificates.k8s.io
+          resources:
+          - certificatesigningrequests/approval
+          verbs:
+          - update
+        - apiGroups:
+          - certificates.k8s.io
+          resourceNames:
+          - kubernetes.io/kubelet-serving
+          resources:
+          - signers
+          verbs:
+          - approve
+        - apiGroups:
+          - admissionregistration.k8s.io
+          resources:
+          - validatingwebhookconfigurations
+          - mutatingwebhookconfigurations
+          verbs:
+          - create
+          - get
+          - list
+          - watch
+          - delete
+          - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        - apiGroups:
+          - config.openshift.io
+          resources:
+          - clusterversions
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+          - patch
+          - delete
+          - use
+        serviceAccountName: metax-operator
+      deployments:
+      - name: metax-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/component: metax-operator
+              app.kubernetes.io/instance: metax-operator
+              app.kubernetes.io/name: metax-operator
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/component: metax-operator
+                app.kubernetes.io/instance: metax-operator
+                app.kubernetes.io/name: metax-operator
+            spec:
+              affinity:
+                nodeAffinity:
+                  preferredDuringSchedulingIgnoredDuringExecution:
+                  - preference:
+                      matchExpressions:
+                      - key: node-role.kubernetes.io/master
+                        operator: In
+                        values:
+                        - ""
+                    weight: 1
+                  - preference:
+                      matchExpressions:
+                      - key: node-role.kubernetes.io/control-plane
+                        operator: In
+                        values:
+                        - ""
+                    weight: 1
+              containers:
+              - args:
+                - --leader-elect
+                command:
+                - /metax-operator
+                env:
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: NODE_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: spec.nodeName
+                - name: MINIMAL_MODE
+                  value: "false"
+                - name: OPERATOR_REGISTRY
+                  value: cr.metax-tech.com/cloud
+                image: cr.metax-tech.com/cloud/operator-controller@sha256:052c0226bf55006a70207703844ffe23fe639fd48a99d7772de2ac3e9861e9a5
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: metax-operator
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                securityContext: {}
+              securityContext: {}
+              serviceAccountName: metax-operator
+              tolerations:
+              - effect: NoSchedule
+                key: node-role.kubernetes.io/master
+                operator: Equal
+                value: ""
+              - effect: NoSchedule
+                key: node-role.kubernetes.io/control-plane
+                operator: Equal
+                value: ""
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - GPU
+  - Metax
+  - AI
+  - Machine Learning
+  - Deep Learning
+  links:
+  - name: Documentation
+    url: https://docs.metax-tech.com
+  - name: Support
+    url: https://support.metax-tech.com
+  maintainers:
+  - email: support@metax-tech.com
+    name: Metax Team
+  maturity: stable
+  minKubeVersion: 1.23.0
+  provider:
+    name: Metax Tech
+  relatedImages:
+  - image: cr.metax-tech.com/cloud/operator-controller@sha256:052c0226bf55006a70207703844ffe23fe639fd48a99d7772de2ac3e9861e9a5
+    name: operator-controller
+  - image: cr.metax-tech.com/cloud/driver-manager@sha256:c005ab78e7b796baadee2fd217847071b1619b0f3f4c82f56fdab59fa10dd888
+    name: driver-manager
+  - image: cr.metax-tech.com/cloud/gpu-device@sha256:491fdaba59bb198b838614ce58040163608b0a3ffc424a12d6ae670ff6501f4c
+    name: gpu-device
+  - image: cr.metax-tech.com/cloud/gpu-label@sha256:e252276a733ac41796a0efa3de81453ab536725c64cfc1fed04582c123d96ef6
+    name: gpu-label
+  - image: cr.metax-tech.com/cloud/gpu-aware@sha256:5d46e535066ca6ee8ce27b0cf828edb8cc850039675ca87814e0970bc5160e69
+    name: gpu-aware
+  - image: cr.metax-tech.com/cloud/gpu-scheduler@sha256:2e8dad72fa0ec4cc86c3ddad5dec7198e56ab64a9e26d41485a570e60b04115a
+    name: gpu-scheduler
+  - image: cr.metax-tech.com/cloud/container-runtime@sha256:e2c5b0c407aabfd0872836cf8a6886db977c33491ffa08462039634cc5d33150
+    name: container-runtime
+  - image: cr.metax-tech.com/cloud/mx-exporter@sha256:caeeeff3858857b4a1e7611462ffed95460eea81be2ec869758eceeff99927a7
+    name: mx-exporter
+  - image: cr.metax-tech.com/cloud/topo-master@sha256:83112ba33c0978513d2c2db70f0c9b2db6d50936691997b5361e5248ef634a33
+    name: topo-master
+  - image: cr.metax-tech.com/cloud/topo-worker@sha256:62c5d0d8eccd70f7dbb3be54748fd028203352415d41e7bfef3cbbac86171b46
+    name: topo-worker
+  replaces: metax-operator.v0.15.2
+  version: 0.15.3

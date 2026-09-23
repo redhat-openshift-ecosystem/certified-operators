@@ -1,0 +1,707 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  creationTimestamp: null
+  name: zabbixproxysqlites.operator.zabbix.com
+spec:
+  group: operator.zabbix.com
+  names:
+    kind: ZabbixProxySqlite
+    listKind: ZabbixProxySqliteList
+    plural: zabbixproxysqlites
+    singular: zabbixproxysqlite
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.proxyStatus
+      name: Status
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Zabbix proxy with SQLite database
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ZabbixProxySqliteSpec defines the desired state of ZabbixProxySqlite
+            properties:
+              enableSNMPTraps:
+                description: Enable receiving SNMP traps. When omitted, the operator
+                  disables SNMP trap processing.
+                type: boolean
+              globalEnv:
+                description: Global environment settings
+                properties:
+                  debug:
+                    description: Enable component debugging
+                    type: boolean
+                type: object
+              imagePullPolicy:
+                description: Image pull policy for operand containers
+                enum:
+                - Always
+                - IfNotPresent
+                - Never
+                type: string
+              imagePullSecrets:
+                description: Image pull secrets
+                items:
+                  description: LocalResourceName is a name of a Kubernetes resource
+                    in the custom resource namespace
+                  maxLength: 253
+                  minLength: 1
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                  type: string
+                maxItems: 32
+                type: array
+              javaGateway:
+                description: Configuration parameters for Zabbix Java Gateway
+                properties:
+                  allowedPeers:
+                    description: |-
+                      Additional Zabbix servers and proxies allowed to connect to Java Gateway.
+                      The operator-managed server or proxy peer DNS name is always included.
+                    items:
+                      pattern: ^[^,\s]+$
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  debugLevel:
+                    description: Specifies debug level
+                    enum:
+                    - all
+                    - debug
+                    - info
+                    - warn
+                    - error
+                    - fatal
+                    - "off"
+                    - trace
+                    type: string
+                  extLibsClaim:
+                    description: Additional Java libraries for Zabbix Java Gateway
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  javaOptions:
+                    description: Additional arguments for JVM
+                    type: string
+                  startPollers:
+                    description: Number of worker threads to start
+                    format: int32
+                    maximum: 1000
+                    minimum: 1
+                    type: integer
+                  timeout:
+                    description: How long to wait for network operations
+                    format: int32
+                    maximum: 30
+                    minimum: 1
+                    type: integer
+                type: object
+              javaGatewayImage:
+                description: Full Zabbix Java gateway image reference, including a
+                  tag or digest
+                pattern: ^\S+$
+                type: string
+              javaGatewaySize:
+                default: 0
+                description: The desired number of Zabbix Java Gateways for the deployment.
+                  When omitted, the operator disables Java Gateway.
+                format: int32
+                minimum: 0
+                type: integer
+              podMetadata:
+                description: Metadata added to managed Pod templates. Operator-managed
+                  labels take precedence on conflicts.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Additional annotations
+                    maxProperties: 128
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Additional labels
+                    maxProperties: 64
+                    type: object
+                type: object
+              proxy:
+                description: Configuration parameters for Zabbix proxy
+                properties:
+                  cacheSize:
+                    description: Size of configuration cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  configFrequency:
+                    description: How often proxy retrieves configuration data from
+                      Zabbix server in seconds
+                    format: int32
+                    maximum: 604800
+                    minimum: 1
+                    type: integer
+                  dataSenderFrequency:
+                    description: Proxy will send collected data to the server every
+                      N seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  debugLevel:
+                    description: Specifies debug level
+                    format: int32
+                    maximum: 5
+                    minimum: 0
+                    type: integer
+                  enableRemoteCommands:
+                    description: Whether remote commands from Zabbix server are allowed
+                    type: boolean
+                  externalScriptsClaim:
+                    description: Location of external scripts
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  historyCacheSize:
+                    description: Size of history cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  historyIndexCacheSize:
+                    description: Size of history index cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  hostname:
+                    description: Unique, case-sensitive proxy name
+                    maxLength: 128
+                    type: string
+                  hostnameItem:
+                    description: Item used for setting Hostname if it is undefined
+                      (this will be run on the proxy similarly as on an agent)
+                    type: string
+                  housekeepingFrequency:
+                    description: How often Zabbix will perform housekeeping procedure
+                      (in hours)
+                    format: int32
+                    maximum: 24
+                    minimum: 0
+                    type: integer
+                  loadModule:
+                    description: Modules to load at proxy startup.
+                    items:
+                      pattern: ^[^,\s]+$
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  logRemoteCommands:
+                    description: Enable logging of executed shell commands as warnings
+                    type: boolean
+                  logSlowQueries:
+                    description: How long a database query may take before being logged
+                      (in milliseconds)
+                    format: int32
+                    maximum: 3600000
+                    minimum: 0
+                    type: integer
+                  mibsClaim:
+                    description: Additional MIB files location
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  modulesClaim:
+                    description: Zabbix proxy loadable modules volume claim
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  nodeNameAsDBName:
+                    description: Use node name as SQLite3 database file. Useful in
+                      case of multiple proxies
+                    type: boolean
+                  proxyHeartbeatFrequency:
+                    description: Frequency of heartbeat messages in seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 0
+                    type: integer
+                  proxyLocalBuffer:
+                    description: Proxy will keep data locally for N hours, even if
+                      the data have already been synced with the server
+                    format: int32
+                    maximum: 720
+                    minimum: 0
+                    type: integer
+                  proxyMode:
+                    description: Proxy operating mode. When omitted, the Zabbix image
+                      default is used.
+                    enum:
+                    - active
+                    - passive
+                    type: string
+                  proxyOfflineBuffer:
+                    description: Proxy will keep data for N hours in case of no connectivity
+                      with Zabbix server
+                    format: int32
+                    maximum: 720
+                    minimum: 1
+                    type: integer
+                  serverHost:
+                    description: IP address or DNS name of Zabbix server to get configuration
+                      data from and send data to
+                    pattern: ^\S+$
+                    type: string
+                  sshKeysSecret:
+                    description: Location of public and private keys for SSH checks
+                      and actions
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  sslCASecret:
+                    description: Override the location of certificate authority (CA)
+                      files for SSL server certificate verification. If not set, system-wide
+                      directory will be used
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  sslCertsSecret:
+                    description: Location of SSL client certificate files for client
+                      authentication
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  sslKeysSecret:
+                    description: Location of SSL private key files for client authentication
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  startDBSyncers:
+                    description: Number of pre-forked instances of history syncers
+                    format: int32
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  startDiscoverers:
+                    description: Number of pre-forked instances of discoverers
+                    format: int32
+                    maximum: 250
+                    minimum: 0
+                    type: integer
+                  startHTTPPollers:
+                    description: Number of pre-forked instances of HTTP pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startHistoryPollers:
+                    description: Number of pre-forked instances of history pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startIPMIPollers:
+                    description: Number of pre-forked instances of IPMI pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startJavaPollers:
+                    description: Number of pre-forked instances of Java pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startODBCPollers:
+                    description: Number of pre-forked instances of ODBC pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startPingers:
+                    description: Number of pre-forked instances of ICMP pingers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startPollers:
+                    description: Number of pre-forked instances of pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startPollersUnreachable:
+                    description: Number of pre-forked instances of pollers for unreachable
+                      hosts (including IPMI and Java)
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startPreprocessors:
+                    description: Number of pre-forked instances of preprocessing workers
+                    format: int32
+                    maximum: 1000
+                    minimum: 1
+                    type: integer
+                  startTrappers:
+                    description: Number of pre-forked instances of trappers. At least
+                      one is required because the operator probes the Zabbix listener
+                      on port 10051.
+                    format: int32
+                    maximum: 1000
+                    minimum: 1
+                    type: integer
+                  startVMwareCollectors:
+                    description: Number of pre-forked VMware collector instances
+                    format: int32
+                    maximum: 250
+                    minimum: 0
+                    type: integer
+                  statsAllowedIP:
+                    description: IP addresses, CIDR ranges, or DNS names of external
+                      Zabbix instances allowed to request statistics.
+                    items:
+                      pattern: ^[^,\s]+$
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  timeout:
+                    description: Specifies how long we wait for agent, SNMP device
+                      or external check (in seconds)
+                    format: int32
+                    maximum: 30
+                    minimum: 1
+                    type: integer
+                  tlsAccept:
+                    description: |-
+                      Incoming connection types to accept from the Zabbix server.
+                      See also: https://www.zabbix.com/documentation/6.0/manual/encryption
+                    items:
+                      description: |-
+                        TLSConnectionType identifies a transport accepted from an incoming Zabbix
+                        peer. A slice of these values is rendered as the comma-delimited TLSAccept
+                        parameter expected by Zabbix components.
+                      enum:
+                      - unencrypted
+                      - psk
+                      - cert
+                      type: string
+                    maxItems: 3
+                    minItems: 1
+                    type: array
+                    x-kubernetes-list-type: set
+                  tlsCAFileName:
+                    description: |-
+                      File containing the top-level CA(s) certificates for peer certificate verification, used for encrypted communications between Zabbix components
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsCRLFileName:
+                    description: |-
+                      File containing revoked certificates. This parameter is used for encrypted communications with Zabbix components
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsCertFileName:
+                    description: |-
+                      File containing the proxy certificate or certificate chain, used for encrypted communications with Zabbix components
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsCipherAll:
+                    description: GnuTLS priority string or OpenSSL (TLS 1.2) cipher
+                      string
+                    type: string
+                  tlsCipherAll13:
+                    description: Cipher string for OpenSSL 1.1.1 or newer in TLS 1.3
+                    type: string
+                  tlsCipherCert:
+                    description: GnuTLS priority string or OpenSSL (TLS 1.2) cipher
+                      string
+                    type: string
+                  tlsCipherCert13:
+                    description: Cipher string for OpenSSL 1.1.1 or newer in TLS 1.3
+                    type: string
+                  tlsCipherPSK:
+                    description: GnuTLS priority string or OpenSSL (TLS 1.2) cipher
+                      string
+                    type: string
+                  tlsCipherPSK13:
+                    description: Cipher string for OpenSSL 1.1.1 or newer in TLS 1.3
+                    type: string
+                  tlsConnect:
+                    description: How the proxy should connect to Zabbix server
+                    enum:
+                    - unencrypted
+                    - psk
+                    - cert
+                    type: string
+                  tlsEncSecret:
+                    description: TLS certificates and/or PSK key files to enable encryption
+                      between Zabbix proxy and Zabbix server
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  tlsKeyFileName:
+                    description: |-
+                      File containing the proxy private key used for encrypted communications with Zabbix components
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsPSKFileName:
+                    description: |-
+                      File containing the proxy pre-shared key used for encrypted communications with Zabbix components
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsPSKIdentity:
+                    description: Pre-shared key identity string, used for encrypted
+                      communications with Zabbix server
+                    type: string
+                  tlsServerCertIssuer:
+                    description: Allowed server certificate issuer
+                    type: string
+                  tlsServerCertSubject:
+                    description: Allowed server certificate subject
+                    type: string
+                  trapperTimeout:
+                    description: Specifies how many seconds trapper may spend processing
+                      new data
+                    format: int32
+                    maximum: 300
+                    minimum: 1
+                    type: integer
+                  unavailableDelay:
+                    description: How often host is checked for availability during
+                      the unavailability period, in seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  unreachableDelay:
+                    description: How often host is checked for availability during
+                      the unreachability period, in seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  unreachablePeriod:
+                    description: After how many seconds of unreachability treat a
+                      host as unavailable
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  vmwareCacheSize:
+                    description: Shared memory size for storing VMware data
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  vmwareFrequency:
+                    description: Delay in seconds between data gathering from a single
+                      VMware service
+                    format: int32
+                    maximum: 86400
+                    minimum: 10
+                    type: integer
+                  vmwarePerfFrequency:
+                    description: Delay in seconds between performance counter statistics
+                      retrieval from a single VMware service
+                    format: int32
+                    maximum: 86400
+                    minimum: 10
+                    type: integer
+                  vmwareTimeout:
+                    description: The maximum number of seconds VMware collector will
+                      wait for a response from VMware service (vCenter or ESX hypervisor)
+                    format: int32
+                    maximum: 300
+                    minimum: 1
+                    type: integer
+                required:
+                - serverHost
+                type: object
+              proxySize:
+                default: 1
+                description: The desired number of Zabbix proxies. When omitted, the
+                  operator uses 1.
+                format: int32
+                minimum: 1
+                type: integer
+              serviceMetadata:
+                description: Metadata added to managed Services. Operator-managed
+                  labels take precedence on conflicts.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Additional annotations
+                    maxProperties: 128
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Additional labels
+                    maxProperties: 64
+                    type: object
+                type: object
+              snmpTraps:
+                description: Configuration parameters for Zabbix SNMP Traps
+                properties:
+                  snmpTrapDateFormat:
+                    description: SNMP Trap Date format
+                    type: string
+                  snmpTrapFormat:
+                    description: SNMP Trap variable delimiter
+                    type: string
+                  snmpTrapUseDNS:
+                    description: Resolve the SNMP trap sender address to a DNS name
+                      instead of using its IP address
+                    type: boolean
+                type: object
+              snmpTrapsImage:
+                description: Full Zabbix SNMP traps image reference, including a tag
+                  or digest
+                pattern: ^\S+$
+                type: string
+              snmpTrapsVolumeClaim:
+                description: SNMP Traps volume claim
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              storage:
+                description: Persistent storage for SQLite database files.
+                properties:
+                  existingClaim:
+                    description: Existing PersistentVolumeClaim name.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                required:
+                - existingClaim
+                type: object
+              zabbixProxyImage:
+                description: Full Zabbix proxy image reference, including a tag or
+                  digest
+                pattern: ^\S+$
+                type: string
+            required:
+            - proxy
+            - storage
+            type: object
+            x-kubernetes-validations:
+            - message: snmpTrapsVolumeClaim is required when enableSNMPTraps is true
+              rule: '!has(self.enableSNMPTraps) || !self.enableSNMPTraps || has(self.snmpTrapsVolumeClaim)'
+          status:
+            description: ZabbixProxySqliteStatus defines the observed state of ZabbixProxySqlite
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the resource state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              javaGatewayStatus:
+                description: Zabbix Java Gateway status
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the generation last processed by
+                  the controller
+                format: int64
+                type: integer
+              proxyStatus:
+                description: Zabbix proxy status
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

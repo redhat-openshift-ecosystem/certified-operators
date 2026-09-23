@@ -1,0 +1,248 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  creationTimestamp: null
+  name: waveautopilotpolicies.wavek8s.com
+spec:
+  group: wavek8s.com
+  names:
+    kind: WaveAutopilotPolicy
+    plural: waveautopilotpolicies
+    singular: waveautopilotpolicy
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for WaveAutopilotPolicySpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              applicationType:
+                description: Dominant-resource hint steering the autopilot algorithm.
+                  Default `cpuIntensive`.
+                enum:
+                - cpuIntensive
+                - memoryIntensive
+                nullable: true
+                type: string
+              cooldownSeconds:
+                description: Minimum seconds between consecutive scaling actions.
+                  Default 0.
+                format: uint32
+                minimum: 0
+                nullable: true
+                type: integer
+              cpuUtilizationBasis:
+                description: |-
+                  Which CPU basis (request vs limit) autopilot's utilization threshold is
+                  evaluated against. Omitted defaults to `request`.
+                enum:
+                - request
+                - limit
+                - null
+                nullable: true
+                type: string
+              fallbackCpuUtilization:
+                description: Target CPU % for the fallback HPA when ML data is unavailable.
+                  Default 50.
+                format: double
+                nullable: true
+                type: number
+              fallbackMemoryUtilization:
+                description: Target memory % for the fallback path. Default 50.
+                format: double
+                nullable: true
+                type: number
+              fallbackOnly:
+                description: |-
+                  When true, autopilot only runs the fallback (threshold-based) scaling
+                  path, skipping ML prediction. Omitted defaults to `false`.
+                nullable: true
+                type: boolean
+              forecastHorizon:
+                description: |-
+                  Load-forecasting horizon written to the DB `forecast_horizon` column.
+                  `0` = forecasting off (default). The UI/HTTP path sends `0`/`1` today,
+                  but the column is an integer so larger horizon values are reserved for
+                  future use. Omitted = 0.
+                format: int64
+                nullable: true
+                type: integer
+              gradualScaleInEnabled:
+                description: Step scale-down gradually instead of dropping straight
+                  to the target replica count. Default false.
+                nullable: true
+                type: boolean
+              ignoreInitialMetricsSec:
+                description: Warm-up period (s) after pod start during which metrics
+                  are ignored. Default 10.
+                format: uint32
+                minimum: 0
+                nullable: true
+                type: integer
+              latency:
+                description: Target latency budget (ms) for latency-aware scaling.
+                format: uint64
+                minimum: 0
+                nullable: true
+                type: integer
+              load:
+                default: networkIn
+                description: Load metric driving scaling. Omitted defaults to `networkIn`.
+                enum:
+                - customPromql
+                - requests
+                - networkIn
+                type: string
+              loadPromql:
+                description: |-
+                  DEPRECATED: `loadPromql` is deprecated and will be removed in a future API version.
+                  Still honored for back-compat (required iff `load == customPromql`), but new configs
+                  should not rely on it.
+                nullable: true
+                type: string
+              maxReplicas:
+                format: uint32
+                minimum: 0
+                type: integer
+              minReplicas:
+                format: uint32
+                minimum: 0
+                type: integer
+              mode:
+                description: |-
+                  Autopilot operating mode. The single source of truth for how a CRD policy
+                  translates into the two internal `k8s_deployments` flags
+                  (`autopilot_simulation_mode`, `autopilot_enabled`) — see `to_flags`.
+
+                  Omitted on the CR defaults to `Simulation` (safe dry-run; WA-784).
+                enum:
+                - "off"
+                - simulation
+                - active
+                nullable: true
+                type: string
+              stabilizationWindowSeconds:
+                description: Look-back window (s) a scale-down recommendation must
+                  hold before applying. Default 60.
+                format: uint32
+                minimum: 0
+                nullable: true
+                type: integer
+              strategy:
+                default: performance
+                description: |-
+                  One of: `performance` | `cost` (free-form String; CEL validation
+                  pins the enum at the admission layer when that lands). Unknown values
+                  fall back to `performance` in the reconciler. Omitted defaults to
+                  `performance`.
+                type: string
+              targetRef:
+                properties:
+                  kind:
+                    description: |-
+                      `Deployment` | `Rollout` | `DeploymentConfig` (OpenShift). Maps to the
+                      `deployment_type` column on the discovered row.
+                    type: string
+                  name:
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              thresholds:
+                description: |-
+                  Per-metric trigger thresholds. Optional — when omitted the policy
+                  records no per-metric thresholds and the autopilot falls back to its
+                  strategy defaults (useful for `mode: simulation` / monitoring-only CRs).
+                nullable: true
+                properties:
+                  cpu:
+                    format: double
+                    nullable: true
+                    type: number
+                  customMetric:
+                    description: Threshold applied to the custom PromQL metric (load=customPromql).
+                    format: double
+                    nullable: true
+                    type: number
+                  memory:
+                    format: double
+                    nullable: true
+                    type: number
+                  networkIn:
+                    description: Network-in threshold (bytes) for network-based load
+                      tracking.
+                    format: double
+                    nullable: true
+                    type: number
+                  requests:
+                    description: Requests-per-second threshold for request-based scaling.
+                    format: double
+                    nullable: true
+                    type: number
+                type: object
+            required:
+            - maxReplicas
+            - minReplicas
+            - targetRef
+            type: object
+            x-kubernetes-validations:
+            - message: 'set at most one scaling adjustment: cooldownSeconds or stabilizationWindowSeconds
+                (omit both for immediate scaling)'
+              rule: '!(has(self.cooldownSeconds) && has(self.stabilizationWindowSeconds))'
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    Shared status condition shape — mirrors metav1.Condition.
+                    Used by all 15 `WaveXStatus` structs (added in Tasks 6-8).
+
+                    No `Default` derive on purpose: an all-empty-string condition (empty `type`/
+                    `status`/`reason`) is never valid, so we never want one constructed implicitly.
+                    `WaveXStatus` structs default their `conditions` to an empty `Vec`, which does
+                    not require `WaveCondition: Default`.
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: WaveAutopilotPolicy
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

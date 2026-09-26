@@ -1,0 +1,267 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "web.example.com/v1alpha1",
+          "kind": "StaticWeb",
+          "metadata": {
+            "labels": {
+              "app.kubernetes.io/managed-by": "kustomize",
+              "app.kubernetes.io/name": "staticweb-operator"
+            },
+            "name": "staticweb-sample"
+          },
+          "spec": {
+            "files": {
+              "about.html": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n  \u003chead\u003e\n    \u003cmeta charset=\"utf-8\"\u003e\n    \u003ctitle\u003eAbout\u003c/title\u003e\n    \u003clink rel=\"stylesheet\" href=\"style.css\"\u003e\n  \u003c/head\u003e\n  \u003cbody\u003e\n    \u003ch1\u003eAbout\u003c/h1\u003e\n    \u003cp\u003eExtra files also come from spec.files in the CR.\u003c/p\u003e\n    \u003cp\u003e\u003ca href=\"/\"\u003eHome\u003c/a\u003e\u003c/p\u003e\n  \u003c/body\u003e\n\u003c/html\u003e\n",
+              "style.css": "body { font-family: sans-serif; margin: 2rem; background: #f6f8f7; }\nh1 { color: #0b6e4f; }\n"
+            },
+            "html": "\u003c!DOCTYPE html\u003e\n\u003chtml lang=\"en\"\u003e\n  \u003chead\u003e\n    \u003cmeta charset=\"utf-8\"\u003e\n    \u003ctitle\u003eStaticWeb sample\u003c/title\u003e\n    \u003clink rel=\"stylesheet\" href=\"style.css\"\u003e\n  \u003c/head\u003e\n  \u003cbody\u003e\n    \u003ch1\u003eHello from StaticWeb CR\u003c/h1\u003e\n    \u003cp\u003eThis page was defined in the StaticWeb custom resource.\u003c/p\u003e\n    \u003cp\u003e\u003ca href=\"about.html\"\u003eAbout\u003c/a\u003e\u003c/p\u003e\n  \u003c/body\u003e\n\u003c/html\u003e\n",
+            "httpPort": 8080,
+            "image": "quay.io/example.com/staticweb-nginx@sha256:6294eba610176173f3796f2ce991d9eadd5b66c0bfff6eb93076af34e003210e",
+            "replicas": 1,
+            "serviceType": "ClusterIP"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Application Runtime
+    containerImage: quay.io/example.com/staticweb-operator@sha256:388267253a9e7b8b66f95809f8a3b6f37f6efb89a116d9b6994f9e6f7739f680
+    createdAt: "2026-09-24T15:58:00Z"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
+    operators.operatorframework.io/project_layout: ansible.sdk.operatorframework.io/v1
+  name: staticweb-operator.v0.0.2
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Deploys an nginx website from HTML and extra files defined in this
+        resource.
+      displayName: Static Website
+      kind: StaticWeb
+      name: staticwebs.web.example.com
+      version: v1alpha1
+  description: |
+    The Static Web Operator deploys a webserver from a StaticWeb custom resource.
+
+    Put homepage HTML in spec.html and extra files (about.html, style.css, ...) in spec.files.
+    The operator creates a ConfigMap with that content, an nginx Deployment that serves it,
+    and a Service that exposes the site. Changing the CR rolls the pods so new files go live.
+  displayName: Static Web Operator
+  icon:
+  - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiB2aWV3Qm94PSIwIDAgMjU2IDI1NiI+PHJlY3Qgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHJ4PSIzMiIgZmlsbD0iIzBiNmU0ZiIvPjx0ZXh0IHg9IjEyOCIgeT0iMTU2IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSI4OCIgZmlsbD0iI2ZmZmZmZiI+U1c8L3RleHQ+PC9zdmc+
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - secrets
+          - pods
+          - pods/exec
+          - pods/log
+          - configmaps
+          - services
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - web.example.com
+          resources:
+          - staticwebs
+          - staticwebs/status
+          - staticwebs/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: staticweb-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: staticweb-operator
+          control-plane: controller-manager
+        name: staticweb-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: staticweb-operator
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                app.kubernetes.io/name: staticweb-operator
+                control-plane: controller-manager
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - arm64
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --metrics-require-rbac
+                - --metrics-secure
+                - --metrics-bind-address=:8443
+                - --leader-elect
+                - --leader-election-id=staticweb-operator
+                - --health-probe-bind-address=:6789
+                env:
+                - name: ANSIBLE_GATHERING
+                  value: explicit
+                image: quay.io/example.com/staticweb-operator@sha256:388267253a9e7b8b66f95809f8a3b6f37f6efb89a116d9b6994f9e6f7739f680
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 6789
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 6789
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 768Mi
+                  requests:
+                    cpu: 10m
+                    memory: 256Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: staticweb-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: staticweb-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - staticweb
+  - nginx
+  - webserver
+  - ansible
+  links:
+  - name: Static Web Operator
+    url: https://example.com/staticweb-operator
+  maturity: alpha
+  minKubeVersion: 1.25.0
+  provider:
+    name: staticweb
+  relatedImages:
+  - name: staticweb-operator
+    image: quay.io/example.com/staticweb-operator@sha256:388267253a9e7b8b66f95809f8a3b6f37f6efb89a116d9b6994f9e6f7739f680
+  - name: staticweb-nginx
+    image: quay.io/example.com/staticweb-nginx@sha256:6294eba610176173f3796f2ce991d9eadd5b66c0bfff6eb93076af34e003210e
+  version: 0.0.2

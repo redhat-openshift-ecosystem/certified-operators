@@ -1,0 +1,278 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  creationTimestamp: null
+  labels:
+    name: splunk-operator
+  name: queues.enterprise.splunk.com
+spec:
+  group: enterprise.splunk.com
+  names:
+    kind: Queue
+    listKind: QueueList
+    plural: queues
+    shortNames:
+    - queue
+    singular: queue
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Status of queue
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Age of queue resource
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    - description: Auxiliary message describing CR status
+      jsonPath: .status.message
+      name: Message
+      type: string
+    name: v4
+    schema:
+      openAPIV3Schema:
+        description: 'Queue is the Schema for the queues API. NOTE: Queue is part
+          of the index and ingestion separation feature, which is currently in Preview
+          and not recommended for production use.'
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: QueueSpec defines the desired state of Queue
+            properties:
+              provider:
+                description: Provider of queue resources
+                enum:
+                - sqs
+                - sqs_cp
+                type: string
+              sqs:
+                description: sqs specific inputs
+                properties:
+                  authRegion:
+                    description: Auth Region of the resources
+                    pattern: ^(?:us|ap|eu|me|af|sa|ca|cn|il)(?:-[a-z]+){1,3}-\d$
+                    type: string
+                  dlq:
+                    description: Name of the dead letter queue resource
+                    minLength: 1
+                    type: string
+                  endpoint:
+                    description: Amazon SQS Service endpoint
+                    pattern: ^https?://[^\s/$.?#].[^\s]*$
+                    type: string
+                  name:
+                    description: Name of the queue
+                    minLength: 1
+                    type: string
+                  secretKeyRef:
+                    description: |-
+                      SecretKeyRef holds per-credential selectors for AWS credentials.
+                      When not set, IRSA / workload identity is assumed.
+                      Secrets are looked up in the Queue's own namespace.
+                    properties:
+                      awsAccessKey:
+                        description: AwsAccessKey selects the AWS access key ID from
+                          a Kubernetes Secret.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      awsSecretKey:
+                        description: AwsSecretKey selects the AWS secret access key
+                          from a Kubernetes Secret.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    required:
+                    - awsAccessKey
+                    - awsSecretKey
+                    type: object
+                    x-kubernetes-validations:
+                    - message: awsAccessKey.name must not be empty
+                      rule: size(self.awsAccessKey.name) > 0
+                    - message: awsSecretKey.name must not be empty
+                      rule: size(self.awsSecretKey.name) > 0
+                    - message: awsAccessKey.key must not be empty
+                      rule: size(self.awsAccessKey.key) > 0
+                    - message: awsSecretKey.key must not be empty
+                      rule: size(self.awsSecretKey.key) > 0
+                required:
+                - dlq
+                - name
+                type: object
+            required:
+            - provider
+            - sqs
+            type: object
+            x-kubernetes-validations:
+            - message: provider is immutable once created
+              rule: self.provider == oldSelf.provider
+            - message: sqs.name is immutable once created
+              rule: self.sqs.name == oldSelf.sqs.name
+            - message: sqs.authRegion is immutable once created
+              rule: self.sqs.authRegion == oldSelf.sqs.authRegion
+            - message: sqs.dlq is immutable once created
+              rule: self.sqs.dlq == oldSelf.sqs.dlq
+            - message: sqs.endpoint is immutable once created
+              rule: (has(self.sqs.endpoint) == has(oldSelf.sqs.endpoint)) && (!has(self.sqs.endpoint)
+                || self.sqs.endpoint == oldSelf.sqs.endpoint)
+            - message: sqs must be provided when provider is sqs or sqs_cp
+              rule: (self.provider != 'sqs' && self.provider != 'sqs_cp') || has(self.sqs)
+          status:
+            description: QueueStatus defines the observed state of Queue
+            properties:
+              conditions:
+                description: |-
+                  Conditions represent the latest available observations of the resource's state.
+                  Conditions are: Ready, Progressing, Paused
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              message:
+                description: Auxiliary message describing CR status
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the most recent generation observed by the controller.
+                  It corresponds to the metadata.generation which is updated on spec changes.
+                format: int64
+                type: integer
+              phase:
+                description: Phase of the queue
+                enum:
+                - Pending
+                - Ready
+                - Updating
+                - ScalingUp
+                - ScalingDown
+                - Terminating
+                - Error
+                type: string
+              resourceRevMap:
+                additionalProperties:
+                  type: string
+                description: Resource revision tracker
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

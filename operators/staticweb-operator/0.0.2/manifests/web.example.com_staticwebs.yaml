@@ -1,0 +1,108 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: staticwebs.web.example.com
+spec:
+  group: web.example.com
+  names:
+    kind: StaticWeb
+    listKind: StaticWebList
+    plural: staticwebs
+    singular: staticweb
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.replicas
+      name: Replicas
+      type: integer
+    - jsonPath: .status.url
+      name: URL
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: StaticWeb is the Schema for the staticwebs API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired state of StaticWeb
+            properties:
+              files:
+                additionalProperties:
+                  type: string
+                description: Extra files to serve at the site root. Keys are filenames
+                  (about.html, style.css). Values are file contents. Nested paths
+                  are not supported because ConfigMap keys cannot contain slashes.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              html:
+                description: HTML content served as /index.html.
+                type: string
+              httpPort:
+                default: 8080
+                description: Container and Service port. Use 8080 with the default
+                  unprivileged nginx image.
+                maximum: 65535
+                minimum: 1
+                type: integer
+              image:
+                default: quay.io/example.com/staticweb-nginx@sha256:6294eba610176173f3796f2ce991d9eadd5b66c0bfff6eb93076af34e003210e
+                description: Container image for the webserver (nginx-compatible images
+                  that serve files from /opt/app-root/src). Defaults to the UBI 9
+                  nginx image so the pods can run on OpenShift restricted SCC.
+                type: string
+              replicas:
+                default: 1
+                description: Number of webserver pods to run.
+                minimum: 0
+                type: integer
+              serviceType:
+                default: ClusterIP
+                description: Kubernetes Service type used to expose the site.
+                enum:
+                - ClusterIP
+                - NodePort
+                - LoadBalancer
+                type: string
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+          status:
+            description: Status defines the observed state of StaticWeb
+            properties:
+              replicas:
+                description: Desired replica count last reconciled.
+                type: integer
+              serviceName:
+                description: Name of the Service created for this site.
+                type: string
+              url:
+                description: Cluster-internal URL of the Service.
+                type: string
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

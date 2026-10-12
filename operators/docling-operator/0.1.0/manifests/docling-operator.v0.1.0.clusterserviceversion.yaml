@@ -1,0 +1,375 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: docling-operator.v0.1.0
+  namespace: placeholder
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "docling.docling-project.io/v1alpha1",
+          "kind": "DoclingCluster",
+          "metadata": {
+            "name": "example-doclingcluster",
+            "namespace": "docling-operator"
+          },
+          "spec": {
+            "name": "example",
+            "ray": {
+              "version": "2.9.0",
+              "head": {},
+              "workerGroups": [
+                {
+                  "name": "default-worker",
+                  "replicas": 1
+                }
+              ]
+            }
+          }
+        },
+        {
+          "apiVersion": "docling.docling-project.io/v1alpha1",
+          "kind": "DoclingClusterConfig",
+          "metadata": {
+            "name": "default",
+            "namespace": "docling-operator"
+          },
+          "spec": {}
+        }
+      ]
+    capabilities: Basic Install
+    categories: AI/Machine Learning
+    containerImage: icr.io/dcls-dev-res/docling-operator/dcls-operator:PR-21
+    createdAt: "2026-10-12T00:00:00Z"
+    description: An OpenShift Operator for deploying and managing Docling as a scalable API service on Kubernetes and OpenShift clusters.
+    operators.operatorframework.io/builder: operator-sdk-v1.37.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+    support: IBM
+spec:
+  displayName: Docling Operator
+  description: |
+    ## Overview
+
+    The Docling Operator deploys and manages [Docling Serve](https://github.com/docling-project/docling-serve)
+    as a scalable document conversion API service on Kubernetes and OpenShift clusters.
+
+    A `DoclingCluster` custom resource describes the full deployment: the Ray cluster
+    used for distributed document processing, the Docling Serve API, optional network
+    policy, TLS integration via cert-manager, and an optional persistent Valkey cache.
+
+    ## Features
+
+    - **Docling Serve API** — HTTP API for document conversion backed by Ray workers
+    - **KubeRay integration** — manages a child `RayCluster` for distributed processing
+    - **Valkey cache** — optional persistent cache/queue as a StatefulSet
+    - **NetworkPolicy** — optional egress guard for Ray pods
+    - **cert-manager TLS** — Ray client certificate management
+    - **Multi-tenant** — each `DoclingCluster` is one isolated deployment; multiple instances per cluster are supported
+
+    ## Prerequisites
+
+    The following operators/components must be installed before deploying this operator:
+
+    - [KubeRay Operator](https://github.com/ray-project/kuberay)
+    - [KServe](https://kserve.github.io/website/)
+    - [cert-manager](https://cert-manager.io/)
+    - NVIDIA GPU Operator
+
+    ## Usage
+
+    Create a `DoclingClusterConfig` for shared defaults, then create one or more
+    `DoclingCluster` resources. Each `DoclingCluster` provisions its own isolated
+    Ray cluster, Docling Serve deployment, and optional Valkey instance.
+  icon:
+    - base64data: ""
+      mediatype: image/png
+  version: 0.1.0
+  maturity: alpha
+  minKubeVersion: 1.25.0
+  keywords:
+    - docling
+    - document conversion
+    - AI
+    - machine learning
+    - ray
+    - NLP
+  maintainers:
+    - name: IBM Docling Project
+      email: docling@ibm.com
+  provider:
+    name: IBM
+    url: https://github.ibm.com/docling-project/docling-deploy
+  links:
+    - name: Docling Project
+      url: https://github.com/docling-project/docling
+    - name: Docling Serve
+      url: https://github.com/docling-project/docling-serve
+  installModes:
+    - type: OwnNamespace
+      supported: false
+    - type: SingleNamespace
+      supported: false
+    - type: MultiNamespace
+      supported: false
+    - type: AllNamespaces
+      supported: true
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+        - rules:
+          - apiGroups:
+            - ""
+            resources:
+            - configmaps
+            - persistentvolumeclaims
+            - secrets
+            - serviceaccounts
+            - services
+            verbs:
+            - create
+            - delete
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          - apiGroups:
+            - ""
+            resources:
+            - namespaces
+            verbs:
+            - get
+            - list
+            - watch
+          - apiGroups:
+            - apps
+            resources:
+            - deployments
+            - statefulsets
+            verbs:
+            - create
+            - delete
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          - apiGroups:
+            - cert-manager.io
+            resources:
+            - certificates
+            verbs:
+            - create
+            - delete
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          - apiGroups:
+            - docling.docling-project.io
+            resources:
+            - doclingclusterconfigs
+            verbs:
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          - apiGroups:
+            - docling.docling-project.io
+            resources:
+            - doclingclusterconfigs/status
+            - doclingclusters/status
+            verbs:
+            - get
+            - patch
+            - update
+          - apiGroups:
+            - docling.docling-project.io
+            resources:
+            - doclingclusters
+            verbs:
+            - create
+            - delete
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          - apiGroups:
+            - docling.docling-project.io
+            resources:
+            - doclingclusters/finalizers
+            verbs:
+            - update
+          - apiGroups:
+            - networking.k8s.io
+            resources:
+            - networkpolicies
+            verbs:
+            - create
+            - delete
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          - apiGroups:
+            - ray.io
+            resources:
+            - rayclusters
+            verbs:
+            - create
+            - delete
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          - apiGroups:
+            - ray.io
+            resources:
+            - rayclusters/status
+            verbs:
+            - get
+          - apiGroups:
+            - rbac.authorization.k8s.io
+            resources:
+            - rolebindings
+            - roles
+            verbs:
+            - create
+            - delete
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          - apiGroups:
+            - serving.kserve.io
+            resources:
+            - inferenceservices
+            - servingruntimes
+            verbs:
+            - create
+            - delete
+            - get
+            - list
+            - patch
+            - update
+            - watch
+          serviceAccountName: docling-deploy-controller-manager
+      permissions:
+        - rules:
+          - apiGroups:
+            - ""
+            resources:
+            - configmaps
+            verbs:
+            - get
+            - list
+            - watch
+            - create
+            - update
+            - patch
+            - delete
+          - apiGroups:
+            - coordination.k8s.io
+            resources:
+            - leases
+            verbs:
+            - get
+            - list
+            - watch
+            - create
+            - update
+            - patch
+            - delete
+          - apiGroups:
+            - ""
+            resources:
+            - events
+            verbs:
+            - create
+            - patch
+          serviceAccountName: docling-deploy-controller-manager
+      deployments:
+        - name: docling-deploy-controller-manager
+          label:
+            app.kubernetes.io/name: docling-deploy
+            app.kubernetes.io/managed-by: kustomize
+            control-plane: controller-manager
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: controller-manager
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/default-container: manager
+                labels:
+                  control-plane: controller-manager
+              spec:
+                securityContext:
+                  runAsNonRoot: true
+                containers:
+                  - name: manager
+                    image: icr.io/dcls-dev-res/docling-operator/dcls-operator:PR-21
+                    command:
+                      - /manager
+                    env:
+                      - name: POD_NAMESPACE
+                        valueFrom:
+                          fieldRef:
+                            fieldPath: metadata.namespace
+                      - name: GLOBAL_CONFIG_NAME
+                        value: default
+                      - name: GLOBAL_CONFIG_NAMESPACE
+                        value: docling-operator
+                      - name: LEADER_ELECTION_ENABLED
+                        value: "true"
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      capabilities:
+                        drop:
+                          - ALL
+                    livenessProbe:
+                      httpGet:
+                        path: /healthz
+                        port: 8081
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    readinessProbe:
+                      httpGet:
+                        path: /readyz
+                        port: 8081
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    resources:
+                      limits:
+                        cpu: 500m
+                        memory: 128Mi
+                      requests:
+                        cpu: 10m
+                        memory: 64Mi
+                serviceAccountName: docling-deploy-controller-manager
+                terminationGracePeriodSeconds: 10
+  customresourcedefinitions:
+    owned:
+      - name: doclingclusters.docling.docling-project.io
+        version: v1alpha1
+        kind: DoclingCluster
+        displayName: Docling Cluster
+        description: >-
+          Defines a complete Docling deployment: Ray cluster, Docling Serve API,
+          optional Valkey cache, network policy, and TLS. One instance per namespace.
+      - name: doclingclusterconfigs.docling.docling-project.io
+        version: v1alpha1
+        kind: DoclingClusterConfig
+        displayName: Docling Cluster Config
+        description: >-
+          Provides shared default configuration inherited by DoclingCluster instances.
+          Does not own any instance resources directly.

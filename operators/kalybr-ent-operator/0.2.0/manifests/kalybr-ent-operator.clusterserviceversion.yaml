@@ -1,0 +1,276 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: kalybr-ent-operator.v0.2.0
+  namespace: placeholder
+  annotations:
+    # Operator Capability Level 4 (requirements FR-2, AC-2).
+    capabilities: Deep Insights
+    categories: "Application Runtime, Database"
+    description: >-
+      Installs and manages Kalybr Enterprise (kalybr-ent-svc, kalybr-ent-db,
+      kalybr-ent-public-web, kalybr-ent-admin-web and an optional
+      kalybr-ent-embedder) with backup/restore, migration-on-upgrade, and
+      dimensioning from a single target-agent-count dial.
+    containerImage: ghcr.io/autonous-systems/kalybr-ent-operator@sha256:87fc26d43115dd436488befb1ed0bb55589a0db5678b9836e94c7d2e8b0dc977
+    repository: https://github.com/autonous-systems/kalybr
+    support: Kalybr
+    # Red Hat certified-operator infrastructure features. disconnected=true: every operand is a
+    # digest-pinned relatedImage resolved from RELATED_IMAGE_* env, so `oc mirror` installs air-gapped.
+    #
+    # The rest are declared false (not yet validated) — honest declaration is what cert requires.
+    features.operators.openshift.io/disconnected: "true"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    createdAt: "2026-07-27T00:00:00Z"
+    olm.skipRange: "<0.2.0"
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "kalybr.ai/v1alpha1",
+          "kind": "Kalybr",
+          "metadata": { "name": "acme", "namespace": "kalybr-ent" },
+          "spec": {
+            "dimensionedFor": 100,
+            "platform": "auto",
+            "license": { "secretRef": "kalybr-ent-license", "activationPing": true },
+            "semanticSearch": { "enabled": false },
+            "publicWeb": { "enabled": true },
+            "backup": { "enabled": false }
+          }
+        }
+      ]
+spec:
+  displayName: Kalybr Enterprise operator
+  description: |
+    The Kalybr Enterprise operator packages Kalybr Enterprise as
+    a platform-aware Kubernetes operator. It targets OpenShift (Route, restricted-v2 SCC,
+    user-workload monitoring) and, from the same codebase, upstream Kubernetes.
+
+    ## License
+    Kalybr Enterprise requires a license key. Until the Secret named by `spec.license.secretRef`
+    (default `kalybr-ent-license`, key `license`) holds a valid key, the appliance runs but answers
+    `402 license_required` to every request except health, sign-in and its own License page —
+    which shows the exact command that fixes it. Keys verify offline; nothing reaches the network
+    to decide anything. A free 15-day trial key: https://trial.kalybr.com. A commercial key:
+    sales@autonous.ai. On its first licensed start the appliance sends one activation notice to
+    Autonous (license id, customer id, kind, versions, size, start time — nothing else); it never
+    affects the appliance and `spec.license.activationPing: false` disables it.
+
+    ## First administrator
+    A fresh appliance has no administrator: the console signs in through your own SSO, and the first
+    person to sign in arrives with no role. Mint the temporary break-glass credential once the
+    appliance is Ready (it prints once, expires after 72 hours, and the console lets you revoke it as
+    soon as SSO works). The script ships inside the operator image and runs on YOUR machine against
+    YOUR cluster — nothing in the cluster hands out a credential:
+
+        kubectl -n <operator namespace> exec deploy/kalybr-ent-operator -- \
+          cat /scripts/breakglass-issue.sh > breakglass-issue.sh
+        NS=kalybr-ent bash breakglass-issue.sh
+
+    Then paste the credential at the admin console's /signin.
+
+    ## Capabilities (Level 4 — Deep Insights)
+    - Install + seamless upgrades of the full stack via OLM.
+    - Lifecycle: DB-readiness-gated schema migration on upgrade; scheduled pg_dump backup,
+      and restore from one of those backups.
+    - Dimensioning from a single dial, `spec.dimensionedFor` — a target agent count, not a named
+      tier. It resolves replica counts, pod packaging (one supervised multi-process pod below
+      1000 agents, one Deployment per service at or above), PostgreSQL topology and per-service
+      resources. Changing it is non-destructive.
+    - Optional high availability (`spec.ha`): a synchronous PostgreSQL standby plus asynchronous
+      read replicas, with read-heavy services routed to them automatically.
+    - Optional semantic search (`spec.semanticSearch`, off by default), served either by the
+      kalybr-ent-embedder operand or by a customer-supplied endpoint via `embedderUrl`.
+    - Optional agent-endpoint reliability probing from inside the customer network, with
+      operator-managed DNS pinning and trust anchors.
+    - Metrics/alerts/status via ServiceMonitor + PrometheusRule and CR .status conditions.
+  version: 0.2.0
+  replaces: kalybr-ent-operator.v0.1.0
+  maturity: stable
+  minKubeVersion: 1.27.0
+  icon:
+    - mediatype: image/svg+xml
+      base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgcm9sZT0iaW1nIiBhcmlhLWxhYmVsPSJLYWx5YnIgRW50ZXJwcmlzZSI+CiAgPHJlY3QgeD0iNCIgeT0iNCIgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiByeD0iMTIiIGZpbGw9IiMxZjI5MzMiLz4KICA8cmVjdCB4PSIxNiIgeT0iMTUiIHdpZHRoPSIzMiIgaGVpZ2h0PSIxMCIgcng9IjMiIGZpbGw9IiM0ZjQ2ZTUiLz4KICA8cmVjdCB4PSIxNiIgeT0iMjciIHdpZHRoPSIzMiIgaGVpZ2h0PSIxMCIgcng9IjMiIGZpbGw9IiM2MzY2ZjEiLz4KICA8cmVjdCB4PSIxNiIgeT0iMzkiIHdpZHRoPSIzMiIgaGVpZ2h0PSIxMCIgcng9IjMiIGZpbGw9IiM4MThjZjgiLz4KICA8Y2lyY2xlIGN4PSIyMSIgY3k9IjIwIiByPSIxLjgiIGZpbGw9IiNlNWU3ZWIiLz4KICA8Y2lyY2xlIGN4PSIyMSIgY3k9IjMyIiByPSIxLjgiIGZpbGw9IiNlNWU3ZWIiLz4KICA8Y2lyY2xlIGN4PSIyMSIgY3k9IjQ0IiByPSIxLjgiIGZpbGw9IiNlNWU3ZWIiLz4KPC9zdmc+Cg==
+  provider:
+    name: Kalybr
+  maintainers:
+    - name: Kalybr
+      email: support@autonous.ai
+  links:
+    - name: Source
+      url: https://github.com/autonous-systems/kalybr
+  keywords:
+    - kalybr
+    - kalybr-ent
+    - agents
+  installModes:
+    - type: OwnNamespace
+      supported: true
+    - type: SingleNamespace
+      supported: true
+    - type: MultiNamespace
+      supported: false
+    - type: AllNamespaces
+      supported: true
+  customresourcedefinitions:
+    owned:
+      - name: kalybrs.kalybr.ai
+        kind: Kalybr
+        version: v1alpha1
+        displayName: Kalybr Enterprise
+        description: A Kalybr Enterprise deployment.
+  install:
+    strategy: deployment
+    spec:
+      clusterPermissions:
+        - serviceAccountName: kalybr-ent-operator
+          rules:
+            - apiGroups: [""]
+              resources: [configmaps]
+              verbs: [create, get, list, patch, watch]
+            - apiGroups: [""]
+              resources: [events]
+              verbs: [create, patch]
+            - apiGroups: [""]
+              resources: [secrets]
+              verbs: [get, list, watch]
+            - apiGroups: [""]
+              resources: [namespaces]
+              verbs: [get, list, patch, watch]
+            - apiGroups: [""]
+              resources: [pods]
+              verbs: [get, list, watch]
+            - apiGroups: [""]
+              resources: [persistentvolumeclaims, services]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [apps]
+              resources: [deployments]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [batch]
+              resources: [jobs, cronjobs]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [kalybr.ai]
+              resources: [kalybrs]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [kalybr.ai]
+              resources: [kalybrs/finalizers]
+              verbs: [update]
+            - apiGroups: [kalybr.ai]
+              resources: [kalybrs/status]
+              verbs: [get, patch, update]
+            - apiGroups: [monitoring.coreos.com]
+              resources: [prometheusrules, servicemonitors]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [networking.k8s.io]
+              resources: [ingresses]
+              verbs: [create, delete, get, list, patch, update, watch]
+            - apiGroups: [route.openshift.io]
+              resources: [routes]
+              verbs: [create, delete, get, list, patch, update, watch]
+      permissions:
+        - serviceAccountName: kalybr-ent-operator
+          rules:
+            - apiGroups: [coordination.k8s.io]
+              resources: [leases]
+              verbs: [create, get, list, update, watch]
+            - apiGroups: [""]
+              resources: [events]
+              verbs: [create, patch]
+      deployments:
+        - name: kalybr-ent-operator
+          label:
+            app.kubernetes.io/name: kalybr-ent-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                app.kubernetes.io/name: kalybr-ent-operator
+            template:
+              metadata:
+                labels:
+                  app.kubernetes.io/name: kalybr-ent-operator
+              spec:
+                serviceAccountName: kalybr-ent-operator
+                securityContext:
+                  runAsNonRoot: true
+                  seccompProfile:
+                    type: RuntimeDefault
+                containers:
+                  - name: manager
+                    image: ghcr.io/autonous-systems/kalybr-ent-operator@sha256:87fc26d43115dd436488befb1ed0bb55589a0db5678b9836e94c7d2e8b0dc977
+                    args:
+                      - --health-probe-bind-address=:8081
+                      - --metrics-bind-address=:8080
+                      - --leader-elect=true
+                    # Digest-pinned operand images (Red Hat disconnected/air-gap). The operator resolves
+                    # each operand from these RELATED_IMAGE_* vars; they mirror the relatedImages list below.
+                    # scripts/pin-bundle-digests.sh rewrites BOTH these values and relatedImages to @sha256
+                    # at certification time, on a COPY under operator/build — never in this tree.
+                    #
+                    # The KEYS must be exactly render.go's envImg* constants, because that is the code that
+                    # reads them. Two of them were not: this list said RELATED_IMAGE_ENT_PUBLIC_WEB and
+                    # RELATED_IMAGE_ENT_ADMIN_WEB while the operator reads RELATED_IMAGE_KALYBR_ENT_*, so on
+                    # a certified install both consoles fell back to the compiled-in default repo — an image
+                    # `oc mirror` had never been told about, in a cluster with no registry to reach for it.
+                    # guard-operator-bundle now derives the required key set from render.go.
+                    #
+                    # The embedder IS here now. It was held out as an externalized Technology Preview
+                    # outside the certified bundle (CON-3), which stopped being true: deploy-ent enables
+                    # semantic search whenever the image is on the node, the operator renders a Deployment
+                    # for it, and it has a certified UBI variant of its own. While it was excused, `oc
+                    # mirror` was never told about an image the appliance really pulls.
+                    env:
+                      - name: RELATED_IMAGE_KALYBR_ENT_SVC
+                        value: ghcr.io/autonous-systems/kalybr-ent-svc@sha256:54d04de8b00d948795598f12c1c69b9259f7c502ca68f1302ca7cb3983ee53c3
+                      - name: RELATED_IMAGE_KALYBR_ENT_DB
+                        value: ghcr.io/autonous-systems/kalybr-ent-db@sha256:f24098d658961af4e6907cdadb0867534345380ac5eefe827d313ff2610ae5b9
+                      - name: RELATED_IMAGE_KALYBR_ENT_PUBLIC_WEB
+                        value: ghcr.io/autonous-systems/kalybr-ent-public-web@sha256:7646700f2d173f4f891c9bda542a2b5de5ca2317df2db03d72aeca031c109bca
+                      - name: RELATED_IMAGE_KALYBR_ENT_ADMIN_WEB
+                        value: ghcr.io/autonous-systems/kalybr-ent-admin-web@sha256:6fa1a5adb7a085ae75dda72b4f0e5965207fd8064f8c6202d2aa59b7cfe7ce08
+                      - name: RELATED_IMAGE_KALYBR_ENT_EMBEDDER
+                        value: ghcr.io/autonous-systems/kalybr-ent-embedder@sha256:bedf0c5e74d403555c5235bdf47fc6b7bd63cfc79bdda59593cf78d15684f299
+                    ports:
+                      - name: metrics
+                        containerPort: 8080
+                      - name: probe
+                        containerPort: 8081
+                    livenessProbe:
+                      httpGet: {path: /healthz, port: probe}
+                      initialDelaySeconds: 15
+                      periodSeconds: 20
+                    readinessProbe:
+                      httpGet: {path: /readyz, port: probe}
+                      initialDelaySeconds: 5
+                      periodSeconds: 10
+                    securityContext:
+                      allowPrivilegeEscalation: false
+                      readOnlyRootFilesystem: true
+                      capabilities:
+                        drop: [ALL]
+                    resources:
+                      requests: {cpu: 50m, memory: 64Mi}
+                      limits: {cpu: 500m, memory: 256Mi}
+  # relatedImages keeps the bundle air-gap complete (CON-6.1) — every operand image the
+  # operator may render is enumerated so `oc mirror` pulls them. Digest-pin at cert time.
+  relatedImages:
+    - name: operator
+      image: ghcr.io/autonous-systems/kalybr-ent-operator@sha256:87fc26d43115dd436488befb1ed0bb55589a0db5678b9836e94c7d2e8b0dc977
+    - name: kalybr-ent-svc
+      image: ghcr.io/autonous-systems/kalybr-ent-svc@sha256:54d04de8b00d948795598f12c1c69b9259f7c502ca68f1302ca7cb3983ee53c3
+    - name: kalybr-ent-db
+      image: ghcr.io/autonous-systems/kalybr-ent-db@sha256:f24098d658961af4e6907cdadb0867534345380ac5eefe827d313ff2610ae5b9
+    - name: kalybr-ent-public-web
+      image: ghcr.io/autonous-systems/kalybr-ent-public-web@sha256:7646700f2d173f4f891c9bda542a2b5de5ca2317df2db03d72aeca031c109bca
+    - name: kalybr-ent-admin-web
+      image: ghcr.io/autonous-systems/kalybr-ent-admin-web@sha256:6fa1a5adb7a085ae75dda72b4f0e5965207fd8064f8c6202d2aa59b7cfe7ce08
+    - name: kalybr-ent-embedder
+      image: ghcr.io/autonous-systems/kalybr-ent-embedder@sha256:bedf0c5e74d403555c5235bdf47fc6b7bd63cfc79bdda59593cf78d15684f299

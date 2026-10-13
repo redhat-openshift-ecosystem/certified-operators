@@ -1,0 +1,1135 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  creationTimestamp: null
+  name: zabbixfulls.operator.zabbix.com
+spec:
+  group: operator.zabbix.com
+  names:
+    kind: ZabbixFull
+    listKind: ZabbixFullList
+    plural: zabbixfulls
+    singular: zabbixfull
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.serverStatus
+      name: Status
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: Zabbix server with MySQL database server, Nginx web-server and
+          optional Zabbix Java Gateway
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ZabbixFullSpec defines the desired state of ZabbixFull
+            properties:
+              builtinReportService:
+                default: true
+                description: Use the operator-managed Zabbix web service for reporting.
+                  When omitted, the operator enables it.
+                type: boolean
+              database:
+                description: |-
+                  Operator-managed primary database. ZabbixFull supports MySQL in this release;
+                  the engine discriminator allows PostgreSQL support to be added in place.
+                properties:
+                  clientTLSSecret:
+                    description: Secret volume containing root-ca.pem, client-cert.pem
+                      and client-key.pem.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  credentialsSecret:
+                    description: |-
+                      Secret containing database credentials. For MySQL it uses the
+                      mysql_root_password, mysql_zabbix_username and mysql_zabbix_password keys.
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  engine:
+                    description: Primary database engine.
+                    enum:
+                    - mysql
+                    type: string
+                  external:
+                    description: External database connection settings.
+                    properties:
+                      host:
+                        description: Database server host name.
+                        pattern: ^\S+$
+                        type: string
+                      port:
+                        description: Database server port. When omitted, the selected
+                          engine's default is used.
+                        format: int32
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                    required:
+                    - host
+                    type: object
+                  managed:
+                    description: Operator-managed database settings.
+                    properties:
+                      configMap:
+                        description: Additional database configuration. For MySQL
+                          the ConfigMap must contain 99-custom.cnf.
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                      image:
+                        description: Full database image reference, including a tag
+                          or digest.
+                        pattern: ^\S+$
+                        type: string
+                      imageType:
+                        description: Container image filesystem and runtime layout.
+                          The built-in MySQL image uses rhel.
+                        enum:
+                        - rhel
+                        - upstream
+                        - rhel-mariadb
+                        type: string
+                      resources:
+                        description: Database container resource requests and limits.
+                        properties:
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: Limits
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: Requests
+                            type: object
+                        type: object
+                      serverTLSSecret:
+                        description: Secret volume containing root-ca.pem, server-cert.pem
+                          and server-key.pem.
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                        type: string
+                      storage:
+                        description: Existing PersistentVolumeClaim used by the database
+                          workload.
+                        properties:
+                          existingClaim:
+                            description: Existing PersistentVolumeClaim name.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        required:
+                        - existingClaim
+                        type: object
+                    required:
+                    - storage
+                    type: object
+                    x-kubernetes-validations:
+                    - message: imageType is required when image is specified
+                      rule: '!has(self.image) || has(self.imageType)'
+                    - message: image is required for a non-default imageType
+                      rule: '!has(self.imageType) || self.imageType == ''rhel'' ||
+                        has(self.image)'
+                  name:
+                    description: Database or schema name. When omitted, the component-specific
+                      default is used.
+                    pattern: ^\S+$
+                    type: string
+                  vault:
+                    description: Vault connection used to obtain application database
+                      credentials.
+                    properties:
+                      hashiCorp:
+                        description: HashiCorp-specific authentication.
+                        properties:
+                          tokenSecret:
+                            description: Secret containing the Vault token in the
+                              vault_token key.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        required:
+                        - tokenSecret
+                        type: object
+                      provider:
+                        description: |-
+                          VaultProvider identifies a secrets backend. Additional provider-specific
+                          blocks can be added without changing the database contract.
+                        enum:
+                        - hashicorp
+                        type: string
+                      url:
+                        description: Vault server HTTP[S] URL.
+                        pattern: ^\S+$
+                        type: string
+                    required:
+                    - provider
+                    - url
+                    type: object
+                    x-kubernetes-validations:
+                    - message: hashiCorp authentication is required for the hashicorp
+                        provider
+                      rule: self.provider != 'hashicorp' || has(self.hashiCorp)
+                required:
+                - credentialsSecret
+                - engine
+                type: object
+                x-kubernetes-validations:
+                - message: exactly one of managed or external must be specified
+                  rule: has(self.managed) != has(self.external)
+              enableReportService:
+                default: true
+                description: Enable scheduled report processing. When omitted, the
+                  operator enables it.
+                type: boolean
+              enableSNMPTraps:
+                description: Enable receiving SNMP traps
+                type: boolean
+              globalEnv:
+                description: Global environment settings
+                properties:
+                  debug:
+                    description: Enable component debugging
+                    type: boolean
+                type: object
+              history:
+                description: External history storage providers.
+                properties:
+                  providers:
+                    items:
+                      description: HistoryProviderSpec configures one external history
+                        provider.
+                      properties:
+                        elasticsearch:
+                          description: ElasticsearchHistoryProviderSpec contains Elasticsearch-specific
+                            settings.
+                          properties:
+                            dateIndex:
+                              description: Store values in date-based indices.
+                              type: boolean
+                            url:
+                              description: Elasticsearch HTTP[S] endpoint.
+                              pattern: ^\S+$
+                              type: string
+                          required:
+                          - url
+                          type: object
+                        type:
+                          description: |-
+                            HistoryProviderType identifies an external history storage implementation.
+                            SQL is the implicit primary-database provider and is therefore represented
+                            by omitting history entirely in the 6.0 operator.
+                          enum:
+                          - elasticsearch
+                          type: string
+                        valueTypes:
+                          description: Value types routed to this provider.
+                          items:
+                            description: HistoryValueType is a Zabbix history value
+                              type routed to a provider.
+                            enum:
+                            - uint
+                            - dbl
+                            - str
+                            - log
+                            - text
+                            type: string
+                          maxItems: 6
+                          type: array
+                          x-kubernetes-list-type: set
+                      required:
+                      - type
+                      type: object
+                      x-kubernetes-validations:
+                      - message: elasticsearch settings are required for the elasticsearch
+                          provider
+                        rule: self.type != 'elasticsearch' || has(self.elasticsearch)
+                    maxItems: 1
+                    minItems: 1
+                    type: array
+                required:
+                - providers
+                type: object
+              imagePullPolicy:
+                description: Image pull policy for operand containers
+                enum:
+                - Always
+                - IfNotPresent
+                - Never
+                type: string
+              imagePullSecrets:
+                description: Image pull secrets
+                items:
+                  description: LocalResourceName is a name of a Kubernetes resource
+                    in the custom resource namespace
+                  maxLength: 253
+                  minLength: 1
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                  type: string
+                maxItems: 32
+                type: array
+              javaGateway:
+                description: Configuration parameters for Zabbix Java Gateway
+                properties:
+                  allowedPeers:
+                    description: |-
+                      Additional Zabbix servers and proxies allowed to connect to Java Gateway.
+                      The operator-managed server or proxy peer DNS name is always included.
+                    items:
+                      pattern: ^[^,\s]+$
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  debugLevel:
+                    description: Specifies debug level
+                    enum:
+                    - all
+                    - debug
+                    - info
+                    - warn
+                    - error
+                    - fatal
+                    - "off"
+                    - trace
+                    type: string
+                  extLibsClaim:
+                    description: Additional Java libraries for Zabbix Java Gateway
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  javaOptions:
+                    description: Additional arguments for JVM
+                    type: string
+                  startPollers:
+                    description: Number of worker threads to start
+                    format: int32
+                    maximum: 1000
+                    minimum: 1
+                    type: integer
+                  timeout:
+                    description: How long to wait for network operations
+                    format: int32
+                    maximum: 30
+                    minimum: 1
+                    type: integer
+                type: object
+              javaGatewayImage:
+                description: Full Zabbix Java gateway image reference, including a
+                  tag or digest
+                pattern: ^\S+$
+                type: string
+              javaGatewaySize:
+                default: 0
+                description: The desired number of Zabbix Java Gateways for the deployment.
+                  When omitted, the operator disables Java Gateway.
+                format: int32
+                minimum: 0
+                type: integer
+              podMetadata:
+                description: Metadata added to managed Pod templates. Operator-managed
+                  labels take precedence on conflicts.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Additional annotations
+                    maxProperties: 128
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Additional labels
+                    maxProperties: 64
+                    type: object
+                type: object
+              server:
+                description: Configuration parameters for Zabbix server
+                properties:
+                  alertScriptsClaim:
+                    description: Location of custom alert scripts
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  allowUnsupportedDBVersions:
+                    description: Allow the server to work with unsupported database
+                      versions
+                    type: boolean
+                  cacheSize:
+                    description: Size of configuration cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  cacheUpdateFrequency:
+                    description: Determines how often Zabbix will perform update of
+                      configuration cache in seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  dbTLSCipher:
+                    description: The list of encryption ciphers that Zabbix server
+                      permits for TLS protocols up through TLSv1.2
+                    type: string
+                  dbTLSCipher13:
+                    description: The list of encryption ciphersuites that Zabbix server
+                      permits for TLSv1.3 protocol
+                    type: string
+                  dbTLSConnect:
+                    description: Setting this option enforces the use of TLS connection
+                      to database
+                    enum:
+                    - required
+                    - verify_ca
+                    - verify_full
+                    type: string
+                  debugLevel:
+                    description: Specifies debug level for Zabbix server
+                    format: int32
+                    maximum: 5
+                    minimum: 0
+                    type: integer
+                  exportFileSize:
+                    description: Maximum size per export file in bytes
+                    pattern: ^(\d+|\d+[KMG])?$
+                    type: string
+                  externalScriptsClaim:
+                    description: Location of external scripts
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  historyCacheSize:
+                    description: Size of history cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  historyIndexCacheSize:
+                    description: Size of history index cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  housekeepingFrequency:
+                    description: Determines how often Zabbix will perform housekeeping
+                      procedure in hours
+                    format: int32
+                    maximum: 24
+                    minimum: 0
+                    type: integer
+                  loadModule:
+                    description: Modules to load at server startup.
+                    items:
+                      pattern: ^[^,\s]+$
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  logSlowQueries:
+                    description: Determines how long a database query may take before
+                      being logged in milliseconds
+                    format: int32
+                    maximum: 3600000
+                    minimum: 0
+                    type: integer
+                  maxHousekeeperDelete:
+                    description: No more than 'MaxHousekeeperDelete' rows (corresponding
+                      to [tablename], [field], [value]) will be deleted per one task
+                      in one housekeeping cycle
+                    format: int32
+                    maximum: 1000000
+                    minimum: 0
+                    type: integer
+                  mibsClaim:
+                    description: Additional MIB files location
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  modulesClaim:
+                    description: Zabbix server loadable modules volume claim
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  proxyConfigFrequency:
+                    description: Determines how often Zabbix server sends configuration
+                      data to a Zabbix proxy in seconds
+                    format: int32
+                    maximum: 604800
+                    minimum: 1
+                    type: integer
+                  proxyDataFrequency:
+                    description: Determines how often Zabbix server requests history
+                      data from a Zabbix proxy in seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  realTimeExportClaim:
+                    description: Directory for real-time export of events, history
+                      and trends in newline-delimited JSON format
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  serviceManagerSyncFrequency:
+                    description: Determines how often Zabbix will synchronize configuration
+                      of a service manager in seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  sshKeysSecret:
+                    description: Location of public and private keys for SSH checks
+                      and actions
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  sslCASecret:
+                    description: Override the location of certificate authority (CA)
+                      files for SSL server certificate verification. If not set, system-wide
+                      directory will be used
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  sslCertsSecret:
+                    description: Location of SSL client certificate files for client
+                      authentication
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  sslKeysSecret:
+                    description: Location of SSL private key files for client authentication
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  startAlerters:
+                    description: Number of pre-forked instances of alerters
+                    format: int32
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  startDBSyncers:
+                    description: Number of pre-forked instances of history syncers
+                    format: int32
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  startDiscoverers:
+                    description: Number of pre-forked instances of discoverers
+                    format: int32
+                    maximum: 250
+                    minimum: 0
+                    type: integer
+                  startEscalators:
+                    description: Number of pre-forked instances of escalators
+                    format: int32
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  startHTTPPollers:
+                    description: Number of pre-forked instances of HTTP pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startHistoryPollers:
+                    description: Number of pre-forked instances of history pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startIPMIPollers:
+                    description: Number of pre-forked instances of IPMI pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startJavaPollers:
+                    description: Number of pre-forked instances of Java pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startLLDProcessors:
+                    description: Number of pre-forked instances of low-level discovery
+                      (LLD) workers
+                    format: int32
+                    maximum: 100
+                    minimum: 1
+                    type: integer
+                  startODBCPollers:
+                    description: Number of pre-forked instances of ODBC pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startPingers:
+                    description: Number of pre-forked instances of ICMP pingers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startPollers:
+                    description: Number of pre-forked instances of pollers
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startPollersUnreachable:
+                    description: Number of pre-forked instances of pollers for unreachable
+                      hosts (including IPMI and Java)
+                    format: int32
+                    maximum: 1000
+                    minimum: 0
+                    type: integer
+                  startPreprocessors:
+                    description: Number of pre-forked instances of preprocessing workers
+                    format: int32
+                    maximum: 1000
+                    minimum: 1
+                    type: integer
+                  startProxyPollers:
+                    description: Number of pre-forked instances of pollers for passive
+                      proxies
+                    format: int32
+                    maximum: 250
+                    minimum: 0
+                    type: integer
+                  startReportWriters:
+                    description: Number of pre-forked instances of report writers
+                    format: int32
+                    maximum: 100
+                    minimum: 0
+                    type: integer
+                  startTimers:
+                    description: Number of pre-forked instances of timers
+                    format: int32
+                    maximum: 1000
+                    minimum: 1
+                    type: integer
+                  startTrappers:
+                    description: Number of pre-forked instances of trappers. At least
+                      one is required because the operator probes the Zabbix listener
+                      on port 10051.
+                    format: int32
+                    maximum: 1000
+                    minimum: 1
+                    type: integer
+                  startVMwareCollectors:
+                    description: Number of pre-forked VMware collector instances
+                    format: int32
+                    maximum: 250
+                    minimum: 0
+                    type: integer
+                  statsAllowedIP:
+                    description: IP addresses, CIDR ranges, or DNS names of external
+                      Zabbix instances allowed to request statistics.
+                    items:
+                      pattern: ^[^,\s]+$
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  timeout:
+                    description: Specifies how long we wait for agent, SNMP device
+                      or external check in seconds
+                    format: int32
+                    maximum: 30
+                    minimum: 1
+                    type: integer
+                  tlsCAFileName:
+                    description: |-
+                      File containing the top-level CA(s) certificates for peer certificate verification, used for encrypted communications between Zabbix components
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsCRLFileName:
+                    description: |-
+                      File containing revoked certificates. This parameter is used for encrypted communications between Zabbix components
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsCertFileName:
+                    description: |-
+                      File containing the server certificate or certificate chain, used for encrypted communications between Zabbix components
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsCipherAll:
+                    description: GnuTLS priority string or OpenSSL (TLS 1.2) cipher
+                      string
+                    type: string
+                  tlsCipherAll13:
+                    description: Cipher string for OpenSSL 1.1.1 or newer in TLS 1.3
+                    type: string
+                  tlsCipherCert:
+                    description: GnuTLS priority string or OpenSSL (TLS 1.2) cipher
+                      string
+                    type: string
+                  tlsCipherCert13:
+                    description: Cipher string for OpenSSL 1.1.1 or newer in TLS 1.3
+                    type: string
+                  tlsCipherPSK:
+                    description: GnuTLS priority string or OpenSSL (TLS 1.2) cipher
+                      string
+                    type: string
+                  tlsCipherPSK13:
+                    description: Cipher string for OpenSSL 1.1.1 or newer in TLS 1.3
+                    type: string
+                  tlsEncSecret:
+                    description: Secret containing certificates and/or PSK files used
+                      by Zabbix server for encrypted communication with other Zabbix
+                      components
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  tlsKeyFileName:
+                    description: |-
+                      File containing the server private key, used for encrypted communications between Zabbix components.
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  trapperTimeout:
+                    description: Specifies how many seconds trapper may spend processing
+                      new data
+                    format: int32
+                    maximum: 300
+                    minimum: 1
+                    type: integer
+                  trendCacheSize:
+                    description: Size of trend cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  trendFunctionCacheSize:
+                    description: Size of trend function cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  unavailableDelay:
+                    description: Determines how often host is checked for availability
+                      during the unavailability period, in seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  unreachableDelay:
+                    description: Determines how often host is checked for availability
+                      during the unreachability period in seconds
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  unreachablePeriod:
+                    description: Determines after how many seconds of unreachability
+                      treat a host as unavailable
+                    format: int32
+                    maximum: 3600
+                    minimum: 1
+                    type: integer
+                  valueCacheSize:
+                    description: Size of history value cache, in bytes
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  vaultDBPath:
+                    description: Vault path from where credentials for database will
+                      be retrieved by keys 'password' and 'username'
+                    type: string
+                  vmwareCacheSize:
+                    description: Shared memory size for storing VMware data
+                    pattern: ^(\d+|\d+[KMG])$
+                    type: string
+                  vmwareFrequency:
+                    description: Delay in seconds between data gathering from a single
+                      VMware service
+                    format: int32
+                    maximum: 86400
+                    minimum: 10
+                    type: integer
+                  vmwarePerfFrequency:
+                    description: Delay in seconds between performance counter statistics
+                      retrieval from a single VMware service
+                    format: int32
+                    maximum: 86400
+                    minimum: 10
+                    type: integer
+                  vmwareTimeout:
+                    description: The maximum number of seconds VMware collector will
+                      wait for a response from VMware service (vCenter or ESX hypervisor)
+                    format: int32
+                    maximum: 300
+                    minimum: 1
+                    type: integer
+                  webServiceURL:
+                    description: HTTP[S] URL to Zabbix web service in the format <host:port>/report
+                    pattern: ^\S+$
+                    type: string
+                type: object
+              serviceMetadata:
+                description: Metadata added to managed Services. Operator-managed
+                  labels take precedence on conflicts.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Additional annotations
+                    maxProperties: 128
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Additional labels
+                    maxProperties: 64
+                    type: object
+                type: object
+              snmpTraps:
+                description: Configuration parameters for Zabbix SNMP Traps
+                properties:
+                  snmpTrapDateFormat:
+                    description: SNMP Trap Date format
+                    type: string
+                  snmpTrapFormat:
+                    description: SNMP Trap variable delimiter
+                    type: string
+                  snmpTrapUseDNS:
+                    description: Resolve the SNMP trap sender address to a DNS name
+                      instead of using its IP address
+                    type: boolean
+                type: object
+              snmpTrapsImage:
+                description: Full Zabbix SNMP traps image reference, including a tag
+                  or digest
+                pattern: ^\S+$
+                type: string
+              snmpTrapsVolumeClaim:
+                description: SNMP Traps volume claim
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              web:
+                description: Configuration parameters for Zabbix web-interface
+                properties:
+                  dbCipherList:
+                    description: Custom list of valid ciphers for connection to MySQL
+                      database
+                    type: string
+                  dbDoubleIEEE754:
+                    description: Enables extended range of numeric (float) values
+                    type: boolean
+                  dbEncryption:
+                    description: Enforces to use TLS connection to database
+                    type: boolean
+                  dbVerifyHost:
+                    description: Enables host verification
+                    type: boolean
+                  denyGUIAccess:
+                    description: Enable maintenance mode
+                    type: boolean
+                  enableWebAccessLog:
+                    description: Enables Web server access log
+                    type: boolean
+                  guiAccessIPRange:
+                    description: Array of IP addresses, which are allowed to connect
+                      to frontend (optional)
+                    type: string
+                  guiWarningMsg:
+                    description: A message you can enter to inform users about the
+                      maintenance
+                    type: string
+                  maxExecutionTime:
+                    description: PHP max_execution_time option
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  maxInputTime:
+                    description: PHP max_input_time option
+                    format: int32
+                    minimum: -1
+                    type: integer
+                  memoryLimit:
+                    description: PHP memory_limit option
+                    pattern: ^(\d+|\d+[KMGT])$
+                    type: string
+                  postMaxSize:
+                    description: PHP post_max_size option
+                    pattern: ^(\d+|\d+[KMGT])$
+                    type: string
+                  serverName:
+                    description: Visible Zabbix installation name in right top corner
+                      of the web interface
+                    type: string
+                  sessionName:
+                    description: String used as the name of the Zabbix frontend session
+                      cookie
+                    type: string
+                  ssoCertsSecrets:
+                    description: Secret volume with sp.key, sp.crt and idp.crt files
+                      as custom certificates for SAML authentication
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  ssoSettings:
+                    description: Additional SAML parameters
+                    type: string
+                  timezone:
+                    description: Zabbix web-interface timezone in PHP format
+                    pattern: ^\S+$
+                    type: string
+                  uploadMaxFilesize:
+                    description: PHP upload_max_filesize option
+                    pattern: ^(\d+|\d+[KMGT])$
+                    type: string
+                  vaultDBPath:
+                    description: Vault path from where credentials for database will
+                      be retrieved by keys 'password' and 'username'
+                    type: string
+                  zabbixWebSSLSecret:
+                    description: SSL certificates for Zabbix web-interface. The secret
+                      volume must contain ssl.crt, ssl.key and dhparam.pem files
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                type: object
+              webRouteEnabled:
+                description: Expose the Zabbix web interface through an OpenShift
+                  Route. When omitted, Routes are enabled only if the Route API is
+                  available. The backing Service uses ClusterIP when a Route is created
+                  and LoadBalancer otherwise.
+                type: boolean
+              webRouteName:
+                description: Name of the OpenShift Route. When omitted, the operator
+                  uses the custom resource name.
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              webService:
+                description: Configuration parameters for Zabbix Web service
+                properties:
+                  allowedIP:
+                    description: |-
+                      Additional IP addresses, CIDR ranges, or DNS names of Zabbix servers and proxies allowed to connect.
+                      The operator-managed Zabbix server peer DNS name is always included.
+                    items:
+                      pattern: ^[^,\s]+$
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  debugLevel:
+                    description: Specifies debug level
+                    format: int32
+                    maximum: 5
+                    minimum: 0
+                    type: integer
+                  ignoreURLCertErrors:
+                    description: Ignore TLS certificate errors when accessing Frontend
+                      URL
+                    type: boolean
+                  timeout:
+                    description: Spend no more than Timeout seconds on processing
+                    format: int32
+                    maximum: 30
+                    minimum: 1
+                    type: integer
+                  tlsAccept:
+                    description: |-
+                      What incoming connections to accept
+                      See also: https://www.zabbix.com/documentation/6.0/manual/encryption
+                    enum:
+                    - unencrypted
+                    - cert
+                    type: string
+                  tlsCAFileName:
+                    description: |-
+                      Name of the file containing the top-level CA(s) certificates for peer certificate verification
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsCertFileName:
+                    description: |-
+                      Name of the file containing the service certificate or certificate chain
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                  tlsEncSecret:
+                    description: Secret volume with TLSCAFile, TLSCertFile and TLSKeyFile
+                    maxLength: 253
+                    minLength: 1
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    type: string
+                  tlsKeyFileName:
+                    description: |-
+                      Name of the file containing the service private key
+                      Relative names are resolved under /var/lib/zabbix/enc; absolute paths are used unchanged.
+                    type: string
+                type: object
+              webServiceImage:
+                description: Full Zabbix web service image reference, including a
+                  tag or digest
+                pattern: ^\S+$
+                type: string
+              webSize:
+                default: 2
+                description: The desired number of Zabbix web-interfaces for the deployment.
+                  When omitted, the operator uses 2.
+                format: int32
+                minimum: 1
+                type: integer
+              zabbixServerImage:
+                description: Full Zabbix server image reference, including a tag or
+                  digest
+                pattern: ^\S+$
+                type: string
+              zabbixWebFrontendImage:
+                description: Full Zabbix web frontend image reference, including a
+                  tag or digest
+                pattern: ^\S+$
+                type: string
+            required:
+            - database
+            type: object
+            x-kubernetes-validations:
+            - message: snmpTrapsVolumeClaim is required when enableSNMPTraps is true
+              rule: '!has(self.enableSNMPTraps) || !self.enableSNMPTraps || has(self.snmpTrapsVolumeClaim)'
+            - message: server.webServiceURL is required when report service is enabled
+                without the built-in web service
+              rule: (has(self.enableReportService) && !self.enableReportService) ||
+                !has(self.builtinReportService) || self.builtinReportService || (has(self.server)
+                && has(self.server.webServiceURL))
+            - message: database.managed is required for ZabbixFull
+              rule: has(self.database.managed)
+          status:
+            description: ZabbixFullStatus defines the observed state of ZabbixFull
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the resource state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              databaseStatus:
+                description: Status of the operator-managed primary database.
+                type: string
+              javaGatewayStatus:
+                description: Status of Java Gateway deployment operation
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the generation last processed by
+                  the controller
+                format: int64
+                type: integer
+              serverStatus:
+                description: Status of Zabbix server deployment operation
+                type: string
+              webFrontendStatus:
+                description: Status of Web server deployment operation
+                type: string
+              webServiceStatus:
+                description: Status of Zabbix web-service deployment operation
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

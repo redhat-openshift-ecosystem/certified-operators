@@ -1,0 +1,372 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "sensors.appsentinels.io/v1alpha1",
+          "kind": "AppSentinelsSensor",
+          "metadata": {
+            "name": "appsentinelssensor-sample"
+          },
+          "spec": {
+            "containerRuntime": "crio",
+            "controller": {
+              "host": "<controller-host>",
+              "instanceName": "openshift-sensor",
+              "port": "<controller-port>"
+            },
+            "createNamespace": true,
+            "goRuntime": {
+              "gogc": "10",
+              "gomemlimit": "128MiB"
+            },
+            "image": {
+              "pullPolicy": "Always",
+              "repository": "docker.io/appsentinelsofficial/sslsniffer",
+              "tag": "ubi9"
+            },
+            "namespace": "sslsniffer",
+            "resources": {
+              "limits": {
+                "cpu": "1000m",
+                "memory": "2Gi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "512Mi"
+              }
+            },
+            "runtimeSocket": {
+              "containerd": "/var/run/containerd/containerd.sock",
+              "crio": "/var/run/crio/crio.sock"
+            },
+            "sniff": {
+              "containerIncludeFilter": "http",
+              "enableMidstreamLogging": false,
+              "enableNonSslTcp": true,
+              "excludeProcFilter": "^(splunkd|runner|sslsniffer|pause|kube-proxy|coredns|crio|containerd)$",
+              "localOnly": false,
+              "loggingLevel": "trace",
+              "processIncludeFilter": "http|router",
+              "skipExtensions": "svg|txt|png|jpg|jpeg|ico|css|pdf|html|mp4|js|gif|ttf|woff|woff2|wasm",
+              "skipUriRegex": "health|healthz|readyz|livez|metrics|mergedlog|appsentinels|dp-"
+            },
+            "ssl": {
+              "customLibssl3Path": "/usr/lib64/libssl.so.3"
+            },
+            "testHttpServer": {
+              "enabled": false,
+              "image": "appsentinels/http-server:latest"
+            },
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.kubernetes.io/master",
+                "operator": "Exists"
+              },
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.kubernetes.io/control-plane",
+                "operator": "Exists"
+              },
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.kubernetes.io/infra",
+                "operator": "Exists"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2026-08-14T09:51:47Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.34.1
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+  name: appsentinels-sslsniffer-operator.v0.0.1
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: AppSentinelsSensor
+      name: appsentinelssensors.sensors.appsentinels.io
+      version: v1alpha1
+  description: |-
+    ## AppSentinels SSL Sniffer Operator
+
+    eBPF based SSL/TLS traffic sniffer for OpenShift and Kubernetes.
+    Captures HTTP/HTTPS traffic from all applications without any code changes.
+
+    ## Privileged Capabilities Justification
+
+    privileged: true
+      Required to load eBPF programs into the Linux kernel.
+
+    SYS_ADMIN
+      Required to load and attach eBPF programs to kernel hooks.
+
+    SYS_PTRACE
+      Required to read memory of other processes to intercept TLS traffic.
+
+    hostPID: true
+      Required to see all processes running on the node.
+
+    hostPath (/sys, /sys/kernel/debug)
+      Required to access kernel debug filesystem for eBPF.
+  displayName: AppSentinels SSL Sniffer
+  icon:
+  - base64data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+    mediatype: "image/png"
+  minKubeVersion: "1.25.0"
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - nodes
+          - services
+          - events
+          - secrets
+          - serviceaccounts
+          - namespaces
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - deployments
+          - replicasets
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+          - use
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          - clusterrolebindings
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+          - bind
+          - escalate
+        - apiGroups:
+          - sensors.appsentinels.io
+          resources:
+          - appsentinelssensors
+          - appsentinelssensors/status
+          - appsentinelssensors/finalizers
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: sslsniffer-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: appsentinels-sslsniffer-operator
+          app.kubernetes.io/instance: controller-manager
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: appsentinels-sslsniffer-operator
+          control-plane: controller-manager
+        name: sslsniffer-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:5b2bcae5b0ee945f6abe75561b9d78c686995a5d1bf9a553e63a724c5c828936
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=sslsniffer-operator
+                image: docker.io/appsentinelsofficial/sslsniffer-operator@sha256:349e7eee2919eb55217d3c728e97978d66a2e8ae60bbf2b7a35efb452bfeebcc
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: sslsniffer-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: sslsniffer-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - ebpf
+  - ssl
+  - sniffer
+  - security
+  - openshift
+  links:
+  - name: AppSentinels
+    url: https://appsentinels.ai
+  maintainers:
+  - email: mohit.joshi@appsentinels.ai
+    name: Mohit Joshi
+  maturity: alpha
+  provider:
+    name: AppSentinels
+    url: https://appsentinels.ai
+  relatedImages:
+  - name: sslsniffer
+    image: docker.io/appsentinelsofficial/sslsniffer@sha256:f246c64080a5824ed2f201c6d9161463146fa1446ae0b66775df694ed42afabe
+  - name: sslsniffer-operator
+    image: docker.io/appsentinelsofficial/sslsniffer-operator@sha256:349e7eee2919eb55217d3c728e97978d66a2e8ae60bbf2b7a35efb452bfeebcc
+  - name: kube-rbac-proxy
+    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:5b2bcae5b0ee945f6abe75561b9d78c686995a5d1bf9a553e63a724c5c828936
+  version: 0.0.1

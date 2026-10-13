@@ -1,0 +1,122 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: zkclusters.zookeeper.transwarp.io
+spec:
+  group: zookeeper.transwarp.io
+  names:
+    kind: ZKCluster
+    listKind: ZKClusterList
+    plural: zkclusters
+    singular: zkcluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ZKCluster is the Schema for the zkclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Spec defines the desired state of ZKCluster
+            properties:
+              image:
+                description: ZooKeeper container image
+                properties:
+                  pullPolicy:
+                    default: IfNotPresent
+                    enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                    type: string
+                  repository:
+                    default: quay.io/yrding/tran/zookeeper
+                    type: string
+                  tag:
+                    default: transwarp-9.5-final-redhat
+                    type: string
+                type: object
+              jvmOpts:
+                default: -Xms256m -Xmx512m
+                description: JVM arguments for the ZooKeeper process
+                type: string
+              persistence:
+                description: Data persistence (emptyDir when disabled)
+                properties:
+                  enabled:
+                    default: false
+                    type: boolean
+                  size:
+                    default: 5Gi
+                    description: PVC size
+                    type: string
+                  storageClass:
+                    description: StorageClass name for PVC (optional)
+                    type: string
+                type: object
+              ports:
+                description: Service ports
+                properties:
+                  client:
+                    default: 2181
+                    description: Client port (2181)
+                    type: integer
+                  leaderElection:
+                    default: 3888
+                    description: Leader election port (3888)
+                    type: integer
+                  quorum:
+                    default: 2888
+                    description: Quorum/sync port (2888)
+                    type: integer
+                type: object
+              replicaCount:
+                default: 1
+                description: Number of ZooKeeper instances (standalone=1 on SNO)
+                maximum: 7
+                minimum: 1
+                type: integer
+              resources:
+                description: Container resource requirements
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              securityContext:
+                description: Pod security context (OpenShift restricted SCC compatible)
+                properties:
+                  runAsNonRoot:
+                    default: true
+                    type: boolean
+                type: object
+              zooConfig:
+                description: zoo.cfg key/value pairs (rendered into the ConfigMap)
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+            type: object
+          status:
+            description: Status defines the observed state of ZKCluster
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

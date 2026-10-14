@@ -1,0 +1,668 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: axeraprocesses.platform.axerasecurity.com
+spec:
+  group: platform.axerasecurity.com
+  names:
+    categories:
+    - axera
+    kind: AxeraProcess
+    listKind: AxeraProcessList
+    plural: axeraprocesses
+    shortNames:
+    - axp
+    singular: axeraprocess
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.numberReady
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AxeraProcess is the Schema for the process agent — one CR per
+          monitored cluster.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              AxeraProcessSpec is the process agent (Cilium Tetragon + fluent-bit shipper) for
+              one monitored cluster. It renders into the `axera-process` namespace and ships a
+              per-cluster process topic to the central Kafka. Mirrors deploy/Axera-Process.
+
+              The Tetragon CRDs (tracingpolicies, tracingpoliciesnamespaced, podinfo) are
+              created by the operator from its embedded Tetragon v1.7.1 copies when they are
+              absent. Create-only: CRDs that already exist (an older operator's v1.4.0 copies, or
+              a customer-managed Tetragon) are never updated, so upgrade those by hand with
+              server-side apply (see the release notes).
+            properties:
+              capture:
+                description: |-
+                  On-demand packet-capture sidecar (image + on/off). Exposed so a disconnected
+                  cluster can point it at a mirror instead of relying on an ImageTagMirrorSet.
+                properties:
+                  enabled:
+                    description: |-
+                      Deploy the capture sidecar and its pods/exec Role. Unset: true on AxeraForce, false on
+                      AxeraFlow and AxeraProcess — the Axera API captures only from the AxeraForce agent
+                      (label app=axera-agent in namespace "axera"), so their sidecar was a privileged
+                      container nothing ever used. Set false on AxeraForce to refuse pods/exec entirely (the
+                      platform's integration.namespacedRoles=never does not reach this Role); the rest of
+                      the agent is unaffected.
+                    type: boolean
+                  image:
+                    default: quay.io/openshift/origin-network-tools:latest
+                    description: |-
+                      Packet-capture sidecar image (mirror it for disconnected installs). Upstream
+                      rewrites both `latest` and its version tags, so in an air-gapped estate pin
+                      this by digest — a tag is not a pin here.
+                    type: string
+                  integrationNamespaces:
+                    description: |-
+                      Namespaces, besides the agent's own, whose axera-integration-sa may exec into the capture
+                      sidecar (RoleBinding axera-pcap-exec). Set it to the namespace of a central Axera that was
+                      NOT installed by this operator on the same cluster (e.g. a Helm install in axera-central):
+                      that platform captures with the token it registered for this cluster. A central Axera CR on
+                      the same cluster is added automatically. Read by AxeraForce only.
+                    items:
+                      maxLength: 63
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    maxItems: 16
+                    type: array
+                    x-kubernetes-list-type: set
+                type: object
+              clusterName:
+                description: |-
+                  Identity of THIS cluster. The process topic defaults to "<clusterName>-process".
+                  Cluster identity is carried ONLY by the topic name (Radar maps topic → cluster),
+                  so a wrong topic silently misattributes every event. REQUIRED.
+                minLength: 1
+                pattern: ^[a-zA-Z0-9][a-zA-Z0-9._-]*$
+                type: string
+              createSCC:
+                default: true
+                description: Create the OpenShift SecurityContextConstraints (privileged
+                  + hostNetwork).
+                type: boolean
+              images:
+                description: Tetragon + fluent-bit shipper images.
+                properties:
+                  shipper:
+                    default: quay.io/axera/fluent-bit:4.2.8
+                    description: |-
+                      fluent-bit shipper image (classic config). 4.2.8 is the validated baseline:
+                      3.1.9 failed SCRAM-SHA-512 logins against some brokers.
+                    type: string
+                  tetragon:
+                    default: quay.io/cilium/tetragon:v1.7.1
+                    description: |-
+                      Tetragon image for the btf-check init container and the tetragon container.
+                      v1.7.1 is the validated baseline; v1.4.0 also works with the selector-less
+                      TracingPolicy (rollback). The API server stores this default in a CR that has an
+                      images block, so such a CR keeps the image it holds until this field is changed or
+                      removed: editing other fields of the CR does not change it.
+                    type: string
+                type: object
+              installTracingPolicy:
+                default: true
+                description: Apply the observe-only tcp_connect TracingPolicy (requires
+                  the Tetragon CRDs).
+                type: boolean
+              kafka:
+                description: Central Kafka the process shipper produces to.
+                properties:
+                  bootstrapServers:
+                    description: |-
+                      The central Kafka the agent produces to: one host:port, or a comma-separated host:port
+                      list. The fluent-bit shipper (process lane) is given the whole list. flowlogs-pipeline
+                      (flow lanes) takes ONE address and panics at start on a list, so it is given only the
+                      FIRST entry and finds the other brokers through that broker's metadata: list first a
+                      broker (or a bootstrap name that resolves to every broker) that is always reachable.
+                    minLength: 1
+                    type: string
+                  caCert:
+                    description: |-
+                      Broker CA certificate (PEM) for TLS trust. Rendered into the agent's kafka
+                      Secret and referenced by the writers' caCertPath / ssl.ca.location.
+                    type: string
+                  createSecret:
+                    default: true
+                    description: |-
+                      Create the agent's kafka Secret (CA + SASL creds) from the values above
+                      (default true), or set false to bring your OWN pre-created Secret and keep
+                      credentials out of the CR. When false, pre-create the Secret with keys:
+                        ca.crt, username, password
+                      named per kind: axera-flow-kafka (flow), axera-process-kafka (process); the
+                      force/OneBox agent uses TWO Secrets — kafka-ca (key ca.crt) + kafka-sasl
+                      (keys username, password).
+                    type: boolean
+                  insecureSkipVerify:
+                    default: false
+                    description: Skip broker certificate verification (dev / self-signed
+                      only).
+                    type: boolean
+                  saslMechanism:
+                    default: ScramSha512
+                    description: |-
+                      SASL/SCRAM mechanism (only used for the Sasl* protocols). The chart maps this
+                      ONE value to the FLP (`scramSHA512`) and fluent-bit (`SCRAM-SHA-512`) spellings —
+                      it is never emitted verbatim. ScramSha256 works for AxeraProcess only:
+                      flowlogs-pipeline knows plain and SCRAM-SHA-512 alone, so on AxeraForce and
+                      AxeraFlow a Sasl* protocol with ScramSha256 fails the render (status RenderFailed)
+                      instead of shipping a flow writer that cannot log in.
+                    enum:
+                    - Plain
+                    - ScramSha256
+                    - ScramSha512
+                    type: string
+                  saslPassword:
+                    description: |-
+                      SASL password. Leading and trailing whitespace is trimmed when the operator
+                      writes it into the agent's Secret (createSecret: true). A pre-created Secret
+                      (createSecret: false) must hold the bare values with no trailing newline (as
+                      `echo | base64` or --from-file adds): flowlogs-pipeline trims them, but the
+                      fluent-bit shipper reads them verbatim, and its login then fails exactly like a
+                      wrong password.
+                    type: string
+                  saslUsername:
+                    description: |-
+                      SASL username. Leading and trailing whitespace is trimmed when the operator
+                      writes it into the agent's Secret (createSecret: true).
+                    type: string
+                  securityProtocol:
+                    default: Plaintext
+                    description: Wire security. Plaintext | Ssl | SaslPlaintext |
+                      SaslSsl.
+                    enum:
+                    - Plaintext
+                    - Ssl
+                    - SaslPlaintext
+                    - SaslSsl
+                    type: string
+                required:
+                - bootstrapServers
+                type: object
+              process:
+                description: |-
+                  What the agent exports besides the tcp_connect kprobes (spec.process.execExport)
+                  and how the shipper buffers it (spec.process.shipperQueueMaxKbytes).
+                properties:
+                  execExport:
+                    default: false
+                    description: |-
+                      Ship Tetragon's PROCESS_EXEC events next to the tcp_connect kprobes (exec visibility).
+                      Off: only binaries that open a connection are seen, so a tool that runs without
+                      connecting (pip3 --version) and the runtime-exec detector (sudo, nsenter, unshare,
+                      crictl) stay dark, and Process Activity says so. On: the export-allowlist carries
+                      PROCESS_EXEC with its own field-filter; the highest-volume Tetragon stream, so expect
+                      more broker traffic on clusters with high process churn. The operator re-applies the
+                      Tetragon ConfigMap on every reconcile, so this field is the only lever.
+                    type: boolean
+                  shipperQueueMaxKbytes:
+                    default: 16384
+                    description: |-
+                      Upper bound, in KiB, of the shipper's Kafka producer queue
+                      (rdkafka.queue.buffering.max.kbytes). While the broker is unreachable or refuses
+                      the login, fluent-bit (Retry_Limit false) keeps producing into this queue; with
+                      librdkafka's own default (1 GiB) the shipper grew about 1 MiB/s at 2000 events/s
+                      and was OOMKilled at its 128Mi limit. 16384 (16 MiB) held it at about 83 MiB.
+                      Raise it only together with the shipper's memory limit (spec.resources.shipper).
+                      Minimum 1024, so one maximum-size Kafka message (message.max.bytes, 1 MB) still fits.
+                    format: int32
+                    minimum: 1024
+                    type: integer
+                type: object
+              processTopic:
+                description: Process topic override. Default "<clusterName>-process".
+                type: string
+              resources:
+                description: |-
+                  Per-container requests/limits of the agent DaemonSet (the same keys as AxeraForce
+                  spec.resources). A block you set REPLACES that container's default as a whole: requests
+                  and limits come from your block only and are never merged with the default, so a block
+                  that names only requests leaves the container without limits. An unset or empty block
+                  keeps the default: shipper requests 25m CPU / 32Mi, limits 150m / 128Mi; capture requests
+                  10m / 32Mi, limits 500m / 256Mi; tetragon and btfCheck none (no resources block, as in
+                  1.1.0). tetragon loads eBPF programs and parses the kernel's BTF at start, which costs far
+                  more memory than its steady state: give it requests, and add limits only well above the
+                  start-up peak measured on your nodes. Raise the shipper's memory limit together with
+                  process.shipperQueueMaxKbytes.
+                properties:
+                  btfCheck:
+                    description: 'btf-check init container (one shell test of /sys/kernel/btf/vmlinux).
+                      Default: none.'
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  capture:
+                    description: |-
+                      pcap-capture sidecar (rendered only while capture.enabled). Default: requests
+                      10m/32Mi, limits 500m/256Mi.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  shipper:
+                    description: 'fluent-bit shipper. Default: requests 25m/32Mi,
+                      limits 150m/128Mi.'
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  tetragon:
+                    description: 'Tetragon (process events). Default: none.'
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                type: object
+              tetragon:
+                description: |-
+                  Advanced Tetragon runtime tuning (safe defaults). NOTE: enable-policy-filter is
+                  deliberately NOT here — it is always rendered "true" (a false silently leaves
+                  every policy in load_error).
+                properties:
+                  enableProcessCred:
+                    default: false
+                    type: boolean
+                  enableProcessNs:
+                    default: false
+                    type: boolean
+                  exportFileMaxBackups:
+                    default: 3
+                    type: integer
+                  exportFileMaxSizeMb:
+                    default: 50
+                    type: integer
+                type: object
+              tracingPolicyPodSelector:
+                description: |-
+                  Optional podSelector for the TracingPolicy. Unset or empty (no matchLabels and no
+                  matchExpressions): the policy carries NO podSelector, so Tetragon reports
+                  tcp_connect for every process on the node, pods and host processes alike (Radar
+                  uses the host stream). A non-empty selector limits the policy to the matching pods
+                  and drops host processes. The operator never renders an empty podSelector: from
+                  Tetragon v1.7.0 `podSelector: {}` means "pod workloads only", not "everything".
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+            required:
+            - clusterName
+            - kafka
+            type: object
+          status:
+            description: AgentStatus is the DaemonSet-centric observed state shared
+              by every agent kind.
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              desiredScheduled:
+                description: Nodes the agent DaemonSet wants a pod on.
+                format: int32
+                type: integer
+              numberReady:
+                description: |-
+                  Agent pods currently Ready. Ready is not delivery: the only probes are
+                  flowlogs-pipeline's TCP checks of its health port 28080; the eBPF agent, Tetragon
+                  and the fluent-bit shipper have none. A pod is therefore Ready while a writer cannot reach
+                  the broker, fails the login, or writes to a topic that does not exist. Confirm
+                  delivery on the broker (the topic's offsets keep growing) or in Radar.
+                format: int32
+                type: integer
+              observedGeneration:
+                description: Generation last reconciled.
+                format: int64
+                type: integer
+              phase:
+                description: |-
+                  Coarse phase: Pending | Ready | Degraded. Ready means every agent pod is Ready, which
+                  does not prove that telemetry reaches Kafka (see numberReady).
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

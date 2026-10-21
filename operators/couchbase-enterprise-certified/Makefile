@@ -63,6 +63,23 @@ catalogs: render_catalogs.sh ${BINDIR}/opm ${BINDIR}/yq clean
 	@${BINDIR}/render_catalogs.sh
 
 
+# catalog-single renders a single template. Usage: make catalog-single TEMPLATE=v4.21.yaml
+# Automatically applies --migrate-level for v4.17+
+.PHONY: catalog-single
+catalog-single: ${BINDIR}/opm
+	@if [ -z "$(TEMPLATE)" ]; then echo "Error: TEMPLATE is required, e.g. make catalog-single TEMPLATE=v4.21.yaml"; exit 1; fi
+	$(eval VERSION := $(shell echo $(TEMPLATE) | grep -oE '[0-9]+\.[0-9]+'))
+	$(eval MINOR := $(shell echo $(VERSION) | cut -d. -f2))
+	$(eval CATALOG_OUT := ${CATALOG_DIR}/v$(VERSION)/$(OPERATOR_NAME))
+	@mkdir -p $(CATALOG_OUT)
+	@if [ "$(MINOR)" -ge 17 ]; then \
+		echo "Rendering $(TEMPLATE) with migrate-level..."; \
+		${BINDIR}/opm alpha render-template basic -o yaml --migrate-level bundle-object-to-csv-metadata catalog-templates/$(TEMPLATE) > $(CATALOG_OUT)/catalog.yaml && echo "✅ Rendered → $(CATALOG_OUT)/catalog.yaml" || echo "❌ Error rendering $(TEMPLATE)"; \
+	else \
+		echo "Rendering $(TEMPLATE)..."; \
+		${BINDIR}/opm alpha render-template basic -o yaml catalog-templates/$(TEMPLATE) > $(CATALOG_OUT)/catalog.yaml && echo "✅ Rendered → $(CATALOG_OUT)/catalog.yaml" || echo "❌ Error rendering $(TEMPLATE)"; \
+	fi
+
 # validate-catalogs target illustrates FBC validation
 # all FBC must pass opm validation in order to be able to be used in a catalog
 .PHONY: validate-catalogs

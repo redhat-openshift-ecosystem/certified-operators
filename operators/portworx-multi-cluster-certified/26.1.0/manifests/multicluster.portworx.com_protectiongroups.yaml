@@ -1,0 +1,783 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: protectiongroups.multicluster.portworx.com
+spec:
+  group: multicluster.portworx.com
+  names:
+    kind: ProtectionGroup
+    listKind: ProtectionGroupList
+    plural: protectiongroups
+    singular: protectiongroup
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ProtectionGroup is the Schema for the protectiongroups API.
+          It represents a protection group consisting of a set of applications
+          and schedules for running DR migrations between clusters.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ProtectionGroupSpec defines the desired state of ProtectionGroup.
+            properties:
+              advanceConfiguration:
+                description: AdvanceConfiguration provides fine-grained migration
+                  control options. .
+                properties:
+                  applicationLifecycleHooks:
+                    description: ApplicationLifecycleHooks defines the hooks that
+                      should be executed before and after application migration.
+                    properties:
+                      postMigrationHook:
+                        description: PostMigrationHook is the list of hooks that should
+                          be executed after application migration completes.
+                        type: object
+                        x-kubernetes-embedded-resource: true
+                        x-kubernetes-preserve-unknown-fields: true
+                        x-kubernetes-validations:
+                        - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                          rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                        - message: kind must be Rule
+                          rule: has(self.kind) && self.kind == 'Rule'
+                        - message: metadata.name is required
+                          rule: has(self.metadata) && has(self.metadata.name) && self.metadata.name.size()
+                            > 0
+                      preMigrationHook:
+                        description: PreMigrationHook is the list of hooks that should
+                          be executed before application migration starts.
+                        type: object
+                        x-kubernetes-embedded-resource: true
+                        x-kubernetes-preserve-unknown-fields: true
+                        x-kubernetes-validations:
+                        - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                          rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                        - message: kind must be Rule
+                          rule: has(self.kind) && self.kind == 'Rule'
+                        - message: metadata.name is required
+                          rule: has(self.metadata) && has(self.metadata.name) && self.metadata.name.size()
+                            > 0
+                    type: object
+                  ignoreDeletedNamespacesAtSource:
+                    description: SkipDeletedNamespaces determines whether namespaces
+                      that have been deleted should be skipped during migration.
+                    type: boolean
+                  ignoreOwnerReferencesValidation:
+                    description: IgnoreOwnerReferencesValidation specifies whether
+                      the migration should ignore checks related to owner references.
+                    type: boolean
+                  purgeDeletedResourcesAtSource:
+                    description: PurgeDeletedResources specifies whether deleted resources
+                      (that existed before but no longer exist) should be removed
+                      from destination cluster.
+                    type: boolean
+                  resourceTransformations:
+                    description: ResourceTransformations is a list of transformation
+                      specifications that should be applied to Kubernetes resources
+                      before they are migrated.
+                    items:
+                      description: InlineResourceTransformation stores a full stork.libopenstorage.org/v1alpha1
+                        ResourceTransformation object inline.
+                      type: object
+                      x-kubernetes-embedded-resource: true
+                      x-kubernetes-preserve-unknown-fields: true
+                      x-kubernetes-validations:
+                      - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                        rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                      - message: kind must be ResourceTransformation
+                        rule: has(self.kind) && self.kind == 'ResourceTransformation'
+                      - message: metadata.name is required
+                        rule: has(self.metadata) && has(self.metadata.name) && self.metadata.name.size()
+                          > 0
+                    type: array
+                  skipServiceUpdate:
+                    description: SkipServiceUpdate determines whether service updates
+                      should be skipped during migration.
+                    type: boolean
+                type: object
+              disasterRecoveryPairRef:
+                description: |-
+                  DisasterRecoveryPairRef is the name of the DisasterRecoveryPair resource
+                  that defines the source/destination clusters and backup location.
+                type: string
+              namespaceSelection:
+                description: |-
+                  NamespaceSelection controls which namespaces are in this protection group.
+                  At least one of namespaces or namespaceSelector must be provided.
+                properties:
+                  namespaceSelectors:
+                    description: NamespaceSelectors selects namespaces by label.
+                    items:
+                      description: CustomLabelSelector defines a label selector for
+                        filtering resources.
+                      properties:
+                        label:
+                          description: Key is the label key to match.
+                          type: string
+                        operator:
+                          description: Operator is the label operator to use.
+                          enum:
+                          - equal
+                          type: string
+                          x-kubernetes-validations:
+                          - message: operator must be 'equal'
+                            rule: self == 'equal'
+                        value:
+                          description: Value is the label value to match.
+                          type: string
+                      type: object
+                    type: array
+                  namespaces:
+                    description: Namespaces is the explicit list of namespaces that
+                      are part of this
+                    items:
+                      type: string
+                    type: array
+                type: object
+              replicationSchedulePolicy:
+                description: |-
+                  ReplicationSchedulePolicy defines when DR replications for this protection group should run.
+                  At least one schedule policy (interval) should be specified.
+                properties:
+                  interval:
+                    description: Interval policy that will be triggered at the specified
+                      interval
+                    properties:
+                      intervalMinutes:
+                        description: IntervalMinutes specifies the interval in minutes
+                          between triggers.
+                        minimum: 1
+                        type: integer
+                      retain:
+                        description: |-
+                          Retain specifies the number of backups to retain
+                          @DefaultIntervalPolicyRetain
+                        type: integer
+                    required:
+                    - intervalMinutes
+                    type: object
+                  suspend:
+                    description: Suspend indicates whether the migrations for the
+                      protection group are to be suspended.
+                    type: boolean
+                type: object
+              resourceConfiguration:
+                description: |-
+                  ResourceConfiguration matches Figma "Resource configuration" step:
+                  label rules, PVC inclusion + PVC label rules, and resource type filters.
+                properties:
+                  customSelection:
+                    description: ResourceSelector controls which resources and volumes
+                      within the selected namespaces are protected.
+                    properties:
+                      excludeLabelSelectors:
+                        description: ExcludeFilters is a set of label-based selectors
+                          used to filter the objects that should be excluded from
+                          the migration.
+                        items:
+                          description: CustomLabelSelector defines a label selector
+                            for filtering resources.
+                          properties:
+                            label:
+                              description: Key is the label key to match.
+                              type: string
+                            operator:
+                              description: Operator is the label operator to use.
+                              enum:
+                              - equal
+                              type: string
+                              x-kubernetes-validations:
+                              - message: operator must be 'equal'
+                                rule: self == 'equal'
+                            value:
+                              description: Value is the label value to match.
+                              type: string
+                          type: object
+                        type: array
+                      includeApplicationVolumes:
+                        description: |-
+                          IncludeApplicationVolumes specifies whether application volumes (PVCs) should
+                          be included in the protection group.
+                        type: boolean
+                      includeCIDRBasedNetworkPolicies:
+                        description: IncludeCIDRBasedNetworkPolicies specifies whether
+                          network policies with CIDR-based rules should be included
+                          in the migration.
+                        type: boolean
+                      includeLabelSelectors:
+                        description: IncludeLabelSelectors is a set of label-based
+                          selectors used to filter the objects that should be included
+                          in the migration.
+                        items:
+                          description: CustomLabelSelector defines a label selector
+                            for filtering resources.
+                          properties:
+                            label:
+                              description: Key is the label key to match.
+                              type: string
+                            operator:
+                              description: Operator is the label operator to use.
+                              enum:
+                              - equal
+                              type: string
+                              x-kubernetes-validations:
+                              - message: operator must be 'equal'
+                                rule: self == 'equal'
+                            value:
+                              description: Value is the label value to match.
+                              type: string
+                          type: object
+                        type: array
+                      resourceTypeSelector:
+                        description: ResourceTypeSelector controls which resource
+                          kinds are included or excluded from protection.
+                        properties:
+                          exclude:
+                            description: Exclude is a list of resource types that
+                              should be excluded from the migration.
+                            items:
+                              type: string
+                            type: array
+                          include:
+                            description: Include is a list of optional Kubernetes
+                              resource types that should be included in the migration.
+                            items:
+                              type: string
+                            type: array
+                        type: object
+                      startApplicationsAfterFailover:
+                        description: StartApplicationsAfterFailover determines whether
+                          migrated applications should be started after failover.
+                        type: boolean
+                    type: object
+                  includeAllResources:
+                    description: IncludeAllResources specifies whether all resources
+                      in the selected namespaces should be included in the protection
+                      group.
+                    type: boolean
+                type: object
+            required:
+            - disasterRecoveryPairRef
+            - namespaceSelection
+            - replicationSchedulePolicy
+            type: object
+          status:
+            description: ProtectionGroupStatus defines the observed state of ProtectionGroup.
+            properties:
+              activeSite:
+                description: ActiveSite indicates which cluster site is currently
+                  active (Primary or Secondary).
+                type: string
+              applicationActivated:
+                description: ApplicationActivated indicates whether the application
+                  is activated.
+                type: boolean
+              compliant:
+                description: Compliant represents the compliance status of the protection
+                  group.
+                properties:
+                  reason:
+                    description: Reason is short description of why the resource is
+                      in non compliant state.
+                    type: string
+                  status:
+                    description: 'Status: is true then resource is compliant and operational.'
+                    type: boolean
+                required:
+                - status
+                type: object
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the ProtectionGroup's state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              failbackNamespaces:
+                description: FailbackNamespaces is the aggregated list of all namespaces
+                  that have been failed back.
+                items:
+                  type: string
+                type: array
+              failbackStatuses:
+                description: |-
+                  FailbackStatuses contains status information for all failback operations.
+                  Each entry is keyed by the DREvent UID that triggered the failback.
+                items:
+                  description: FailbackStatusEntry contains status information for
+                    a single failback operation.
+                  properties:
+                    UID:
+                      description: UID is the unique identifier of the DR action that
+                        triggered this failback.
+                      type: string
+                    name:
+                      description: Name is the name of the DisasterRecoveryAction
+                        object created for this failback.
+                      type: string
+                    namespace:
+                      description: Namespace is the namespace of the DisasterRecoveryAction
+                        object created for this failback.
+                      type: string
+                    status:
+                      description: Status indicates the current status of the failback
+                        operation.
+                      type: string
+                  required:
+                  - UID
+                  - name
+                  - namespace
+                  type: object
+                type: array
+              failoverNamespaces:
+                description: FailoverNamespaces is the aggregated list of all namespaces
+                  that have been failed over.
+                items:
+                  type: string
+                type: array
+              failoverStatuses:
+                description: |-
+                  FailoverStatuses contains status information for all failover operations.
+                  Each entry is keyed by the DREvent UID that triggered the failover.
+                items:
+                  description: FailoverStatusEntry contains status information for
+                    a single failover operation.
+                  properties:
+                    UID:
+                      description: UID is the unique identifier of the DR action that
+                        triggered this failover.
+                      type: string
+                    name:
+                      description: Name is the name of the DisasterRecoveryAction
+                        object created for this failover.
+                      type: string
+                    namespace:
+                      description: Namespace is the namespace of the DisasterRecoveryAction
+                        object created for this failover.
+                      type: string
+                    status:
+                      description: Status indicates the current status of the failover
+                        operation.
+                      type: string
+                  required:
+                  - UID
+                  - name
+                  - namespace
+                  type: object
+                type: array
+              lastAgentUpdateTimestamp:
+                description: LastAgentUpdateTimestamp is the time when the protection
+                  group status was last updated by the agent
+                format: date-time
+                type: string
+              migrationStatus:
+                additionalProperties:
+                  items:
+                    description: ScheduledMigrationStatus captures status for a single
+                      migration run.
+                    properties:
+                      creationTimestamp:
+                        description: CreationTimestamp is when the migration was created.
+                        format: date-time
+                        type: string
+                      finishTimestamp:
+                        description: FinishTimestamp is when the migration finished,
+                          if it has completed.
+                        format: date-time
+                        type: string
+                      name:
+                        description: Name is the name of the migration object created
+                          for this run.
+                        type: string
+                      status:
+                        description: Status is the final (or current) status of the
+                          migration.
+                        type: string
+                      summary:
+                        description: summary  of the migration
+                        properties:
+                          elapsedTimeForResourceMigration:
+                            description: |-
+                              ElapsedTimeForResourceMigration provides the total time the
+                              resource migration stage has been running or the total time
+                              taken for the resource migration to complete if the volume migration has finished
+                            type: string
+                          elapsedTimeForVolumeMigration:
+                            description: |-
+                              ElapsedTimeForVolumeMigration provides the total time the
+                              volume migration stage has been running or the total time
+                              taken for the volume migration to complete if the volume migration has finished
+                            type: string
+                          migrationFailureReasons:
+                            description: MigrationFailureReasons provides the list
+                              of failure reasons for migration failures
+                            items:
+                              type: string
+                            type: array
+                          numOfMigratedResources:
+                            description: NumberOfMigratedResources gives the total
+                              count of migrated k8s resources
+                            format: int64
+                            type: integer
+                          numOfMigratedVolumes:
+                            description: NumberOfMigratedVolumes gives the total count
+                              of successfully migrated volumes
+                            format: int64
+                            type: integer
+                          totalBytesMigrated:
+                            description: TotalBytesMigrated gives the total amount
+                              of bytes migrated across all the volumes
+                            format: int64
+                            type: integer
+                          totalNumberOfResources:
+                            description: TotalNumberOfResources gives the total count
+                              of resourcs
+                            format: int64
+                            type: integer
+                          totalNumberOfVolumes:
+                            description: TotalNumberOfVolumes gives the total count
+                              of volumes
+                            format: int64
+                            type: integer
+                        type: object
+                    required:
+                    - creationTimestamp
+                    - name
+                    - status
+                    type: object
+                  type: array
+                description: MigrationStatus groups recent migration runs by schedule
+                  policy type.
+                type: object
+              protectedNamespacesCount:
+                description: ProtectedNamespacesCount is the count of namespaces currently
+                  protected by this protection group.
+                type: integer
+              protectionState:
+                description: ProtectionState represents the overall state of the protection
+                  group.
+                type: string
+              reverseSpec:
+                description: |-
+                  ReverseSpec defines the reverse direction configuration for this protection group.
+                  This is used to track overridden spec attributes for the reverse DR direction (secondary to primary).
+                  This is copied from the ReverseProtectionGroup CR created for the reverse direction.
+                properties:
+                  advanceConfiguration:
+                    description: |-
+                      AdvanceConfiguration provides fine-grained migration control options for reverse direction.
+                      If not specified, the AdvanceConfiguration from the main ProtectionGroup is used.
+                    properties:
+                      applicationLifecycleHooks:
+                        description: ApplicationLifecycleHooks defines the hooks that
+                          should be executed before and after application migration.
+                        properties:
+                          postMigrationHook:
+                            description: PostMigrationHook is the list of hooks that
+                              should be executed after application migration completes.
+                            type: object
+                            x-kubernetes-embedded-resource: true
+                            x-kubernetes-preserve-unknown-fields: true
+                            x-kubernetes-validations:
+                            - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                              rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                            - message: kind must be Rule
+                              rule: has(self.kind) && self.kind == 'Rule'
+                            - message: metadata.name is required
+                              rule: has(self.metadata) && has(self.metadata.name)
+                                && self.metadata.name.size() > 0
+                          preMigrationHook:
+                            description: PreMigrationHook is the list of hooks that
+                              should be executed before application migration starts.
+                            type: object
+                            x-kubernetes-embedded-resource: true
+                            x-kubernetes-preserve-unknown-fields: true
+                            x-kubernetes-validations:
+                            - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                              rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                            - message: kind must be Rule
+                              rule: has(self.kind) && self.kind == 'Rule'
+                            - message: metadata.name is required
+                              rule: has(self.metadata) && has(self.metadata.name)
+                                && self.metadata.name.size() > 0
+                        type: object
+                      ignoreDeletedNamespacesAtSource:
+                        description: SkipDeletedNamespaces determines whether namespaces
+                          that have been deleted should be skipped during migration.
+                        type: boolean
+                      ignoreOwnerReferencesValidation:
+                        description: IgnoreOwnerReferencesValidation specifies whether
+                          the migration should ignore checks related to owner references.
+                        type: boolean
+                      purgeDeletedResourcesAtSource:
+                        description: PurgeDeletedResources specifies whether deleted
+                          resources (that existed before but no longer exist) should
+                          be removed from destination cluster.
+                        type: boolean
+                      resourceTransformations:
+                        description: ResourceTransformations is a list of transformation
+                          specifications that should be applied to Kubernetes resources
+                          before they are migrated.
+                        items:
+                          description: InlineResourceTransformation stores a full
+                            stork.libopenstorage.org/v1alpha1 ResourceTransformation
+                            object inline.
+                          type: object
+                          x-kubernetes-embedded-resource: true
+                          x-kubernetes-preserve-unknown-fields: true
+                          x-kubernetes-validations:
+                          - message: apiVersion must be stork.libopenstorage.org/v1alpha1
+                            rule: has(self.apiVersion) && self.apiVersion == 'stork.libopenstorage.org/v1alpha1'
+                          - message: kind must be ResourceTransformation
+                            rule: has(self.kind) && self.kind == 'ResourceTransformation'
+                          - message: metadata.name is required
+                            rule: has(self.metadata) && has(self.metadata.name) &&
+                              self.metadata.name.size() > 0
+                        type: array
+                      skipServiceUpdate:
+                        description: SkipServiceUpdate determines whether service
+                          updates should be skipped during migration.
+                        type: boolean
+                    type: object
+                  namespaceSelection:
+                    description: |-
+                      NamespaceSelection controls which namespaces are in the reverse protection group.
+                      If not specified, the NamespaceSelection from the main ProtectionGroup is used.
+                    properties:
+                      namespaceSelectors:
+                        description: NamespaceSelectors selects namespaces by label.
+                        items:
+                          description: CustomLabelSelector defines a label selector
+                            for filtering resources.
+                          properties:
+                            label:
+                              description: Key is the label key to match.
+                              type: string
+                            operator:
+                              description: Operator is the label operator to use.
+                              enum:
+                              - equal
+                              type: string
+                              x-kubernetes-validations:
+                              - message: operator must be 'equal'
+                                rule: self == 'equal'
+                            value:
+                              description: Value is the label value to match.
+                              type: string
+                          type: object
+                        type: array
+                      namespaces:
+                        description: Namespaces is the explicit list of namespaces
+                          that are part of this
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  replicationSchedulePolicy:
+                    description: |-
+                      ReplicationSchedulePolicy defines the replication schedule for the reverse direction.
+                      If not specified, the ReplicationSchedulePolicy from the main ProtectionGroup is used.
+                    properties:
+                      interval:
+                        description: Interval policy that will be triggered at the
+                          specified interval
+                        properties:
+                          intervalMinutes:
+                            description: IntervalMinutes specifies the interval in
+                              minutes between triggers.
+                            minimum: 1
+                            type: integer
+                          retain:
+                            description: |-
+                              Retain specifies the number of backups to retain
+                              @DefaultIntervalPolicyRetain
+                            type: integer
+                        required:
+                        - intervalMinutes
+                        type: object
+                      suspend:
+                        description: Suspend indicates whether the migrations for
+                          the protection group are to be suspended.
+                        type: boolean
+                    type: object
+                  resourceConfiguration:
+                    description: |-
+                      ResourceConfiguration for the reverse direction.
+                      If not specified, the ResourceConfiguration from the main ProtectionGroup is used.
+                    properties:
+                      customSelection:
+                        description: ResourceSelector controls which resources and
+                          volumes within the selected namespaces are protected.
+                        properties:
+                          excludeLabelSelectors:
+                            description: ExcludeFilters is a set of label-based selectors
+                              used to filter the objects that should be excluded from
+                              the migration.
+                            items:
+                              description: CustomLabelSelector defines a label selector
+                                for filtering resources.
+                              properties:
+                                label:
+                                  description: Key is the label key to match.
+                                  type: string
+                                operator:
+                                  description: Operator is the label operator to use.
+                                  enum:
+                                  - equal
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: operator must be 'equal'
+                                    rule: self == 'equal'
+                                value:
+                                  description: Value is the label value to match.
+                                  type: string
+                              type: object
+                            type: array
+                          includeApplicationVolumes:
+                            description: |-
+                              IncludeApplicationVolumes specifies whether application volumes (PVCs) should
+                              be included in the protection group.
+                            type: boolean
+                          includeCIDRBasedNetworkPolicies:
+                            description: IncludeCIDRBasedNetworkPolicies specifies
+                              whether network policies with CIDR-based rules should
+                              be included in the migration.
+                            type: boolean
+                          includeLabelSelectors:
+                            description: IncludeLabelSelectors is a set of label-based
+                              selectors used to filter the objects that should be
+                              included in the migration.
+                            items:
+                              description: CustomLabelSelector defines a label selector
+                                for filtering resources.
+                              properties:
+                                label:
+                                  description: Key is the label key to match.
+                                  type: string
+                                operator:
+                                  description: Operator is the label operator to use.
+                                  enum:
+                                  - equal
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: operator must be 'equal'
+                                    rule: self == 'equal'
+                                value:
+                                  description: Value is the label value to match.
+                                  type: string
+                              type: object
+                            type: array
+                          resourceTypeSelector:
+                            description: ResourceTypeSelector controls which resource
+                              kinds are included or excluded from protection.
+                            properties:
+                              exclude:
+                                description: Exclude is a list of resource types that
+                                  should be excluded from the migration.
+                                items:
+                                  type: string
+                                type: array
+                              include:
+                                description: Include is a list of optional Kubernetes
+                                  resource types that should be included in the migration.
+                                items:
+                                  type: string
+                                type: array
+                            type: object
+                          startApplicationsAfterFailover:
+                            description: StartApplicationsAfterFailover determines
+                              whether migrated applications should be started after
+                              failover.
+                            type: boolean
+                        type: object
+                      includeAllResources:
+                        description: IncludeAllResources specifies whether all resources
+                          in the selected namespaces should be included in the protection
+                          group.
+                        type: boolean
+                    type: object
+                type: object
+              suspend:
+                description: Suspend indicates whether the status of the migrations
+                  for the protection group is suspended.
+                type: boolean
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

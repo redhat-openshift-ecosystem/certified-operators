@@ -1,0 +1,730 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: axeraflows.platform.axerasecurity.com
+spec:
+  group: platform.axerasecurity.com
+  names:
+    categories:
+    - axera
+    kind: AxeraFlow
+    listKind: AxeraFlowList
+    plural: axeraflows
+    shortNames:
+    - axf
+    singular: axeraflow
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.numberReady
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: AxeraFlow is the Schema for the network-flow agent — one CR per
+          monitored cluster.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              AxeraFlowSpec is the network-flow agent (netobserv eBPF agent + flowlogs-pipeline)
+              for one monitored cluster. It renders into the `axera-flow` namespace and ships
+              per-cluster flow topics to the central Kafka. Mirrors deploy/Axera-Flow.
+
+              A Sasl* securityProtocol with saslMechanism ScramSha256 is refused (flowlogs-pipeline knows
+              Plain and SCRAM-SHA-512 only); AxeraProcess, whose shipper is fluent-bit alone, supports it.
+            properties:
+              agent:
+                description: eBPF agent + flowlogs-pipeline images and tuning.
+                properties:
+                  direction:
+                    default: both
+                    description: 'Capture direction: ingress | egress | both.'
+                    enum:
+                    - ingress
+                    - egress
+                    - both
+                    type: string
+                  dnsTopic:
+                    description: |-
+                      Kafka topic for the DNS records when dnsVisibility is on.
+                      Defaults to "<clusterName>-dns".
+                    type: string
+                  dnsVisibility:
+                    default: false
+                    description: |-
+                      DNS VISIBILITY — OFF by default, and deliberately separate from
+                      enableDnsTracking. enableDnsTracking only tells the eBPF agent to parse DNS;
+                      this switch is what actually carries those records through the pipeline and
+                      ships them to their own Kafka topic for the DNS screens.
+
+                      It costs real resources: every DNS query/response becomes a record that the
+                      east-west flow lane does not carry (it excludes UDP 53/5353), so the agent, the
+                      pipeline and the broker all carry extra volume on a busy cluster. Turn it on when
+                      you want name-level visibility, not by default.
+
+                      Requires enableDnsTracking to remain true — with DNS parsing off there is
+                      nothing for this branch to ship.
+                    type: boolean
+                  ebpfImage:
+                    default: quay.io/netobserv/netobserv-ebpf-agent:v1.11.3-community
+                    description: eBPF capture agent image (netobserv-ebpf-agent).
+                    type: string
+                  ebpfResources:
+                    description: Optional resource overrides for the two flow containers.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  enableDnsTracking:
+                    default: true
+                    description: |-
+                      eBPF feature toggles — present only on the live agent, defaulted true so a
+                      chart modeled on the plaintext bundle can't silently drop them.
+                    type: boolean
+                  enablePktDrops:
+                    default: false
+                    description: |-
+                      Packet-drop tracking (the kernel's skb:kfree_skb tracepoint). On: the ingress lane's records
+                      (agent.ingress) carry what the kernel dropped of each flow and why (pkt_drop_packets,
+                      pkt_drop_bytes, pkt_drop_cause), so an inbound attempt a NetworkPolicy refused shows up
+                      there; the other lanes do not carry the drop fields. Off by default.
+                      Needs Linux 5.14 or newer on every node the agent runs on: below that (and on real-time
+                      kernels before 5.14.0-292) the hook is skipped, and where the tracepoint should exist but
+                      cannot be attached the eBPF agent fails to start, so check the nodes' kernel first. Changing
+                      it rolls the agent pods.
+                    type: boolean
+                  enablePktTranslation:
+                    default: true
+                    type: boolean
+                  enableRtt:
+                    default: true
+                    type: boolean
+                  excludeInterfaces:
+                    default: lo
+                    description: Interfaces to exclude from capture (comma-separated).
+                    type: string
+                  flpImage:
+                    default: quay.io/axera/axera-flowlogs-pipeline:v1
+                    description: |-
+                      flowlogs-pipeline image. Default = the Axera rebuild that runs live (TLS-capable).
+                      NOTE: for a SASL Kafka broker use a SASL-capable FLP (netobserv community
+                      v1.11.5+); the Axera rebuild does not support the kafka `sasl` encoder field.
+                    type: string
+                  flpMetricsPort:
+                    description: |-
+                      flowlogs-pipeline's Prometheus endpoint. The pod is hostNetwork, so this is the NODE's
+                      port: move it on a node where 9090 is already taken (a collision no longer kills the
+                      pipeline, it only loses the endpoint). Read by the AxeraFlow chart; the OneBox agent
+                      (AxeraForce) runs FLP without a metrics server.
+                    maximum: 65535
+                    minimum: 1
+                    type: integer
+                  flpResources:
+                    description: ResourceRequirements describes the compute resource
+                      requirements.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This field depends on the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  ingress:
+                    description: |-
+                      North-south ingress lane: records whose destination is in the cluster (a pod, a node,
+                      a DNATed Service VIP, an ingressVipCIDRs address) and whose source is not a pod —
+                      clients behind load balancers, external IPs, NodePorts, hostPorts and the router — go
+                      through their own FLP branch (cluster_in_ingress → out5) to their own topic, which
+                      Radar reads through the platform's kafka.ingressTopics. The lane keeps TCP, UDP and
+                      ICMP echo requests whatever udp says. OFF by default: flowlogs-pipeline never creates a
+                      topic, so create it on the broker first, with WRITE for the agent's Kafka user and READ
+                      for Radar's consumer group (the FLP writer is synchronous, so a missing topic or ACL
+                      can hold back the other flow lanes too). The lane needs a flowlogs-pipeline with
+                      with()/without() in keepEntryQuery (v1.9.0 or later); the default flpImage (the Axera
+                      rebuild :v1) is not verified for it, so enabling the lane with that image (or with a
+                      flowlogs-pipeline tagged below v1.9) fails the render: set flpImage to
+                      quay.io/netobserv/flowlogs-pipeline:v1.11.5-community.
+                    properties:
+                      enabled:
+                        default: false
+                        description: Ship the ingress lane. Default false.
+                        type: boolean
+                      topic:
+                        default: ingress-flows
+                        description: |-
+                          Kafka topic of the ingress lane (FLP out5). It must already exist on the broker and
+                          differ from every other topic the agent writes.
+                        maxLength: 249
+                        minLength: 1
+                        pattern: ^[a-zA-Z0-9._-]+$
+                        type: string
+                    type: object
+                  ingressVipCIDRs:
+                    description: |-
+                      Ingress VIP CIDRs for the ingress lane, rendered as the FIRST FLP subnet label
+                      (IngressVip) when ingress.enabled is true; ignored while the lane is off. List the
+                      addresses FLP cannot attribute to a pod, node or Service ClusterIP that clients enter
+                      through: an OpenShift IPI ingress VIP (bare metal, vSphere, Nutanix, OpenStack —
+                      `oc get infrastructure cluster -o jsonpath='{.status.platformStatus}'` lists its
+                      ingressIPs) and, unless enablePktTranslation is on, a MetalLB or kube-vip LoadBalancer
+                      pool, Service externalIPs, or a cloud balancer that delivers to its frontend IP. A
+                      client → VIP record reaches the ingress lane only through this label. It heads the
+                      list because FLP labels an address with the first matching entry, and an IPI VIP lies
+                      in the machine network (localNetworkCIDR).
+                    items:
+                      pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$
+                      type: string
+                    type: array
+                  sampling:
+                    description: Flow sampling rate (1 = capture every flow). Unset
+                      = full capture.
+                    format: int32
+                    type: integer
+                  udp:
+                    default: true
+                    description: |-
+                      UDP flows — ON by default. East-west UDP (except DNS 53/5353, which dnsVisibility carries)
+                      and all UDP on the external and intercluster lanes reach Radar, so policy generation sees
+                      UDP services. false keeps the flow lanes TCP-only: less Kafka and Radar volume, but UDP
+                      services never appear and generated policies cannot open their ports.
+                    type: boolean
+                type: object
+              capture:
+                description: |-
+                  On-demand packet-capture sidecar (image + on/off). Exposed so a disconnected
+                  cluster can point it at a mirror instead of relying on an ImageTagMirrorSet.
+                properties:
+                  enabled:
+                    description: |-
+                      Deploy the capture sidecar and its pods/exec Role. Unset: true on AxeraForce, false on
+                      AxeraFlow and AxeraProcess — the Axera API captures only from the AxeraForce agent
+                      (label app=axera-agent in namespace "axera"), so their sidecar was a privileged
+                      container nothing ever used. Set false on AxeraForce to refuse pods/exec entirely (the
+                      platform's integration.namespacedRoles=never does not reach this Role); the rest of
+                      the agent is unaffected.
+                    type: boolean
+                  image:
+                    default: quay.io/openshift/origin-network-tools:latest
+                    description: |-
+                      Packet-capture sidecar image (mirror it for disconnected installs). Upstream
+                      rewrites both `latest` and its version tags, so in an air-gapped estate pin
+                      this by digest — a tag is not a pin here.
+                    type: string
+                  integrationNamespaces:
+                    description: |-
+                      Namespaces, besides the agent's own, whose axera-integration-sa may exec into the capture
+                      sidecar (RoleBinding axera-capture-exec-agent). Set it to the namespace of a central Axera that was
+                      NOT installed by this operator on the same cluster (e.g. a Helm install in axera-central):
+                      that platform captures with the token it registered for this cluster. A central Axera CR on
+                      the same cluster is added automatically. Read by AxeraForce only.
+                    items:
+                      maxLength: 63
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                    maxItems: 16
+                    type: array
+                    x-kubernetes-list-type: set
+                type: object
+              clusterName:
+                description: |-
+                  Identity of THIS cluster: stamped as ClusterName on every flow AND used as the
+                  default Kafka flow topic. REQUIRED — a blank name blanks topology attribution.
+                  Constrained to a safe token (no YAML-significant characters) since it is
+                  interpolated into the FLP config and the Kafka topic name.
+                minLength: 1
+                pattern: ^[a-zA-Z0-9][a-zA-Z0-9._-]*$
+                type: string
+              clusterPublicIP:
+                description: |-
+                  This cluster's own public/egress IP as a /32 (multi_cluster_division self-label).
+                  Only meaningful when multiCluster is set.
+                pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/32$
+                type: string
+              createSCC:
+                default: true
+                description: |-
+                  Create the OpenShift SecurityContextConstraints (privileged + hostNetwork).
+                  Disable on vanilla Kubernetes or if a cluster admin pre-creates it. It does not
+                  choose the flow pipeline's CNI: with agent.ingress on, FLP always declares
+                  OVN-Kubernetes (kubeConfig.managedCNI [ovn], which indexes each node's ovn-k8s-mp0
+                  address as that node); on another CNI that index finds nothing.
+                type: boolean
+              extraLocalNetworkCIDRs:
+                description: |-
+                  Additional on-prem / corporate network CIDRs, beyond localNetworkCIDR, that
+                  must also carry the LocalNetwork enrichment label. Every listed range counts
+                  as internal (not egress) — same label as localNetworkCIDR, just more ranges.
+                  Mirrors extraPodCIDRs for the pod network; use it to add e.g. a second
+                  RFC1918 block such as 172.16.0.0/12 alongside 10.0.0.0/8.
+                items:
+                  type: string
+                type: array
+              extraPodCIDRs:
+                description: |-
+                  Additional in-cluster pod/service CIDRs to also label as ClusterSubnet, for when
+                  the cluster's pod network was WIDENED / a second range was added after install.
+                  Each is appended to the FLP ClusterSubnet enrichment alongside podCIDR.
+                items:
+                  type: string
+                type: array
+              kafka:
+                description: Central Kafka the flow pipeline produces to (out + out3
+                  encoders).
+                properties:
+                  bootstrapServers:
+                    description: |-
+                      The central Kafka the agent produces to: one host:port, or a comma-separated host:port
+                      list. The fluent-bit shipper (process lane) is given the whole list. flowlogs-pipeline
+                      (flow lanes) takes ONE address and panics at start on a list, so it is given only the
+                      FIRST entry and finds the other brokers through that broker's metadata: list first a
+                      broker (or a bootstrap name that resolves to every broker) that is always reachable.
+                    minLength: 1
+                    type: string
+                  caCert:
+                    description: |-
+                      Broker CA certificate (PEM) for TLS trust. Rendered into the agent's kafka
+                      Secret and referenced by the writers' caCertPath / ssl.ca.location.
+                    type: string
+                  compression:
+                    description: |-
+                      Producer compression of every writer of the agent: flowlogs-pipeline
+                      (encode.kafka.compression) and the fluent-bit shipper (rdkafka.compression.codec).
+                      none | gzip | snappy | lz4 | zstd. Unset: lz4. Radar's consumers decompress every codec.
+                      flowlogs-pipeline parses its config strictly and knows the setting from v1.11.4 on: with
+                      an older FLP image, or the Axera rebuild (axera-flowlogs-pipeline:v1, AxeraFlow's default),
+                      the unset default leaves the flow writers uncompressed and an explicit codec other than
+                      none fails the render. zstd on the shipper needs a fluent-bit built with libzstd.
+                      Changing it rolls the agent pods.
+                    enum:
+                    - none
+                    - gzip
+                    - snappy
+                    - lz4
+                    - zstd
+                    type: string
+                  createSecret:
+                    default: true
+                    description: |-
+                      Create the agent's kafka Secret (CA + SASL creds) from the values above
+                      (default true), or set false to bring your OWN pre-created Secret and keep
+                      credentials out of the CR. When false, pre-create the Secret with keys:
+                        ca.crt, username, password
+                      named per kind: axera-flow-kafka (flow), axera-process-kafka (process); the
+                      force/OneBox agent uses TWO Secrets — kafka-ca (key ca.crt) + kafka-sasl
+                      (keys username, password). With Ssl or SaslSsl and insecureSkipVerify false, every
+                      agent kind then verifies the broker against that Secret's ca.crt, so it must hold the
+                      broker's CA (also for a broker whose certificate a public CA signed).
+                    type: boolean
+                  insecureSkipVerify:
+                    default: false
+                    description: Skip broker certificate verification (dev / self-signed
+                      only).
+                    type: boolean
+                  saslMechanism:
+                    default: ScramSha512
+                    description: |-
+                      SASL/SCRAM mechanism (only used for the Sasl* protocols). The chart maps this
+                      ONE value to the FLP (`scramSHA512`) and fluent-bit (`SCRAM-SHA-512`) spellings —
+                      it is never emitted verbatim. ScramSha256 works for AxeraProcess only:
+                      flowlogs-pipeline knows plain and SCRAM-SHA-512 alone, so on AxeraForce and
+                      AxeraFlow a Sasl* protocol with ScramSha256 fails the render (status RenderFailed)
+                      instead of shipping a flow writer that cannot log in.
+                    enum:
+                    - Plain
+                    - ScramSha256
+                    - ScramSha512
+                    type: string
+                  saslPassword:
+                    description: |-
+                      SASL password. Leading and trailing whitespace is trimmed when the operator
+                      writes it into the agent's Secret (createSecret: true). A pre-created Secret
+                      (createSecret: false) must hold the bare values with no trailing newline (as
+                      `echo | base64` or --from-file adds): flowlogs-pipeline trims them, but the
+                      fluent-bit shipper reads them verbatim, and its login then fails exactly like a
+                      wrong password.
+                    type: string
+                  saslUsername:
+                    description: |-
+                      SASL username. Leading and trailing whitespace is trimmed when the operator
+                      writes it into the agent's Secret (createSecret: true).
+                    type: string
+                  securityProtocol:
+                    default: Plaintext
+                    description: Wire security. Plaintext | Ssl | SaslPlaintext |
+                      SaslSsl.
+                    enum:
+                    - Plaintext
+                    - Ssl
+                    - SaslPlaintext
+                    - SaslSsl
+                    type: string
+                required:
+                - bootstrapServers
+                type: object
+              localNetworkCIDR:
+                default: 192.168.0.0/16
+                description: |-
+                  On-prem / corporate network CIDR (FLP LocalNetwork enrichment label). Review
+                  per customer even though most use the RFC1918 default.
+                type: string
+              multiCluster:
+                description: |-
+                  Cross-cluster flow correlation. OMIT for a single-cluster install — its
+                  presence adds the multi_cluster_division FLP stage.
+                properties:
+                  cidr:
+                    description: CIDR covering every peer cluster's public IP (FLP
+                      MultiCluster enrich label).
+                    pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$
+                    type: string
+                  peers:
+                    description: |-
+                      Peer clusters (name → public IP /32). List only the OTHER clusters here —
+                      this cluster's own name+IP come from clusterName / clusterPublicIP.
+                    items:
+                      description: |-
+                        AgentClusterPeer maps a peer cluster's public/egress IP to its name so
+                        cross-cluster egress is attributed correctly (FLP multi_cluster_division stage).
+                      properties:
+                        globalCidr:
+                          description: |-
+                            Peer's Submariner Globalnet SLICE (the CIDR the broker assigned that cluster,
+                            e.g. 242.0.255.0/24 — from `subctl show networks` or spec.global_cidr on its
+                            Cluster CR), NOT the mesh-wide range. Declared here so cross-cluster ingress
+                            SNATed behind this peer's Globalnet address is attributed to it (FLP
+                            multi_cluster_division labeled_src_addr). Slices must not overlap.
+                          pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$
+                          type: string
+                        name:
+                          minLength: 1
+                          type: string
+                        publicIP:
+                          description: Peer public/egress IP as a /32 CIDR, e.g. 203.0.113.11/32.
+                          pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/32$
+                          type: string
+                      required:
+                      - name
+                      - publicIP
+                      type: object
+                    minItems: 1
+                    type: array
+                required:
+                - cidr
+                - peers
+                type: object
+              podCIDR:
+                description: |-
+                  Pod network CIDR of this cluster
+                  (oc get network.config/cluster -o jsonpath='{.spec.clusterNetwork[0].cidr}').
+                  Feeds the FLP ClusterSubnet enrichment label; a wrong value silently drops all
+                  egress flows or marks everything external. REQUIRED — e.g. "10.128.0.0/14".
+                pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$
+                type: string
+              submariner:
+                description: |-
+                  Cross-cluster (Submariner) intercluster flow capture. OMIT for a single-cluster
+                  install; when set, an independent FLP branch keeps flows touching the Submariner
+                  global CIDR (default 242.0.0.0/8) and ships them to a dedicated topic
+                  (default intercluster-flows). Additive to — and independent of — multiCluster.
+                properties:
+                  clusterGlobalCidr:
+                    description: |-
+                      THIS cluster's own Globalnet SLICE (the sub-range the broker assigned this
+                      cluster, e.g. 242.0.0.0/24), NOT the mesh-wide range above. Declared in the
+                      FLP multi_cluster_division so this cluster's own Globalnet-SNATed egress is
+                      attributed to it. Peer slices come from multiCluster.peers[].globalCidr.
+                      Omit for the legacy single-slice behaviour. Slices must not overlap.
+                    pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$
+                    type: string
+                  globalCidr:
+                    default: 242.0.0.0/8
+                    description: |-
+                      Submariner global CIDR — the MESH-WIDE globalnet range (Broker
+                      `--globalnet-cidr-range`). Any endpoint in it is a cross-cluster flow; used
+                      for the blanket "Reserved" enrich label. Must match the mesh.
+                    pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}/[0-9]{1,2}$
+                    type: string
+                  topic:
+                    default: intercluster-flows
+                    description: Kafka topic for the cross-cluster (intercluster)
+                      flows.
+                    type: string
+                type: object
+              topics:
+                description: Kafka flow topics.
+                properties:
+                  external:
+                    default: external-flows
+                    description: External / egress-flow topic (FLP `out3`). Constant
+                      in practice.
+                    type: string
+                  flow:
+                    description: Primary per-cluster flow topic (FLP `out`). Defaults
+                      to clusterName.
+                    type: string
+                type: object
+              updateStrategy:
+                description: |-
+                  How the agent DaemonSet replaces its pods after a change to them (an image, a setting,
+                  rotated Kafka credentials). Unset: RollingUpdate, one node at a time. To try a change on one
+                  node first (a canary): set type OnDelete, make the change, delete the agent pod on one node,
+                  check that node, then set type back to RollingUpdate (or remove updateStrategy) and the other
+                  nodes follow one by one. While type is OnDelete no agent pod is replaced by itself: every later
+                  change, including a configuration change the operator makes, reaches a node only when its pod
+                  is deleted.
+                properties:
+                  maxUnavailable:
+                    default: 1
+                    description: |-
+                      RollingUpdate only: how many nodes may be without a running agent pod at the same time during
+                      a rollout. Default 1. A new pod never starts next to the old one on a node (maxSurge 0): the
+                      agent listens on node ports, so the two would collide.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  type:
+                    default: RollingUpdate
+                    description: |-
+                      RollingUpdate (the default) replaces the agent pods node by node after every change; OnDelete
+                      replaces a node's pod only when that pod is deleted.
+                    enum:
+                    - RollingUpdate
+                    - OnDelete
+                    type: string
+                type: object
+            required:
+            - clusterName
+            - kafka
+            - podCIDR
+            type: object
+            x-kubernetes-validations:
+            - message: 'kafka.saslMechanism ScramSha256 is not supported on AxeraFlow:
+                flowlogs-pipeline logs in with Plain or ScramSha512 only, so use ScramSha512
+                (AxeraProcess supports ScramSha256)'
+              rule: '!(has(self.kafka.securityProtocol) && self.kafka.securityProtocol
+                in [''SaslPlaintext'',''SaslSsl''] && has(self.kafka.saslMechanism)
+                && self.kafka.saslMechanism == ''ScramSha256'')'
+          status:
+            description: AgentStatus is the DaemonSet-centric observed state shared
+              by every agent kind.
+            properties:
+              conditions:
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              desiredScheduled:
+                description: Nodes the agent DaemonSet wants a pod on.
+                format: int32
+                type: integer
+              numberReady:
+                description: |-
+                  Agent pods currently Ready. Ready is not delivery: the only probes are
+                  flowlogs-pipeline's TCP checks of its health port 28080; the eBPF agent, Tetragon
+                  and the fluent-bit shipper have none. A pod is therefore Ready while a writer cannot reach
+                  the broker, fails the login, or writes to a topic that does not exist. Confirm
+                  delivery on the broker (the topic's offsets keep growing) or in Radar.
+                format: int32
+                type: integer
+              observedGeneration:
+                description: Generation last reconciled.
+                format: int64
+                type: integer
+              phase:
+                description: |-
+                  Coarse phase: Pending | Ready | Degraded. Ready means every agent pod is Ready, which
+                  does not prove that telemetry reaches Kafka (see numberReady).
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

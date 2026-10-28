@@ -1,0 +1,149 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  creationTimestamp: null
+  name: wavediagnosisconfigs.wavek8s.com
+spec:
+  group: wavek8s.com
+  names:
+    kind: WaveDiagnosisConfig
+    plural: wavediagnosisconfigs
+    singular: wavediagnosisconfig
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for WaveDiagnosisConfigSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              memoryAnomaly:
+                nullable: true
+                properties:
+                  oomkillCooldownMinutes:
+                    description: |-
+                      Per-container cooldown after an OOM-kill risk event (minutes).
+                      Omit to use the default (10 min). Set to 0 to disable cooldown (every agent push
+                      logs a risk event). Maps to `oomkill_cooldown_minutes` in `task_settings`.
+                    format: uint64
+                    minimum: 0
+                    nullable: true
+                    type: integer
+                  oomkillUtilization:
+                    description: |-
+                      OOM-kill memory-utilization threshold as a **percent** (0–100): a workload is
+                      flagged when its instantaneous memory utilization ≥ this value. Defaults to 95.0 when
+                      unset (see `MIN_OOM_UTILIZATION_PERCENT`). Note this is a percent, not a 0–1 ratio.
+                    format: double
+                    nullable: true
+                    type: number
+                type: object
+              podContainerFailures:
+                description: |-
+                  Pod/Container Failures detection tuning (WA-968). Detection is zero-config —
+                  the only tunable is the **exclusion set** (presence = excluded from detection,
+                  removal = detected again).
+                nullable: true
+                properties:
+                  excludedWorkloads:
+                    default: []
+                    items:
+                      properties:
+                        kind:
+                          description: |-
+                            `Deployment` | `StatefulSet` | `DaemonSet`. Rollout/DeploymentConfig pods are
+                            resolved to `Deployment` by the push-path workload mapping, so exclude them as
+                            `Deployment`. Unknown kinds fail reconcile validation (ValidationFailed condition).
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - kind
+                      - name
+                      - namespace
+                      type: object
+                    type: array
+                type: object
+              pvCleanup:
+                nullable: true
+                properties:
+                  enabled:
+                    type: boolean
+                required:
+                - enabled
+                type: object
+              pvForecast:
+                nullable: true
+                properties:
+                  enabledPvcs:
+                    default: []
+                    items:
+                      properties:
+                        namespace:
+                          type: string
+                        pvcName:
+                          type: string
+                      required:
+                      - namespace
+                      - pvcName
+                      type: object
+                    type: array
+                type: object
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    Shared status condition shape — mirrors metav1.Condition.
+                    Used by all 15 `WaveXStatus` structs (added in Tasks 6-8).
+
+                    No `Default` derive on purpose: an all-empty-string condition (empty `type`/
+                    `status`/`reason`) is never valid, so we never want one constructed implicitly.
+                    `WaveXStatus` structs default their `conditions` to an empty `Vec`, which does
+                    not require `WaveCondition: Default`.
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: WaveDiagnosisConfig
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

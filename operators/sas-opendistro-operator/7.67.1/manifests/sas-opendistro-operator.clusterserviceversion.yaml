@@ -1,0 +1,387 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "opendistro.sas.com/v1alpha1",
+          "kind": "OpenDistroCluster",
+          "metadata": {
+            "name": "sas-opendistro"
+          },
+          "spec": {
+            "config": {
+              "rootLoggerLevel": "info"
+            },
+            "image": "cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-opendistro@sha256:c9b443dc9c686548266ad3165d3412ce8b7bdefc2f31797409adfc602b3d65e5",
+            "nodes": [
+              {
+                "heapsize": "1G",
+                "name": "default",
+                "replicas": 1,
+                "roles": [
+                  "master",
+                  "data"
+                ],
+                "volume": {
+                  "accessModes": [
+                    "ReadWriteOnce"
+                  ],
+                  "resources": {
+                    "requests": {
+                      "storage": "128Gi"
+                    }
+                  }
+                }
+              }
+            ],
+            "security": {
+              "https": false
+            },
+            "template": {
+              "spec": {
+                "containers": [
+                  {
+                    "image": "cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-opendistro@sha256:c9b443dc9c686548266ad3165d3412ce8b7bdefc2f31797409adfc602b3d65e5",
+                    "name": "sas-opendistro"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    capabilities: Seamless Upgrades
+    categories: Database,Logging & Tracing
+    containerImage: cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-opendistro-operator@sha256:63b2f3de9af52592897bd416fdedae3c5bc2c33f88924695e0424bbaed0772ba
+    createdAt: "2026-10-20T15:50:21Z"
+    description: Manages the lifecycle of OpenSearch clusters inside SAS Viya deployments on OpenShift.
+    features.operators.openshift.io/cnf: "false"
+    features.operators.openshift.io/cni: "false"
+    features.operators.openshift.io/csi: "false"
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
+  name: sas-opendistro-operator.v7.67.1
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+      - description: OpenDistroCluster is the Schema for the opendistroclusters API
+        displayName: Open Distro Cluster
+        kind: OpenDistroCluster
+        name: opendistroclusters.opendistro.sas.com
+        resources:
+          - kind: ConfigMap
+            name: ""
+            version: v1
+          - kind: Pod
+            name: ""
+            version: v1
+          - kind: Secret
+            name: ""
+            version: v1
+          - kind: Service
+            name: ""
+            version: v1
+          - kind: StatefulSet
+            name: ""
+            version: v1
+        specDescriptors:
+          - description: |-
+              AuditLogRetention defines settings for automatic deletion of old
+              Security Audit Logs.
+            displayName: Audit Log Retention
+            path: auditLogRetention
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: Config specifies custom OpenSearch configuration settings.
+            displayName: Config
+            path: config
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: |-
+              Image is the container image (including registry and tag) to use
+              for the OpenDistro/OpenSearch instance.
+            displayName: Image
+            path: image
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:text
+          - description: |-
+              Nodes defines groups of OpenSearch nodesets and their roles within the
+              cluster.
+            displayName: Nodes
+            path: nodes
+          - description: Security configures HTTPS, TLS, and certificate settings for the cluster.
+            displayName: Security
+            path: security
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - displayName: Template
+            path: template
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:advanced
+          - description: |-
+              TestMode which will simplify the settings of the machine
+              and guarantee it works without certificates etc
+            displayName: Test Mode
+            path: testMode
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:hidden
+        statusDescriptors:
+          - description: Conditions tracks the current status conditions of the cluster.
+            displayName: Conditions
+            path: conditions
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes.conditions
+          - description: |-
+              Nodes lists references to the cluster's pods, grouped by whether
+              they are master-eligible.
+            displayName: Nodes
+            path: nodes
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:podStatuses
+          - description: Service is a reference to the main Kubernetes Service exposing the cluster.
+            displayName: Service
+            path: service
+            x-descriptors:
+              - urn:alm:descriptor:io.kubernetes:Service
+          - description: |-
+              For scaling API
+              Replicas int32  `json:"replicas"`
+              Selector string `json:"selector"`
+              Suspended reports whether the cluster is currently, or was
+              previously, suspended.
+            displayName: Suspended
+            path: suspended
+            x-descriptors:
+              - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+        version: v1alpha1
+  description: |
+    The SAS OpenSearch Operator manages the lifecycle of OpenSearch clusters
+    (represented by the `OpenDistroCluster` CRD) inside SAS Viya deployments
+    on OpenShift.
+
+    ## Features
+
+    - Full lifecycle management of Kubernetes objects required for OpenSearch
+    - Rolling upgrades across OpenSearch major versions (1.x → 2.x → 3.x)
+    - TLS certificate management
+    - Suspend/resume support
+    - Namespace-scoped deployment
+  displayName: SAS OpenSearch Operator
+  icon:
+    - base64data: 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
+      mediatype: image/png
+  install:
+    spec:
+      deployments:
+        - label:
+            control-plane: sas-opendistro-operator
+            sas.com/admin: namespace
+          name: sas-opendistro-operator
+          spec:
+            replicas: 1
+            selector:
+              matchLabels:
+                control-plane: sas-opendistro-operator
+            strategy: {}
+            template:
+              metadata:
+                labels:
+                  control-plane: sas-opendistro-operator
+              spec:
+                containers:
+                  - args:
+                      - --enable-leader-election
+                    command:
+                      - opendistro-operator
+                    image: cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-opendistro-operator@sha256:63b2f3de9af52592897bd416fdedae3c5bc2c33f88924695e0424bbaed0772ba
+                    imagePullPolicy: IfNotPresent
+                    name: opendistro-operator
+                    resources:
+                      limits:
+                        cpu: 100m
+                        memory: 50Mi
+                      requests:
+                        cpu: 100m
+                        memory: 30Mi
+                imagePullSecrets:
+                - name: registry-auth-keys
+                serviceAccountName: sas-opendistro-operator
+                terminationGracePeriodSeconds: 10
+      permissions:
+        - rules:
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - apps
+              resources:
+                - statefulsets/status
+              verbs:
+                - get
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+                - persistentvolumeclaims
+                - secrets
+                - services
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - services/status
+              verbs:
+                - get
+            - apiGroups:
+                - opendistro.sas.com
+              resources:
+                - opendistroclusters
+              verbs:
+                - create
+                - delete
+                - get
+                - list
+                - patch
+                - update
+                - watch
+            - apiGroups:
+                - opendistro.sas.com
+              resources:
+                - opendistroclusters/status
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - opendistro.sas.com
+              resources:
+                - opendistroclusters/finalizers
+              verbs:
+                - get
+                - patch
+                - update
+            - apiGroups:
+                - ""
+              resources:
+                - pods
+              verbs:
+                - delete
+                - get
+                - list
+                - watch
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps/status
+              verbs:
+                - get
+                - update
+                - patch
+            - apiGroups:
+                - ""
+              resources:
+                - events
+              verbs:
+                - create
+                - patch
+            - apiGroups:
+                - coordination.k8s.io
+              resources:
+                - leases
+              verbs:
+                - get
+                - list
+                - watch
+                - create
+                - update
+                - patch
+                - delete
+          serviceAccountName: sas-opendistro-operator
+    strategy: deployment
+  installModes:
+    - supported: true
+      type: OwnNamespace
+    - supported: true
+      type: SingleNamespace
+    - supported: false
+      type: MultiNamespace
+    - supported: false
+      type: AllNamespaces
+  keywords:
+    - opensearch
+    - opendistro
+    - sas-opendistro
+    - operator
+    - sas
+    - viya
+  links:
+    - name: SAS
+      url: https://www.sas.com
+    - name: OpenSearch
+      url: https://opensearch.org
+  maintainers:
+    - email: support@sas.com
+      name: SAS Institute
+    - email: terry.quigley@sas.com
+      name: SAS Institute
+  maturity: alpha
+  minKubeVersion: 1.34.0
+  provider:
+    name: SAS Institute
+    url: https://www.sas.com
+  version: 7.67.1
+  relatedImages:
+    - name: sas-opendistro-operator
+      image: cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-opendistro-operator@sha256:63b2f3de9af52592897bd416fdedae3c5bc2c33f88924695e0424bbaed0772ba
+    - name: sas-opendistro
+      image: cr.sas.com/viya-4-x64_oci_linux_2-docker/sas-opendistro@sha256:c9b443dc9c686548266ad3165d3412ce8b7bdefc2f31797409adfc602b3d65e5

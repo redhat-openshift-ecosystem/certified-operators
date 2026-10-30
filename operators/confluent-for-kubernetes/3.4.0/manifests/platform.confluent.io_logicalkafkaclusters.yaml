@@ -1,0 +1,616 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+    platform.confluent.io/app-version: 3.4.0
+    platform.confluent.io/chart-version: v0.2038.1
+  creationTimestamp: null
+  name: logicalkafkaclusters.platform.confluent.io
+spec:
+  group: platform.confluent.io
+  names:
+    categories:
+      - all
+      - confluent-platform
+      - confluent
+    kind: LogicalKafkaCluster
+    listKind: LogicalKafkaClusterList
+    plural: logicalkafkaclusters
+    shortNames:
+      - lkc
+      - logicalkafkacluster
+    singular: logicalkafkacluster
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .status.state
+          name: State
+          type: string
+        - jsonPath: .status.phase
+          name: Phase
+          type: string
+        - jsonPath: .status.logicalClusterID
+          name: LKC-ID
+          type: string
+        - jsonPath: .metadata.creationTimestamp
+          name: Age
+          type: date
+        - jsonPath: .spec.kafkaClusterRef.name
+          name: Kafka
+          priority: 1
+          type: string
+        - jsonPath: .status.bootstrapEndpoint
+          name: Bootstrap
+          priority: 1
+          type: string
+      name: v1beta1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            LogicalKafkaCluster is the schema for the LogicalKafkaCluster API. It is a
+            tenant's logical view of a single multi-tenant Kafka cluster (PKC), realized
+            as an MDS tenant.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: spec defines the desired state of the LogicalKafkaCluster.
+              properties:
+                kafkaClusterRef:
+                  description: |-
+                    kafkaClusterRef points to the parent Kafka CR (PKC) that hosts this
+                    LKC. If omitted, the reconciler discovers the parent Kafka through the
+                    resolved KafkaRestClass (via the KRC's own kafkaClusterRef). Matches the
+                    optional + discoverable pattern used by KafkaTopic.
+                    Locked once a tenant is created: from then on the reconciler rejects
+                    changes to this field (an LKC cannot be moved to a different PKC; the
+                    lkc-id is bound to one MDS).
+                  properties:
+                    kind:
+                      description: |-
+                        kind selects which kind of cluster this reference resolves to. The only
+                        permitted values are `Kafka` and `LogicalKafkaCluster`.
+
+                        The field is optional and exists only to break a name collision. When it is
+                        unset, both a `Kafka` and a `LogicalKafkaCluster` of the given name are looked
+                        for in the given namespace: exactly one match resolves the reference, no match
+                        is rejected as an unknown cluster reference, and a name that matches both is
+                        rejected as ambiguous, asking for `kind` to be set.
+
+                        Day1ClusterRef is shared by many references, but this field is honored
+                        only for `KafkaTopic.spec.kafkaClusterRef` and
+                        `ConfluentRolebinding.spec.kafkaClusterRef` today, where
+                        `LogicalKafkaCluster` targets a tenant (logical cluster) of a
+                        multi-tenant Kafka. Every other reference that embeds Day1ClusterRef
+                        (for example `schemaRegistryClusterRef` or `connectClusterRef`) ignores
+                        this field and always resolves to its own component's cluster type.
+                      enum:
+                        - Kafka
+                        - LogicalKafkaCluster
+                      type: string
+                    name:
+                      description: name specifies the name of the Confluent Platform component cluster.
+                      type: string
+                    namespace:
+                      description: namespace specifies the namespace where the Confluent Platform component cluster is running.
+                      type: string
+                  required:
+                    - name
+                  type: object
+                kafkaRest:
+                  description: |-
+                    kafkaRest specifies an inline MDS/REST connection (endpoint,
+                    authentication, tls) used when kafkaRestClassRef is not set, so the parent
+                    PKC can be bound via kafkaClusterRef with no KafkaRestClass.
+                  properties:
+                    authentication:
+                      description: authentication specifies the REST API authentication mechanism.
+                      properties:
+                        basic:
+                          description: basic specifies the basic authentication settings for the REST API client.
+                          properties:
+                            debug:
+                              description: debug enables the basic authentication debug logs for JaaS configuration.
+                              type: boolean
+                            directoryPathInContainer:
+                              description: |-
+                                directoryPathInContainer allows to pass the basic credential through a directory path in the container.
+                                More info: https://docs.confluent.io/operator/current/co-authenticate.html#basic-authentication
+                              minLength: 1
+                              type: string
+                            ignoreRoles:
+                              description: |-
+                                IgnoreRoles specifies whether to ignore the roles specified in the basic authentication.
+                                The default value is `false`.
+                              type: boolean
+                            restrictedRoles:
+                              description: |-
+                                restrictedRoles specify the restricted roles on the server side only.
+                                Changes will be only reflected in Control Center.
+                                This configuration is ignored on the client side configuration.
+                              items:
+                                type: string
+                              minItems: 1
+                              type: array
+                            roles:
+                              description: |-
+                                roles specify the roles on the server side only.
+                                This configuration is ignored on the client side configuration.
+                              items:
+                                type: string
+                              type: array
+                            secretRef:
+                              description: |-
+                                secretRef defines secret reference to pass the required credentials.
+                                More info: https://docs.confluent.io/operator/current/co-authenticate.html#basic-authentication
+                              maxLength: 30
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        bearer:
+                          description: bearer specifies the bearer authentication settings for the REST API client.
+                          properties:
+                            directoryPathInContainer:
+                              description: |-
+                                directoryPathInContainer specifies the directory path in the container
+                                where the credential is mounted.
+                              minLength: 1
+                              type: string
+                            secretRef:
+                              description: |-
+                                secretRef specifies the name of the secret that contains the credential.
+                                More info: https://docs.confluent.io/operator/current/co-authenticate.html#bearer-authentication
+                              maxLength: 30
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        oauth:
+                          description: oauth specifies the OAuth authentication settings for the REST API client.
+                          properties:
+                            configuration:
+                              description: configuration specifies the OAuth server settings.
+                              properties:
+                                audience:
+                                  description: audience specifies the audience claim in the JWT payload.
+                                  minLength: 1
+                                  type: string
+                                clientAssertion:
+                                  description: clientAssertion specifies the client assertion settings for OAuth token retrieval
+                                  properties:
+                                    clientId:
+                                      description: clientId specifies the clientId to be passed in the jaas configs
+                                      minLength: 1
+                                      type: string
+                                    jwtTokenFile:
+                                      description: jwtTokenFile specifies the file containing the JWT token
+                                      properties:
+                                        directoryPathInContainer:
+                                          description: |-
+                                            directoryPathInContainer specifies the directory path in the container where
+                                            the JWT token file is mounted
+                                          minLength: 1
+                                          type: string
+                                        secretRef:
+                                          description: secretRef references the secret containing the JWT token file
+                                          maxLength: 30
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    localClientAssertion:
+                                      description: |-
+                                        localClientAssertion specifies the local client assertion settings using private key file
+                                        for OAuth token retrieval
+                                      properties:
+                                        audience:
+                                          description: audience specifies the audience claim in the JWT
+                                          minLength: 1
+                                          type: string
+                                        includeJtiClaim:
+                                          description: includeJtiClaim specifies whether to include the JTI claim in the JWT
+                                          type: boolean
+                                        includeNbfClaim:
+                                          description: nbfClaim specifies the not-before claim in the JWT
+                                          type: boolean
+                                        issuer:
+                                          description: issuer specifies the issuer claim in the JWT
+                                          minLength: 1
+                                          type: string
+                                        privateKeyFile:
+                                          description: privateKeyFile specifies the private key file configurations for signing the JWT
+                                          properties:
+                                            directoryPathInContainer:
+                                              description: |-
+                                                directoryPathInContainer specifies the directory path in the container where
+                                                the private key file is mounted with the name private-key
+                                              minLength: 1
+                                              type: string
+                                            encryptedPrivateKey:
+                                              description: |-
+                                                encryptedPrivateKey boolean value indicating whether the private key is encrypted using a passphrase or not. If true, cfk
+                                                operator will look for private-key-passphrase file containing key: value pair with key as privateKeyPassphrase and
+                                                value as the passphrase in the same secret/directory as the private key file.
+                                              type: boolean
+                                            includeAssertionTemplate:
+                                              description: |-
+                                                includeAssertionTemplate boolean value indicating whether to include additional header and payload claims
+                                                in the client assertion or not. If true, cfk
+                                                operator will look for assertion-template.json file in the same secret/directory as the private key file.
+                                              type: boolean
+                                            secretRef:
+                                              description: secretRef references the secret containing the private key file with the name private-key
+                                              maxLength: 30
+                                              minLength: 1
+                                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                              type: string
+                                          type: object
+                                        subject:
+                                          description: subject specifies the subject claim in the JWT
+                                          minLength: 1
+                                          type: string
+                                        tokenLifetime:
+                                          description: tokenLifetime specifies the lifetime of the token
+                                          format: int32
+                                          type: integer
+                                      type: object
+                                  type: object
+                                expectedIssuer:
+                                  description: expectedIssuer specifies the expected issuer in the JWT payload.
+                                  minLength: 1
+                                  type: string
+                                groupsClaimName:
+                                  description: groupsClaimName specifies the name of claim in token for identifying the groups of subject in the JWT payload.
+                                  minLength: 1
+                                  type: string
+                                jwksEndpointUri:
+                                  description: |-
+                                    jwksEndpointUri specifies the uri for the JSON Web Key Set (JWKS).
+                                    It is used to get set of keys containing the public keys used to verify any JWT issued by the IdP's Authorization Server.
+                                  minLength: 1
+                                  type: string
+                                loginConnectTimeoutMs:
+                                  description: LoginConnectTimeoutMs sets connect timeout with IDP in ms
+                                  format: int32
+                                  type: integer
+                                loginReadTimeoutMs:
+                                  description: LoginReadTimeoutMs sets read timeout with IDP in ms
+                                  format: int32
+                                  type: integer
+                                loginRetryBackoffMaxMs:
+                                  description: LoginRetryBackoffMaxMs sets max retry backoff with IDP in ms
+                                  format: int32
+                                  type: integer
+                                loginRetryBackoffMs:
+                                  description: LoginRetryBackoffMs sets retry backoff with IDP in ms
+                                  format: int32
+                                  type: integer
+                                scope:
+                                  description: |-
+                                    scope is optional and required only when your identity provider doesn't have
+                                    a default scope or your groups claim is linked to a scope.
+                                  minLength: 1
+                                  type: string
+                                subClaimName:
+                                  description: subClaimName specifies name of claim in JWT to use for the subject.
+                                  minLength: 1
+                                  type: string
+                                tokenEndpointUri:
+                                  description: |-
+                                    tokenBaseEndpointUri specifies the base uri for token endpoint.
+                                    This is required for OAuth for inter broker communication along with
+                                    clientId & clientSecret in JassConfig or JassConfigPassthrough
+                                  minLength: 1
+                                  type: string
+                              type: object
+                            directoryPathInContainer:
+                              description: directoryPathInContainer allows to pass the basic credential through a directory path in the container.
+                              minLength: 1
+                              type: string
+                            secretRef:
+                              description: secretRef defines secret reference to pass the required credentials.
+                              maxLength: 30
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - configuration
+                          type: object
+                        sslClientAuthentication:
+                          description: sslClientAuthentication enables the clients side mtls for the REST API client.
+                          type: boolean
+                        type:
+                          description: type specifies the REST API authentication type. Valid options are `basic`, `bearer`, `mtls` and `oauth`.
+                          enum:
+                            - basic
+                            - bearer
+                            - mtls
+                            - oauth
+                          type: string
+                      required:
+                        - type
+                      type: object
+                    endpoint:
+                      description: endpoint specifies where Confluent REST API is running.
+                      minLength: 1
+                      pattern: ^https?://.*
+                      type: string
+                    kafkaClusterID:
+                      description: |-
+                        kafkaClusterID specifies the id of Kafka cluster.
+                        It takes precedence over using the Kafka REST API to get the cluster id.
+                      minLength: 1
+                      type: string
+                    tls:
+                      description: "tls specifies the custom TLS structure for the application resources,\n\t// e.g. connector, topic, schema, of the Confluent Platform components.\n\t// +optional"
+                      properties:
+                        directoryPathInContainer:
+                          description: |-
+                            directoryPathInContainer contains the directory path in the container where
+                            `keystore.jks`, `truststore.jks`, `jksPassword.txt` keys are mounted.
+                          minLength: 1
+                          type: string
+                        jksPassword:
+                          description: jksPassword specifies the secret name that contains the JKS password.
+                          properties:
+                            secretRef:
+                              description: |-
+                                secretRef references the name of the secret containing the JKS password.
+                                More info: https://docs.confluent.io/operator/current/co-network-encryption.html#configure-user-provided-tls-certificates
+                              maxLength: 30
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - secretRef
+                          type: object
+                        secretRef:
+                          description: |-
+                            secretRef specifies the secret name that contains the certificates.
+                            More info about certificates key/value format: https://docs.confluent.io/operator/current/co-network-encryption.html#configure-user-provided-tls-certificates
+                          maxLength: 63
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                          type: string
+                      type: object
+                  type: object
+                kafkaRestClassRef:
+                  description: |-
+                    kafkaRestClassRef points to the KafkaRestClass that resolves the MDS
+                    endpoint and credentials the LKC reconciler uses. If omitted, the
+                    reconciler resolves the KafkaRestClass named "default" in this LKC's
+                    namespace, matching the convention used by ConfluentRolebinding and
+                    KafkaTopic. Mutable until a tenant is created; afterward the reference may
+                    change only if it still resolves to the same MDS endpoint (e.g. rotated
+                    credentials) — a reference resolving to a different endpoint is rejected,
+                    since the lkc-id is bound to one MDS.
+                  properties:
+                    name:
+                      description: name specifies the name of the KafkaRestClass application resource.
+                      minLength: 1
+                      type: string
+                    namespace:
+                      description: namespace specifies the namespace of the KafkaRestClass.
+                      type: string
+                  required:
+                    - name
+                  type: object
+                limits:
+                  description: |-
+                    limits defines per-tenant hard limits. Brokers reject the request at
+                    resource-creation time when a limit is exceeded. Same PUT semantics as
+                    quotas.
+                  properties:
+                    maxMessageSizeBytes:
+                      description: |-
+                        maxMessageSizeBytes is the maximum record size this tenant's topics may
+                        accept, in bytes. Falls back to Kafka's message.max.bytes (~1 MB) if
+                        unset.
+                      format: int64
+                      minimum: 1
+                      type: integer
+                    maxPartitions:
+                      description: |-
+                        maxPartitions is the maximum number of partitions this tenant may own
+                        across all topics. The broker rejects partition-creating operations once
+                        the count would exceed this value.
+                      format: int64
+                      minimum: 1
+                      type: integer
+                  type: object
+                name:
+                  description: |-
+                    name is the human-friendly tenant name registered with MDS. Maps
+                    directly to Tenant.name in the MDS Tenant Management API. If omitted on
+                    create, defaults to metadata.name. Immutable once set, because MDS
+                    exposes no rename endpoint and downstream consumers (audit logs, metric
+                    labels, Cluster Registry entries) key off this name. The tenant name (this
+                    field, or metadata.name when it is omitted) must not match lkc-*-external,
+                    which is reserved for tenants' EXTERNAL listener entries in the Cluster
+                    Registry.
+                  maxLength: 64
+                  minLength: 1
+                  pattern: ^[a-zA-Z0-9][a-zA-Z0-9._-]*$
+                  type: string
+                  x-kubernetes-validations:
+                    - message: name is immutable
+                      rule: self == oldSelf
+                quotas:
+                  description: |-
+                    quotas defines per-tenant soft quotas. Brokers throttle when the tenant
+                    exceeds a quota; they do not reject. All sub-fields are optional; only
+                    set what should be enforced. On every reconcile, CFK does a full PUT to
+                    /security/1.0/tenants/{id}/quotas-and-limits; any sub-field omitted in
+                    spec is cleared in MDS.
+                  properties:
+                    brokerRequestThreads:
+                      description: |-
+                        brokerRequestThreads caps the request-processing (I/O + network) thread
+                        time this tenant may use on each broker, as a thread count: 1.0 is one
+                        thread fully busy, 2.5 is two and a half. Each broker enforces the full
+                        value; it is not divided across brokers. If omitted, the broker default
+                        confluent.cpc.default.tenant.broker.request.percentage applies (250.0,
+                        i.e. 2.5 threads).
+                      exclusiveMinimum: true
+                      minimum: 0
+                      type: number
+                    egressByteRate:
+                      description: |-
+                        egressByteRate is the per-tenant consume bandwidth quota in bytes per
+                        second.
+                      format: int64
+                      minimum: 1
+                      type: integer
+                    ingressByteRate:
+                      description: |-
+                        ingressByteRate is the per-tenant produce bandwidth quota in bytes per
+                        second.
+                      format: int64
+                      minimum: 1
+                      type: integer
+                  type: object
+              type: object
+              x-kubernetes-validations:
+                - message: kafkaRestClassRef and kafkaRest are mutually exclusive
+                  rule: '!(has(self.kafkaRestClassRef) && has(self.kafkaRest))'
+            status:
+              description: status is the observed state of the LogicalKafkaCluster.
+              properties:
+                bootstrapEndpoint:
+                  description: |-
+                    bootstrapEndpoint is the per-tenant external SNI bootstrap endpoint clients use
+                    to connect (e.g., lkc-a8f3x-kafka.pkc1.example.com:9092). Computed by CFK.
+                  type: string
+                conditions:
+                  description: conditions is the latest set of condition observations.
+                  items:
+                    description: Condition represent the latest available observations of the current state.
+                    properties:
+                      lastProbeTime:
+                        description: lastProbeTime shows the last time the condition was evaluated.
+                        format: date-time
+                        type: string
+                      lastTransitionTime:
+                        description: lastTransitionTime shows the last time the condition was transitioned from one status to another.
+                        format: date-time
+                        type: string
+                      message:
+                        description: message shows a human-readable message with details about the transition.
+                        type: string
+                      reason:
+                        description: reason shows the reason for the last transition of the condition.
+                        type: string
+                      status:
+                        description: status shows the status of the condition, one of `True`, `False`, or `Unknown`.
+                        type: string
+                      type:
+                        description: type shows the condition type.
+                        type: string
+                    type: object
+                  type: array
+                creationDate:
+                  description: |-
+                    creationDate is the MDS-recorded creation time of the tenant. Mirrors
+                    Tenant.creationDate. Populated after first successful tenant creation;
+                    immutable after that.
+                  format: date-time
+                  type: string
+                deletionDate:
+                  description: |-
+                    deletionDate is the MDS-recorded deactivation time. Absent while the
+                    tenant is in phase Running; set when phase transitions to Deactivated.
+                    Mirrors Tenant.deletionDate.
+                  format: date-time
+                  type: string
+                internalBootstrapEndpoint:
+                  description: |-
+                    internalBootstrapEndpoint is the per-tenant IN-CLUSTER bootstrap endpoint
+                    that resolves to the parent Kafka's broker pods (e.g.
+                    lkc-a8f3x-kafka.confluent.svc.cluster.local:9076). CFK-computed from the
+                    parent PKC's namespace, cluster domain, and the multi-tenant token listener
+                    port; coexists with bootstrapEndpoint (the external SNI endpoint).
+                  type: string
+                kafkaCluster:
+                  description: |-
+                    kafkaCluster is the parent Kafka CR's namespaced name, format
+                    "namespace/name". Mirrors the convention used by KafkaTopic.
+                  type: string
+                kafkaClusterID:
+                  description: |-
+                    kafkaClusterID is the ID of the parent PKC this LKC was reconciled
+                    against (the Kafka broker's own cluster ID, not lkc-). Used for
+                    diagnostics; matches Kafka.status.clusterID.
+                  type: string
+                logicalClusterID:
+                  description: |-
+                    logicalClusterID is the MDS-assigned tenant identifier (pattern
+                    ^lkc-[A-Za-z0-9]+$). Server-assigned on the first successful POST
+                    /security/1.0/tenants; never modified thereafter.
+                  type: string
+                mdsEndpoint:
+                  description: |-
+                    mdsEndpoint is the MDS REST endpoint the reconciler called. Matches the
+                    convention used by ConfluentRolebinding.status.
+                  type: string
+                name:
+                  description: |-
+                    name mirrors MDS Tenant.name, the human-friendly tenant name confirmed
+                    by MDS at create time. In steady state this matches spec.name (or
+                    metadata.name if spec.name was unset). Server-confirmed on first POST;
+                    never modified thereafter (MDS exposes no rename endpoint).
+                  type: string
+                observedGeneration:
+                  description: |-
+                    observedGeneration is the metadata.generation the reconciler last
+                    observed and acted on.
+                  format: int64
+                  type: integer
+                phase:
+                  description: |-
+                    phase mirrors MDS Tenant.phase. Populated by the periodic GET
+                    /security/1.0/tenants/{id} refresh. Empty until the first successful
+                    tenant creation.
+                  enum:
+                    - Running
+                    - Deactivated
+                  type: string
+                state:
+                  description: |-
+                    state describes the CFK reconciler's progress for this LKC, distinct
+                    from phase (which mirrors MDS). One of: PROVISIONING, CREATED,
+                    DELETE-REQUESTED, ERROR.
+                  type: string
+              type: object
+          required:
+            - spec
+          type: object
+          x-kubernetes-validations:
+            - message: the tenant name (spec.name, or metadata.name when spec.name is unset) must not match lkc-*-external; names of that form are reserved for tenants' EXTERNAL listener entries in the MDS Cluster Registry
+              rule: '!((has(self.spec.name) ? self.spec.name : self.metadata.name).matches(''^lkc-.*-external$''))'
+      served: true
+      storage: true
+      subresources:
+        status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

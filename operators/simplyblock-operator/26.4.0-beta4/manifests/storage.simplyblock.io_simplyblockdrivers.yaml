@@ -1,0 +1,723 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: simplyblockdrivers.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: SimplyblockDriver
+    listKind: SimplyblockDriverList
+    plural: simplyblockdrivers
+    shortNames:
+    - sbd
+    singular: simplyblockdriver
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.version
+      name: Version
+      type: string
+    - jsonPath: .status.nodesReady
+      name: NodesReady
+      type: integer
+    - jsonPath: .status.nodesTotal
+      name: NodesTotal
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          SimplyblockDriver is the deployment of simplyblock's CSI driver: the node
+          plugin, the controller plugin, their RBAC, and the core CSIDriver registration
+          they produce. It is named for the brand rather than the interface because
+          CSIDriver is already a kind in core storage.k8s.io/v1, and the two are not the
+          same object: the core kind is the cluster's registration record, and this one
+          is the deployment that produces it.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              SimplyblockDriverSpec is the CSI driver deployment: the node plugin, the
+              controller plugin, their RBAC, and the CSIDriver registration they produce.
+            properties:
+              controllerNodeSelector:
+                additionalProperties:
+                  type: string
+                description: |-
+                  ControllerNodeSelector and ControllerTolerations place the controller
+                  plugin. The unprefixed pair above is the node plugin's, because that
+                  placement decides which workers can attach a volume, and this pair is
+                  ordinary pod placement for the one workload that provisions them.
+                type: object
+              controllerReplicas:
+                default: 1
+                description: ControllerReplicas is the number of controller-plugin
+                  instances.
+                format: int32
+                minimum: 1
+                type: integer
+              controllerResources:
+                description: |-
+                  ControllerResources and NodeResources set requests and limits for the two
+                  plugins. Unset enforces no limits.
+                properties:
+                  claims:
+                    description: |-
+                      Claims lists the names of resources, defined in spec.resourceClaims,
+                      that are used by this container.
+
+                      This field depends on the
+                      DynamicResourceAllocation feature gate.
+
+                      This field is immutable. It can only be set for containers.
+                    items:
+                      description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                      properties:
+                        name:
+                          description: |-
+                            Name must match the name of one entry in pod.spec.resourceClaims of
+                            the Pod where this field is used. It makes that resource available
+                            inside a container.
+                          type: string
+                        request:
+                          description: |-
+                            Request is the name chosen for a request in the referenced claim.
+                            If empty, everything from the claim is made available, otherwise
+                            only the result of this request.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Limits describes the maximum amount of compute resources allowed.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Requests describes the minimum amount of compute resources required.
+                      If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                      otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                type: object
+              controllerTolerations:
+                items:
+                  description: |-
+                    The pod this Toleration is attached to tolerates any taint that matches
+                    the triple <key,value,effect> using the matching operator <operator>.
+                  properties:
+                    effect:
+                      description: |-
+                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                      type: string
+                    key:
+                      description: |-
+                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                      type: string
+                    operator:
+                      description: |-
+                        Operator represents a key's relationship to the value.
+                        Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod can
+                        tolerate all taints of a particular category.
+                        Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                      type: string
+                    tolerationSeconds:
+                      description: |-
+                        TolerationSeconds represents the period of time the toleration (which must be
+                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                        negative values will be treated as 0 (evict immediately) by the system.
+                      format: int64
+                      type: integer
+                    value:
+                      description: |-
+                        Value is the taint value the toleration matches to.
+                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                      type: string
+                  type: object
+                type: array
+              driverName:
+                default: csi.simplyblock.io
+                description: |-
+                  DriverName is the CSI driver name a StorageClass provisions with. Every
+                  PersistentVolume the driver created records it in spec.csi.driver and
+                  every VolumeAttachment records it too, so changing it orphans every volume
+                  in the namespace rather than renaming anything.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              enableCSIAddons:
+                default: false
+                description: |-
+                  EnableCSIAddons adds the kubernetes-csi-addons sidecar to the controller
+                  plugin, with the Role and bindings it needs. The sidecar publishes a
+                  CSIAddonsNode object, so it only works on a cluster that serves the
+                  csiaddons.openshift.io CRDs. Without them it restarts in a loop, so leave
+                  it false unless those CRDs are installed.
+                type: boolean
+              enableServiceAccountAuth:
+                default: false
+                description: |-
+                  EnableServiceAccountAuth makes both plugins authenticate to the management
+                  API with their pod's Kubernetes service-account token instead of the
+                  static cluster secret. The control plane has to list those accounts in
+                  SB_K8S_ADMIN_SERVICE_ACCOUNTS for it to work, which is why this is a
+                  deployment-wide switch rather than a per-plugin one.
+                type: boolean
+              enableVolumeSnapshots:
+                default: true
+                description: |-
+                  EnableVolumeSnapshots decides whether snapshot support is part of this
+                  deployment: the VolumeSnapshotClass for DriverName, and the CRDs and a
+                  controller where the cluster serves neither. False applies none of them.
+                type: boolean
+              image:
+                description: |-
+                  Image is the CSI driver image, used by both plugins. Unset takes the
+                  operator's own registry and tag with the CSI driver's repository, so a
+                  deployment that states nothing runs the driver belonging to the operator
+                  reconciling it, which is the pairing the release was tested as.
+                pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                type: string
+              imagePullPolicy:
+                default: Always
+                description: |-
+                  ImagePullPolicy controls when that image is pulled. It defaults to Always
+                  because the default Image is a moving tag: it follows the operator's own,
+                  and a development build's tag is rebuilt in place. IfNotPresent against a
+                  tag that moved leaves the workers that already pulled it running the old
+                  plugin and the workers that had not running the new one, which is version
+                  skew inside one deployment and invisible from the object.
+                enum:
+                - Always
+                - Never
+                - IfNotPresent
+                type: string
+              nodeResources:
+                description: ResourceRequirements describes the compute resource requirements.
+                properties:
+                  claims:
+                    description: |-
+                      Claims lists the names of resources, defined in spec.resourceClaims,
+                      that are used by this container.
+
+                      This field depends on the
+                      DynamicResourceAllocation feature gate.
+
+                      This field is immutable. It can only be set for containers.
+                    items:
+                      description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                      properties:
+                        name:
+                          description: |-
+                            Name must match the name of one entry in pod.spec.resourceClaims of
+                            the Pod where this field is used. It makes that resource available
+                            inside a container.
+                          type: string
+                        request:
+                          description: |-
+                            Request is the name chosen for a request in the referenced claim.
+                            If empty, everything from the claim is made available, otherwise
+                            only the result of this request.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - name
+                    x-kubernetes-list-type: map
+                  limits:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Limits describes the maximum amount of compute resources allowed.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                  requests:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Requests describes the minimum amount of compute resources required.
+                      If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                      otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                      More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                    type: object
+                type: object
+              nodeSelector:
+                additionalProperties:
+                  type: string
+                description: |-
+                  NodeSelector restricts which workers run the node plugin. Empty means
+                  every schedulable worker, which is the usual case: a node that cannot
+                  attach a volume cannot run a workload that needs one.
+                type: object
+              pnfs:
+                description: PNFS configures pNFS support on the node plugin.
+                properties:
+                  mds:
+                    description: |-
+                      MDS runs the metadata server: one pod per storage cluster, whose QEMU
+                      guest runs the NFS server with its own kernel, so no node runs nfsd,
+                      mounts an export, or needs nfs-utils. The pod needs a node with
+                      /dev/kvm. Unset, no pNFS volume can be exported: its export waits in
+                      Pending until this is set.
+                    properties:
+                      dataNetwork:
+                        description: |-
+                          DataNetwork attaches the metadata server to the storage data network, so
+                          its guest reaches the storage nodes there rather than through the pod
+                          network. The pod gets a macvlan interface on whichever host interface
+                          carries the subnet, and runs only on nodes that have one, preferring
+                          nodes that are not storage nodes. It needs Multus and the whereabouts IPAM
+                          plugin, which OpenShift ships. Unset, the guest reaches the storage nodes
+                          through the pod network, which needs the nodes to forward traffic
+                          arriving on their data interfaces. Changing it restarts the metadata
+                          server.
+                        properties:
+                          rangeEnd:
+                            description: RangeEnd is the last address the metadata
+                              server pods may take.
+                            maxLength: 15
+                            type: string
+                            x-kubernetes-validations:
+                            - message: rangeEnd must be an IPv4 address
+                              rule: isIP(self) && ip(self).family() == 4
+                          rangeStart:
+                            description: |-
+                              RangeStart is the first address the metadata server pods may take. The
+                              range must hold no address anything else on the network uses: one pod
+                              takes one address, and a restarted pod can take another.
+                            maxLength: 15
+                            type: string
+                            x-kubernetes-validations:
+                            - message: rangeStart must be an IPv4 address
+                              rule: isIP(self) && ip(self).family() == 4
+                          subnet:
+                            description: |-
+                              Subnet is the data network in CIDR form, such as 10.10.10.0/24. A node
+                              whose interface holds an address in it can run the metadata server.
+                            maxLength: 18
+                            type: string
+                            x-kubernetes-validations:
+                            - message: subnet must be an IPv4 CIDR
+                              rule: isCIDR(self) && cidr(self).ip().family() == 4
+                        required:
+                        - rangeEnd
+                        - rangeStart
+                        - subnet
+                        type: object
+                        x-kubernetes-validations:
+                        - message: rangeStart must be an address in subnet
+                          rule: '!isCIDR(self.subnet) || !isIP(self.rangeStart) ||
+                            cidr(self.subnet).containsIP(self.rangeStart)'
+                        - message: rangeEnd must be an address in subnet
+                          rule: '!isCIDR(self.subnet) || !isIP(self.rangeEnd) || cidr(self.subnet).containsIP(self.rangeEnd)'
+                      image:
+                        description: |-
+                          Image is the metadata server image: QEMU, the guest kernel, the guest
+                          root filesystem, and the runner. Unset takes the operator's own registry
+                          in the spdkcsi repository, tagged with the operator's tag prefixed
+                          pnfs-mds-, so a deployment that states nothing runs the image belonging
+                          to the operator reconciling it.
+                        pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                        type: string
+                      nodeSelector:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          NodeSelector is merged with the kvm-capable label the pod always
+                          requires.
+                        type: object
+                      resources:
+                        description: |-
+                          Resources are the pod's requests and limits. The guest's vCPUs are the
+                          whole cores the CPU limit covers, at least one, and its memory is the
+                          memory limit less 256Mi for QEMU, so the memory limit has to be at
+                          least 512Mi. A CPU or memory limit left unset defaults to 2 and 2Gi,
+                          and a memory request left unset to 512Mi, or the limit when that is
+                          lower. The guest returns the memory it frees to the node, so the pod
+                          uses about what the guest does.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This field depends on the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      stateSize:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        default: 1Gi
+                        description: |-
+                          StateSize is the size of the guest's state disk, which holds the NFS
+                          client-recovery database that lets clients reclaim their state after
+                          the pod restarts.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      stateStorageClassName:
+                        description: |-
+                          StateStorageClassName is the storage class of the state disk, which is
+                          always a simplyblock volume so the pod can restart on any worker with
+                          its client-recovery database. A named class must be provisioned by this
+                          driver and must not be a pNFS class. Unset gives each storage cluster a
+                          class of its own, <driver>-<cluster>-pnfs-mds-state, derived from the
+                          cluster's simplyblock class without its QoS caps and reserved for the
+                          state disk by an admission policy. Read only when the metadata server is
+                          first created: a StatefulSet's claim template cannot change afterward.
+                        type: string
+                      tolerations:
+                        description: Tolerations let the pod schedule onto tainted
+                          KVM nodes.
+                        items:
+                          description: |-
+                            The pod this Toleration is attached to tolerates any taint that matches
+                            the triple <key,value,effect> using the matching operator <operator>.
+                          properties:
+                            effect:
+                              description: |-
+                                Effect indicates the taint effect to match. Empty means match all taint effects.
+                                When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                              type: string
+                            key:
+                              description: |-
+                                Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                              type: string
+                            operator:
+                              description: |-
+                                Operator represents a key's relationship to the value.
+                                Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                                Exists is equivalent to wildcard for value, so that a pod can
+                                tolerate all taints of a particular category.
+                                Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                              type: string
+                            tolerationSeconds:
+                              description: |-
+                                TolerationSeconds represents the period of time the toleration (which must be
+                                of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                negative values will be treated as 0 (evict immediately) by the system.
+                              format: int64
+                              type: integer
+                            value:
+                              description: |-
+                                Value is the taint value the toleration matches to.
+                                If the operator is Exists, the value should be empty, otherwise just a regular string.
+                              type: string
+                          type: object
+                        type: array
+                    type: object
+                type: object
+              sidecarImages:
+                description: |-
+                  SidecarImages overrides the seven CSI sidecars, one field each. Unset
+                  takes the version this operator release ships.
+                properties:
+                  attacher:
+                    description: Attacher is csi-attacher, on the controller plugin.
+                    pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                    type: string
+                  csiAddons:
+                    description: |-
+                      CSIAddons is the kubernetes-csi-addons sidecar, on the controller
+                      plugin. It connects to the plugin's socket, probes the csi-addons
+                      Identity service for capabilities, and publishes a CSIAddonsNode so the
+                      kubernetes-csi-addons controller-manager (design
+                      design-csi-addons-replication.md §4.1) can reach the Replication
+                      service this driver serves.
+
+                      Unlike the other sidecars above, this one's upstream home is the
+                      csi-addons project's own registry (quay.io/csiaddons), not simplyblock's.
+                    pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                    type: string
+                  healthMonitor:
+                    description: |-
+                      HealthMonitor is csi-external-health-monitor-controller, on the
+                      controller plugin.
+                    pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                    type: string
+                  nodeDriverRegistrar:
+                    description: NodeDriverRegistrar is node-driver-registrar, on
+                      the node plugin.
+                    pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                    type: string
+                  provisioner:
+                    description: Provisioner is csi-provisioner, on the controller
+                      plugin.
+                    pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                    type: string
+                  resizer:
+                    description: Resizer is csi-resizer, on the controller plugin.
+                    pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                    type: string
+                  snapshotter:
+                    description: |-
+                      Snapshotter is csi-snapshotter, on the controller plugin. It is this
+                      driver's sidecar and not the cluster's snapshot-controller, whose image
+                      is not overridable here because that component belongs to the cluster.
+                    pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                    type: string
+                type: object
+              tls:
+                description: |-
+                  TLS configures whether both plugins reach the control plane over TLS.
+                  Unset is plaintext, the shape every deployment ran before this field
+                  existed. Adopting a deployment that already runs TLS requires this to
+                  agree with what its plugins are configured for, because it is not read
+                  off the running objects.
+                properties:
+                  enableMutualTLS:
+                    description: |-
+                      EnableMutualTLS additionally requires each plugin to present a client
+                      certificate, rather than dialing the control plane anonymously over
+                      the encrypted connection EnableTLS alone provides. Ignored when
+                      EnableTLS is false, the same as the Helm value it replaces. Unset follows
+                      the ControlPlane's spec.source.local.tls.enableMutualTLS.
+                    type: boolean
+                  enableTLS:
+                    description: |-
+                      EnableTLS turns on TLS between both plugins and the control plane.
+                      Unset follows the ControlPlane's spec.source.local.tls.enableTLS.
+                    type: boolean
+                  provider:
+                    description: |-
+                      Provider selects where the CA bundle (and, with EnableMutualTLS, the
+                      client certificate) comes from. Required reading whenever EnableTLS is
+                      true: the two providers mount a differently shaped volume, and neither
+                      shape can be inferred from anything else on this object. Unset follows
+                      the ControlPlane's provider, and is cert-manager without one.
+                    enum:
+                    - OpenShift
+                    - cert-manager
+                    type: string
+                type: object
+              tolerations:
+                description: |-
+                  Tolerations are applied to the node plugin, which usually needs to run
+                  where workloads run rather than where the operator does.
+                items:
+                  description: |-
+                    The pod this Toleration is attached to tolerates any taint that matches
+                    the triple <key,value,effect> using the matching operator <operator>.
+                  properties:
+                    effect:
+                      description: |-
+                        Effect indicates the taint effect to match. Empty means match all taint effects.
+                        When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                      type: string
+                    key:
+                      description: |-
+                        Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                        If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                      type: string
+                    operator:
+                      description: |-
+                        Operator represents a key's relationship to the value.
+                        Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                        Exists is equivalent to wildcard for value, so that a pod can
+                        tolerate all taints of a particular category.
+                        Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                      type: string
+                    tolerationSeconds:
+                      description: |-
+                        TolerationSeconds represents the period of time the toleration (which must be
+                        of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                        it is not set, which means tolerate the taint forever (do not evict). Zero and
+                        negative values will be treated as 0 (evict immediately) by the system.
+                      format: int64
+                      type: integer
+                    value:
+                      description: |-
+                        Value is the taint value the toleration matches to.
+                        If the operator is Exists, the value should be empty, otherwise just a regular string.
+                      type: string
+                  type: object
+                type: array
+            type: object
+            x-kubernetes-validations:
+            - message: field driverName is immutable once set
+              rule: '!has(oldSelf.driverName) || has(self.driverName)'
+          status:
+            description: SimplyblockDriverStatus is the observed state of the CSI
+              driver deployment.
+            properties:
+              controllerReady:
+                description: ControllerReady is whether the controller plugin is serving.
+                type: boolean
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the deployment moves, and never a log.
+                type: string
+              nodesReady:
+                description: |-
+                  NodesReady is how many workers run a ready node plugin, and NodesTotal how
+                  many are expected to. Neither takes omitempty: zero ready plugins is the
+                  condition worth seeing.
+                format: int32
+                minimum: 0
+                type: integer
+              nodesTotal:
+                format: int32
+                minimum: 0
+                type: integer
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              origin:
+                description: |-
+                  Origin is whether the first reconcile created this deployment's objects
+                  or met ones it did not create. It is decided once and never revised,
+                  because what it records is where the running deployment came from rather
+                  than what the controller did most recently.
+                enum:
+                - Created
+                - Adopted
+                type: string
+              phase:
+                description: Phase is the operator's own view of the deployment.
+                enum:
+                - Installing
+                - Ready
+                - Degraded
+                - Unavailable
+                type: string
+              snapshotSupport:
+                description: |-
+                  SnapshotSupport is whether the cluster already had snapshot support or the
+                  operator installed it, which is what says whether other drivers depend on
+                  what this one applied.
+                enum:
+                - Detected
+                - Installed
+                - Missing
+                type: string
+              version:
+                description: |-
+                  Version is the version the deployed driver reports, published so that a
+                  skew against ControlPlane.status.version is visible on one screen.
+                type: string
+            required:
+            - nodesReady
+            - nodesTotal
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

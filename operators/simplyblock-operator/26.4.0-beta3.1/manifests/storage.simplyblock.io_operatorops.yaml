@@ -1,0 +1,493 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: operatorops.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: OperatorOps
+    listKind: OperatorOpsList
+    plural: operatorops
+    shortNames:
+    - oops
+    singular: operatorops
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.configRef
+      name: Config
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          OperatorOps is a single operation performed against the operator itself,
+          which today means a discovery run that writes a ClusterDeploymentConfig. It
+          runs to a terminal phase and stays afterward as the audit record.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              OperatorOpsSpec is one operation to perform against the operator itself.
+
+              It carries no target reference. Every other Ops kind in this group names the
+              entity it acts on; this one acts on the operator process, which is not a
+              resource in this API group, and the absent field is the signal.
+            properties:
+              abort:
+                description: |-
+                  Abort asks a running operation to stop at its next step and unwind.
+                  Whether an abort is expressible from the current step is declared by that
+                  action's graph rather than checked here. Discovery changes nothing, so an
+                  aborted run leaves behind at most the config it had already written.
+                type: boolean
+              action:
+                description: Action is the operation to perform.
+                enum:
+                - Discover
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              discover:
+                description: Discover parameterizes action Discover.
+                properties:
+                  clusterRef:
+                    description: |-
+                      ClusterRef names an existing StorageCluster the draft grows rather than
+                      creates. It is copied to the draft's own clusterRef, so that re-running
+                      discovery after an expansion produces a growth document naming the same
+                      cluster.
+
+                      Bounded at what a StorageCluster name may be, since a longer value names
+                      nothing that can exist.
+                    maxLength: 63
+                    type: string
+                  configName:
+                    description: |-
+                      ConfigName is the ClusterDeploymentConfig to write. Absent generates one
+                      from the run's timestamp, so that a second discovery never overwrites the
+                      first, which may have been reviewed and corrected.
+                    type: string
+                  deviceFilter:
+                    description: |-
+                      DeviceFilter narrows which of an inspected worker's devices reach the
+                      draft. Empty reports every device the worker advertises, including the one
+                      it boots from, which is what the approval gate then has to catch.
+                    properties:
+                      blockAllowList:
+                        description: |-
+                          BlockAllowList restricts candidates to these device paths ("/dev/sdb").
+                          This and BlockDenyList are the block class's half of the filter, and they
+                          require EnableLogicalBlockDevices for the same reason the PCI filters
+                          forbid it.
+                        items:
+                          pattern: ^/dev/[a-zA-Z0-9._/-]+$
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: set
+                      blockDenyList:
+                        description: |-
+                          BlockDenyList excludes these device paths. On a fleet that boots from
+                          /dev/sda, this is the one entry that keeps the root disk out of every group
+                          of every draft.
+                        items:
+                          pattern: ^/dev/[a-zA-Z0-9._/-]+$
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: set
+                      driveSizeRange:
+                        description: |-
+                          DriveSizeRange restricts candidates by size ("100G-2T"). Unlike the
+                          per-class filters, it applies to whichever class the run is scanning.
+                        type: string
+                      pcieAllowList:
+                        description: |-
+                          PcieAllowList restricts candidates to these PCI addresses. This and the two
+                          PCI filters below narrow the NVMe class alone, because a logical block
+                          device has no PCI address to match, so setting any of them on a run that
+                          scans the block class is rejected by the rule on this type.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: set
+                      pcieDenyList:
+                        description: |-
+                          PcieDenyList excludes these PCI addresses. On a fleet that is uniform
+                          about which slot holds the boot device, this is what keeps that device out
+                          of every group of every draft.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: set
+                      pcieModel:
+                        description: PcieModel restricts candidates to devices whose
+                          PCI model string matches.
+                        type: string
+                    type: object
+                  enableControlPlaneNodes:
+                    description: |-
+                      EnableControlPlaneNodes lets the run consider machines that run the API
+                      server and etcd.
+
+                      It is off by default because a storage node is a data path, and putting one
+                      on an etcd host is a placement almost nobody intends. The approval gate is a
+                      poor place to catch it: a fifty-worker draft is not a document anybody reads
+                      closely enough to spot three control-plane nodes in it. A combined three-node
+                      or single-node deployment is the case that wants it, and those are set up
+                      deliberately.
+
+                      There is no field beside it for infrastructure nodes, because those are used
+                      without asking: an OpenShift infra node is the tier a cluster's own
+                      infrastructure runs on, and simplyblock storage is infrastructure. A fleet
+                      with disks in its infra nodes meant those disks to be the storage, so a draft
+                      proposes them ahead of the workers rather than leaving them out.
+                    type: boolean
+                  enableLogicalBlockDevices:
+                    description: |-
+                      EnableLogicalBlockDevices scans a worker's available logical block devices
+                      instead of its available NVMe devices. It selects the class rather than
+                      adding one, because the draft a run writes describes one cluster and a
+                      cluster is built out of one class. Unset scans NVMe, so that upgrading to
+                      26.4 does not change what a discovery run reports.
+
+                      It is a statement about the run rather than a member of DeviceFilter,
+                      because it does not narrow the devices reported: it decides which class of
+                      them is looked at, which filters in DeviceFilter apply, and what
+                      ForceJournalDevice resolves, since the two classes lay out a journal
+                      differently.
+                    type: boolean
+                  enablePartitionedDevices:
+                    description: |-
+                      EnablePartitionedDevices reports devices carrying a partition table
+                      alongside the available ones, for the administrator who knows the table is
+                      stale and intends to hand the device over anyway. It is the only one of the
+                      three availability conditions that can be waived: a mounted or otherwise
+                      busy device is never reported, because simplyblock taking it would corrupt
+                      whatever is using it.
+
+                      It is a statement about the run rather than a member of DeviceFilter for
+                      the reason EnableLogicalBlockDevices is: it waives an availability
+                      condition for whichever class is scanned, and so widens what is reported,
+                      where every member of the filter narrows it.
+                    type: boolean
+                  failureDomainLabel:
+                    default: topology.kubernetes.io/zone
+                    description: |-
+                      FailureDomainLabel is the Node label whose value becomes each worker's
+                      failure domain in the draft, for fleets that label racks or power feeds.
+                      Defaults to topology.kubernetes.io/zone. A worker without the label gets
+                      no failure domain, and the run reports it. A value that is not a valid
+                      failure domain is reported as well, naming the worker, and not used.
+                    maxLength: 317
+                    type: string
+                  forceJournalDevice:
+                    description: |-
+                      ForceJournalDevice makes the run dedicate a journal device even where the
+                      fleet's disks do not say which one.
+
+                      A run proposes a dedicated journal device when every worker hands over one
+                      disk smaller than its others, because a fleet built that way was built that
+                      way on purpose. Where several disks share the smallest size, nothing says
+                      which to take, and taking one spends a whole disk the fleet did not set
+                      aside: on a worker with ten 10 TB disks that is 10 TB, silently. So the run
+                      does not guess.
+
+                      What it does instead depends on the class. An NVMe cluster with no
+                      dedicated journal device carves a journal partition out of every device, so
+                      the run leaves the field unset, says so, and every disk stays storage. A
+                      logical block-device cluster has no such layout — the control plane refuses
+                      the partitioned journal for the class — so the run fails rather than
+                      writing a document that creates the cluster, formats its drives, and then
+                      fails every node_add. Setting this is what asks for one of the equal disks
+                      to be taken anyway, and the draft says the disk was taken rather than
+                      offered.
+
+                      It does not force the cases that are impossible rather than ambiguous. A
+                      worker handing over a single disk is refused with it or without it, because
+                      dedicating that disk leaves the worker nothing to store on, and so is a
+                      worker whose disks report no size. The tie it does resolve is broken by
+                      address, ascending, so two runs over one unchanged fleet propose the same
+                      document.
+                    type: boolean
+                  networkAttachment:
+                    description: |-
+                      NetworkAttachment attaches the proposed storage nodes through Multus
+                      NetworkAttachmentDefinitions in the run's namespace instead of host
+                      networking. Absent keeps host networking, and the draft names each
+                      group's interfaces.
+
+                      The draft names the definitions in place of interfaces, and a worker
+                      whose host lacks the interface a definition builds on is left out with
+                      the reason. A definition the namespace does not hold fails the run before
+                      any worker is probed, naming the definitions the namespace does hold. A
+                      cluster that does not serve the NetworkAttachmentDefinition kind keeps
+                      host networking, and the run says so with a Warning event.
+                    properties:
+                      data:
+                        description: |-
+                          Data is the definition the storage node's data traffic is attached
+                          through. Absent sends data through the management attachment.
+                        maxLength: 253
+                        pattern: ^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$
+                        type: string
+                      management:
+                        description: |-
+                          Management is the definition the storage node's management traffic is
+                          attached through.
+                        maxLength: 253
+                        minLength: 1
+                        pattern: ^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$
+                        type: string
+                    required:
+                    - management
+                    type: object
+                  nodeSelector:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      NodeSelector restricts which workers are inspected. Empty inspects every
+                      schedulable worker, and it is exclusive with Workers.
+                    type: object
+                  tolerations:
+                    description: |-
+                      Tolerations are what the probe pods tolerate, and what the draft states
+                      for the storage nodes it proposes.
+
+                      A probe is pinned to its worker with spec.nodeName rather than scheduled
+                      onto it, which bypasses the scheduler and not the taints: a NoSchedule
+                      taint still keeps the pod off, and a NoExecute taint evicts one that
+                      landed. A fleet that dedicates machines to storage taints them, so a run
+                      against one that tolerates nothing inspects nothing. A worker carrying a
+                      NoSchedule or NoExecute taint that none of these tolerates is not
+                      inspected, and its WorkerDeclined event names that taint.
+
+                      They reach the draft as well, because the taints a run was allowed to
+                      probe through are the taints the cluster it proposes has to live with.
+                      Stating them in one place is what keeps a reviewer from approving a
+                      document whose DaemonSet schedules nowhere.
+                    items:
+                      description: |-
+                        The pod this Toleration is attached to tolerates any taint that matches
+                        the triple <key,value,effect> using the matching operator <operator>.
+                      properties:
+                        effect:
+                          description: |-
+                            Effect indicates the taint effect to match. Empty means match all taint effects.
+                            When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                          type: string
+                        key:
+                          description: |-
+                            Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                            If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                          type: string
+                        operator:
+                          description: |-
+                            Operator represents a key's relationship to the value.
+                            Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                            Exists is equivalent to wildcard for value, so that a pod can
+                            tolerate all taints of a particular category.
+                            Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                          type: string
+                        tolerationSeconds:
+                          description: |-
+                            TolerationSeconds represents the period of time the toleration (which must be
+                            of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                            it is not set, which means tolerate the taint forever (do not evict). Zero and
+                            negative values will be treated as 0 (evict immediately) by the system.
+                          format: int64
+                          type: integer
+                        value:
+                          description: |-
+                            Value is the taint value the toleration matches to.
+                            If the operator is Exists, the value should be empty, otherwise just a regular string.
+                          type: string
+                      type: object
+                    maxItems: 32
+                    type: array
+                  workers:
+                    description: |-
+                      Workers are the workers to inspect, by node name.
+
+                      It is the answer to inspecting two named machines, which a label selector
+                      can only express by labeling them first: a selector's entries are ANDed,
+                      so two hostnames in one selector match nothing at all.
+
+                      A named worker that does not exist, or that is declined for one of the
+                      reasons any worker is declined, is reported by the same event the selector
+                      path reports it by. Naming a worker is a statement about which machines to
+                      consider, not a claim that each of them will be used.
+                    items:
+                      maxLength: 253
+                      type: string
+                    maxItems: 128
+                    type: array
+                type: object
+                x-kubernetes-validations:
+                - message: the PCI filters select NVMe devices and cannot be combined
+                    with enableLogicalBlockDevices; use blockAllowList and blockDenyList
+                  rule: '!(has(self.enableLogicalBlockDevices) && self.enableLogicalBlockDevices)
+                    || !has(self.deviceFilter) || !(has(self.deviceFilter.pcieAllowList)
+                    || has(self.deviceFilter.pcieDenyList) || has(self.deviceFilter.pcieModel))'
+                - message: blockAllowList and blockDenyList select logical block devices
+                    and require enableLogicalBlockDevices
+                  rule: (has(self.enableLogicalBlockDevices) && self.enableLogicalBlockDevices)
+                    || !has(self.deviceFilter) || !(has(self.deviceFilter.blockAllowList)
+                    || has(self.deviceFilter.blockDenyList))
+                - message: spec.discover names workers and also carries a nodeSelector;
+                    state one or the other
+                  rule: '!(has(self.workers) && size(self.workers) > 0 && has(self.nodeSelector)
+                    && size(self.nodeSelector) > 0)'
+            required:
+            - action
+            type: object
+          status:
+            description: OperatorOpsStatus is the observed state of one operator operation.
+            properties:
+              completedAt:
+                description: CompletedAt is when it reached a terminal phase.
+                format: date-time
+                type: string
+              configRef:
+                description: ConfigRef names the ClusterDeploymentConfig a Discover
+                  run wrote.
+                type: string
+              environment:
+                description: |-
+                  Environment is the Kubernetes distribution Inspecting concluded, which
+                  Writing copies into the draft. It is recorded here as well so that a run
+                  that failed later still says what it found.
+                enum:
+                - Vanilla
+                - OpenShift
+                - Rancher
+                - K3s
+                - Talos
+                - EKS
+                - GKE
+                - AKS
+                - OKE
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the operation moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operation's own progress.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                - Aborted
+                type: string
+              startedAt:
+                description: StartedAt is when the operation started.
+                format: date-time
+                type: string
+              step:
+                description: Step is the position of the running action's state machine.
+                properties:
+                  claim:
+                    description: |-
+                      Claim records that this state's side effect was started. Absent means
+                      no pass has started it since the state was entered.
+                    properties:
+                      attempt:
+                        description: Attempt counts the claims taken on this state,
+                          starting at 1.
+                        format: int32
+                        type: integer
+                      leaseUntil:
+                        description: |-
+                          LeaseUntil is when the claim expires and the side effect may be fired
+                          again.
+                        format: date-time
+                        type: string
+                      state:
+                        description: State is the state the claim was taken in.
+                        type: string
+                    required:
+                    - attempt
+                    - leaseUntil
+                    - state
+                    type: object
+                  deadline:
+                    description: |-
+                      Deadline is when that state expires, absent when it has none. It is an
+                      absolute instant, so a state whose deadline passed while the controller
+                      was down restores as already expired.
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      State is the state the machine was in. Empty means the resource has not
+                      been reconciled yet, and restores to the graph's initial state.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: unknown step
+                  rule: '!has(self.state) || self.state in [''Inspecting'',''Probing'',''Writing'']'
+              workers:
+                description: |-
+                  Workers are the workers this run is inspecting, decided once in
+                  Inspecting so that a node joining the cluster mid-run does not change
+                  what the run is about.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

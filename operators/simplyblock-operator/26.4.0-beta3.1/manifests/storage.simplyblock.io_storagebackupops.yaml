@@ -1,0 +1,444 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: storagebackupops.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: StorageBackupOps
+    listKind: StorageBackupOpsList
+    plural: storagebackupops
+    shortNames:
+    - sbops
+    singular: storagebackupops
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.backupRef.name
+      name: Backup
+      type: string
+    - jsonPath: .spec.groupBackupID
+      name: GroupBackup
+      priority: 1
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .status.claimName
+      name: Claim
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StorageBackupOps is a single operation performed against one StorageBackup. It
+          runs to a terminal phase and stays afterward as the audit record of what was
+          restored, into which pool, and how it ended.
+
+          The claim a restore produces is not owned by the operation and outlives it:
+          nobody restores a backup in order to keep a StorageBackupOps, so deleting the
+          audit record must not delete the recovered volume.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the operation to perform
+            properties:
+              abort:
+                description: |-
+                  Abort asks a running operation to stop at its next step and unwind. It is
+                  the one field of this spec that may be edited after the object is created,
+                  because it is the one thing about an operation that can legitimately be
+                  decided after it started.
+
+                  A restore cannot be aborted once it has created a logical volume, and the
+                  action's graph declares that rather than this field: an abort arriving
+                  later is reported as an illegal transition while the operation runs on,
+                  rather than leaving the work half undone.
+                type: boolean
+              action:
+                description: Action is the operation to perform.
+                enum:
+                - Restore
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              backupRef:
+                description: |-
+                  BackupRef names the single StorageBackup this operation acts on. Its
+                  namespace defaults to this operation's. A backup in another namespace needs
+                  the requesting user to be allowed to read it there. Set exactly one of this
+                  and GroupBackupID: an operation acts on one backup or on a whole group
+                  backup.
+                properties:
+                  name:
+                    description: Name is the object's name.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace is the object's namespace. When it is empty, the namespace of the
+                      object that holds the reference.
+                    maxLength: 63
+                    type: string
+                required:
+                - name
+                type: object
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              clusterRef:
+                description: |-
+                  ClusterRef names the StorageCluster the operation runs against. Its
+                  namespace defaults to this operation's. The cluster's StoragePool, which
+                  spec.restore.targetPool names, is read from the cluster's namespace.
+
+                  A cluster in another namespace needs the requesting user to be allowed to
+                  read it there.
+                properties:
+                  name:
+                    description: Name is the referenced object's name.
+                    maxLength: 63
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace is the object's namespace. When it is empty, the namespace of the
+                      object that holds the reference.
+                    maxLength: 63
+                    type: string
+                required:
+                - name
+                type: object
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              groupBackupID:
+                description: |-
+                  GroupBackupID restores a whole consistency-group backup instead of the
+                  single backup named by BackupRef, producing one PersistentVolumeClaim per
+                  member labeled into one restored consistency group. Its value is the
+                  control-plane group backup id carried by the storage.simplyblock.io/group-backup-id
+                  label on the member StorageBackups, which are resolved beside the cluster,
+                  so a requester in another namespace needs to be allowed to list
+                  StorageBackups there. It is the path for a group backup no request object
+                  stands for: one a StorageBackupPolicy scheduled, or one imported. Set
+                  exactly one of this, GroupBackupRef, and BackupRef.
+                maxLength: 253
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              groupBackupRef:
+                description: |-
+                  GroupBackupRef restores the whole group backup a StorageGroupBackup
+                  produced. Its namespace defaults to this operation's, and a
+                  StorageGroupBackup in another namespace needs the requesting user to be
+                  allowed to read it there, the same rule as BackupRef. The member copies are
+                  recorded beside the StorageGroupBackup, so restoring a group taken in an
+                  application's namespace needs no access to any other namespace's backups.
+                  Set exactly one of this, GroupBackupID, and BackupRef.
+                properties:
+                  name:
+                    description: Name is the object's name.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                  namespace:
+                    description: |-
+                      Namespace is the object's namespace. When it is empty, the namespace of the
+                      object that holds the reference.
+                    maxLength: 63
+                    type: string
+                required:
+                - name
+                type: object
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              restore:
+                description: Restore parameterizes action Restore.
+                properties:
+                  claimAnnotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                  claimLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      ClaimLabels and ClaimAnnotations are applied to the created claim, so that
+                      a restored volume can be selected by a policy or an application the same
+                      way its original was.
+
+                      Immutable with the rest of the block. The claim is written at the last
+                      step, so a value edited while the operation waited for its volume would
+                      produce a claim built from inputs the admitted and audited operation never
+                      carried, which is the audit record disagreeing with what happened.
+                    type: object
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                  claimName:
+                    description: |-
+                      ClaimName is the PersistentVolumeClaim to create, in this operation's
+                      namespace. It must not already exist: a restore that adopted an existing
+                      claim would replace a running workload's data with the backup's.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                  targetPool:
+                    description: |-
+                      TargetPool is the StoragePool to restore into. It is required rather than
+                      defaulted: a backup found in the store may have been written by another
+                      cluster, so status.source.poolName names a pool this cluster need not
+                      have, and which pool a volume lands in is a tenancy and QoS decision
+                      nobody should make by omission.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                  volumeMode:
+                    description: |-
+                      VolumeMode is the volume mode of the restored claim and its volume. It
+                      defaults to the mode recorded in the backup's status.source, and has to be
+                      set for a backup that recorded none, such as one whose source volume was
+                      gone when the backup was discovered. A Block source restored as Filesystem
+                      is formatted over on first mount.
+                    enum:
+                    - Filesystem
+                    - Block
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                required:
+                - claimName
+                - targetPool
+                type: object
+                x-kubernetes-validations:
+                - message: field claimLabels is immutable once set
+                  rule: '!has(oldSelf.claimLabels) || has(self.claimLabels)'
+                - message: field claimAnnotations is immutable once set
+                  rule: '!has(oldSelf.claimAnnotations) || has(self.claimAnnotations)'
+                - message: field volumeMode is immutable once set
+                  rule: '!has(oldSelf.volumeMode) || has(self.volumeMode)'
+            required:
+            - action
+            - clusterRef
+            type: object
+            x-kubernetes-validations:
+            - message: field backupRef is immutable once set
+              rule: '!has(oldSelf.backupRef) || has(self.backupRef)'
+            - message: field groupBackupID is immutable once set
+              rule: '!has(oldSelf.groupBackupID) || has(self.groupBackupID)'
+            - message: field groupBackupRef is immutable once set
+              rule: '!has(oldSelf.groupBackupRef) || has(self.groupBackupRef)'
+            - message: 'set exactly one of backupRef, groupBackupRef and groupBackupID:
+                an operation acts on a single backup or on one whole group backup'
+              rule: '(has(self.backupRef) ? 1 : 0) + (has(self.groupBackupID) ? 1
+                : 0) + (has(self.groupBackupRef) ? 1 : 0) == 1'
+          status:
+            description: status defines the observed state of StorageBackupOps
+            properties:
+              backupID:
+                description: |-
+                  BackupID is the copy the restore read from, recorded so the operation says
+                  what it restored after the object list has moved on.
+                type: string
+              claimName:
+                description: |-
+                  ClaimName is the PersistentVolumeClaim a Restore produced. It is written
+                  before the claim is created rather than after, because the claim carries
+                  no owner reference back: a restarted Binding step recognizes its own work
+                  by this name together with the storage.simplyblock.io/restored-by label on
+                  the claim, and refuses a claim of the right name that carries neither.
+                type: string
+              clusterID:
+                description: ClusterID is the backend cluster the operation ran against.
+                type: string
+              completedAt:
+                description: CompletedAt is when it reached a terminal phase.
+                format: date-time
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the operation moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from. On this kind it advances at most twice, and the second advance is
+                  precisely the signal that spec.abort has been observed.
+                format: int64
+                type: integer
+              persistentVolumeName:
+                description: |-
+                  PersistentVolumeName is the PV the operation wrote for the restored
+                  volume.
+                type: string
+              phase:
+                description: Phase is the operation's own progress.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                - Aborted
+                type: string
+              poolUUID:
+                description: |-
+                  PoolUUID is the backend identifier of spec.restore.targetPool, resolved
+                  once at Validating.
+                type: string
+              restoredGroupID:
+                description: |-
+                  RestoredGroupID is the consistency group a group restore formed, written
+                  once the control-plane group restore returns, so the operation says which
+                  group it produced. Empty for a single-backup restore.
+                type: string
+              restoredGroupMembers:
+                description: |-
+                  RestoredGroupMembers is one entry per restored member volume of a group
+                  restore, written when the control plane accepts the restore and carrying the
+                  claim each is bound to as Binding produces them. It is how a restarted
+                  AwaitingVolumes or Binding step knows which volumes to wait on and which
+                  claims to produce. Empty for a single-backup restore.
+                items:
+                  description: |-
+                    RestoredGroupMember is one volume a group restore produced: the logical volume
+                    the control plane created, the source member it came from, and the claim it is
+                    bound to once Binding produces one.
+                  properties:
+                    claimName:
+                      description: |-
+                        ClaimName is the PersistentVolumeClaim this member was bound to, written by
+                        Binding. Empty until the claim is produced.
+                      type: string
+                    lvolID:
+                      description: LvolID is the restored logical volume's backend
+                        id.
+                      type: string
+                    memberName:
+                      description: |-
+                        MemberName is the source member's volume name, which the restored claim's
+                        name is formed from (claimName-memberName) and which tells the members apart.
+                      type: string
+                  required:
+                  - lvolID
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - lvolID
+                x-kubernetes-list-type: map
+              restoredLvolID:
+                description: |-
+                  RestoredLvolID is the logical volume the control plane created. It is
+                  written before the claim, so a restarted Binding step knows what it is
+                  binding. For a group restore it holds the first member's volume; the full
+                  set is tracked per member as the group drive binds them.
+                type: string
+              startedAt:
+                description: StartedAt is when the operation acquired its target's
+                  lock.
+                format: date-time
+                type: string
+              step:
+                description: |-
+                  Step is the position of the running action's state machine. It is
+                  persisted before the side effect that step performs, so a step reported
+                  here is a step that started.
+                properties:
+                  claim:
+                    description: |-
+                      Claim records that this state's side effect was started. Absent means
+                      no pass has started it since the state was entered.
+                    properties:
+                      attempt:
+                        description: Attempt counts the claims taken on this state,
+                          starting at 1.
+                        format: int32
+                        type: integer
+                      leaseUntil:
+                        description: |-
+                          LeaseUntil is when the claim expires and the side effect may be fired
+                          again.
+                        format: date-time
+                        type: string
+                      state:
+                        description: State is the state the claim was taken in.
+                        type: string
+                    required:
+                    - attempt
+                    - leaseUntil
+                    - state
+                    type: object
+                  deadline:
+                    description: |-
+                      Deadline is when that state expires, absent when it has none. It is an
+                      absolute instant, so a state whose deadline passed while the controller
+                      was down restores as already expired.
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      State is the state the machine was in. Empty means the resource has not
+                      been reconciled yet, and restores to the graph's initial state.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: unknown step
+                  rule: '!has(self.state) || self.state in [''Validating'',''Restoring'',''AwaitingVolume'',''AwaitingVolumes'',''Binding'']'
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

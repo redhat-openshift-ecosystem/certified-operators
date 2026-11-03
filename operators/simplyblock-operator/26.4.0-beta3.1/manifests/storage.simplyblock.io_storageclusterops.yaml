@@ -1,0 +1,414 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: storageclusterops.storage.simplyblock.io
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: simplyblock-operator-conversion-webhook-service
+          namespace: simplyblock-operator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: storage.simplyblock.io
+  names:
+    kind: StorageClusterOps
+    listKind: StorageClusterOpsList
+    plural: storageclusterops
+    shortNames:
+    - scops
+    singular: storageclusterops
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterRef
+      name: Cluster
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StorageClusterOps is a one-shot operational CR targeting a single SimplyblocksStorageCluster.
+          Analogous to a Kubernetes Job — it drives a cluster-level operation (activate, expand,
+          shutdown, restart, node-rolling-restart) to completion and records the result. Only one
+          StorageClusterOps can be active per cluster at a time.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: StorageClusterOpsSpec defines the desired state of a StorageClusterOps.
+            properties:
+              action:
+                description: Action is the operation to perform. Immutable.
+                enum:
+                - activate
+                - expand
+                - shutdown
+                - start
+                - restart
+                - node-rolling-restart
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              clusterRef:
+                description: ClusterRef is the name of the target SimplyblocksStorageCluster.
+                  Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              nodeRollingRestart:
+                description: |-
+                  NodeRollingRestart configures behaviour specific to the node-rolling-restart action.
+                  Ignored for all other actions.
+                properties:
+                  refreshSNodeAPI:
+                    description: |-
+                      RefreshSNodeAPI restarts the storage-node DaemonSet pod on each node
+                      after the backend node is shut down and before it is restarted, ensuring
+                      the latest image is running before the node comes back online.
+                    type: boolean
+                type: object
+            required:
+            - action
+            - clusterRef
+            type: object
+          status:
+            description: StorageClusterOpsStatus holds the observed state of a StorageClusterOps.
+            properties:
+              completedAt:
+                description: CompletedAt is when the operation finished (successfully
+                  or not).
+                format: date-time
+                type: string
+              message:
+                description: Message is a human-readable description of the current
+                  state or failure reason.
+                type: string
+              nodeRollingRestartStatus:
+                description: |-
+                  NodeRollingRestartStatus tracks per-node progress for the node-rolling-restart action.
+                  Nil for all other actions.
+                properties:
+                  nodePhase:
+                    description: |-
+                      NodePhase is the current step for the node being restarted:
+                      "snode-refresh" | "snode-refresh-wait" | "shutting-down" | "restarting" | "rebalancing"
+                    type: string
+                  pendingNodes:
+                    description: PendingNodes is the ordered list of node UUIDs still
+                      to be restarted.
+                    items:
+                      type: string
+                    type: array
+                  phaseTriggered:
+                    description: PhaseTriggered indicates the API call for the current
+                      NodePhase was already sent.
+                    type: boolean
+                  processedNodes:
+                    description: ProcessedNodes is the list of node UUIDs already
+                      restarted.
+                    items:
+                      type: string
+                    type: array
+                type: object
+              phase:
+                description: Phase is the high-level lifecycle phase.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                type: string
+              startedAt:
+                description: StartedAt is when the operation began.
+                format: date-time
+                type: string
+              triggered:
+                description: |-
+                  Triggered indicates the backend POST has been sent for this operation.
+                  Guards against duplicate backend calls on retry.
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterRef
+      name: Cluster
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StorageClusterOps is a single operation performed against one StorageCluster.
+          It runs to a terminal phase and stays afterward as the audit record of what
+          was done, to which cluster, with which parameters, and how it ended. Only one
+          operation acts on a cluster at a time; a second is admitted, waits at
+          Pending, and runs when the lock frees.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: StorageClusterOpsSpec is one operation to perform against
+              one StorageCluster.
+            properties:
+              abort:
+                description: |-
+                  Abort asks a running operation to stop at its next step and unwind.
+                  Whether an abort is expressible from the current step is declared by that
+                  action's graph rather than checked here.
+                type: boolean
+              action:
+                description: Action is the operation to perform.
+                enum:
+                - Activate
+                - Expand
+                - Shutdown
+                - Start
+                - Restart
+                - RollingRestart
+                - CancelTask
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              cancelTask:
+                description: CancelTask parameterizes action CancelTask and is ignored
+                  by the others.
+                properties:
+                  taskID:
+                    description: |-
+                      TaskID names the entry of StorageCluster.status.tasks to cancel, by the
+                      control plane's identifier for it rather than by its position in the
+                      list.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                required:
+                - taskID
+                type: object
+              clusterRef:
+                description: |-
+                  ClusterRef names the StorageCluster this operation acts on. The operation
+                  never owns its target, because deleting the record of an operation must
+                  not delete the cluster it operated on.
+
+                  Bounded at what a StorageCluster name may be, since a longer value names
+                  nothing that can exist.
+                maxLength: 63
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              rollingRestart:
+                description: |-
+                  RollingRestart parameterizes action RollingRestart and is ignored by the
+                  others.
+                properties:
+                  refreshSNodeAPI:
+                    description: |-
+                      RefreshSNodeAPI restarts each node's storage-node DaemonSet pod between
+                      its shutdown and its restart, so the latest image is running when the
+                      node returns.
+                    type: boolean
+                type: object
+            required:
+            - action
+            - clusterRef
+            type: object
+          status:
+            description: StorageClusterOpsStatus is the observed state of one cluster
+              operation.
+            properties:
+              completedAt:
+                description: CompletedAt is when it reached a terminal phase.
+                format: date-time
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the operation moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operation's own progress.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                - Aborted
+                type: string
+              rollingRestart:
+                description: |-
+                  RollingRestart is the walk's position, set only for action
+                  RollingRestart.
+                properties:
+                  nodeIndex:
+                    description: |-
+                      NodeIndex is the position in Nodes of the node being restarted. Advancing
+                      the walk increments it, and the walk is complete when it reaches
+                      len(Nodes).
+
+                      No omitempty: zero is a valid index, and a field that disappears at zero
+                      makes "the first node" and "unset" the same wire value.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  nodes:
+                    description: |-
+                      Nodes is the ordered list of storage node UUIDs this action covers,
+                      written once when the walk starts and not modified afterward, so a node
+                      added mid-walk is not restarted and one removed mid-walk is skipped when
+                      the walk reaches it.
+                    items:
+                      type: string
+                    type: array
+                  skipped:
+                    description: |-
+                      Skipped are the nodes of Nodes the walk passed over without restarting
+                      them, in walk order: a node the control plane stopped listing, or one
+                      whose removal started after the walk was planned. A node leaving the
+                      cluster belongs to its removal, and the walk sends it nothing.
+                    items:
+                      type: string
+                    type: array
+                required:
+                - nodeIndex
+                type: object
+              startedAt:
+                description: StartedAt is when the operation acquired its target's
+                  lock.
+                format: date-time
+                type: string
+              step:
+                description: |-
+                  Step is the position of the running action's state machine. The value is
+                  one of the steps the running action declares.
+                properties:
+                  claim:
+                    description: |-
+                      Claim records that this state's side effect was started. Absent means
+                      no pass has started it since the state was entered.
+                    properties:
+                      attempt:
+                        description: Attempt counts the claims taken on this state,
+                          starting at 1.
+                        format: int32
+                        type: integer
+                      leaseUntil:
+                        description: |-
+                          LeaseUntil is when the claim expires and the side effect may be fired
+                          again.
+                        format: date-time
+                        type: string
+                      state:
+                        description: State is the state the claim was taken in.
+                        type: string
+                    required:
+                    - attempt
+                    - leaseUntil
+                    - state
+                    type: object
+                  deadline:
+                    description: |-
+                      Deadline is when that state expires, absent when it has none. It is an
+                      absolute instant, so a state whose deadline passed while the controller
+                      was down restores as already expired.
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      State is the state the machine was in. Empty means the resource has not
+                      been reconciled yet, and restores to the graph's initial state.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: unknown step
+                  rule: '!has(self.state) || self.state in [''Requesting'',''Awaiting'',''ShuttingDown'',''Starting'',''CheckingPeers'',''ShuttingDownNode'',''RefreshingPod'',''AwaitingPod'',''RestartingNode'',''Rebalancing'']'
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

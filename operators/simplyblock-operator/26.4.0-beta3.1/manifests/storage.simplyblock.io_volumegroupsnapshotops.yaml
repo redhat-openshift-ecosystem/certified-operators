@@ -1,0 +1,240 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: volumegroupsnapshotops.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: VolumeGroupSnapshotOps
+    listKind: VolumeGroupSnapshotOpsList
+    plural: volumegroupsnapshotops
+    shortNames:
+    - vgsops
+    singular: volumegroupsnapshotops
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.volumeGroupSnapshotRef
+      name: GroupSnapshot
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.membersBound
+      name: Bound
+      type: integer
+    - jsonPath: .status.message
+      name: Message
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          VolumeGroupSnapshotOps is a one-shot operation on a VolumeGroupSnapshot,
+          analogous to a Kubernetes Job: it drives its action to completion, records
+          the result, and is then inert. The Restore action creates one
+          PersistentVolumeClaim per member snapshot of the target's generation and
+          waits for every claim to bind.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              VolumeGroupSnapshotOpsSpec defines the requested operation. The whole spec is
+              immutable: the object is a request.
+            properties:
+              action:
+                description: Action is the operation to perform.
+                enum:
+                - Restore
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              restore:
+                description: |-
+                  Restore carries the parameters of the Restore action. Ignored for any
+                  other action.
+                properties:
+                  consistencyGroup:
+                    description: |-
+                      ConsistencyGroup labels every restored claim with
+                      storage.simplyblock.io/consistency-group: <value>, so the clones form a
+                      new group at provisioning under the mandatory placement rule. Empty
+                      leaves the clones as independent, mutually consistent volumes.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                  enablePartialRestore:
+                    description: |-
+                      EnablePartialRestore restores the members an incomplete generation still
+                      has instead of failing the operation. Off by default: an incomplete
+                      generation fails, naming the missing members.
+                    type: boolean
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                  namePrefix:
+                    description: |-
+                      NamePrefix prefixes every restored claim's name:
+                      <namePrefix>-<source PVC name>, the source name read from the member
+                      snapshot's spec.source.persistentVolumeClaimName. Defaults to the
+                      operation's own name.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                  storageClassName:
+                    description: |-
+                      StorageClassName is the class every restored claim requests. When empty,
+                      each claim inherits the class of its member snapshot's source claim, and
+                      the restore fails for a member whose source claim no longer exists.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                type: object
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+                - message: field namePrefix is immutable once set
+                  rule: '!has(oldSelf.namePrefix) || has(self.namePrefix)'
+                - message: field storageClassName is immutable once set
+                  rule: '!has(oldSelf.storageClassName) || has(self.storageClassName)'
+                - message: field consistencyGroup is immutable once set
+                  rule: '!has(oldSelf.consistencyGroup) || has(self.consistencyGroup)'
+                - message: field enablePartialRestore is immutable once set
+                  rule: '!has(oldSelf.enablePartialRestore) || has(self.enablePartialRestore)'
+              volumeGroupSnapshotRef:
+                description: |-
+                  VolumeGroupSnapshotRef names the VolumeGroupSnapshot, in this namespace,
+                  the operation acts on. Resolved at admission: a create naming a
+                  VolumeGroupSnapshot that does not exist is rejected.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+            required:
+            - action
+            - volumeGroupSnapshotRef
+            type: object
+            x-kubernetes-validations:
+            - message: field restore is immutable once set
+              rule: '!has(oldSelf.restore) || has(self.restore)'
+          status:
+            description: VolumeGroupSnapshotOpsStatus holds the observed state of
+              the operation.
+            properties:
+              completedAt:
+                description: CompletedAt is when the operation finished, successfully
+                  or not.
+                format: date-time
+                type: string
+              members:
+                description: Members records each member snapshot and its restored
+                  claim.
+                items:
+                  description: |-
+                    RestoredMemberStatus records one member snapshot and the claim restored
+                    from it.
+                  properties:
+                    bound:
+                      description: Bound reports whether the restored claim has bound.
+                      type: boolean
+                    persistentVolumeClaimName:
+                      description: PersistentVolumeClaimName is the restored claim.
+                      type: string
+                    volumeSnapshotName:
+                      description: VolumeSnapshotName is the member VolumeSnapshot
+                        the claim restores from.
+                      type: string
+                  required:
+                  - persistentVolumeClaimName
+                  - volumeSnapshotName
+                  type: object
+                type: array
+              membersBound:
+                description: MembersBound is how many restored claims have bound.
+                type: integer
+              membersExpected:
+                description: MembersExpected is the member count of the target generation.
+                type: integer
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the phase moves.
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the spec generation this status
+                  was computed from.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the high-level lifecycle phase.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                type: string
+              startedAt:
+                description: StartedAt is when the operation began.
+                format: date-time
+                type: string
+              step:
+                description: Step is the durable position of the action's state machine.
+                properties:
+                  deadline:
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      VolumeGroupSnapshotOpsStep is one step of a running operation. The enum is the
+                      union of every action's steps. Which steps belong to which action is declared
+                      by the action's state-machine graph rather than by this type.
+                    enum:
+                    - Validating
+                    - CreatingClaims
+                    - WaitingForBind
+                    type: string
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

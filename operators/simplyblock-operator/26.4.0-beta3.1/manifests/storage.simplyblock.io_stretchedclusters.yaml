@@ -1,0 +1,1663 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: stretchedclusters.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: StretchedCluster
+    listKind: StretchedClusterList
+    plural: stretchedclusters
+    shortNames:
+    - sbstr
+    singular: stretchedcluster
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterName
+      name: Cluster
+      type: string
+    - jsonPath: .spec.approved
+      name: Approved
+      type: boolean
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.clusterUUID
+      name: UUID
+      priority: 1
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StretchedCluster requests one synchronously replicated storage cluster whose
+          two sites are two OCM managed clusters: a discovery and a draft on each site,
+          the sizing of both drafts, and the approval that creates the cluster on the
+          leading site and joins it from the following one. The hub carries the request
+          through OCM and projects both sites into the status. Deleting the request
+          leaves both sites' storage alone.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: StretchedClusterSpec is the request for one stretched cluster.
+            properties:
+              approved:
+                default: false
+                description: |-
+                  Approved is the review gate for both drafts. One-way. The leader's draft
+                  is approved as soon as this is set; the follower's only once the leader's
+                  cluster exists, so the follower never races the create.
+                type: boolean
+              clusterName:
+                description: |-
+                  ClusterName is the backend cluster's name, and the name of the
+                  StorageCluster on both sites. Immutable.
+                maxLength: 63
+                minLength: 1
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              images:
+                description: |-
+                  Images are the images both sites' storage nodes run, written onto both
+                  drafts with the sizing. A stretched cluster's two sites run one data plane,
+                  so the images are stated once for both. Unstated, each site's expansion
+                  keeps its own defaults.
+                properties:
+                  nodeAgent:
+                    description: |-
+                      NodeAgent is the image the storage-node DaemonSet runs: the agent the
+                      control plane drives a worker through, and the two init containers that
+                      configure the host before it starts. The expansion writes it to
+                      StorageCluster.spec.storageNodes, which is where the retired
+                      StorageNodeSet.spec.clusterImage went.
+
+                      It is the same artifact the control plane itself runs, which is why
+                      spec.storageNodes.image defaults to the ControlPlane singleton's: the agent
+                      and the tasks that call it are one codebase, and version skew between them
+                      is what breaks a node add.
+
+                      It is spent only where the document creates the cluster. A document that
+                      names an existing one in ClusterRef adds nodes to a DaemonSet that is
+                      already running under an image the cluster states, and this slot is ignored
+                      the same way Cluster is.
+                    properties:
+                      image:
+                        description: |-
+                          Image is the repository and tag, optionally digest-pinned. An empty value
+                          is not written downstream, so the field it would fill keeps its own
+                          default rather than being overridden with nothing.
+
+                          Every image field in this API is held to the same reference format and
+                          to no particular registry, so an air-gapped deployment can name its own
+                          mirror.
+                        pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                        type: string
+                      imagePullPolicy:
+                        default: Always
+                        description: |-
+                          ImagePullPolicy is when that image is pulled. It defaults to Always,
+                          because every image this product ships by default is a moving tag and a
+                          node brought up after a release otherwise runs what its kubelet held.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                    type: object
+                  spdk:
+                    description: |-
+                      SPDK is the SPDK image, which the expansion writes onto every
+                      StorageNode.spec.config it creates rather than onto the cluster: the field
+                      is per node so that a later rollout can walk the fleet one machine at a
+                      time, and a document states the fleet's starting point.
+                    properties:
+                      image:
+                        description: |-
+                          Image is the repository and tag, optionally digest-pinned. An empty value
+                          is not written downstream, so the field it would fill keeps its own
+                          default rather than being overridden with nothing.
+
+                          Every image field in this API is held to the same reference format and
+                          to no particular registry, so an air-gapped deployment can name its own
+                          mirror.
+                        pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                        type: string
+                      imagePullPolicy:
+                        default: Always
+                        description: |-
+                          ImagePullPolicy is when that image is pulled. It defaults to Always,
+                          because every image this product ships by default is a moving tag and a
+                          node brought up after a release otherwise runs what its kubelet held.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                    type: object
+                  spdkProxy:
+                    description: SPDKProxy is the SPDK proxy image, written per node
+                      for the reason SPDK is.
+                    properties:
+                      image:
+                        description: |-
+                          Image is the repository and tag, optionally digest-pinned. An empty value
+                          is not written downstream, so the field it would fill keeps its own
+                          default rather than being overridden with nothing.
+
+                          Every image field in this API is held to the same reference format and
+                          to no particular registry, so an air-gapped deployment can name its own
+                          mirror.
+                        pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                        type: string
+                      imagePullPolicy:
+                        default: Always
+                        description: |-
+                          ImagePullPolicy is when that image is pulled. It defaults to Always,
+                          because every image this product ships by default is a moving tag and a
+                          node brought up after a release otherwise runs what its kubelet held.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                    type: object
+                type: object
+              sites:
+                description: |-
+                  Sites are the two managed clusters and the site each represents. Exactly
+                  one has role Leader.
+                items:
+                  description: |-
+                    StretchedSite is one of the two sites: a managed cluster, the backend site
+                    its nodes join, and its role.
+                  properties:
+                    cluster:
+                      description: |-
+                        Cluster is the OCM ManagedCluster hosting this site. Its namespace on the
+                        hub holds the site's ManifestWork and views. It identifies the entry, so
+                        it cannot change.
+                      maxLength: 63
+                      minLength: 1
+                      type: string
+                    discover:
+                      description: |-
+                        Discover is the discovery this site runs: which workers are inspected.
+                        Changing it before approval runs another discovery on this site only,
+                        which rewrites this site's draft; after approval it is refused.
+                      properties:
+                        enableControlPlaneNodes:
+                          description: |-
+                            EnableControlPlaneNodes lets the discovery consider the nodes that run the
+                            API server. Every server of a small distribution is one, so a three-node
+                            site has no storage without it.
+                          type: boolean
+                        nodeSelector:
+                          additionalProperties:
+                            type: string
+                          description: NodeSelector limits the discovery to the nodes
+                            carrying these labels.
+                          type: object
+                        workers:
+                          description: Workers limits the discovery to these nodes.
+                            Empty is every worker.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: set
+                      type: object
+                    role:
+                      description: |-
+                        Role is Leader or Follower. It may be swapped between the two sites after
+                        creation, as one change to both entries, once both sites' clusters are
+                        Ready.
+                      enum:
+                      - Leader
+                      - Follower
+                      type: string
+                    site:
+                      description: |-
+                        Site is the backend site name every storage node of this managed cluster
+                        joins with. Immutable: it is a property of the installation.
+                      maxLength: 63
+                      pattern: ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$
+                      type: string
+                      x-kubernetes-validations:
+                      - message: field is immutable
+                        rule: self == oldSelf
+                    siteNamespace:
+                      default: simplyblock
+                      description: |-
+                        SiteNamespace is the simplyblock operator's namespace on the site, where
+                        the discovery, the draft, and the StorageCluster live.
+                      maxLength: 63
+                      type: string
+                  required:
+                  - cluster
+                  - role
+                  - site
+                  type: object
+                maxItems: 2
+                minItems: 2
+                type: array
+                x-kubernetes-list-map-keys:
+                - cluster
+                x-kubernetes-list-type: map
+              sizing:
+                description: |-
+                  Sizing is written onto both sites' drafts once they name nodes: the
+                  fields no discovery can read. Synchronous replication is enabled on both
+                  drafts whatever is written here.
+                properties:
+                  enableDriveFormat:
+                    description: EnableDriveFormat lets the deployment format the
+                      devices it takes.
+                    type: boolean
+                  enableJournalDevice:
+                    description: EnableJournalDevice dedicates one device per node
+                      to the journal.
+                    type: boolean
+                  maxSubsystemCount:
+                    description: MaxSubsystemCount is the number of NVMe-oF subsystems
+                      each node serves.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  minHugePagesSize:
+                    description: |-
+                      MinHugePagesSize is the hugepage memory each storage node takes, as a
+                      quantity ("8G").
+                    type: string
+                  name:
+                    description: Name is the StorageCluster's name on the site.
+                    maxLength: 63
+                    type: string
+                  stripe:
+                    description: Stripe is the erasure-coding layout.
+                    properties:
+                      dataChunks:
+                        description: DataChunks is the number of data chunks per stripe
+                          (ndcs).
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      parityChunks:
+                        description: |-
+                          ParityChunks is the number of parity chunks per stripe (npcs), and
+                          therefore how many chunk losses a stripe survives.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
+                    x-kubernetes-validations:
+                    - message: the erasure-coding scheme must be one of 1+0, 1+1,
+                        2+1, 4+1, 1+2, 2+2, or 4+2, written as dataChunks+parityChunks,
+                        and an unstated half is 1
+                      rule: '[has(self.dataChunks) ? self.dataChunks : 1, has(self.parityChunks)
+                        ? self.parityChunks : 1] in [[1, 0], [1, 1], [2, 1], [4, 1],
+                        [1, 2], [2, 2], [4, 2]]'
+                  vcpuCount:
+                    description: VCPUCount is the number of vCPUs each storage node
+                      takes.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                type: object
+            required:
+            - clusterName
+            - sites
+            type: object
+            x-kubernetes-validations:
+            - message: exactly one site must have role Leader
+              rule: self.sites.exists_one(s, s.role == 'Leader')
+            - message: the two sites must name different backend sites
+              rule: self.sites[0].site != self.sites[1].site
+            - message: the managed clusters of a stretched cluster cannot be replaced
+              rule: '!has(oldSelf.sites) || oldSelf.sites.all(o, self.sites.exists(s,
+                s.cluster == o.cluster))'
+            - message: 'approval is one-way: an approved stretched cluster cannot
+                be un-approved'
+              rule: '!has(oldSelf.approved) || !oldSelf.approved || self.approved'
+            - message: discover cannot change once the stretched cluster is approved
+              rule: '!has(oldSelf.approved) || !oldSelf.approved || oldSelf.sites.all(o,
+                self.sites.exists(s, s.cluster == o.cluster && has(s.discover) ==
+                has(o.discover) && (!has(s.discover) || s.discover == o.discover)))'
+          status:
+            description: StretchedClusterStatus is what both sites report back, projected.
+            properties:
+              clusterUUID:
+                description: |-
+                  ClusterUUID is the backend cluster, once the leader's StorageCluster
+                  reports it.
+                type: string
+              conditions:
+                description: |-
+                  Conditions: Delivered (both works are applied), Drafted (both drafts name
+                  nodes), Approved (both drafts are approved), Ready (both StorageClusters
+                  are Online on one backend cluster).
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lostSite:
+                description: |-
+                  LostSite is the site the control plane records as out of service, as a
+                  surviving site's StorageCluster reports it. Empty while both sites serve.
+                  The roles can be swapped away from a lost leader once its fence is done.
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the request moves.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the request's own progress across both sites.
+                enum:
+                - Pending
+                - Discovering
+                - Drafted
+                - LeaderCreating
+                - FollowerJoining
+                - Ready
+                - Degraded
+                - Failed
+                type: string
+              sites:
+                description: Sites reports each site, keyed by its managed cluster.
+                items:
+                  description: StretchedClusterSiteStatus is what one site reports
+                    back, projected.
+                  properties:
+                    cluster:
+                      description: Cluster is the managed cluster this entry reports.
+                      type: string
+                    draft:
+                      description: Draft is the site's draft as the site reports it.
+                      properties:
+                        approved:
+                          description: Approved is whether the draft is approved on
+                            the site.
+                          type: boolean
+                        cluster:
+                          description: Cluster is the draft's cluster template, with
+                            the sizing applied.
+                          properties:
+                            arbitration:
+                              description: |-
+                                Arbitration tunes the two-node arbitration, and is carried to the
+                                cluster's spec.arbitration. Only valid when clusterMode is Dual.
+                              properties:
+                                holdMs:
+                                  description: |-
+                                    HoldMs is how long a node holds writes after losing its peer before it
+                                    acts on its own. It must stay below the hosts' NVMe keep-alive timeout
+                                    (5000 ms), or clients fail I/O before the verdict arrives.
+                                  format: int32
+                                  maximum: 4500
+                                  minimum: 500
+                                  type: integer
+                                hostFencing:
+                                  description: |-
+                                    HostFencing lets Kubernetes follow the arbiter's fence of a node whose
+                                    state is unknown. The control plane revokes the node's NVMe host
+                                    identities on its peer, the operator sets the StorageFenced condition on
+                                    its Kubernetes node, and a NodeHealthCheck with a
+                                    StorageFenceRemediationTemplate applies the out-of-service taint, so its
+                                    pods and VMs restart on the peer within seconds. A partition then has a
+                                    winner instead of stopping I/O on both nodes. Requires the NodeHealthCheck
+                                    operator.
+                                  type: boolean
+                                leaseTtlMs:
+                                  description: |-
+                                    LeaseTtlMs is how long a lease from the arbiter stays valid. It only
+                                    matters while a node is holding; a healthy pair is never fenced by a
+                                    late renewal.
+                                  format: int32
+                                  maximum: 10000
+                                  minimum: 500
+                                  type: integer
+                              type: object
+                              x-kubernetes-validations:
+                              - message: leaseTtlMs must be shorter than holdMs
+                                rule: '!has(self.holdMs) || !has(self.leaseTtlMs)
+                                  || self.leaseTtlMs < self.holdMs'
+                            backup:
+                              description: |-
+                                Backup is where this cluster's backups live, and it expands into
+                                StorageCluster.spec.backup unchanged.
+
+                                It is here for the reason KMS is: a store stated on the document is
+                                present when the cluster is created rather than patched in afterward by
+                                whoever remembers. Unlike most of what this template carries, the field it
+                                fills is mutable, so a document that states none costs nothing permanent.
+                                A cluster can be given a store whenever there is one to give.
+
+                                The Secret it names is not resolved at admission. It is a core object a
+                                deployment legitimately creates alongside the document or after it, and
+                                the cluster's own creation is where its absence is reported.
+                              properties:
+                                bucket:
+                                  description: Bucket is the bucket backups are written
+                                    to and read from.
+                                  type: string
+                                credentialsSecretRef:
+                                  description: |-
+                                    CredentialsSecretRef names the Secret holding the access key and the
+                                    secret key. It is a reference rather than the values, because a spec is
+                                    readable by anybody who can read the object.
+                                  properties:
+                                    name:
+                                      default: ""
+                                      description: |-
+                                        Name of the referent.
+                                        This field is effectively required, but due to backwards compatibility is
+                                        allowed to be empty. Instances of this type with an empty value here are
+                                        almost certainly wrong.
+                                        More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      type: string
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                endpoint:
+                                  description: Endpoint is the S3 endpoint, for example,
+                                    https://s3.example.com.
+                                  pattern: ^https?://[a-zA-Z0-9.-]+(:[0-9]{1,5})?(/.*)?$
+                                  type: string
+                                region:
+                                  description: Region is the bucket's region, for
+                                    endpoints that do not imply one.
+                                  type: string
+                              required:
+                              - bucket
+                              - credentialsSecretRef
+                              - endpoint
+                              type: object
+                            clusterMode:
+                              default: Standard
+                              description: |-
+                                ClusterMode is how many storage nodes the cluster is built for: Single
+                                runs every erasure-coding scheme on exactly one storage node, each chunk of
+                                a stripe on its own device, so the node needs dataChunks+parityChunks
+                                devices and the parity protects against device failures rather than the
+                                loss of the node; Dual runs 1+1 on exactly two storage nodes; Standard,
+                                the default, keeps every scheme at its usual minimum. It is carried to the
+                                cluster's spec.clusterMode.
+                              enum:
+                              - Single
+                              - Dual
+                              - Standard
+                              type: string
+                            containerResources:
+                              description: |-
+                                ContainerResources sizes the storage-node container, and expands into the
+                                cluster's own spec.storageNodes.containerResources.
+
+                                The container it sizes is the node's management API rather than SPDK,
+                                which runs in a pod of its own: what outgrows the default is a node
+                                answering for many subsystems, not a node moving more data. It is on the
+                                document because a deployment is where a fleet's sizing is decided, and
+                                a cluster written from a document that could not say so had to be edited
+                                afterward on a field the document owns everywhere else.
+
+                                Stating either half replaces both. The defaults apply to a cluster that
+                                states neither requests nor limits, so a document stating requests alone
+                                produces a container with no limits rather than one with the default
+                                limits, and a memory limit is what has the kubelet evict a leaking agent
+                                rather than losing the worker.
+
+                                It is a pointer because a resource block is a struct, and a struct with
+                                omitempty is serialized whether or not anything is in it: as a value,
+                                every document a discovery run writes would carry an empty
+                                containerResources that says nothing and that a reviewer has to decide
+                                about.
+                              properties:
+                                claims:
+                                  description: |-
+                                    Claims lists the names of resources, defined in spec.resourceClaims,
+                                    that are used by this container.
+
+                                    This field depends on the
+                                    DynamicResourceAllocation feature gate.
+
+                                    This field is immutable. It can only be set for containers.
+                                  items:
+                                    description: ResourceClaim references one entry
+                                      in PodSpec.ResourceClaims.
+                                    properties:
+                                      name:
+                                        description: |-
+                                          Name must match the name of one entry in pod.spec.resourceClaims of
+                                          the Pod where this field is used. It makes that resource available
+                                          inside a container.
+                                        type: string
+                                      request:
+                                        description: |-
+                                          Request is the name chosen for a request in the referenced claim.
+                                          If empty, everything from the claim is made available, otherwise
+                                          only the result of this request.
+                                        type: string
+                                    required:
+                                    - name
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
+                                limits:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: |-
+                                    Limits describes the maximum amount of compute resources allowed.
+                                    More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                  type: object
+                                requests:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: |-
+                                    Requests describes the minimum amount of compute resources required.
+                                    If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                    otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                    More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                  type: object
+                              type: object
+                            enableArbitration:
+                              description: |-
+                                EnableArbitration turns on the control plane's two-node arbitration, and
+                                is carried to the cluster's spec.enableArbitration. Only valid when
+                                clusterMode is Dual.
+                              type: boolean
+                            enableAtomicity4K:
+                              description: |-
+                                EnableAtomicity4K enforces 4K write atomicity on every device this
+                                deployment names, which is what lets checksum validation run on devices
+                                whose logical block size is under the data plane's 4K minimum.
+
+                                It is the route to checked I/O on a device that cannot be reformatted: a
+                                logical block device's block size is fixed by the drive, and some NVMe
+                                devices offer no 4K format either. Where a device can be reformatted,
+                                EnableDriveFormat is the other route and this is unnecessary.
+
+                                It is an enforcement because the question is often unanswerable. A SATA
+                                drive presenting 512-byte logical blocks over a 4K physical sector reports
+                                512 and nothing more, and a kernel older than 6.11 publishes no atomic
+                                write attributes at all. Where a device does answer, the storage node's
+                                report carries it, and a reviewer approves this against that rather than
+                                against a vendor's datasheet -- because enforcing a guarantee the hardware
+                                does not keep is how a torn write becomes a checksum that silently
+                                disagrees with it.
+
+                                It means nothing unless EnableChecksumValidation is set, which is the
+                                cluster's own rule and is left to the cluster to enforce.
+                              type: boolean
+                            enableChecksumValidation:
+                              description: |-
+                                EnableChecksumValidation turns on inline CRC validation of every I/O, for
+                                silent-data-error protection.
+
+                                It is on the document because it is immutable on the cluster it lands on:
+                                the backend bakes the checksum method into each device when the cluster is
+                                created and never re-applies it, so a cluster created without this is one
+                                nobody can turn it on for. A deployment that wants its data checked has to
+                                say so here or not at all.
+                              type: boolean
+                            enableCpuTopology:
+                              description: |-
+                                EnableCpuTopology turns on topology-aware CPU assignment on the storage
+                                nodes. It is valid only when spec.environment is Vanilla, whose workers
+                                the environment does not describe. Every other environment decides it:
+                                OpenShift turns it on, and the rest leave it off. Unset on a Vanilla
+                                document leaves it off.
+                              type: boolean
+                            enableDriveFormat:
+                              description: |-
+                                EnableDriveFormat formats every device the document names before a storage
+                                node takes it, which is how a drive carrying anything already is made
+                                usable.
+
+                                It says what is wanted rather than how, because the how differs by device
+                                class: an NVMe device is formatted to a 4K block size, and a logical block
+                                device has its signatures wiped. One field covers both, so a document does
+                                not have to know which class the expansion will resolve it to.
+
+                                It is on the document rather than defaulted further down because it is
+                                destructive and the document is what somebody approves. A reviewer reading
+                                a draft has to see that the drives it lists will be formatted, and be able
+                                to strike it before approving; the cluster's own field is immutable once
+                                the cluster exists, so a default nobody saw could not be undone either.
+                              type: boolean
+                            enableFailureDomains:
+                              description: |-
+                                EnableFailureDomains opts the cluster into failure-domain mode, in which
+                                every group must label the fault group its workers belong to.
+                              type: boolean
+                            enableJournalDevice:
+                              description: |-
+                                EnableJournalDevice dedicates the smallest NVMe device on each of this
+                                deployment's workers to the journal manager, instead of carving a journal
+                                partition out of every device.
+
+                                It is here rather than on a node set because it is immutable on the cluster
+                                it lands on, for the reason SocketsToUse is: the on-disk layout a fleet was
+                                built with is not one a later document can vary. It also costs a drive of
+                                capacity per node, which is a trade a reviewer approves rather than one a
+                                default makes for them.
+                              type: boolean
+                            enableKubeletConfiguration:
+                              description: |-
+                                EnableKubeletConfiguration lets the storage nodes rewrite the kubelet
+                                configuration of their workers and restart the kubelet. It is valid only
+                                when spec.environment is Vanilla, for a fleet whose workers keep the
+                                configuration where the storage node cannot write it. Every other
+                                environment decides it: on for OpenShift, Rancher, and K3s, and off for
+                                Talos, EKS, GKE, AKS, and OKE, whose kubelet configuration is not
+                                writable or is rebuilt with every node. Unset on a Vanilla document
+                                turns it on.
+                              type: boolean
+                            enableNodeAffinity:
+                              description: |-
+                                EnableNodeAffinity has the data plane serve an erasure-coded volume's I/O
+                                from the local node's own devices where it can, before crossing the
+                                network.
+
+                                It is not Kubernetes affinity, and the name is the one place this API
+                                invites that reading: nothing about it schedules a pod, labels a worker,
+                                or places a volume's primary node. The control plane carries it into the
+                                cluster map it pushes to each node, where it sets the local node's index,
+                                and what changes is which copy of a chunk is read.
+                                Co-locating a workload with the primary node of its volume is a separate
+                                mechanism and is not configured here.
+
+                                It is on the document because it is immutable on the cluster: the control
+                                plane takes it at cluster create and never re-applies it, so this is the
+                                only moment it can be set at all.
+                              type: boolean
+                            enableSyncReplication:
+                              description: |-
+                                EnableSyncReplication opts the cluster into synchronous two-site
+                                replication. The cluster then spans exactly two sites and every node group
+                                declares a site (see NodeGroup.Site). It is on the document because it is
+                                immutable on the cluster it lands on: the backend accepts it only at
+                                cluster-create, so a cluster created without it is one nobody can turn it
+                                on for.
+                              type: boolean
+                            fabricType:
+                              description: FabricType is the storage fabric.
+                              maxLength: 32
+                              type: string
+                            initContainerResources:
+                              description: |-
+                                InitContainerResources sizes both of the storage node's init containers,
+                                and expands into the cluster's own spec.storageNodes.initContainerResources.
+
+                                They are sized apart from the container because they do a different job
+                                and are gone before it starts: one writes the node's env file and the
+                                other runs node_configure.py once, so what they need is a short burst
+                                rather than the footprint of a process that runs for the node's life.
+
+                                Stating either half replaces both, as with containerResources, and it is
+                                a pointer for the same reason.
+                              properties:
+                                claims:
+                                  description: |-
+                                    Claims lists the names of resources, defined in spec.resourceClaims,
+                                    that are used by this container.
+
+                                    This field depends on the
+                                    DynamicResourceAllocation feature gate.
+
+                                    This field is immutable. It can only be set for containers.
+                                  items:
+                                    description: ResourceClaim references one entry
+                                      in PodSpec.ResourceClaims.
+                                    properties:
+                                      name:
+                                        description: |-
+                                          Name must match the name of one entry in pod.spec.resourceClaims of
+                                          the Pod where this field is used. It makes that resource available
+                                          inside a container.
+                                        type: string
+                                      request:
+                                        description: |-
+                                          Request is the name chosen for a request in the referenced claim.
+                                          If empty, everything from the claim is made available, otherwise
+                                          only the result of this request.
+                                        type: string
+                                    required:
+                                    - name
+                                    type: object
+                                  type: array
+                                  x-kubernetes-list-map-keys:
+                                  - name
+                                  x-kubernetes-list-type: map
+                                limits:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: |-
+                                    Limits describes the maximum amount of compute resources allowed.
+                                    More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                  type: object
+                                requests:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: |-
+                                    Requests describes the minimum amount of compute resources required.
+                                    If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                    otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                    More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                  type: object
+                              type: object
+                            kms:
+                              description: |-
+                                KMS selects where the cluster stores volume encryption keys. Stating it on
+                                the document is what makes it present when the cluster is created, where
+                                setting it on the StorageCluster afterward races with that creation.
+                              properties:
+                                vault:
+                                  description: Vault stores keys in HashiCorp Vault.
+                                  properties:
+                                    endpoint:
+                                      description: |-
+                                        Endpoint is the Vault endpoint, for example, https://vault.example.com:8200.
+                                        Rejected unless it resolves to an external address.
+                                      pattern: ^https?://[a-zA-Z0-9.-]+(:[0-9]{1,5})?(/.*)?$
+                                      type: string
+                                  required:
+                                  - endpoint
+                                  type: object
+                              type: object
+                            maxSubsystemCount:
+                              description: |-
+                                MaxSubsystemCount is the maximum number of NVMe-oF subsystems each storage
+                                node of this cluster serves. Required, because the StorageCluster's own
+                                field is, and no StorageNode carries a copy of it.
+                              format: int32
+                              maximum: 500
+                              minimum: 10
+                              type: integer
+                            minHugePagesSize:
+                              description: |-
+                                MinHugePagesSize is the smallest huge-page allocation each storage node of
+                                this cluster makes: 100G or 1T, where a bare number is gigabytes. Like
+                                VCPUCount it is the cluster's and is copied onto every node the expansion
+                                writes. Omitted, each node uses the computed minimum.
+                              maxLength: 32
+                              type: string
+                            name:
+                              description: |-
+                                Name is the StorageCluster's name, and is therefore held to what such a
+                                name may be rather than to what an object name may be. A longer value is a
+                                document the API server accepts and a CreatingCluster step that can never
+                                succeed, since the cluster it would write is one the API server refuses.
+                              maxLength: 63
+                              type: string
+                            network:
+                              description: |-
+                                Network states the networks the storage nodes' SPDK pods attach to, which
+                                is spec.storageNodes.network of the cluster this document creates. It is
+                                set here and nowhere else, because a cluster's network is fixed when it is
+                                created. Unstated, the nodes run on the host network.
+                              properties:
+                                data:
+                                  description: |-
+                                    Data are the Multus networks the storage nodes serve volumes on, each a
+                                    NetworkAttachmentDefinition the pod attaches to besides the pod network, which
+                                    podNetwork must therefore state.
+                                  items:
+                                    description: |-
+                                      StorageNetwork is one data network a storage node's SPDK pod attaches to
+                                      through a NetworkAttachmentDefinition.
+                                    properties:
+                                      networkAttachmentRef:
+                                        description: |-
+                                          NetworkAttachmentRef is the Multus NetworkAttachmentDefinition in the
+                                          namespace of the storage cluster, and the key the nodes' addresses and
+                                          status use. The pod attaches to it and takes the interface the definition's
+                                          plugin creates.
+                                        properties:
+                                          addressPool:
+                                            description: |-
+                                              AddressPool is the range the operator takes each node's address on this
+                                              network from. Unset, the network takes the address the NIC the definition
+                                              moves holds on the worker.
+                                            properties:
+                                              first:
+                                                description: |-
+                                                  First is the lowest address the operator may hand out. Unset, the range
+                                                  starts at the subnet's first host address. It is set together with Last.
+                                                maxLength: 15
+                                                pattern: ^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$
+                                                type: string
+                                              last:
+                                                description: |-
+                                                  Last is the highest address the operator may hand out. Unset, the range
+                                                  ends at the subnet's last host address. It is set together with First.
+                                                maxLength: 15
+                                                pattern: ^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$
+                                                type: string
+                                              subnet:
+                                                description: |-
+                                                  Subnet is the network's IPv4 subnet, such as 10.10.10.0/24. Its prefix
+                                                  length is the one each node's address carries.
+                                                maxLength: 18
+                                                pattern: ^((25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.){3}(25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])/(3[0-2]|[12]?[0-9])$
+                                                type: string
+                                            required:
+                                            - subnet
+                                            type: object
+                                            x-kubernetes-validations:
+                                            - message: first and last are set together
+                                              rule: has(self.first) == has(self.last)
+                                            - message: first and last must lie inside
+                                                subnet
+                                              rule: '!has(self.first) || (cidr(self.subnet).containsIP(ip(self.first))
+                                                && cidr(self.subnet).containsIP(ip(self.last)))'
+                                          name:
+                                            description: Name is the definition's
+                                              name.
+                                            maxLength: 253
+                                            minLength: 1
+                                            type: string
+                                        required:
+                                        - name
+                                        type: object
+                                    required:
+                                    - networkAttachmentRef
+                                    type: object
+                                  maxItems: 8
+                                  type: array
+                                  x-kubernetes-list-type: atomic
+                                podNetwork:
+                                  description: |-
+                                    PodNetwork puts the SPDK pods on the cluster CNI's network. Alone, the pod's
+                                    one interface carries the RPC and the data, and a Service in front of the pod
+                                    is the address peers and clients hold, since the pod's own address changes on
+                                    every restart. The control plane keeps the Service and the ports it carries.
+                                    With data networks, the RPC stays on that interface and the data moves to the
+                                    networks' interfaces, whose addresses are stable, so no Service is kept.
+                                  type: boolean
+                                spdkOnHostNetwork:
+                                  description: |-
+                                    SpdkOnHostNetwork runs the SPDK pods on the host network, where they bind
+                                    host NICs. The NICs' names are not stated here, because a fleet's workers
+                                    do not agree on what their NICs are called: each node names its own in
+                                    its spec.config.dataInterfaces, which is allowed only in this mode.
+                                  type: boolean
+                              type: object
+                              x-kubernetes-validations:
+                              - message: one of podNetwork and spdkOnHostNetwork must
+                                  be set
+                                rule: (has(self.podNetwork) && self.podNetwork) ||
+                                  (has(self.spdkOnHostNetwork) && self.spdkOnHostNetwork)
+                              - message: podNetwork and spdkOnHostNetwork are exclusive
+                                rule: '!(has(self.podNetwork) && self.podNetwork &&
+                                  has(self.spdkOnHostNetwork) && self.spdkOnHostNetwork)'
+                              - message: 'data networks require podNetwork: true'
+                                rule: '!has(self.data) || self.data.size() == 0 ||
+                                  (has(self.podNetwork) && self.podNetwork)'
+                              - message: data networks must name distinct NetworkAttachmentDefinitions
+                                rule: '!has(self.data) || self.data.all(a, self.data.exists_one(b,
+                                  b.networkAttachmentRef.name == a.networkAttachmentRef.name))'
+                            nodeProvisioningBudget:
+                              description: |-
+                                NodeProvisioningBudget is how many workers the expansion may have in the
+                                node-add process at once. It expands into the cluster's own
+                                spec.storageNodes.nodeProvisioningBudget, whose meaning it shares: the cap
+                                is counted by distinct worker, so a two-socket host spends one of the
+                                budget, and a worker hosting a FoundationDB pod is sequential whatever the
+                                budget says.
+
+                                It is on the document because a document is what states the size of a
+                                deployment, and a deployment of thirty workers added one at a time is the
+                                difference between an afternoon and a week. Omitted, the cluster's default
+                                of one applies, which is the serial behavior.
+                              format: int32
+                              minimum: 1
+                              type: integer
+                            nodesPerSocket:
+                              description: |-
+                                NodesPerSocket is how many storage nodes run per NUMA socket. See
+                                SocketsToUse, which it multiplies.
+                              format: int32
+                              maximum: 8
+                              minimum: 1
+                              type: integer
+                            openshift:
+                              description: |-
+                                OpenShift is what this deployment states because it runs on OpenShift. It
+                                expands into StorageCluster.spec.storageNodes.openshift, whose shape it
+                                shares, and it is read only for a document whose environment is
+                                OpenShift: the environment is what says which distribution this is, and
+                                the block is what that distribution needs said beyond it.
+                              properties:
+                                machineConfigPool:
+                                  default: worker
+                                  description: |-
+                                    MachineConfigPool names a machine-config role the storage nodes' own pool
+                                    inherits from, beyond the worker role it always inherits.
+
+                                    It is not the pool the nodes end up in, which the description it carried
+                                    before said and which cost a reader the reboot they were trying to avoid.
+                                    Adding a node creates a pool of its own, storage-<cluster>, and moves the
+                                    node into it; a node belongs to exactly one custom pool, so whatever
+                                    machine configuration its previous pool carried is lost unless that
+                                    pool's role is named here for the new one to select as well. The default
+                                    is the role every pool already selects, which is what makes it a no-op
+                                    for a fleet whose workers are ordinary workers.
+                                  maxLength: 253
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            ports:
+                              description: |-
+                                Ports are where this cluster's storage nodes listen. Unstated, and for
+                                each member left unstated, the cluster's own defaults decide.
+                              properties:
+                                nodeAgent:
+                                  default: 50001
+                                  description: |-
+                                    NodeAgent is the port each node's agent API listens on. It expands into
+                                    StorageCluster.spec.snodeApiPort, and it is named for the component
+                                    rather than for that field: the agent is what spec.images.nodeAgent pins
+                                    and what the storage-node DaemonSet runs.
+                                  format: int32
+                                  maximum: 65535
+                                  minimum: 1024
+                                  type: integer
+                                nvmf:
+                                  default: 4420
+                                  description: |-
+                                    NVMf is the base of the NVMe-oF port range every node binds. It expands
+                                    into StorageCluster.spec.nvmfBasePort.
+                                  format: int32
+                                  maximum: 65535
+                                  minimum: 1024
+                                  type: integer
+                                rpc:
+                                  default: 8080
+                                  description: |-
+                                    Rpc is the base of the RPC port range every node binds. It expands into
+                                    StorageCluster.spec.rpcBasePort.
+                                  format: int32
+                                  maximum: 65535
+                                  minimum: 1024
+                                  type: integer
+                              type: object
+                            socketsToUse:
+                              description: |-
+                                SocketsToUse restricts the deployment to selected NUMA sockets, and empty
+                                means socket 0 alone. With NodesPerSocket it decides how many storage nodes
+                                each worker runs, so a group of two workers on a two-socket layout expands
+                                to four nodes.
+
+                                It is here rather than on a node set because it is immutable on the cluster
+                                it lands on: the layout a fleet was built with is not one a later document
+                                can vary, and a reviewer should see it before the cluster exists.
+                              items:
+                                maxLength: 16
+                                type: string
+                              maxItems: 16
+                              type: array
+                              x-kubernetes-list-type: set
+                            stretched:
+                              description: |-
+                                Stretched makes the cluster one site of a stretched cluster, whose two
+                                sites are two Kubernetes clusters: the site this document's nodes join,
+                                the other site, and whether this site creates the cluster or adopts it.
+                                Written by the hub that manages both sites, and expanded verbatim into the
+                                StorageCluster. Requires enableSyncReplication; every node group's site
+                                must equal stretched.site.
+                              properties:
+                                peerCluster:
+                                  description: |-
+                                    PeerCluster is the other site's managed cluster: the name the hub knows
+                                    it by, and the one the site link reaches that site's operator by. Empty
+                                    means the same as peerSite.
+                                  maxLength: 63
+                                  type: string
+                                peerSite:
+                                  description: |-
+                                    PeerSite is the other site's backend name. Nodes the control plane reports
+                                    on it are listed here as remote StorageNodes. Immutable.
+                                  maxLength: 63
+                                  pattern: ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: field is immutable
+                                    rule: self == oldSelf
+                                role:
+                                  description: |-
+                                    Role is Leader or Follower. A leader creates and activates the backend
+                                    cluster and runs every cluster-wide operation; a follower adopts the
+                                    cluster and manages only its own site's nodes. A change is a role swap,
+                                    delivered from the hub.
+                                  enum:
+                                  - Leader
+                                  - Follower
+                                  type: string
+                                site:
+                                  description: |-
+                                    Site is the backend site every node this StorageCluster adds belongs to.
+                                    Immutable: a site is a property of the installation.
+                                  maxLength: 63
+                                  pattern: ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$
+                                  type: string
+                                  x-kubernetes-validations:
+                                  - message: field is immutable
+                                    rule: self == oldSelf
+                              required:
+                              - peerSite
+                              - role
+                              - site
+                              type: object
+                              x-kubernetes-validations:
+                              - message: site and peerSite must differ
+                                rule: self.site != self.peerSite
+                            stripe:
+                              description: Stripe is the erasure-coding layout.
+                              properties:
+                                dataChunks:
+                                  description: DataChunks is the number of data chunks
+                                    per stripe (ndcs).
+                                  format: int32
+                                  minimum: 1
+                                  type: integer
+                                parityChunks:
+                                  description: |-
+                                    ParityChunks is the number of parity chunks per stripe (npcs), and
+                                    therefore how many chunk losses a stripe survives.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                              type: object
+                              x-kubernetes-validations:
+                              - message: the erasure-coding scheme must be one of
+                                  1+0, 1+1, 2+1, 4+1, 1+2, 2+2, or 4+2, written as
+                                  dataChunks+parityChunks, and an unstated half is
+                                  1
+                                rule: '[has(self.dataChunks) ? self.dataChunks : 1,
+                                  has(self.parityChunks) ? self.parityChunks : 1]
+                                  in [[1, 0], [1, 1], [2, 1], [4, 1], [1, 2], [2,
+                                  2], [4, 2]]'
+                            tolerations:
+                              description: |-
+                                Tolerations are what the storage-node pods tolerate, and they expand into
+                                the cluster's own spec.storageNodes.tolerations.
+
+                                A fleet that dedicates machines to storage taints them, which is what
+                                keeps everything else off. The DaemonSet that lands on those machines has
+                                to tolerate the taint or it schedules nowhere, and a document that could
+                                not say so described a deployment that does not start: the correction was
+                                an edit to the cluster the document had just created, on a field the
+                                document owns everywhere else.
+
+                                A growth document states none. It names a cluster rather than describing
+                                one, and that cluster already carries what its storage nodes tolerate.
+                              items:
+                                description: |-
+                                  The pod this Toleration is attached to tolerates any taint that matches
+                                  the triple <key,value,effect> using the matching operator <operator>.
+                                properties:
+                                  effect:
+                                    description: |-
+                                      Effect indicates the taint effect to match. Empty means match all taint effects.
+                                      When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                    type: string
+                                  key:
+                                    description: |-
+                                      Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                      If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                    type: string
+                                  operator:
+                                    description: |-
+                                      Operator represents a key's relationship to the value.
+                                      Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                                      Exists is equivalent to wildcard for value, so that a pod can
+                                      tolerate all taints of a particular category.
+                                      Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                                    type: string
+                                  tolerationSeconds:
+                                    description: |-
+                                      TolerationSeconds represents the period of time the toleration (which must be
+                                      of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                      it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                      negative values will be treated as 0 (evict immediately) by the system.
+                                    format: int64
+                                    type: integer
+                                  value:
+                                    description: |-
+                                      Value is the taint value the toleration matches to.
+                                      If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                    type: string
+                                type: object
+                              maxItems: 32
+                              type: array
+                            vcpuCount:
+                              description: |-
+                                VCPUCount is the number of vCPUs allocated to SPDK on each storage node of
+                                this cluster. It is stated here and nowhere below, because the control
+                                plane assumes it uniform across a cluster's nodes; CreatingNodes copies it
+                                into every StorageNode.spec.config.sizing it writes. Required, because the
+                                StorageCluster's own field is.
+                                The floor is 4 rather than a hardware limit: a node must carry one core
+                                beyond this budget for the system, and the control plane's core layout
+                                assigns no NVMe-oF poller core at all for a 2-vCPU budget.
+                              format: int32
+                              minimum: 4
+                              type: integer
+                          required:
+                          - maxSubsystemCount
+                          - name
+                          - vcpuCount
+                          type: object
+                          x-kubernetes-validations:
+                          - message: enableArbitration and arbitration are only valid
+                              when clusterMode is Dual
+                            rule: (has(self.clusterMode) && self.clusterMode == 'Dual')
+                              || (!has(self.arbitration) && !(has(self.enableArbitration)
+                              && self.enableArbitration))
+                        message:
+                          description: |-
+                            Message is what the site says about the draft: validation findings while
+                            it is a draft, the expansion's step afterward.
+                          type: string
+                        name:
+                          description: Name is the ClusterDeploymentConfig on the
+                            site.
+                          type: string
+                        nodeRefs:
+                          description: NodeRefs are the StorageNode objects the expansion
+                            created.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: set
+                        nodeSets:
+                          description: |-
+                            NodeSets are the nodes and devices the discovery found, for review. At
+                            most 64, as on the deployment config the draft is.
+                          items:
+                            description: |-
+                              NodeSet is the organizational grouping of a deployment, usually a rack: the
+                              workers a document adds or grows together. It carries no sizing, because sizing
+                              is uniform across a cluster and is stated once in ClusterTemplate.
+                            properties:
+                              cluster:
+                                description: |-
+                                  Cluster overrides the document's cluster template for the member cluster
+                                  this node set becomes, for a node set whose hardware differs from the
+                                  rest. A field left unset takes the template's value. Valid on a document
+                                  with more than one node set, or one naming a cluster in clusterRef.
+                                properties:
+                                  maxSubsystemCount:
+                                    description: |-
+                                      MaxSubsystemCount is the maximum number of NVMe-oF subsystems each storage
+                                      node of this member serves.
+                                    format: int32
+                                    maximum: 500
+                                    minimum: 10
+                                    type: integer
+                                  minHugePagesSize:
+                                    description: |-
+                                      MinHugePagesSize is the smallest huge-page allocation each storage node of
+                                      this member makes: 100G or 1T, where a bare number is gigabytes.
+                                    maxLength: 32
+                                    type: string
+                                  nodesPerSocket:
+                                    description: |-
+                                      NodesPerSocket is how many storage nodes run per NUMA socket on this
+                                      member's workers.
+                                    format: int32
+                                    maximum: 8
+                                    minimum: 1
+                                    type: integer
+                                  socketsToUse:
+                                    description: |-
+                                      SocketsToUse are the NUMA sockets that run storage nodes on this member's
+                                      workers. With NodesPerSocket it decides how many storage nodes each worker
+                                      runs.
+                                    items:
+                                      maxLength: 16
+                                      type: string
+                                    maxItems: 16
+                                    type: array
+                                    x-kubernetes-list-type: set
+                                  stripe:
+                                    description: Stripe is this member's erasure-coding
+                                      layout.
+                                    properties:
+                                      dataChunks:
+                                        description: DataChunks is the number of data
+                                          chunks per stripe (ndcs).
+                                        format: int32
+                                        minimum: 1
+                                        type: integer
+                                      parityChunks:
+                                        description: |-
+                                          ParityChunks is the number of parity chunks per stripe (npcs), and
+                                          therefore how many chunk losses a stripe survives.
+                                        format: int32
+                                        minimum: 0
+                                        type: integer
+                                    type: object
+                                    x-kubernetes-validations:
+                                    - message: the erasure-coding scheme must be one
+                                        of 1+0, 1+1, 2+1, 4+1, 1+2, 2+2, or 4+2, written
+                                        as dataChunks+parityChunks, and an unstated
+                                        half is 1
+                                      rule: '[has(self.dataChunks) ? self.dataChunks
+                                        : 1, has(self.parityChunks) ? self.parityChunks
+                                        : 1] in [[1, 0], [1, 1], [2, 1], [4, 1], [1,
+                                        2], [2, 2], [4, 2]]'
+                                  vcpuCount:
+                                    description: |-
+                                      VCPUCount is the number of vCPUs allocated to SPDK on each storage node of
+                                      this member.
+                                    format: int32
+                                    minimum: 4
+                                    type: integer
+                                type: object
+                              groups:
+                                description: Groups are the sets of workers sharing
+                                  one configuration.
+                                items:
+                                  description: |-
+                                    NodeGroup is a set of workers that share one configuration, which is what
+                                    makes ten identical machines one entry rather than ten.
+                                  properties:
+                                    dataInterfaces:
+                                      description: DataInterfaces are the data-plane
+                                        network interfaces.
+                                      items:
+                                        maxLength: 63
+                                        type: string
+                                      maxItems: 32
+                                      type: array
+                                    devices:
+                                      description: Devices selects the storage devices
+                                        every worker in the group uses.
+                                      properties:
+                                        block:
+                                          description: |-
+                                            Block names logical block devices by path ("/dev/sdb"). It expands into the
+                                            same config.deviceNames as NVMe, which takes a PCI address and a device
+                                            path in one list. It is the alternative to NVMe rather than a companion of
+                                            it: the two classes are not mixed within a cluster.
+                                          items:
+                                            maxLength: 255
+                                            pattern: ^/dev/[a-zA-Z0-9._/-]+$
+                                            type: string
+                                          maxItems: 128
+                                          type: array
+                                          x-kubernetes-list-type: set
+                                        nvme:
+                                          description: NVMe names NVMe devices by
+                                            PCI address ("0000:5e:00.0").
+                                          items:
+                                            maxLength: 32
+                                            pattern: ^[0-9a-fA-F]{4}:[0-9a-fA-F]{2}:[0-9a-fA-F]{2}\.[0-9a-fA-F]$
+                                            type: string
+                                          maxItems: 128
+                                          type: array
+                                          x-kubernetes-list-type: set
+                                      type: object
+                                      x-kubernetes-validations:
+                                      - message: a device selection names NVMe addresses
+                                          or block devices, not both
+                                        rule: has(self.nvme) != has(self.block)
+                                    failureDomain:
+                                      description: |-
+                                        FailureDomain is the label of the fault group every worker in this group
+                                        belongs to ("rack-b"), which is usually the name of the rack, zone, or
+                                        power feed they share. Discovery seeds it from topology.kubernetes.io/zone
+                                        and leaves it unset where the Kubernetes API carries no topology, which
+                                        holds provisioning with a clear reason rather than guessing. It expands
+                                        into StorageNode.spec.config.failureDomain, whose shape it shares.
+                                      maxLength: 63
+                                      pattern: ^[a-zA-Z0-9]([-_.a-zA-Z0-9]*[a-zA-Z0-9])?$
+                                      type: string
+                                    journalManager:
+                                      description: JournalManager tunes the journal
+                                        managers on these nodes.
+                                      properties:
+                                        count:
+                                          description: |-
+                                            Count is the number of journal managers to configure. The control plane
+                                            requires at least 3.
+                                          format: int32
+                                          minimum: 3
+                                          type: integer
+                                        percentPerDevice:
+                                          description: PercentPerDevice is the share
+                                            of each device given to the journal.
+                                          format: int32
+                                          maximum: 100
+                                          minimum: 1
+                                          type: integer
+                                      type: object
+                                    mgmtInterface:
+                                      description: MgmtInterface is the management
+                                        network interface the storage nodes bind.
+                                      maxLength: 63
+                                      type: string
+                                    name:
+                                      description: |-
+                                        Name identifies the group within its node set, for a reader and for the
+                                        events a validation failure emits.
+                                      maxLength: 253
+                                      type: string
+                                    networkAttachment:
+                                      description: |-
+                                        NetworkAttachment attaches the storage nodes through Multus
+                                        NetworkAttachmentDefinitions instead of host networking. A group names
+                                        this or its interfaces, and every group of a document uses the same
+                                        networking.
+                                      properties:
+                                        data:
+                                          description: |-
+                                            Data is the definition the storage node's data traffic is attached
+                                            through. Absent sends data through the management attachment.
+                                          maxLength: 253
+                                          pattern: ^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$
+                                          type: string
+                                        management:
+                                          description: |-
+                                            Management is the definition the storage node's management traffic is
+                                            attached through.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                      - management
+                                      type: object
+                                    reservedSystemCPU:
+                                      description: |-
+                                        ReservedSystemCPU is the CPU set held back from SPDK for the system on
+                                        these nodes, as a core list such as 0,1 or 0-3.
+
+                                        It is a group's rather than the cluster's because it names core ids, and a
+                                        group is what a document calls the workers that share their hardware: 0,1
+                                        on a sixteen-core worker and 0,1 on a ninety-six-core worker are different
+                                        fractions of the machine. It expands into
+                                        StorageNode.spec.config.reservedSystemCPU, whose shape it shares, and a
+                                        group that states none leaves the cluster's fleet-wide value to decide.
+
+                                        On OpenShift it reaches the kubelet through a KubeletConfig for the
+                                        machine config pool, which is the cluster's, so groups that disagree there
+                                        are writing over one another's pool configuration.
+                                      maxLength: 63
+                                      pattern: ^[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*$
+                                      type: string
+                                    site:
+                                      description: |-
+                                        Site is the replication site every worker in this group belongs to, one of
+                                        the cluster's two sites. Discovery seeds it from topology.kubernetes.io/zone,
+                                        as it does FailureDomain, since a sync cluster's two sites are its two zones.
+                                        Required when the cluster has enableSyncReplication=true, rejected otherwise.
+                                        It expands into StorageNode.spec.config.site, whose shape it shares.
+                                      maxLength: 63
+                                      pattern: ^[A-Za-z0-9][A-Za-z0-9._-]{0,62}$
+                                      type: string
+                                    spdkSystemMemory:
+                                      description: |-
+                                        SpdkSystemMemory is the memory the control plane starts SPDK with on these
+                                        nodes.
+                                      maxLength: 32
+                                      pattern: ^[0-9]+(G|GI|GB|GiB|M|MI|MB|MiB|g|gi|gb|gib|m|mi|mb|mib)?$
+                                      type: string
+                                    workers:
+                                      description: Workers are the Kubernetes worker
+                                        hostnames in this group.
+                                      items:
+                                        maxLength: 253
+                                        type: string
+                                      maxItems: 200
+                                      minItems: 1
+                                      type: array
+                                      x-kubernetes-list-type: set
+                                  required:
+                                  - name
+                                  - workers
+                                  type: object
+                                  x-kubernetes-validations:
+                                  - message: a group names its network interfaces
+                                      or its network attachments, not both
+                                    rule: '!has(self.networkAttachment) || (!has(self.mgmtInterface)
+                                      && !has(self.dataInterfaces))'
+                                maxItems: 64
+                                minItems: 1
+                                type: array
+                              name:
+                                description: |-
+                                  Name is the node set's name. It is copied to StorageNode.spec.nodeSet, so
+                                  that a node can be traced back to the part of the document that produced
+                                  it.
+                                maxLength: 253
+                                type: string
+                            required:
+                            - groups
+                            - name
+                            type: object
+                          maxItems: 64
+                          type: array
+                        phase:
+                          description: |-
+                            Phase is the draft's own phase on the site (Draft, Expanding, Expanded,
+                            Failed).
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    message:
+                      description: Message is the reason this site's phase is what
+                        it is.
+                      type: string
+                    phase:
+                      description: |-
+                        Phase is this site's own progress, in the phases a StorageSiteDeployment
+                        reports for one site.
+                      enum:
+                      - Pending
+                      - Discovering
+                      - Drafted
+                      - Deploying
+                      - Online
+                      - Failed
+                      type: string
+                    reachable:
+                      description: |-
+                        Reachable reports whether the hub's last read of the managed cluster found
+                        it available. An unreachable API server is not a lost site: the control
+                        plane judges that from the storage nodes, not from the hub's connection.
+                      type: boolean
+                    role:
+                      description: Role is the role last delivered to this site.
+                      enum:
+                      - Leader
+                      - Follower
+                      type: string
+                    site:
+                      description: Site is the backend site of this managed cluster.
+                      type: string
+                    siteRecord:
+                      description: |-
+                        SiteRecord is the control plane's record of this site, as this site's
+                        StorageCluster reports it: empty while the site is in service, otherwise
+                        the state of its drain or fence.
+                      type: string
+                    storageCluster:
+                      description: StorageCluster is the StorageCluster the site's
+                        approved draft produced.
+                      properties:
+                        name:
+                          description: Name is the StorageCluster object on the site.
+                          type: string
+                        nodes:
+                          description: Nodes are the cluster's storage nodes.
+                          items:
+                            description: |-
+                              StorageSiteNode is one storage node of the deployed cluster, as the site
+                              reports it.
+                            properties:
+                              hostname:
+                                description: Hostname is the Kubernetes node it runs
+                                  on.
+                                type: string
+                              name:
+                                description: Name is the StorageNode object on the
+                                  site.
+                                type: string
+                              phase:
+                                description: Phase is the node's phase on the site.
+                                type: string
+                            required:
+                            - name
+                            type: object
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - name
+                          x-kubernetes-list-type: map
+                        phase:
+                          description: Phase is the StorageCluster's phase on the
+                            site.
+                          type: string
+                        pool:
+                          description: |-
+                            Pool is the pool the cluster was created with, which a StorageClass names
+                            in pool_name.
+                          type: string
+                        uuid:
+                          description: |-
+                            UUID is the storage cluster's id in the control plane, which a
+                            StorageClass names in cluster_id.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    workName:
+                      description: WorkName is the ManifestWork carrying the request
+                        to this site.
+                      type: string
+                  required:
+                  - cluster
+                  type: object
+                maxItems: 2
+                type: array
+                x-kubernetes-list-map-keys:
+                - cluster
+                x-kubernetes-list-type: map
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

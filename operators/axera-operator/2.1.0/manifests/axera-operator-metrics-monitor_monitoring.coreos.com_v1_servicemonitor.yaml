@@ -1,0 +1,29 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: axera-operator-metrics-monitor
+  labels:
+    app.kubernetes.io/name: axera-operator
+    control-plane: controller-manager
+spec:
+  endpoints:
+    - path: /metrics
+      port: https
+      scheme: https
+      # OpenShift user workload monitoring refuses a ServiceMonitor that reads a file of the
+      # Prometheus pod (bearerTokenFile, tlsConfig caFile/certFile/keyFile): the token comes from a
+      # Secret in this namespace instead, which the operator keeps for the ServiceAccount the CSV
+      # creates with get on /metrics (internal/controller/metrics_token.go).
+      authorization:
+        type: Bearer
+        credentials:
+          name: axera-operator-metrics-scraper-token
+          key: token
+      # The metrics server's certificate is the self-signed one controller-runtime generates at
+      # start, which no CA in the cluster can verify; the token above is what is checked.
+      tlsConfig:
+        insecureSkipVerify: true
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/name: axera-operator

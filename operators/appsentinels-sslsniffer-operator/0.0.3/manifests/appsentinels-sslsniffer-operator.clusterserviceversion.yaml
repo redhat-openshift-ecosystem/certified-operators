@@ -1,0 +1,373 @@
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    olm.skipRange: '<0.0.3'
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "sensors.appsentinels.io/v1alpha1",
+          "kind": "AppSentinelsSensor",
+          "metadata": {
+            "name": "appsentinelssensor-sample"
+          },
+          "spec": {
+            "containerRuntime": "crio",
+            "controller": {
+              "host": "<controller-host>",
+              "instanceName": "openshift-sensor",
+              "port": "<controller-port>"
+            },
+            "createNamespace": true,
+            "goRuntime": {
+              "gogc": "10",
+              "gomemlimit": "128MiB"
+            },
+            "image": {
+              "pullPolicy": "Always",
+              "repository": "registry.connect.redhat.com/appsentinels/sslsniffer",
+              "tag": "ubi9-v2"
+            },
+            "namespace": "sslsniffer",
+            "resources": {
+              "limits": {
+                "cpu": "1000m",
+                "memory": "4Gi"
+              },
+              "requests": {
+                "cpu": "100m",
+                "memory": "512Mi"
+              }
+            },
+            "runtimeSocket": {
+              "containerd": "/var/run/containerd/containerd.sock",
+              "crio": "/var/run/crio/crio.sock"
+            },
+            "sniff": {
+              "containerIncludeFilter": "http",
+              "enableMidstreamLogging": false,
+              "enableNonSslTcp": true,
+              "excludeProcFilter": "^(splunkd|runner|sslsniffer|pause|kube-proxy|coredns|crio|containerd)$",
+              "localOnly": false,
+              "loggingLevel": "info",
+              "processIncludeFilter": "http|router",
+              "skipExtensions": "svg|txt|png|jpg|jpeg|ico|css|pdf|html|mp4|js|gif|ttf|woff|woff2|wasm",
+              "skipUriRegex": "health|healthz|readyz|livez|metrics|mergedlog|appsentinels|dp-"
+            },
+            "ssl": {
+              "customLibssl3Path": "/usr/lib64/libssl.so.3"
+            },
+            "testHttpServer": {
+              "enabled": false,
+              "image": "appsentinels/http-server:latest"
+            },
+            "tolerations": [
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.kubernetes.io/master",
+                "operator": "Exists"
+              },
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.kubernetes.io/control-plane",
+                "operator": "Exists"
+              },
+              {
+                "effect": "NoSchedule",
+                "key": "node-role.kubernetes.io/infra",
+                "operator": "Exists"
+              }
+            ]
+          }
+        }
+      ]
+    capabilities: Basic Install
+    createdAt: "2026-10-29T10:02:44Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.34.1
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+  name: appsentinels-sslsniffer-operator.v0.0.3
+  namespace: placeholder
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: AppSentinelsSensor
+      name: appsentinelssensors.sensors.appsentinels.io
+      version: v1alpha1
+  description: |-
+    ## AppSentinels SSL Sniffer Operator
+
+    eBPF based SSL/TLS traffic sniffer for OpenShift and Kubernetes.
+    Captures HTTP/HTTPS traffic from all applications without any code changes.
+
+    ## Privileged Capabilities Justification
+
+    privileged: true
+      Required to load eBPF programs into the Linux kernel.
+
+    SYS_ADMIN
+      Required to load and attach eBPF programs to kernel hooks.
+
+    SYS_PTRACE
+      Required to read memory of other processes to intercept TLS traffic.
+
+    hostPID: true
+      Required to see all processes running on the node.
+
+    hostPath (/sys, /sys/kernel/debug)
+      Required to access kernel debug filesystem for eBPF.
+  displayName: AppSentinels SSL Sniffer
+  icon:
+  - base64data: "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4KPHN2ZyBpZD0iTGF5ZXJfMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCAyMzU2LjQ2IDY0NS42Ij4KICA8IS0tIEdlbmVyYXRvcjogQWRvYmUgSWxsdXN0cmF0b3IgMzAuMS4wLCBTVkcgRXhwb3J0IFBsdWctSW4gLiBTVkcgVmVyc2lvbjogMi4xLjEgQnVpbGQgMTM2KSAgLS0+CiAgPGRlZnM+CiAgICA8c3R5bGU+CiAgICAgIC5zdDAgewogICAgICAgIGZpbGw6ICMyMzFmMjA7CiAgICAgIH0KCiAgICAgIC5zdDEgewogICAgICAgIGZpbGw6ICM2MTcxZTc7CiAgICAgIH0KICAgIDwvc3R5bGU+CiAgPC9kZWZzPgogIDxnPgogICAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTIxMy4xNCw1MDguNTl2LTIwNS4yMmgtMTA3LjI2czUuMDQsMTQ0LjI4LDEwNy4yNiwyMDUuMjJaIi8+CiAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMjY4LjI4LDI4Ljk0aDBzLS4wNCwwLS4wNCwwTDE3LjY0LDEwMi4yNXYxNDIuNDJjMCwxMjMuOCw2NS4zOCwyNTEuMjEsMTc0Ljg0LDMyMi43bDc1Ljc3LDQ5LjI4LjA0LS4wMmgwczc1Ljc3LTQ5LjI3LDc1Ljc3LTQ5LjI3YzEwOS40NC03MC45LDE3NC44Ni0xOTguMzEsMTc0Ljg2LTMyMi43MVYxMDIuMjNMMjY4LjI4LDI4Ljk0Wk0yNTAuNTgsNTcxLjA3UzQ3Ljk2LDQ2OC4xMyw0Ny45NiwyNjguNzdoMTY1LjE4VjExMy42MWwtMTI3LjUzLDI5LjA2czEzLjgzLDQ2LjY5LDE4LjAzLDk3LjQ0aC01NS42OHYtMTEyLjQ5czEyNy43OS00MC40MSwyMDIuNjItNjAuMjR2NTAzLjY4Wk00ODkuNDcsMjQwLjExaC01NS45M2MyLjc0LTM5LjM1LDE4LjQ2LTk3LjQ0LDE4LjQ2LTk3LjQ0bC0xMjcuMjktMjkuMDZ2MTU1LjE2aDE2NC43NmMwLDE5OS4zNy0yMDIuNjQsMzAyLjI5LTIwMi42NCwzMDIuMjl2LTIyOS45Nmg1NS44OHMyLjQxLDI1LjM2LTIuNjgsNjcuNjdjLTMuOTUsMzIuOC0xNS4zMSw5OS44Mi0xNS4zMSw5OS44MiwxMTEuNzQtNjUuMTMsMTA2Ljk0LTIwNS4yMiwxMDYuOTQtMjA1LjIyaC0xNDQuODJWNjcuMzljNjcuNzcsMTUuNzgsMjAyLjY0LDYwLjI2LDIwMi42NCw2MC4yNnYxMTIuNDZaIi8+CiAgPC9nPgogIDxnPgogICAgPGc+CiAgICAgIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik03MDMuOTQsMTY0LjAxaC0xLjY3Yy0yLjg5LDguMjItNi4xNywxNy42Ny05LjgzLDI4LjMzLTMuNjYsMTAuNjgtNy40NiwyMS43NS0xMS4zNCwzMy4xOS0zLjg5LDExLjQ1LTcuNjIsMjIuNC0xMS4xNywzMi44NGwtMy45OSwxOGMtMS4zNCw0LjIzLTIuNzksOS4wMS00LjM0LDE0LjM0LTEuNTUsNS4zNC0zLjIzLDEwLjcyLTUsMTYuMTctMS43OCw1LjQ1LTMuNDUsMTAuNTctNC45OSwxNS4zNC0xLjU2LDQuNzgtMi45LDguOTUtNCwxMi41LTIuMDEuNjYtNC4yNCwxLjI4LTYuNjgsMS44NC0yLjQ0LjU1LTUuMzMuODQtOC42Ny44NC02LjY3LDAtMTEuOTUtMS4zNC0xNS44NC00LTMuODktMi42OC01Ljg0LTYuNjgtNS44NC0xMi4wMSwwLTIuNDUuMzgtNC44OCwxLjE3LTcuMzQuNzgtMi40NSwxLjYxLTUuMzQsMi40OS04LjY3LDIuNDUtNy4zMyw1LjU2LTE2LjUxLDkuMzQtMjcuNSwzLjc4LTExLjAxLDcuOS0yMi45NSwxMi4zNC0zNS44Nyw0LjQ1LTEyLjg4LDkuMTItMjUuODgsMTQtMzksNC45LTEzLjExLDkuNTEtMjUuNTUsMTMuODQtMzcuMzQsNC4zNC0xMS43OCw4LjA2LTIxLjc5LDExLjE4LTMwLjAyLDIuNjYtMS4zNCw2LjYxLTIuNjYsMTEuODMtMy45OSw1LjIyLTEuMzUsMTAuNS0yLDE1Ljg0LTIsNy4xMSwwLDEzLjYxLDEuMDcsMTkuNSwzLjE3LDUuODksMi4xMSw5LjYyLDUuNDksMTEuMTgsMTAuMTcsNC44OSwxMi4yMSwxMC4wNSwyNi4yOCwxNS41MSw0Mi4xNyw1LjQ0LDE1LjkxLDExLDMyLjQ2LDE2LjY2LDQ5LjY5LDUuNjcsMTcuMjMsMTEuMTIsMzMuOTYsMTYuMzUsNTAuMiw1LjIyLDE2LjIyLDkuODQsMzAuODksMTMuODQsNDQtMiwyLjQ2LTQuODQsNC40Ni04LjUsNi0zLjY4LDEuNTYtNy45NiwyLjM1LTEyLjg1LDIuMzUtNi44OCwwLTExLjgzLTEuMzQtMTQuODQtNC0zLTIuNjgtNS4zOS02Ljc4LTcuMTctMTIuMzRsLTE0LjM0LTQ1LjM2LTQuMzMtMTkuMzRjLTMuNTYtMTEuNzgtNy4xNi0yMy4zOS0xMC44NC0zNC44NS0zLjY2LTExLjQ0LTcuMTctMjIuMTEtMTAuNTEtMzItMy4zNC05LjktNi4xMi0xOC4zOC04LjMzLTI1LjUxWk02NTQuNTQsMjg1LjA2bDEyLjI5LTMxLjM2aDcyLjg3bDUuMTMsMzEuMzZoLTkwLjI5WiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNODU3LjE1LDMzNS4zOWMtNy40NC0yLjQ0LTEzLjM4LTUuMDktMTcuODMtOHYtMzMuNjhjNC4yMiwzLjU2LDkuMzMsNi44MywxNS4zNCw5Ljg0LDUuOTksMy4wMSwxMy4xMSw0LjUsMjEuMzQsNC41LDEzLjc4LDAsMjQuNzMtNC4yNywzMi44NC0xMi44NCw4LjEyLTguNTUsMTIuMTctMjEuOTYsMTIuMTctNDAuMTgsMC0xMi40NC0xLjk1LTIyLjQ0LTUuODQtMzAuMDEtMy44OS03LjU2LTkuMTctMTMuMDYtMTUuODMtMTYuNTEtNi42Ny0zLjQ0LTE0LjExLTUuMTctMjIuMzQtNS4xNy02LjQ2LDAtMTIuMDYuODQtMTYuODUsMi41LTQuNzgsMS42Ny05LjA1LDMuNS0xMi44Miw1LjUxdjk0LjcxaC0zOC4zNnYtOTguMDJjMC01LjEzLjk0LTkuMjUsMi44NC0xMi4zNiwxLjg4LTMuMTEsNS4yNy02LjEyLDEwLjE3LTksNi4yMS0zLjc4LDE0LjAxLTcuMDYsMjMuMzQtOS44NCw5LjM0LTIuNzgsMTkuODktNC4xNiwzMS42OS00LjE2LDE2LDAsMzAuMjgsMi44Myw0Mi44NCw4LjQ5LDEyLjU2LDUuNjcsMjIuNDUsMTQuNjIsMjkuNjgsMjYuODcsNy4yMiwxMi4yLDEwLjg0LDI3Ljg3LDEwLjg0LDQ3cy0zLjM5LDM0LjE4LTEwLjE3LDQ2LjUyYy02Ljc4LDEyLjMzLTE2LjA2LDIxLjY3LTI3Ljg0LDI4LjAxLTExLjc5LDYuMzMtMjUuMzQsOS41LTQwLjY4LDkuNS04LjkxLDAtMTcuMDYtMS4yMy0yNC41Mi0zLjY4Wk04NDcuNjYsMzk0LjA5Yy0xLjc3LjY1LTQuMjMsMS4yNy03LjMzLDEuODQtMy4xMi41NS02LjU3Ljg0LTEwLjM0Ljg0LTcuMTIsMC0xMi4zOS0xLjM0LTE1Ljg0LTQuMDEtMy40NS0yLjY3LTUuMTctNy4zNC01LjE3LTE0LjAxdi03Mi42OGgzOC42OXY4OC4wM1oiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTEwMjcuODgsMzM1LjM5Yy03LjQ0LTIuNDQtMTMuMzktNS4wOS0xNy44My04di0zMy42OGM0LjIyLDMuNTYsOS4zNCw2LjgzLDE1LjMzLDkuODQsNiwzLjAxLDEzLjEyLDQuNSwyMS4zNSw0LjUsMTMuNzgsMCwyNC43My00LjI3LDMyLjg0LTEyLjg0LDguMTItOC41NSwxMi4xNy0yMS45NiwxMi4xNy00MC4xOCwwLTEyLjQ0LTEuOTUtMjIuNDQtNS44NC0zMC4wMS0zLjg5LTcuNTYtOS4xNi0xMy4wNi0xNS44NC0xNi41MS02LjY2LTMuNDQtMTQuMTEtNS4xNy0yMi4zMy01LjE3LTYuNDUsMC0xMi4wNy44NC0xNi44NSwyLjUtNC43OCwxLjY3LTkuMDYsMy41LTEyLjgzLDUuNTF2OTQuNzFoLTM4LjM1di05OC4wMmMwLTUuMTMuOTQtOS4yNSwyLjgzLTEyLjM2LDEuODgtMy4xMSw1LjI4LTYuMTIsMTAuMTctOSw2LjIyLTMuNzgsMTQuMDEtNy4wNiwyMy4zNC05Ljg0LDkuMzQtMi43OCwxOS45LTQuMTYsMzEuNjktNC4xNiwxNiwwLDMwLjI4LDIuODMsNDIuODQsOC40OSwxMi41Niw1LjY3LDIyLjQ1LDE0LjYyLDI5LjY4LDI2Ljg3LDcuMjMsMTIuMiwxMC44NCwyNy44NywxMC44NCw0N3MtMy40LDM0LjE4LTEwLjE4LDQ2LjUyYy02Ljc4LDEyLjMzLTE2LjA1LDIxLjY3LTI3Ljg0LDI4LjAxLTExLjc5LDYuMzMtMjUuMzQsOS41LTQwLjY4LDkuNS04LjksMC0xNy4wNy0xLjIzLTI0LjUyLTMuNjhaTTEwMTguMzgsMzk0LjA5Yy0xLjc4LjY1LTQuMjMsMS4yNy03LjMzLDEuODQtMy4xMi41NS02LjU2Ljg0LTEwLjM0Ljg0LTcuMTIsMC0xMi4zOS0xLjM0LTE1Ljg0LTQuMDEtMy40NS0yLjY3LTUuMTctNy4zNC01LjE3LTE0LjAxdi03Mi42OGgzOC42OHY4OC4wM1oiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTEyMDYuNzksMzA2Ljc0YzEzLjExLDAsMjIuODktMi43MywyOS4zNC04LjE4LDYuNDQtNS40Niw5LjY2LTEyLjI4LDkuNjYtMjAuNTIsMC03LjExLTIuNS0xMy4wMS03LjUtMTcuNjctNS00LjY3LTEyLjYxLTguNTUtMjIuODQtMTEuNjdsLTIzLTcuMDFjLTEwLjY3LTMuNTQtMjAuMDctNy42Ni0yOC4xOC0xMi4zMi04LjExLTQuNjgtMTQuMzktMTAuNjctMTguODQtMTguMDEtNC40NS03LjM0LTYuNjctMTYuMjEtNi42Ny0yNi42NywwLTE4LjAzLDYuNjctMzIuMTgsMjAuMDEtNDIuNTMsMTMuMzQtMTAuMzQsMzEuNDUtMTUuNTIsNTQuMzUtMTUuNTIsMTIuNDUsMCwyMy41MSwxLjI5LDMzLjE3LDMuODUsOS42OCwyLjU3LDE3LjI5LDYuMDYsMjIuODUsMTAuNSw1LjU1LDQuNDcsOC4zMyw5LjU3LDguMzMsMTUuMzQsMCwzLjc4LTEsNy4yMy0zLDEwLjMyLTIuMDEsMy4xMi00LjU2LDUuNjktNy42Nyw3LjY4LTUuMTItNC0xMi4xNy03LjQ0LTIxLjE4LTEwLjMyLTktMi44OC0xOC44My00LjMzLTI5LjUxLTQuMzMtMTEuNTYsMC0yMC41NiwyLjI4LTI3LDYuODMtNi40Niw0LjU0LTkuNjcsMTAuNjEtOS42NywxOC4xNywwLDYsMi4yMiwxMC44OSw2LjY3LDE0LjY2LDQuNDQsMy43OSwxMS40NCw3LjAyLDIxLjAxLDkuNjhsMTkuMzMsNi4wMmMxOC45LDUuNTUsMzMuNjMsMTMuMjgsNDQuMTgsMjMuMTYsMTAuNTUsOS45LDE1Ljg0LDIzLjMxLDE1Ljg0LDQwLjIsMCwxOC4wMS02LjgzLDMyLjY4LTIwLjQ5LDQ0LjAxLTEzLjY4LDExLjMzLTMzLjE5LDE2Ljk5LTU4LjUzLDE2Ljk5LTEzLjU2LDAtMjUuNTctMS41LTM2LjAyLTQuNS0xMC40NS0yLjk5LTE4LjY3LTctMjQuNjctMTEuOTktNi01LTkuMDEtMTAuNTItOS4wMS0xNi41MSwwLTQuODksMS41LTkuMDIsNC41LTEyLjM0LDMtMy4zNCw2LjI5LTUuNzksOS44NC03LjM0LDUuNTQsNC45LDEyLjk1LDkuNDUsMjIuMTcsMTMuNjksOS4yMiw0LjIxLDIwLjA2LDYuMzQsMzIuNTIsNi4zNFoiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTEzMjIuODIsMjc2LjA1bC0xLjY2LTI3LjM1LDkxLjM3LTEzLjMyYy0uNjctOS4xMy00LjEyLTE2Ljk3LTEwLjM0LTIzLjUyLTYuMjItNi41NS0xNS4wMS05Ljg0LTI2LjM1LTkuODRzLTIxLjU2LDQuMTMtMjkuMzMsMTIuMzRjLTcuNzksOC4yMi0xMS43OCwyMC4wMS0xMiwzNS4zNWwxLDE1LjY5YzEuNzgsMTQuODgsNy4yOCwyNS44OCwxNi41MSwzMyw5LjIyLDcuMTIsMjEuMDUsMTAuNjcsMzUuNTEsMTAuNjcsOS4zMywwLDE3Ljk1LTEuNDUsMjUuODQtNC4zMyw3Ljg5LTIuODgsMTQuMTctNiwxOC44NS05LjM1LDIuODgsMiw1LjI4LDQuNCw3LjE3LDcuMTgsMS44OCwyLjc4LDIuODMsNS45NSwyLjgzLDkuNSwwLDUuMzQtMi41LDEwLjA3LTcuNSwxNC4xOC01LDQuMTEtMTEuNzgsNy4yOS0yMC4zNCw5LjUxLTguNTYsMi4yMS0xOC4zLDMuMzMtMjkuMTgsMy4zMy0xNy4zNCwwLTMyLjUxLTMuMTYtNDUuNTItOS41LTEzLTYuMzUtMjMuMTctMTUuODQtMzAuNS0yOC41Mi03LjM0LTEyLjY3LTExLjAxLTI4LjIzLTExLjAxLTQ2LjY4LDAtMTMuNTcsMi4wNS0yNS40Niw2LjE2LTM1LjY5LDQuMTEtMTAuMjMsOS43Mi0xOC43MiwxNi44NC0yNS41MSw3LjExLTYuNzcsMTUuMzgtMTEuOSwyNC44NC0xNS4zNSw5LjQ1LTMuNDUsMTkuMzktNS4xNSwyOS44NC01LjE1LDE0LjQ2LDAsMjcuMTksMi45NCwzOC4xOSw4LjgyLDExLDUuODksMTkuNTYsMTQuMDcsMjUuNjgsMjQuNTEsNi4xMSwxMC40Niw5LjE3LDIyLjM1LDkuMTcsMzUuNjcsMCw2LjAyLTEuNSwxMC40Ny00LjUsMTMuMzUtMywyLjktNy4xOCw0LjY2LTEyLjUxLDUuMzNsLTEwOS4wNCwxNS42N1oiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTE2MTAuMjYsMjMxLjY5djI0LjExaC0zOC42OHYtMjIuNzZjMC0xMC4yMy0yLjk1LTE3LjczLTguODMtMjIuNTEtNS45LTQuNzktMTMuNjMtNy4xOC0yMy4xOC03LjE4LTcuMTIsMC0xMy41Ny45LTE5LjM0LDIuNjctNS43OCwxLjc4LTEwLjc5LDMuODgtMTUuMDEsNi4zNHY0My40NWgtMzguNjh2LTQ1LjQ2YzAtNS4zNCwxLjA1LTkuNjcsMy4xNy0xMi45OSwyLjExLTMuMzUsNS41MS02LjQ1LDEwLjE3LTkuMzUsNi40NS00LjIzLDE0Ljg0LTcuODIsMjUuMTgtMTAuODIsMTAuMzMtMy4wMiwyMS44NC00LjUsMzQuNTEtNC41LDIyLjIyLDAsMzkuNTcsNC45NCw1Mi4wMiwxNC44MiwxMi40NCw5LjksMTguNjcsMjQuNjMsMTguNjcsNDQuMThaTTE0NjYuNTQsMjU1LjhoMzguNjh2NzcuOTNjLTEuNzcuNjYtNC4yMiwxLjI3LTcuMzQsMS44NC0zLjExLjU1LTYuNTUuODQtMTAuMzIuODQtNy4xMywwLTEyLjQxLTEuMzQtMTUuODUtNC0zLjQ1LTIuNjctNS4xNy03LjIyLTUuMTctMTMuNjh2LTYyLjkyWk0xNTcxLjU4LDI1NS44aDM4LjY4djc3LjkzYy0xLjU3LjY2LTMuOTUsMS4yNy03LjE3LDEuODQtMy4yMi41NS02LjcyLjg0LTEwLjUuODQtNy4xMSwwLTEyLjM5LTEuMzQtMTUuODMtNC0zLjQ1LTIuNjctNS4xNy03LjIyLTUuMTctMTMuNjh2LTYyLjkyWiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTY3Ni4yOCwyNTUuOGgtMzguMzV2LTEyMC40OGMxLjc4LS42Nyw0LjI4LTEuMjcsNy41MS0xLjgzLDMuMjEtLjU1LDYuNjEtLjgzLDEwLjE3LS44Myw3LjExLDAsMTIuMzQsMS4yOCwxNS42OCwzLjgzLDMuMzMsMi41NSw1LDcuMTcsNSwxMy44M3YxMDUuNDhaTTE2MzcuOTIsMjU1LjhoMzguMzV2MzEuMjZjMCw3LjU2LDIuMjgsMTIuOTUsNi44NCwxNi4xNSw0LjU1LDMuMjUsMTAuODQsNC44NSwxOC44NSw0Ljg1LDMuNTUsMCw3LjQ0LS41NiwxMS42Ni0xLjY2LDQuMjItMS4xMSw3Ljg5LTIuMzUsMTEtMy42NywxLjU1LDEuNzcsMi45NSwzLjg5LDQuMTgsNi4zMiwxLjIyLDIuNDYsMS44Myw1LjIzLDEuODMsOC4zNCwwLDYuMjEtMywxMS40LTkuMDEsMTUuNTEtNiw0LjExLTE1LjIxLDYuMTYtMjcuNjcsNi4xNi0xNy4zNCwwLTMxLjAxLTMuODMtNDEuMDEtMTEuNS0xMC03LjY4LTE1LjAxLTIwLjQtMTUuMDEtMzguMTh2LTMzLjU4Wk0xNjYwLjk0LDIxMS4wM3YtMzAuMzRoNjUuNjljLjg4LDEuMzIsMS43OCwzLjM3LDIuNjYsNi4xNi44OSwyLjc4LDEuMzMsNS43MywxLjMzLDguODQsMCw1LjEyLTEuMjIsOC45NS0zLjY2LDExLjUtMi40NSwyLjU2LTUuNjcsMy44NC05LjY3LDMuODRoLTU2LjM2WiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTc0Ni4zLDEyOS45OWMwLTYuMjEsMi4xNi0xMS40NSw2LjUxLTE1LjY2LDQuMzQtNC4yMyw5LjcxLTYuMzUsMTYuMTYtNi4zNSw2Ljg4LDAsMTIuMzksMi4xMiwxNi41MSw2LjM1LDQuMTEsNC4yMiw2LjE3LDkuNDUsNi4xNywxNS42NnMtMi4wNiwxMS4xNi02LjE3LDE1LjVjLTQuMTIsNC4zNC05LjYzLDYuNS0xNi41MSw2LjUtNi40NSwwLTExLjgzLTIuMTYtMTYuMTYtNi41LTQuMzQtNC4zMy02LjUxLTkuNDktNi41MS0xNS41Wk0xNzg4LjMyLDI1NS44aC0zOC42OXYtNzcuNDZjMS43OS0uNDQsNC4yOC0uOTUsNy41MS0xLjUsMy4yMi0uNTQsNi43Mi0uODMsMTAuNS0uODMsNy4xMSwwLDEyLjMzLDEuMjcsMTUuNjcsMy44MywzLjM0LDIuNTYsNS4wMSw3LjMsNS4wMSwxNC4xNnY2MS44Wk0xNzQ5LjYzLDI1NS44aDM4LjY5djc3LjkzYy0xLjU2LjY2LTMuOSwxLjI3LTcuMDEsMS44NC0zLjEyLjU1LTYuNTUuODQtMTAuMzQuODQtNy4xMSwwLTEyLjQ2LTEuMzQtMTYuMDEtNC0zLjU1LTIuNjctNS4zNC03LjIyLTUuMzQtMTMuNjh2LTYyLjkyWiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMTk2MS4wNCwyMzEuNjl2MjQuMTFoLTM4LjY3di0yMi43NmMwLTEwLjIzLTIuOTUtMTcuNzMtOC44NS0yMi41MS01Ljg5LTQuNzktMTMuNjEtNy4xOC0yMy4xNy03LjE4LTcuMTEsMC0xMy41Ny45LTE5LjM0LDIuNjctNS43OCwxLjc4LTEwLjc4LDMuODgtMTUuMDEsNi4zNHY0My40NWgtMzguNjd2LTQ1LjQ2YzAtNS4zNCwxLjA0LTkuNjcsMy4xNi0xMi45OSwyLjExLTMuMzUsNS41MS02LjQ1LDEwLjE2LTkuMzUsNi40NS00LjIzLDE0Ljg1LTcuODIsMjUuMTktMTAuODIsMTAuMzQtMy4wMiwyMS44NC00LjUsMzQuNTEtNC41LDIyLjI0LDAsMzkuNTcsNC45NCw1Mi4wMiwxNC44MiwxMi40NSw5LjksMTguNjcsMjQuNjMsMTguNjcsNDQuMThaTTE4MTcuMzMsMjU1LjhoMzguNjd2NzcuOTNjLTEuNzguNjYtNC4yMiwxLjI3LTcuMzIsMS44NC0zLjEyLjU1LTYuNTYuODQtMTAuMzUuODQtNy4xMiwwLTEyLjM5LTEuMzQtMTUuODQtNC0zLjQzLTIuNjctNS4xNi03LjIyLTUuMTYtMTMuNjh2LTYyLjkyWk0xOTIyLjM3LDI1NS44aDM4LjY3djc3LjkzYy0xLjU1LjY2LTMuOTUsMS4yNy03LjE3LDEuODQtMy4yMy41NS02LjcxLjg0LTEwLjUuODQtNy4xMiwwLTEyLjM5LTEuMzQtMTUuODQtNC0zLjQ1LTIuNjctNS4xNi03LjIyLTUuMTYtMTMuNjh2LTYyLjkyWiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QxIiBkPSJNMjAwNS4wNiwyNzYuMDVsLTEuNjctMjcuMzUsOTEuMzYtMTMuMzJjLS42Ni05LjEzLTQuMTEtMTYuOTctMTAuMzItMjMuNTItNi4yNC02LjU1LTE1LTkuODQtMjYuMzUtOS44NHMtMjEuNTYsNC4xMy0yOS4zNCwxMi4zNGMtNy43OSw4LjIyLTExLjc5LDIwLjAxLTEyLjAxLDM1LjM1bDEsMTUuNjljMS43OCwxNC44OCw3LjI4LDI1Ljg4LDE2LjUxLDMzLDkuMjIsNy4xMiwyMS4wNiwxMC42NywzNS41LDEwLjY3LDkuMzQsMCwxNy45NS0xLjQ1LDI1Ljg1LTQuMzMsNy44OC0yLjg4LDE0LjE3LTYsMTguODMtOS4zNSwyLjg5LDIsNS4yOCw0LjQsNy4xNyw3LjE4LDEuODgsMi43OCwyLjgzLDUuOTUsMi44Myw5LjUsMCw1LjM0LTIuNSwxMC4wNy03LjUsMTQuMTgtNC45OSw0LjExLTExLjc4LDcuMjktMjAuMzUsOS41MS04LjU1LDIuMjEtMTguMjgsMy4zMy0yOS4xNywzLjMzLTE3LjM0LDAtMzIuNTEtMy4xNi00NS41Mi05LjUtMTMuMDEtNi4zNS0yMy4xNy0xNS44NC0zMC41MS0yOC41Mi03LjMzLTEyLjY3LTExLTI4LjIzLTExLTQ2LjY4LDAtMTMuNTcsMi4wNi0yNS40Niw2LjE3LTM1LjY5LDQuMTEtMTAuMjMsOS43My0xOC43MiwxNi44NC0yNS41MSw3LjExLTYuNzcsMTUuMzktMTEuOSwyNC44NC0xNS4zNSw5LjQ0LTMuNDUsMTkuNC01LjE1LDI5Ljg0LTUuMTUsMTQuNDQsMCwyNy4xOCwyLjk0LDM4LjE5LDguODIsMTEuMDEsNS44OSwxOS41NiwxNC4wNywyNS42NywyNC41MSw2LjEyLDEwLjQ2LDkuMTgsMjIuMzUsOS4xOCwzNS42NywwLDYuMDItMS41MSwxMC40Ny00LjUxLDEzLjM1LTMsMi45LTcuMTcsNC42Ni0xMi41MSw1LjMzbC0xMDkuMDMsMTUuNjdaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJzdDEiIGQ9Ik0yMTg5Ljc5LDI1NS44aC0zOC42OVYxMTcuNjZjMS41Ni0uNDUsMy45NS0uOTQsNy4xOC0xLjUxLDMuMjMtLjU0LDYuNjEtLjgzLDEwLjE3LS44Myw3LjMzLDAsMTIuNzIsMS4yOCwxNi4xNywzLjg0LDMuNDUsMi41Niw1LjE3LDcuMTcsNS4xNywxMy44NHYxMjIuOFpNMjE1MS4xLDI1NS44aDM4LjY5djc3LjkzYy0xLjc5LjY2LTQuMjQsMS4yNy03LjM0LDEuODQtMy4xMi41NS02LjU2Ljg0LTEwLjM0Ljg0LTcuMTIsMC0xMi4zOS0xLjM0LTE1LjgzLTQtMy40Ni0yLjY3LTUuMTgtNy4yMi01LjE4LTEzLjY4di02Mi45MloiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MSIgZD0iTTIzMzguODIsMjkwLjM4YzAsMTUuMzQtNS42NiwyNy4zNi0xNywzNi4wMi0xMS4zMyw4LjY2LTI3Ljc5LDEyLjk5LTQ5LjM1LDEyLjk5LTE3Ljc5LDAtMzIuMjktMi42Ni00My41Mi04LTExLjIzLTUuMzMtMTYuODQtMTIuMjItMTYuODQtMjAuNjcsMC0zLjc4Ljg4LTcuMTcsMi42Ny0xMC4xNywxLjc3LTIuOTksNC4xMS01LjQsNi45OS03LjE3LDYuMjEsNCwxMy4zOSw3LjYzLDIxLjUxLDEwLjg0LDguMTEsMy4yMywxNy4zOSw0LjgzLDI3Ljg1LDQuODMsMTkuNTUsMCwyOS4zMy02LjEsMjkuMzMtMTguMzQsMC01LjEyLTEuNjYtOS4yNy01LTEyLjQ5LTMuMzQtMy4yMy04LjU3LTUuNjItMTUuNjgtNy4xOGwtMjAuNjctNC45OWMtMTUuNzktMy41Ny0yNy40Ni05LjEzLTM1LjAyLTE2LjY4LTcuNTYtNy41Ni0xMS4zMy0xNy40NS0xMS4zMy0yOS42OSwwLTEzLjU0LDUuNjEtMjQuODIsMTYuODQtMzMuODQsMTEuMjMtOSwyNy4wNy0xMy41LDQ3LjUyLTEzLjUsMTAuNDUsMCwxOS44NCwxLjA1LDI4LjE4LDMuMTcsOC4zNCwyLjExLDE0Ljg0LDUuMTIsMTkuNTEsOSw0LjY4LDMuODgsNyw4LjUsNywxMy44NCwwLDMuNTYtLjc4LDYuNzktMi4zMiw5LjY5LTEuNTYsMi44Ny0zLjY3LDUuMS02LjM0LDYuNjUtMi42Ni0xLjU1LTYuMjgtMy4yOC0xMC44NS01LjE4LTQuNTUtMS44OC05LjY2LTMuNS0xNS4zMy00LjgyLTUuNjYtMS4zNS0xMS41MS0yLjAxLTE3LjUtMi4wMS04LjY4LDAtMTUuNjMsMS40NS0yMC44NSw0LjM0LTUuMjMsMi44Ny03LjgzLDcuMTEtNy44MywxMi42NSwwLDQsMS40OSw3LjQsNC41LDEwLjE5LDIuOTksMi43Nyw3Ljk0LDUuMDYsMTQuODMsNi44M2wxOCw0LjM0YzE3LjU2LDQsMzAuMzksMTAsMzguNTEsMTguMDEsOC4xMiw3Ljk5LDEyLjE2LDE4LjQ1LDEyLjE2LDMxLjMzWiIvPgogICAgPC9nPgogICAgPGc+CiAgICAgIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik02NzkuOTUsNTE0LjUyYzIuOTQsMi4zNCw1LjI3LDUuMjMsNyw4LjY5LDEuNzMsMy40NSwyLjU5LDcuMTQsMi41OSwxMS4wNywwLDQuOTUtMS4yNiw5LjQtMy43OCwxMy4zNi0yLjUyLDMuOTctNi4xOCw3LjEtMTAuOTksOS4zOC00LjgxLDIuMjktMTAuNDgsMy40My0xNy4wMSwzLjQzaC0zNi40MXYtOTcuNTloMzUuMDFjNi42MywwLDEyLjI3LDEuMSwxNi45NCwzLjI4LDQuNjYsMi4yLDguMTYsNS4xNywxMC41LDguODksMi4zMywzLjc0LDMuNDksNy45NCwzLjQ5LDEyLjYxLDAsNS43OC0xLjU2LDEwLjU2LTQuNjgsMTQuMzQtMy4xMywzLjc4LTcuMjYsNi41MS0xMi4zOSw4LjE5LDMuNTQuNTYsNi43OSwyLjAxLDkuNzMsNC4zNFpNNjM0LjEsNTA1aDIxLjQzYzUuOTcsMCwxMC41OS0xLjQsMTMuODYtNC4yLDMuMjYtMi44LDQuOS02LjY3LDQuOS0xMS42MnMtMS42NC04LjgzLTQuOS0xMS42M2MtMy4yNy0yLjgtNy45OC00LjE5LTE0LjE0LTQuMTloLTIxLjE0djMxLjY0Wk02NzEuNDgsNTQ1LjQ3YzMuNTUtMi45OSw1LjMyLTcuMTQsNS4zMi0xMi40N3MtMS44Ny05LjY4LTUuNi0xMi44Yy0zLjczLTMuMTMtOC43My00LjctMTQuOTgtNC43aC0yMi4xM3YzNC40NWgyMi41NGM2LjM1LDAsMTEuMjktMS40OSwxNC44NC00LjQ4WiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNNzgwLjgzLDQ4My43MnY3Ni43MmgtMTIuNzR2LTExLjMzYy0yLjQzLDMuOTEtNS44MSw2Ljk3LTEwLjE1LDkuMTctNC4zNCwyLjE5LTkuMTIsMy4yOS0xNC4zNSwzLjI5LTUuOTcsMC0xMS4zNC0xLjI0LTE2LjEtMy43MS00Ljc2LTIuNDgtOC41Mi02LjE4LTExLjI3LTExLjE0LTIuNzUtNC45NS00LjEzLTEwLjk3LTQuMTMtMTguMDZ2LTQ0Ljk1aDEyLjZ2NDMuMjdjMCw3LjU2LDEuOTEsMTMuMzgsNS43NCwxNy40MywzLjgyLDQuMDYsOS4wNSw2LjA5LDE1LjY4LDYuMDlzMTIuMTgtMi4xLDE2LjEtNi4zYzMuOTItNC4xOSw1Ljg4LTEwLjMyLDUuODgtMTguMzR2LTQyLjE1aDEyLjc0WiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNODE5LjM0LDU1OC43Yy00LjY3LTIuMDEtOC4zNS00LjgxLTExLjA3LTguNC0yLjctMy41OS00LjItNy43Mi00LjQ4LTEyLjM5aDEzLjE2Yy4zNywzLjgzLDIuMTcsNi45Niw1LjM5LDkuMzgsMy4yMiwyLjQyLDcuNDQsMy42NCwxMi42OCwzLjY0LDQuODUsMCw4LjY4LTEuMDcsMTEuNDgtMy4yMiwyLjgtMi4xNSw0LjItNC44Niw0LjItOC4xMnMtMS41LTUuODYtNC40OC03LjQ5Yy0yLjk5LTEuNjMtNy42MS0zLjI0LTEzLjg2LTQuODMtNS43LTEuNDktMTAuMzQtMy4wMS0xMy45My00LjU1LTMuNTktMS41My02LjY4LTMuODMtOS4yNC02Ljg2LTIuNTYtMy4wMy0zLjg1LTcuMDItMy44NS0xMS45NywwLTMuOTIsMS4xNy03LjUyLDMuNS0xMC43OCwyLjM0LTMuMjcsNS42NS01Ljg2LDkuOTUtNy43Nyw0LjMtMS45Miw5LjE5LTIuODcsMTQuNy0yLjg3LDguNSwwLDE1LjM2LDIuMTUsMjAuNTgsNi40NCw1LjIyLDQuMyw4LjAzLDEwLjE3LDguNCwxNy42NGgtMTIuNzRjLS4yOC00LjAxLTEuODktNy4yMy00LjgzLTkuNjYtMi45NC0yLjQxLTYuODktMy42NC0xMS44My0zLjY0LTQuNTgsMC04LjIyLjk4LTEwLjkzLDIuOTQtMi43LDEuOTYtNC4wNiw0LjUzLTQuMDYsNy43LDAsMi41Mi44Miw0LjYsMi40NSw2LjIzLDEuNjMsMS42MywzLjY5LDIuOTQsNi4xNiwzLjkyLDIuNDcuOTgsNS45LDIuMDcsMTAuMjksMy4yOSw1LjUxLDEuNDksOS45OSwyLjk2LDEzLjQ0LDQuNDEsMy40NSwxLjQ0LDYuNDIsMy42MSw4Ljg5LDYuNSwyLjQ3LDIuOTEsMy43Niw2LjY5LDMuODUsMTEuMzUsMCw0LjItMS4xNyw3Ljk4LTMuNSwxMS4zNC0yLjMzLDMuMzYtNS42Miw2LTkuODcsNy45MS00LjI1LDEuOTEtOS4xMywyLjg3LTE0LjYzLDIuODctNS44OCwwLTExLjE2LTEtMTUuODMtMy4wMVoiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTg4Ny4xLDQ2OC43M2MtMS42OC0xLjY3LTIuNTItMy43My0yLjUyLTYuMTZzLjgzLTQuNDcsMi41Mi02LjE2YzEuNjgtMS42NywzLjczLTIuNTEsNi4xNi0yLjUxczQuMzIuODQsNS45NSwyLjUxYzEuNjMsMS42OSwyLjQ1LDMuNzQsMi40NSw2LjE2cy0uODIsNC40OS0yLjQ1LDYuMTZjLTEuNjQsMS42OC0zLjYyLDIuNTItNS45NSwyLjUycy00LjQ4LS44NS02LjE2LTIuNTJaTTg5OS40Myw0ODMuNzJ2NzYuNzJoLTEyLjc0di03Ni43MmgxMi43NFoiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTk4Ni43OSw0OTAuNzljNS43OSw1LjY0LDguNjgsMTMuNzksOC42OCwyNC40MnY0NS4yMmgtMTIuNnYtNDMuNGMwLTcuNjUtMS45Mi0xMy41MS01Ljc0LTE3LjU3LTMuODMtNC4wNi05LjA2LTYuMDktMTUuNjktNi4wOXMtMTIuMDYsMi4xLTE2LjAzLDYuMjljLTMuOTcsNC4yLTUuOTUsMTAuMzItNS45NSwxOC4zNHY0Mi40MmgtMTIuNzR2LTc2LjcyaDEyLjc0djEwLjkyYzIuNTItMy45Myw1Ljk1LTYuOTUsMTAuMjktOS4xLDQuMzQtMi4xNCw5LjEyLTMuMjIsMTQuMzUtMy4yMiw5LjMzLDAsMTYuODksMi44MywyMi42OCw4LjQ4WiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTA5MS41Myw1MjYuODRoLTYxLjMzYy40Nyw3LjU2LDMuMDYsMTMuNDcsNy43NywxNy43MSw0LjcxLDQuMjUsMTAuNDMsNi4zOCwxNy4xNSw2LjM4LDUuNSwwLDEwLjEtMS4yOSwxMy43OS0zLjg1LDMuNjktMi41Nyw2LjI4LTYsNy43Ny0xMC4zaDEzLjcyYy0yLjA1LDcuMzgtNi4xNiwxMy4zNy0xMi4zMiwxOC02LjE2LDQuNjItMTMuODIsNi45My0yMi45Niw2LjkzLTcuMjgsMC0xMy43OS0xLjYzLTE5LjU0LTQuODktNS43NC0zLjI3LTEwLjI0LTcuOTItMTMuNS0xMy45My0zLjI3LTYuMDMtNC45LTEzLTQuOS0yMC45M3MxLjU4LTE0Ljg5LDQuNzYtMjAuODdjMy4xNy01Ljk2LDcuNjMtMTAuNTcsMTMuMzctMTMuNzksNS43NC0zLjIyLDEyLjM1LTQuODMsMTkuODEtNC44M3MxMy43MiwxLjU5LDE5LjMyLDQuNzdjNS42LDMuMTcsOS45Miw3LjUzLDEyLjk1LDEzLjA5LDMuMDMsNS41Niw0LjU1LDExLjg0LDQuNTUsMTguODMsMCwyLjQzLS4xNCw1LS40Miw3LjcxWk0xMDc1LjU2LDUwMy45NWMtMi4xNS0zLjUtNS4wNy02LjE2LTguNzUtNy45OC0zLjY5LTEuODItNy43Ny0yLjczLTEyLjI1LTIuNzMtNi40NCwwLTExLjkyLDIuMDYtMTYuNDUsNi4xNi00LjUzLDQuMTItNy4xMiw5LjgtNy43NywxNy4wOGg0OC40NWMwLTQuODUtMS4wNy05LjAzLTMuMjItMTIuNTNaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xMTI1LjY5LDU1OC43Yy00LjY3LTIuMDEtOC4zNi00LjgxLTExLjA2LTguNC0yLjcxLTMuNTktNC4yLTcuNzItNC40OC0xMi4zOWgxMy4xNmMuMzcsMy44MywyLjE3LDYuOTYsNS4zOSw5LjM4LDMuMjIsMi40Miw3LjQ0LDMuNjQsMTIuNjcsMy42NCw0Ljg2LDAsOC42OC0xLjA3LDExLjQ4LTMuMjIsMi44LTIuMTUsNC4yLTQuODYsNC4yLTguMTJzLTEuNS01Ljg2LTQuNDktNy40OWMtMi45OS0xLjYzLTcuNjEtMy4yNC0xMy44Ni00LjgzLTUuNjktMS40OS0xMC4zNC0zLjAxLTEzLjkzLTQuNTUtMy42LTEuNTMtNi42OC0zLjgzLTkuMjQtNi44Ni0yLjU3LTMuMDMtMy44NS03LjAyLTMuODUtMTEuOTcsMC0zLjkyLDEuMTctNy41MiwzLjUtMTAuNzgsMi4zMy0zLjI3LDUuNjUtNS44Niw5Ljk0LTcuNzcsNC4yOS0xLjkyLDkuMTktMi44NywxNC43LTIuODcsOC41LDAsMTUuMzYsMi4xNSwyMC41OSw2LjQ0LDUuMjMsNC4zLDguMDMsMTAuMTcsOC40LDE3LjY0aC0xMi43NGMtLjI3LTQuMDEtMS44OS03LjIzLTQuODMtOS42Ni0yLjk0LTIuNDEtNi44OC0zLjY0LTExLjgzLTMuNjQtNC41NywwLTguMjEuOTgtMTAuOTIsMi45NC0yLjcxLDEuOTYtNC4wNiw0LjUzLTQuMDYsNy43LDAsMi41Mi44MSw0LjYsMi40NSw2LjIzLDEuNjMsMS42MywzLjY5LDIuOTQsNi4xNiwzLjkyLDIuNDguOTgsNS45MSwyLjA3LDEwLjMsMy4yOSw1LjUsMS40OSw5Ljk4LDIuOTYsMTMuNDMsNC40MSwzLjQ2LDEuNDQsNi40MiwzLjYxLDguODksNi41LDIuNDcsMi45MSwzLjc2LDYuNjksMy44NSwxMS4zNSwwLDQuMi0xLjE3LDcuOTgtMy41LDExLjM0LTIuMzQsMy4zNi01LjYzLDYtOS44Nyw3LjkxLTQuMjQsMS45MS05LjEyLDIuODctMTQuNjMsMi44Ny01Ljg5LDAtMTEuMTYtMS0xNS44My0zLjAxWiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTIwNC4zNyw1NTguN2MtNC42Ny0yLjAxLTguMzYtNC44MS0xMS4wNi04LjQtMi43MS0zLjU5LTQuMi03LjcyLTQuNDgtMTIuMzloMTMuMTdjLjM3LDMuODMsMi4xNyw2Ljk2LDUuMzksOS4zOCwzLjIyLDIuNDIsNy40NCwzLjY0LDEyLjY4LDMuNjQsNC44NSwwLDguNjgtMS4wNywxMS40OC0zLjIyLDIuOC0yLjE1LDQuMi00Ljg2LDQuMi04LjEycy0xLjQ5LTUuODYtNC40OC03LjQ5Yy0yLjk5LTEuNjMtNy42MS0zLjI0LTEzLjg2LTQuODMtNS42OS0xLjQ5LTEwLjM0LTMuMDEtMTMuOTMtNC41NS0zLjU5LTEuNTMtNi42OC0zLjgzLTkuMjQtNi44Ni0yLjU3LTMuMDMtMy44NS03LjAyLTMuODUtMTEuOTcsMC0zLjkyLDEuMTctNy41MiwzLjUxLTEwLjc4LDIuMzMtMy4yNyw1LjY1LTUuODYsOS45NC03Ljc3LDQuMy0xLjkyLDkuMi0yLjg3LDE0LjctMi44Nyw4LjQ5LDAsMTUuMzYsMi4xNSwyMC41OCw2LjQ0LDUuMjMsNC4zLDguMDMsMTAuMTcsOC40MSwxNy42NGgtMTIuNzVjLS4yOC00LjAxLTEuODktNy4yMy00LjgzLTkuNjYtMi45NC0yLjQxLTYuODgtMy42NC0xMS44My0zLjY0LTQuNTcsMC04LjIyLjk4LTEwLjkyLDIuOTQtMi43LDEuOTYtNC4wNiw0LjUzLTQuMDYsNy43LDAsMi41Mi44Miw0LjYsMi40NSw2LjIzLDEuNjQsMS42MywzLjY5LDIuOTQsNi4xNiwzLjkyLDIuNDcuOTgsNS45MSwyLjA3LDEwLjI5LDMuMjksNS41MSwxLjQ5LDkuOTksMi45NiwxMy40NCw0LjQxLDMuNDUsMS40NCw2LjQyLDMuNjEsOC44OSw2LjUsMi40NywyLjkxLDMuNzYsNi42OSwzLjg1LDExLjM1LDAsNC4yLTEuMTcsNy45OC0zLjUsMTEuMzQtMi4zNCwzLjM2LTUuNjIsNi05Ljg3LDcuOTFzLTkuMTMsMi44Ny0xNC42MywyLjg3Yy01Ljg4LDAtMTEuMTYtMS0xNS44Mi0zLjAxWiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTMyNy40NCw1NTAuMDloMzQuMTd2MTAuMzVoLTQ2Ljl2LTk3LjU5aDEyLjc0djg3LjIzWiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMTM5NC43Myw1NTYuODFjLTUuODQtMy4yNy0xMC40MS03LjkyLTEzLjczLTEzLjkzLTMuMzEtNi4wMy00Ljk3LTEzLTQuOTctMjAuOTNzMS43MS0xNC43OCw1LjExLTIwLjc5YzMuNC02LjAzLDguMDUtMTAuNjQsMTMuOTMtMTMuODYsNS44OC0zLjIyLDEyLjQ2LTQuODMsMTkuNzQtNC44M3MxMy44NiwxLjYyLDE5Ljc0LDQuODNjNS44OCwzLjIyLDEwLjUyLDcuODIsMTMuOTMsMTMuNzksMy40MSw1Ljk4LDUuMTEsMTIuOTMsNS4xMSwyMC44N3MtMS43NSwxNC45LTUuMjYsMjAuOTNjLTMuNDksNi4wMS04LjI0LDEwLjY2LTE0LjIxLDEzLjkzLTUuOTgsMy4yNi0xMi42LDQuODktMTkuODgsNC44OXMtMTMuNy0xLjYzLTE5LjUzLTQuODlaTTE0MjcuMTQsNTQ3LjI5YzQuMDItMi4xNSw3LjI2LTUuMzcsOS43My05LjY2LDIuNDctNC4yOSwzLjcxLTkuNTMsMy43MS0xNS42OHMtMS4yMS0xMS4zOC0zLjYzLTE1LjY5Yy0yLjQzLTQuMjgtNS42MS03LjQ5LTkuNTMtOS41OC0zLjkyLTIuMTEtOC4xNy0zLjE1LTEyLjc0LTMuMTVzLTguOTQsMS4wNC0xMi44MSwzLjE1Yy0zLjg4LDIuMS02Ljk3LDUuMy05LjMxLDkuNTgtMi4zMyw0LjMxLTMuNSw5LjUzLTMuNSwxNS42OXMxLjE1LDExLjUyLDMuNDMsMTUuODJjMi4yOSw0LjI5LDUuMzQsNy40OSw5LjE3LDkuNTksMy44MywyLjEsOC4wMywzLjE1LDEyLjYsMy4xNXM4Ljg3LTEuMDcsMTIuODgtMy4yMloiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTE1MjUuMDgsNDg2Ljc5YzQuOTksMi45LDguNyw2LjU0LDExLjEzLDEwLjkydi0xNGgxMi44OHY3OC40MWMwLDctMS40OSwxMy4yMy00LjQ4LDE4LjY5LTIuOTksNS40Ny03LjI2LDkuNzQtMTIuODIsMTIuODItNS41NSwzLjA4LTEyLjAyLDQuNjEtMTkuMzksNC42MS0xMC4wOCwwLTE4LjQ5LTIuMzctMjUuMi03LjEzLTYuNzMtNC43Ny0xMC42OS0xMS4yNi0xMS45LTE5LjQ2aDEyLjZjMS40LDQuNjYsNC4yOSw4LjQyLDguNjgsMTEuMjcsNC4zOSwyLjg0LDkuNjYsNC4yNywxNS44Myw0LjI3LDcsMCwxMi43Mi0yLjE5LDE3LjE1LTYuNTksNC40My00LjM5LDYuNjUtMTAuNTQsNi42NS0xOC40OHYtMTYuMWMtMi41Miw0LjQ4LTYuMjYsOC4yMi0xMS4yLDExLjItNC45NSwyLjk5LTEwLjc0LDQuNDgtMTcuMzYsNC40OHMtMTMuMDEtMS42Ny0xOC41NS01LjA0Yy01LjU2LTMuMzYtOS45Mi04LjA3LTEzLjA5LTE0LjE0LTMuMTgtNi4wNi00Ljc3LTEyLjk3LTQuNzctMjAuNzJzMS41OC0xNC43Myw0Ljc3LTIwLjY1YzMuMTctNS45Myw3LjUzLTEwLjUyLDEzLjA5LTEzLjc5LDUuNTUtMy4yNywxMS43NC00LjksMTguNTUtNC45czEyLjQ0LDEuNDUsMTcuNDMsNC4zNFpNMTUzMi43MSw1MDYuODJjLTIuMzMtNC4zLTUuNDgtNy41OS05LjQ1LTkuODctMy45Ny0yLjI5LTguMzQtMy40My0xMy4wOS0zLjQzcy05LjEsMS4xMi0xMy4wMywzLjM1Yy0zLjkyLDIuMjUtNy4wNCw1LjUxLTkuMzgsOS44MS0yLjMzLDQuMjktMy41LDkuMzMtMy41LDE1LjEyczEuMTcsMTAuOTksMy41LDE1LjMzYzIuMzQsNC4zNCw1LjQ2LDcuNjYsOS4zOCw5Ljk0LDMuOTMsMi4yOCw4LjI3LDMuNDMsMTMuMDMsMy40M3M5LjEyLTEuMTUsMTMuMDktMy40M2MzLjk3LTIuMjksNy4xMi01LjYxLDkuNDUtOS45NCwyLjM0LTQuMzQsMy41LTkuNDEsMy41LTE1LjE5cy0xLjE3LTEwLjgzLTMuNS0xNS4xMloiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTE1NzYuNjcsNDY4LjczYy0xLjY4LTEuNjctMi41Mi0zLjczLTIuNTItNi4xNnMuODQtNC40NywyLjUyLTYuMTZjMS42OC0xLjY3LDMuNzMtMi41MSw2LjE2LTIuNTFzNC4zMi44NCw1Ljk1LDIuNTFjMS42MywxLjY5LDIuNDUsMy43NCwyLjQ1LDYuMTZzLS44Miw0LjQ5LTIuNDUsNi4xNmMtMS42NCwxLjY4LTMuNjEsMi41Mi01Ljk1LDIuNTJzLTQuNDgtLjg1LTYuMTYtMi41MlpNMTU4OSw0ODMuNzJ2NzYuNzJoLTEyLjc0di03Ni43MmgxMi43NFoiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTE2MTYuMyw1MDEuMTVjMy4xNy01LjkzLDcuNTgtMTAuNTIsMTMuMjMtMTMuNzksNS42NS0zLjI3LDEyLjExLTQuOSwxOS40LTQuOSw5LjQzLDAsMTcuMiwyLjI5LDIzLjMyLDYuODYsNi4xMSw0LjU3LDEwLjE0LDEwLjkzLDEyLjExLDE5LjA0aC0xMy43MmMtMS4zMS00LjY2LTMuODUtOC4zNC03LjYzLTExLjA1LTMuNzgtMi43MS04LjQ3LTQuMDctMTQuMDctNC4wNy03LjI4LDAtMTMuMTcsMi41MS0xNy42NCw3LjQ5LTQuNDgsNS02LjcyLDEyLjA3LTYuNzIsMjEuMjJzMi4yNCwxNi4zOCw2LjcyLDIxLjQxYzQuNDcsNS4wNSwxMC4zNiw3LjU3LDE3LjY0LDcuNTcsNS42LDAsMTAuMjctMS4zMSwxNC0zLjkzLDMuNzMtMi42MSw2LjMtNi4zNCw3LjctMTEuMTloMTMuNzJjLTIuMDUsNy44My02LjE2LDE0LjEyLTEyLjMyLDE4LjgyLTYuMTYsNC43MS0xMy44Niw3LjA3LTIzLjEsNy4wNy03LjI4LDAtMTMuNzUtMS42My0xOS40LTQuODktNS42NS0zLjI3LTEwLjA2LTcuODktMTMuMjMtMTMuODYtMy4xOC01Ljk4LTQuNzctMTIuOTgtNC43Ny0yMXMxLjU4LTE0Ljg3LDQuNzctMjAuNzlaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xNzYzLjUyLDU1OGMtNS4wOS0yLjI5LTkuMDgtNS40NS0xMS45Ny05LjUyLTIuOS00LjA2LTQuMzktOC43NS00LjQ4LTE0LjA4aDEzLjU4Yy40Nyw0LjU3LDIuMzYsOC40Myw1LjY3LDExLjU1LDMuMzIsMy4xMyw4LjE1LDQuNywxNC41LDQuN3MxMC44NS0xLjUyLDE0LjM1LTQuNTVjMy40OS0zLjAzLDUuMjUtNi45NCw1LjI1LTExLjcsMC0zLjcyLTEuMDMtNi43Ny0zLjA4LTkuMS0yLjA2LTIuMzItNC42Mi00LjEtNy43LTUuMzItMy4wOC0xLjIxLTcuMjQtMi41Mi0xMi40Ny0zLjkyLTYuNDMtMS42OC0xMS42LTMuMzYtMTUuNDctNS4wNC0zLjg4LTEuNjgtNy4xOS00LjMxLTkuOTQtNy45MS0yLjc2LTMuNi00LjEzLTguNDMtNC4xMy0xNC40OSwwLTUuMzMsMS4zNS0xMC4wNCw0LjA2LTE0LjE0LDIuNy00LjExLDYuNTEtNy4yNywxMS40MS05LjUyLDQuOS0yLjI0LDEwLjUyLTMuMzYsMTYuODctMy4zNiw5LjE1LDAsMTYuNjQsMi4yOSwyMi40Nyw2Ljg2LDUuODQsNC41OCw5LjEyLDEwLjY0LDkuODgsMTguMjFoLTE0LjAxYy0uNDYtMy43My0yLjQzLTcuMDItNS44OC05Ljg4LTMuNDUtMi44NC04LjAzLTQuMjYtMTMuNzMtNC4yNi01LjMyLDAtOS42NiwxLjM4LTEzLjAyLDQuMTMtMy4zNiwyLjc0LTUuMDQsNi42LTUuMDQsMTEuNTUsMCwzLjU1LDEsNi40NCwzLjAxLDguNjcsMiwyLjI1LDQuNDgsMy45NSw3LjQyLDUuMTEsMi45NCwxLjE2LDcuMDcsMi41LDEyLjM5LDQsNi40NCwxLjc3LDExLjYyLDMuNTIsMTUuNTUsNS4yNSwzLjkyLDEuNzMsNy4yOCw0LjM5LDEwLjA4LDcuOTksMi44LDMuNTgsNC4yLDguNDcsNC4yLDE0LjYzLDAsNC43Ni0xLjI2LDkuMjQtMy43OCwxMy40NC0yLjUyLDQuMi02LjI1LDcuNi0xMS4yLDEwLjIyLTQuOTUsMi42MS0xMC43OCwzLjkyLTE3LjUsMy45MnMtMTIuMi0xLjE0LTE3LjI5LTMuNDNaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xOTA3LjI1LDUyNi44NGgtNjEuMzNjLjQ2LDcuNTYsMy4wNiwxMy40Nyw3Ljc3LDE3LjcxLDQuNzEsNC4yNSwxMC40Myw2LjM4LDE3LjE1LDYuMzgsNS41LDAsMTAuMS0xLjI5LDEzLjc5LTMuODUsMy42OS0yLjU3LDYuMjgtNiw3Ljc3LTEwLjNoMTMuNzJjLTIuMDYsNy4zOC02LjE2LDEzLjM3LTEyLjMyLDE4LTYuMTYsNC42Mi0xMy44MSw2LjkzLTIyLjk2LDYuOTMtNy4yOCwwLTEzLjc5LTEuNjMtMTkuNTMtNC44OS01Ljc0LTMuMjctMTAuMjUtNy45Mi0xMy41MS0xMy45My0zLjI3LTYuMDMtNC45LTEzLTQuOS0yMC45M3MxLjU4LTE0Ljg5LDQuNzYtMjAuODdjMy4xNy01Ljk2LDcuNjMtMTAuNTcsMTMuMzctMTMuNzksNS43NC0zLjIyLDEyLjM1LTQuODMsMTkuODEtNC44M3MxMy43MiwxLjU5LDE5LjMyLDQuNzdjNS42LDMuMTcsOS45Miw3LjUzLDEyLjk1LDEzLjA5LDMuMDMsNS41Niw0LjU1LDExLjg0LDQuNTUsMTguODMsMCwyLjQzLS4xNCw1LS40Miw3LjcxWk0xODkxLjI5LDUwMy45NWMtMi4xNS0zLjUtNS4wNi02LjE2LTguNzUtNy45OC0zLjY5LTEuODItNy43Ny0yLjczLTEyLjI1LTIuNzMtNi40NCwwLTExLjkzLDIuMDYtMTYuNDUsNi4xNi00LjUzLDQuMTItNy4xMiw5LjgtNy43NywxNy4wOGg0OC40NGMwLTQuODUtMS4wNy05LjAzLTMuMjItMTIuNTNaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0xOTMwLjA3LDUwMS4xNWMzLjE3LTUuOTMsNy41OS0xMC41MiwxMy4yMy0xMy43OSw1LjY1LTMuMjcsMTIuMTEtNC45LDE5LjM5LTQuOSw5LjQzLDAsMTcuMiwyLjI5LDIzLjMyLDYuODYsNi4xMSw0LjU3LDEwLjE1LDEwLjkzLDEyLjExLDE5LjA0aC0xMy43MmMtMS4zMS00LjY2LTMuODUtOC4zNC03LjYzLTExLjA1LTMuNzgtMi43MS04LjQ3LTQuMDctMTQuMDctNC4wNy03LjI4LDAtMTMuMTYsMi41MS0xNy42NCw3LjQ5LTQuNDgsNS02LjcyLDEyLjA3LTYuNzIsMjEuMjJzMi4yNCwxNi4zOCw2LjcyLDIxLjQxYzQuNDgsNS4wNSwxMC4zNiw3LjU3LDE3LjY0LDcuNTcsNS42MSwwLDEwLjI3LTEuMzEsMTQtMy45MywzLjc0LTIuNjEsNi4zLTYuMzQsNy43LTExLjE5aDEzLjcyYy0yLjA1LDcuODMtNi4xNiwxNC4xMi0xMi4zMiwxOC44Mi02LjE2LDQuNzEtMTMuODYsNy4wNy0yMy4xMSw3LjA3LTcuMjgsMC0xMy43NC0xLjYzLTE5LjM5LTQuODktNS42NS0zLjI3LTEwLjA2LTcuODktMTMuMjMtMTMuODYtMy4xNy01Ljk4LTQuNzYtMTIuOTgtNC43Ni0yMXMxLjU5LTE0Ljg3LDQuNzYtMjAuNzlaIi8+CiAgICAgIDxwYXRoIGNsYXNzPSJzdDAiIGQ9Ik0yMDg4LjcxLDQ4My43MnY3Ni43MmgtMTIuNzR2LTExLjMzYy0yLjQzLDMuOTEtNS44MSw2Ljk3LTEwLjE1LDkuMTctNC4zNCwyLjE5LTkuMTMsMy4yOS0xNC4zNSwzLjI5LTUuOTcsMC0xMS4zNC0xLjI0LTE2LjEtMy43MS00Ljc2LTIuNDgtOC41MS02LjE4LTExLjI3LTExLjE0LTIuNzYtNC45NS00LjEzLTEwLjk3LTQuMTMtMTguMDZ2LTQ0Ljk1aDEyLjZ2NDMuMjdjMCw3LjU2LDEuOTEsMTMuMzgsNS43NCwxNy40MywzLjgzLDQuMDYsOS4wNiw2LjA5LDE1LjY5LDYuMDlzMTIuMTctMi4xLDE2LjEtNi4zYzMuOTItNC4xOSw1Ljg4LTEwLjMyLDUuODgtMTguMzR2LTQyLjE1aDEyLjc0WiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjEzOC4yLDQ4NS45NmM0LjE1LTIuNDMsOS4yMi0zLjY1LDE1LjE5LTMuNjV2MTMuMTZoLTMuMzZjLTE0LjI5LDAtMjEuNDIsNy43NS0yMS40MiwyMy4yNXY0MS43MWgtMTIuNzR2LTc2LjcyaDEyLjc0djEyLjQ2YzIuMjQtNC4zOCw1LjQ0LTcuNzksOS41OS0xMC4yMVoiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTIxNzQuMTIsNDY4LjczYy0xLjY4LTEuNjctMi41Mi0zLjczLTIuNTItNi4xNnMuODQtNC40NywyLjUyLTYuMTZjMS42OC0xLjY3LDMuNzMtMi41MSw2LjE2LTIuNTFzNC4zMS44NCw1Ljk1LDIuNTFjMS42MywxLjY5LDIuNDUsMy43NCwyLjQ1LDYuMTZzLS44Miw0LjQ5LTIuNDUsNi4xNmMtMS42NCwxLjY4LTMuNjIsMi41Mi01Ljk1LDIuNTJzLTQuNDktLjg1LTYuMTYtMi41MlpNMjE4Ni40Myw0ODMuNzJ2NzYuNzJoLTEyLjc0di03Ni43MmgxMi43NFoiLz4KICAgICAgPHBhdGggY2xhc3M9InN0MCIgZD0iTTIyMjkuMjgsNDk0LjIydjQ1LjIzYzAsMy43My44LDYuMzcsMi4zOCw3LjkxLDEuNTksMS41Myw0LjM0LDIuMzIsOC4yNiwyLjMyaDkuMzh2MTAuNzdoLTExLjQ4Yy03LjEsMC0xMi40Mi0xLjYyLTE1Ljk2LTQuODktMy41NS0zLjI3LTUuMzItOC42My01LjMyLTE2LjF2LTQ1LjIzaC05Ljk0di0xMC41aDkuOTR2LTE5LjMyaDEyLjc0djE5LjMyaDIwLjAydjEwLjVoLTIwLjAyWiIvPgogICAgICA8cGF0aCBjbGFzcz0ic3QwIiBkPSJNMjMzNi4zOSw0ODMuNzJsLTQ2LjIsMTEyLjg2aC0xMy4xNmwxNS4xMi0zNi45Ny0zMC45NC03NS44OGgxNC4xNGwyNC4wOCw2Mi4xNywyMy44LTYyLjE3aDEzLjE2WiIvPgogICAgPC9nPgogIDwvZz4KPC9zdmc+"
+    mediatype: "image/svg+xml"
+  minKubeVersion: "1.25.0"
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - nodes
+          - services
+          - events
+          - secrets
+          - serviceaccounts
+          - namespaces
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          - deployments
+          - replicasets
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+          - use
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          - clusterrolebindings
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+          - bind
+          - escalate
+        - apiGroups:
+          - sensors.appsentinels.io
+          resources:
+          - appsentinelssensors
+          - appsentinelssensors/status
+          - appsentinelssensors/finalizers
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
+        serviceAccountName: sslsniffer-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/component: manager
+          app.kubernetes.io/created-by: appsentinels-sslsniffer-operator
+          app.kubernetes.io/instance: controller-manager
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: deployment
+          app.kubernetes.io/part-of: appsentinels-sslsniffer-operator
+          control-plane: controller-manager
+        name: sslsniffer-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              control-plane: controller-manager
+          strategy: {}
+          template:
+            metadata:
+              annotations:
+                kubectl.kubernetes.io/default-container: manager
+              labels:
+                control-plane: controller-manager
+            spec:
+              containers:
+              - args:
+                - --secure-listen-address=0.0.0.0:8443
+                - --upstream=http://127.0.0.1:8080/
+                - --logtostderr=true
+                - --v=0
+                image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:5b2bcae5b0ee945f6abe75561b9d78c686995a5d1bf9a553e63a724c5c828936
+                name: kube-rbac-proxy
+                ports:
+                - containerPort: 8443
+                  name: https
+                  protocol: TCP
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 5m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              - args:
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=127.0.0.1:8080
+                - --leader-elect
+                - --leader-election-id=sslsniffer-operator
+                image: docker.io/appsentinelsofficial/sslsniffer-operator@sha256:a4f180e54a667ccebb64046dbc5370f9830ec512ed8b6a9b5f9368c56b1af18c
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 10m
+                    memory: 128Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              securityContext:
+                runAsNonRoot: true
+              serviceAccountName: sslsniffer-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        serviceAccountName: sslsniffer-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - ebpf
+  - ssl
+  - sniffer
+  - security
+  - openshift
+  links:
+  - name: AppSentinels
+    url: https://appsentinels.ai
+  maintainers:
+  - email: mohit.joshi@appsentinels.ai
+    name: Mohit Joshi
+  maturity: alpha
+  provider:
+    name: AppSentinels
+    url: https://appsentinels.ai
+  relatedImages:
+  - name: sslsniffer
+    image: registry.connect.redhat.com/appsentinels/sslsniffer@sha256:081a9ac1e838fcb41fac0c5358f7c5c800f2ea2a7b17802326f4b8d6a3ccbf18
+  - name: sslsniffer-operator
+    image: docker.io/appsentinelsofficial/sslsniffer-operator@sha256:a4f180e54a667ccebb64046dbc5370f9830ec512ed8b6a9b5f9368c56b1af18c
+  - name: kube-rbac-proxy
+    image: registry.redhat.io/openshift4/ose-kube-rbac-proxy@sha256:5b2bcae5b0ee945f6abe75561b9d78c686995a5d1bf9a553e63a724c5c828936
+  version: 0.0.3

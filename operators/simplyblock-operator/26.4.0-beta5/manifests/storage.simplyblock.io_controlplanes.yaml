@@ -1,0 +1,841 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: controlplanes.storage.simplyblock.io
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: simplyblock-operator-conversion-webhook-service
+          namespace: simplyblock-operator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: storage.simplyblock.io
+  names:
+    kind: ControlPlane
+    listKind: ControlPlaneList
+    plural: controlplanes
+    shortNames:
+    - cp
+    singular: controlplane
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Initializing while FDB is not ready; Ready once the control plane
+        is operational
+      jsonPath: .status.phase
+      name: Phase
+      type: string
+    - description: Human-readable status detail
+      jsonPath: .status.message
+      name: Message
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ControlPlane is a singleton resource (one per namespace, named "simplyblock")
+          that reflects the readiness of the simplyblock control plane. It is created
+          automatically by the Helm chart and should not be created or deleted manually.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ControlPlaneSpec holds configuration for the singleton ControlPlane resource
+              created by the Helm chart.
+            properties:
+              image:
+                description: |-
+                  Image is the container image used for all simplyblock control-plane and
+                  storage-node workloads (e.g., `quay.io/simplyblock-io/simplyblock:26.2.2`).
+                  StorageNodeSet CRs that omit spec.clusterImage inherit this value.
+                  Any registry is accepted, mirrors included, as long as the value is a
+                  well-formed reference carrying a tag, a digest, or both. Digest pinning
+                  (@sha256:...) is recommended.
+                pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                type: string
+            type: object
+          status:
+            description: |-
+              ControlPlaneStatus reflects the observed readiness of the simplyblock
+              control plane (FDB + management API).
+            properties:
+              lastChecked:
+                description: LastChecked is the timestamp of the most recent FDB health
+                  probe.
+                format: date-time
+                type: string
+              message:
+                description: |-
+                  Message contains a human-readable explanation of the current phase,
+                  for example, the FDB error returned by the health endpoint.
+                type: string
+              phase:
+                description: |-
+                  Phase is Initializing while the control plane is not yet healthy,
+                  and Ready once the FDB health check passes.
+                enum:
+                - Initializing
+                - Ready
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.endpoint
+      name: Endpoint
+      type: string
+    - jsonPath: .status.version
+      name: Version
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ControlPlane is the simplyblock control plane for one Kubernetes cluster:
+          FoundationDB together with the management API, either installed by the
+          operator or already existing. It is a singleton named `simplyblock`, and it is
+          the root of the ownership spine: nothing else in this API group reconciles
+          meaningfully before it reports Available.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ControlPlaneSpec is the desired state of the simplyblock control plane for one
+              namespace.
+            properties:
+              source:
+                description: |-
+                  Source selects whether this cluster hosts its control plane or is managed
+                  by one elsewhere. Switching a live deployment between the two is not a
+                  reconfiguration, because the clusters and their volumes live in the
+                  FoundationDB behind the old one, so which mode is chosen is frozen at
+                  creation. What is inside the chosen mode stays editable.
+
+                  Both rules are declared on ControlPlaneSource rather than here. See the
+                  type for why.
+                properties:
+                  local:
+                    description: Local is a control plane the operator installs.
+                    properties:
+                      adminTokenSecretRef:
+                        description: |-
+                          AdminTokenSecretRef names a Secret in this namespace holding a static
+                          admin bearer token this control plane accepts, under the `token` key, in
+                          addition to this deployment's own Kubernetes identity
+                          (SB_K8S_ADMIN_SERVICE_ACCOUNTS). It is what lets a cluster this control
+                          plane manages remotely (spec.source.managed there,
+                          ManagedControlPlane.CredentialsSecretRef naming the same value)
+                          authenticate a CreateCluster call, since a Kubernetes TokenReview can
+                          never cross a cluster boundary.
+
+                          The Secret is projected into the management API container's environment
+                          with secretKeyRef, so this operator never itself reads the plaintext.
+                          Absent grants no credential beyond the operator's own service account.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      eksRoleARN:
+                        description: |-
+                          EKSRoleARN is the IAM role this control plane's pods and every
+                          StorageCluster's storage-node pods in this namespace assume, through a
+                          service account annotated with it (eks.amazonaws.com/role-arn). Amazon
+                          EKS's pod-identity webhook reads that annotation and injects the
+                          credentials the AWS SDK's default provider chain picks up from there,
+                          which is what lets a StorageCluster's backup.credentials name
+                          ProviderChain on EKS.
+
+                          Left unset, the service accounts this operator creates carry no such
+                          annotation, which is correct off Amazon EKS and on an EKS cluster whose
+                          pods authenticate another way.
+                        pattern: ^arn:aws[a-zA-Z0-9-]*:iam::[0-9]{12}:role/.+$
+                        type: string
+                      foundationDB:
+                        description: FoundationDB sizes the FoundationDB the management
+                          API stores its state in.
+                        properties:
+                          nodeSelector:
+                            additionalProperties:
+                              type: string
+                            description: |-
+                              NodeSelector pins the database's own processes, and nothing else the
+                              control plane runs. Unset leaves them wherever the control plane as a
+                              whole is placed.
+
+                              It is stated apart from that placement because the database is the part
+                              whose host matters to something else: adding a storage node reboots its
+                              worker, and a worker running a FoundationDB process is added on its own
+                              however many nodes the cluster's provisioning budget allows at once.
+                              Confining the database to a few workers is what leaves the rest of the
+                              fleet free to be added together.
+
+                              It has to select at least as many workers as
+                              spec.source.local.foundationDB.replicas, because the worker is the
+                              database's fault domain. The anti-affinity between processes of one class
+                              is a preference rather than a requirement, so a narrower selector places
+                              the coordinators anyway, several to a worker, where one worker's loss
+                              takes more of them than the redundancy mode was configured to survive.
+                            type: object
+                          replicas:
+                            default: 3
+                            description: |-
+                              Replicas is the number of coordinators. Three is the smallest count that
+                              survives one loss, which is why it is the default.
+                            format: int32
+                            minimum: 1
+                            type: integer
+                          resources:
+                            description: Resources sets requests and limits for the
+                              coordinator pods.
+                            properties:
+                              claims:
+                                description: |-
+                                  Claims lists the names of resources, defined in spec.resourceClaims,
+                                  that are used by this container.
+
+                                  This field depends on the
+                                  DynamicResourceAllocation feature gate.
+
+                                  This field is immutable. It can only be set for containers.
+                                items:
+                                  description: ResourceClaim references one entry
+                                    in PodSpec.ResourceClaims.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        Name must match the name of one entry in pod.spec.resourceClaims of
+                                        the Pod where this field is used. It makes that resource available
+                                        inside a container.
+                                      type: string
+                                    request:
+                                      description: |-
+                                        Request is the name chosen for a request in the referenced claim.
+                                        If empty, everything from the claim is made available, otherwise
+                                        only the result of this request.
+                                      type: string
+                                  required:
+                                  - name
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - name
+                                x-kubernetes-list-type: map
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Limits describes the maximum amount of compute resources allowed.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Requests describes the minimum amount of compute resources required.
+                                  If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                  otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                            type: object
+                          storageClassName:
+                            description: |-
+                              StorageClassName is the class the coordinators' volumes are provisioned
+                              from. It cannot be a class this operator provides, because the control
+                              plane has to exist before any simplyblock volume can.
+                            type: string
+                          tolerations:
+                            description: |-
+                              Tolerations are applied to the database's own processes, and nothing else
+                              the control plane runs. Unset leaves them with the control plane's
+                              tolerations, spec.source.local.tolerations. When set, they replace those
+                              for the database rather than adding to them, the rule NodeSelector
+                              follows: the database confined to tainted workers tolerates their taint,
+                              and the rest of the control plane does not follow it there.
+                            items:
+                              description: |-
+                                The pod this Toleration is attached to tolerates any taint that matches
+                                the triple <key,value,effect> using the matching operator <operator>.
+                              properties:
+                                effect:
+                                  description: |-
+                                    Effect indicates the taint effect to match. Empty means match all taint effects.
+                                    When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                                  type: string
+                                key:
+                                  description: |-
+                                    Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                    If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                                  type: string
+                                operator:
+                                  description: |-
+                                    Operator represents a key's relationship to the value.
+                                    Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                                    Exists is equivalent to wildcard for value, so that a pod can
+                                    tolerate all taints of a particular category.
+                                    Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                                  type: string
+                                tolerationSeconds:
+                                  description: |-
+                                    TolerationSeconds represents the period of time the toleration (which must be
+                                    of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                    it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                    negative values will be treated as 0 (evict immediately) by the system.
+                                  format: int64
+                                  type: integer
+                                value:
+                                  description: |-
+                                    Value is the taint value the toleration matches to.
+                                    If the operator is Exists, the value should be empty, otherwise just a regular string.
+                                  type: string
+                              type: object
+                            type: array
+                        type: object
+                      image:
+                        description: |-
+                          Image is the management API and control-plane image.
+                          Any registry is accepted, mirrors included, as long as the value is a
+                          well-formed reference carrying a tag, a digest, or both. Digest pinning
+                          (@sha256:...) is recommended.
+                        pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                        type: string
+                      imagePullPolicy:
+                        default: IfNotPresent
+                        description: ImagePullPolicy controls when that image is pulled.
+                        enum:
+                        - Always
+                        - Never
+                        - IfNotPresent
+                        type: string
+                      nodeSelector:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          NodeSelector pins every pod the operator installs for the control plane.
+                          It is a selector rather than an affinity term because that is what the
+                          chart it replaces took, and a deployment migrating off the chart has the
+                          value already written down.
+                        type: object
+                      observability:
+                        description: |-
+                          Observability connects this control plane to the monitoring stack
+                          installed beside it: Graylog, Grafana, and OpenSearch. Absent leaves
+                          monitoring off.
+                        properties:
+                          enableMonitoring:
+                            description: |-
+                              EnableMonitoring provisions the monitoring stack when the first storage
+                              cluster is created. Unset is off.
+                            type: boolean
+                          secretRef:
+                            description: |-
+                              SecretRef names a Secret in this namespace holding the monitoring stack's
+                              admin password under the key MONITORING_SECRET. Required when
+                              EnableMonitoring is set, and its name must not be empty. A pod naming a
+                              Secret that does not exist does not start.
+                            properties:
+                              name:
+                                default: ""
+                                description: |-
+                                  Name of the referent.
+                                  This field is effectively required, but due to backwards compatibility is
+                                  allowed to be empty. Instances of this type with an empty value here are
+                                  almost certainly wrong.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                            type: object
+                            x-kubernetes-map-type: atomic
+                        type: object
+                        x-kubernetes-validations:
+                        - message: 'secretRef.name must not be empty: a pod reading
+                            a Secret with no name does not start'
+                          rule: '!has(self.secretRef) || (has(self.secretRef.name)
+                            && size(self.secretRef.name) > 0)'
+                        - message: 'enableMonitoring requires secretRef: the control
+                            plane cannot provision the monitoring stack without its
+                            admin password'
+                          rule: '!has(self.enableMonitoring) || !self.enableMonitoring
+                            || has(self.secretRef)'
+                      prerequisites:
+                        default: {}
+                        description: |-
+                          Prerequisites says which cluster add-ons the operator installs when the
+                          cluster lacks them. One left false is checked for and never installed.
+                        properties:
+                          installCertManager:
+                            default: true
+                            description: |-
+                              InstallCertManager installs cert-manager when cert-manager.io/v1 is not
+                              served. It is consulted only when the control plane serves TLS issued by
+                              cert-manager. Unset is on.
+                            type: boolean
+                          installFoundationDBCRDs:
+                            default: true
+                            description: |-
+                              InstallFoundationDBCRDs applies the apps.foundationdb.org CRDs when
+                              apps.foundationdb.org/v1beta2 is not served. Unset is on.
+                            type: boolean
+                          installLocalPathProvisioner:
+                            default: true
+                            description: |-
+                              InstallLocalPathProvisioner installs local-path-provisioner when no
+                              StorageClass uses rancher.io/local-path. Its class is made the default
+                              only when the cluster has no default class. Unset is on.
+                            type: boolean
+                          installSnapshotController:
+                            default: true
+                            description: |-
+                              InstallSnapshotController installs the CSI snapshot CRDs and
+                              snapshot-controller when snapshot.storage.k8s.io/v1 is not served. Unset
+                              is on.
+                            type: boolean
+                        type: object
+                      replicas:
+                        default: 2
+                        description: |-
+                          Replicas is the number of management API instances. Two is what the chart
+                          ships and what the phases assume: a single instance makes Degraded
+                          unreachable for this component and every restart an outage.
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      resources:
+                        description: Resources sets requests and limits for the management
+                          API pods.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This field depends on the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      tls:
+                        default: {}
+                        description: |-
+                          TLS is how this control plane serves and what it asks of its callers.
+
+                          The block is defaulted to its own zero value rather than left absent, so
+                          that the field defaults inside it are applied to an object that does not
+                          mention TLS at all.
+
+                          It cannot change once the object exists. The database and every storage
+                          node are built with it, so turning TLS off on a live control plane leaves
+                          peers that still demand it and callers that no longer present anything.
+                          Changing it means recreating the control plane, which deletes the
+                          FoundationDB behind it.
+                        properties:
+                          enableMutualTLS:
+                            default: true
+                            description: |-
+                              EnableMutualTLS additionally requires a caller to present a certificate
+                              of its own, rather than reaching the control plane anonymously over the
+                              encrypted connection EnableTLS alone provides. Ignored when EnableTLS is
+                              false, the same as on DriverTLS. Unset is on.
+                            type: boolean
+                          enableTLS:
+                            default: true
+                            description: EnableTLS serves the management API over
+                              TLS. Unset is on.
+                            type: boolean
+                          provider:
+                            default: cert-manager
+                            description: Provider issues the serving certificate.
+                            enum:
+                            - cert-manager
+                            - OpenShift
+                            type: string
+                        type: object
+                        x-kubernetes-validations:
+                        - message: tls is immutable once the control plane exists
+                          rule: self == oldSelf
+                      tolerations:
+                        description: |-
+                          Tolerations are applied to every pod the operator installs for the control
+                          plane.
+                        items:
+                          description: |-
+                            The pod this Toleration is attached to tolerates any taint that matches
+                            the triple <key,value,effect> using the matching operator <operator>.
+                          properties:
+                            effect:
+                              description: |-
+                                Effect indicates the taint effect to match. Empty means match all taint effects.
+                                When specified, allowed values are NoSchedule, PreferNoSchedule and NoExecute.
+                              type: string
+                            key:
+                              description: |-
+                                Key is the taint key that the toleration applies to. Empty means match all taint keys.
+                                If the key is empty, operator must be Exists; this combination means to match all values and all keys.
+                              type: string
+                            operator:
+                              description: |-
+                                Operator represents a key's relationship to the value.
+                                Valid operators are Exists, Equal, Lt, and Gt. Defaults to Equal.
+                                Exists is equivalent to wildcard for value, so that a pod can
+                                tolerate all taints of a particular category.
+                                Lt and Gt perform numeric comparisons (requires feature gate TaintTolerationComparisonOperators).
+                              type: string
+                            tolerationSeconds:
+                              description: |-
+                                TolerationSeconds represents the period of time the toleration (which must be
+                                of effect NoExecute, otherwise this field is ignored) tolerates the taint. By default,
+                                it is not set, which means tolerate the taint forever (do not evict). Zero and
+                                negative values will be treated as 0 (evict immediately) by the system.
+                              format: int64
+                              type: integer
+                            value:
+                              description: |-
+                                Value is the taint value the toleration matches to.
+                                If the operator is Exists, the value should be empty, otherwise just a regular string.
+                              type: string
+                          type: object
+                        type: array
+                    required:
+                    - image
+                    type: object
+                  managed:
+                    description: Managed is a control plane that already exists.
+                    properties:
+                      caBundleSecretRef:
+                        description: |-
+                          CABundleSecretRef names a Secret holding the CA certificate the endpoint
+                          is verified against. Absent means the system trust store.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      credentialsSecretRef:
+                        description: |-
+                          CredentialsSecretRef names a Secret in this namespace holding the bearer
+                          token the operator authenticates with. It is a reference rather than a
+                          field because a token in a spec is a token in every `kubectl get -o yaml`.
+
+                          Absent means the endpoint is reached without one, which is the in-cluster
+                          case: a control plane the Helm chart installed answers on a ClusterIP
+                          Service in this namespace and does not require a token for the readiness
+                          read. Naming a Secret that does not exist stays an error, because naming
+                          one is a statement that the control plane needs it.
+                        properties:
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      endpoint:
+                        description: |-
+                          Endpoint is the management API's base URL. It is validated against the
+                          same outbound-URL guard every other outbound endpoint in this group uses,
+                          so a loopback or link-local address is rejected.
+                        pattern: ^https?://[a-zA-Z0-9.-]+(:[0-9]{1,5})?(/.*)?$
+                        type: string
+                      storageNodeImage:
+                        description: |-
+                          StorageNodeImage is the storage-node image a StorageCluster on this
+                          Kubernetes cluster defaults to when its own spec.storageNodes.image is
+                          unset. A local control plane's own spec.source.local.image doubles as
+                          this default (StorageNodeWorkloadReconciler.image), because a
+                          self-hosted deployment's control plane and its storage nodes are one
+                          release. A managed one is a different Kubernetes cluster's install and
+                          says nothing about what this cluster's storage nodes should run, so
+                          there is no equivalent to fall back to without this field -- every
+                          StorageCluster on a managed deployment must get an image from here or
+                          from its own spec.
+                        pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                        type: string
+                    required:
+                    - endpoint
+                    type: object
+                type: object
+                x-kubernetes-validations:
+                - message: set exactly one of local or managed
+                  rule: '(has(self.local) ? 1 : 0) + (has(self.managed) ? 1 : 0) ==
+                    1'
+                - message: 'spec.source is immutable: a control plane the operator
+                    installed and one it did not are different deployments, and the
+                    clusters and their volumes live in the FoundationDB behind the
+                    old one'
+                  rule: has(self.local) == has(oldSelf.local) && has(self.managed)
+                    == has(oldSelf.managed)
+            required:
+            - source
+            type: object
+          status:
+            description: ControlPlaneStatus is the observed state of the control plane.
+            properties:
+              activeOpsRef:
+                description: |-
+                  ActiveOpsRef names the ControlPlaneOps currently allowed to act on this
+                  control plane. Empty when none is running.
+                type: string
+              components:
+                description: |-
+                  Components is the per-component readiness the phase is derived from, one
+                  entry per workload the managed install applies. It is empty for a remote
+                  control plane, which has no components the operator owns. Without it a
+                  Degraded phase says that something is wrong and not what.
+                items:
+                  description: |-
+                    ControlPlaneComponentStatus is one workload of a managed control plane and how
+                    much of it is running. The phase is the worst verdict across these and the
+                    readiness probe, and only an essential component at zero ready can make it
+                    Unavailable.
+                  properties:
+                    desired:
+                      description: |-
+                        Desired is how many replicas the component should have. For the component
+                        carrying its own operator it is that resource's own count, because a
+                        FoundationDBCluster reports quorum rather than replicas.
+                      format: int32
+                      minimum: 0
+                      type: integer
+                    essential:
+                      description: |-
+                        Essential states whether this component at zero ready makes the control
+                        plane Unavailable rather than Degraded. It is decided by the operator
+                        rather than by a user, and it is reported here so that a phase can be
+                        explained.
+                      type: boolean
+                    name:
+                      description: Name is the workload's name, as applied.
+                      type: string
+                    ready:
+                      description: Ready is how many of them are.
+                      format: int32
+                      minimum: 0
+                      type: integer
+                  required:
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+              endpoint:
+                description: |-
+                  Endpoint is the resolved management API base URL, derived in the local
+                  case and echoed in the managed one. It is what every controller in the
+                  operator reads to reach the control plane, so that one object answers
+                  where it is.
+                type: string
+              lastChecked:
+                description: LastChecked is when the readiness probe last ran.
+                format: date-time
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the control plane moves, and never a log. On a failed probe it is the
+                  control plane's own error rather than a paraphrase of it.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operator's own view of the control plane.
+                enum:
+                - Installing
+                - Available
+                - Degraded
+                - Unavailable
+                type: string
+              step:
+                description: |-
+                  Step is the position of the installation machine, and Installed once the
+                  installation is complete. The rule repeats the ControlPlaneStep enum
+                  because a marker cannot reach a field of the shared snapshot type.
+                properties:
+                  claim:
+                    description: |-
+                      Claim records that this state's side effect was started. Absent means
+                      no pass has started it since the state was entered.
+                    properties:
+                      attempt:
+                        description: Attempt counts the claims taken on this state,
+                          starting at 1.
+                        format: int32
+                        type: integer
+                      leaseUntil:
+                        description: |-
+                          LeaseUntil is when the claim expires and the side effect may be fired
+                          again.
+                        format: date-time
+                        type: string
+                      state:
+                        description: State is the state the claim was taken in.
+                        type: string
+                    required:
+                    - attempt
+                    - leaseUntil
+                    - state
+                    type: object
+                  deadline:
+                    description: |-
+                      Deadline is when that state expires, absent when it has none. It is an
+                      absolute instant, so a state whose deadline passed while the controller
+                      was down restores as already expired.
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      State is the state the machine was in. Empty means the resource has not
+                      been reconciled yet, and restores to the graph's initial state.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: unknown step
+                  rule: '!has(self.state) || self.state in [''ApplyingFoundationDB'',''AwaitingFoundationDB'',''BuildingIndices'',''ApplyingDatastore'',''ApplyingAPI'',''AwaitingAPI'',''Installed'']'
+              version:
+                description: Version is the version the management API reports.
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

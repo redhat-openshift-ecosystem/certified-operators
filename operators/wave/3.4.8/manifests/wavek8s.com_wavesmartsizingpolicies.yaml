@@ -1,0 +1,169 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  creationTimestamp: null
+  name: wavesmartsizingpolicies.wavek8s.com
+spec:
+  group: wavek8s.com
+  names:
+    kind: WaveSmartSizingPolicy
+    plural: wavesmartsizingpolicies
+    singular: wavesmartsizingpolicy
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for WaveSmartSizingPolicySpec via
+          `CustomResource`
+        properties:
+          spec:
+            properties:
+              aggressive:
+                default: false
+                description: |-
+                  Recommend from the last 1 hour instead of the 7+ day histogram
+                  (average usage → request, peak usage → limit). Omitted → false (histogram).
+                type: boolean
+              applyMode:
+                description: |-
+                  `manifest` | `in_place` | `off`. Defaults to `off` — no auto-apply without
+                  an explicit opt-in (WA-978).
+                enum:
+                - "off"
+                - in_place
+                - manifest
+                - null
+                nullable: true
+                type: string
+              containers:
+                additionalProperties:
+                  properties:
+                    applyAuto:
+                      type: boolean
+                    applyLimitCpu:
+                      default: false
+                      description: When auto-applying, also apply the CPU limit. Omitted
+                        → false (request only).
+                      type: boolean
+                    applyLimitMemory:
+                      default: false
+                      description: When auto-applying, also apply the memory limit.
+                        Omitted → false (request only).
+                      type: boolean
+                    cpuBufferPercentage:
+                      format: float
+                      nullable: true
+                      type: number
+                    cpuEnabled:
+                      nullable: true
+                      type: boolean
+                    cpuMax:
+                      format: float
+                      nullable: true
+                      type: number
+                    cpuMin:
+                      format: float
+                      nullable: true
+                      type: number
+                    enabled:
+                      type: boolean
+                    memoryBufferPercentage:
+                      format: float
+                      nullable: true
+                      type: number
+                    memoryEnabled:
+                      nullable: true
+                      type: boolean
+                    memoryMax:
+                      format: float
+                      nullable: true
+                      type: number
+                    memoryMin:
+                      format: float
+                      nullable: true
+                      type: number
+                  required:
+                  - applyAuto
+                  - enabled
+                  type: object
+                default: {}
+                description: |-
+                  Per-container sizing settings. Keyed by container name.
+                  **Whole-replace semantics**: this map MUST contain every container in the
+                  workload's pod spec; the reconciler replaces the stored map entirely.
+                type: object
+              targetRef:
+                properties:
+                  kind:
+                    description: |-
+                      `Deployment` | `Rollout` | `DeploymentConfig` | `DaemonSet` | `StatefulSet`.
+                      Deployment/Rollout/DeploymentConfig map to the `k8s_deployments` table
+                      (`deployment_type` distinguishes them); DaemonSet → `k8s_daemonsets`,
+                      StatefulSet → `k8s_statefulsets`. NOTE: the sizing reconciler does NOT
+                      write `deployment_type` (autopilot owns that column); this is metadata
+                      for UX only.
+                    type: string
+                  name:
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+            required:
+            - targetRef
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    Shared status condition shape — mirrors metav1.Condition.
+                    Used by all 15 `WaveXStatus` structs (added in Tasks 6-8).
+
+                    No `Default` derive on purpose: an all-empty-string condition (empty `type`/
+                    `status`/`reason`) is never valid, so we never want one constructed implicitly.
+                    `WaveXStatus` structs default their `conditions` to an empty `Vec`, which does
+                    not require `WaveCondition: Default`.
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: WaveSmartSizingPolicy
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

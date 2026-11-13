@@ -1,0 +1,753 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.16.5
+  name: kalybrs.kalybr.ai
+spec:
+  group: kalybr.ai
+  names:
+    kind: Kalybr
+    listKind: KalybrList
+    plural: kalybrs
+    shortNames:
+    - kal
+    singular: kalybr
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.edition
+      name: Edition
+      type: string
+    - jsonPath: .spec.dimensionedFor
+      name: DimensionedFor
+      type: integer
+    - jsonPath: .status.resolved.packaging
+      name: Packaging
+      type: string
+    - jsonPath: .status.platform
+      name: Platform
+      type: string
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Kalybr is the Schema for a Kalybr deployment — one CR, dimensioned
+          by one dial.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: KalybrSpec is the desired state of a Kalybr deployment.
+            properties:
+              access:
+                description: Access configures external exposure. Default auto (Route/Ingress).
+                properties:
+                  adminHost:
+                    description: |-
+                      AdminHost is the externally-reachable DNS name of the ADMIN console (ingress/route mode).
+
+                      A second name, because the admin console cannot share one. It is a Next.js app with no basePath, so
+                      it answers at "/" and serves its assets from "/_next/..." — the same two locations public-web claims.
+                      The Ingress this operator rendered put admin-web behind a "/admin" prefix, which no rewrite ever
+                      stripped: every request arrived with a path the app has no route for, and the assets it did ask for
+                      went to public-web. On the access mode install.conf calls "required for anything customer-facing",
+                      the admin console 404'd in full. The public fleet never hit this because it does not expose admin-web
+                      through an Ingress at all — it is a NodePort there — so the path had no working precedent anywhere.
+
+                      Empty leaves the admin console off the Ingress rather than behind a broken prefix (on OpenShift it
+                      keeps the router's generated hostname, which works). The certificate in TLSSecretName must cover
+                      this name as well as Host — one SAN certificate or a wildcard, not two Secrets.
+                    type: string
+                  adminWebNodePort:
+                    default: 31301
+                    description: AdminWebNodePort exposes the admin console (nodePort
+                      mode).
+                    format: int32
+                    type: integer
+                  gatewayNodePort:
+                    default: 31080
+                    description: GatewayNodePort exposes the api-gateway (nodePort
+                      mode).
+                    format: int32
+                    type: integer
+                  host:
+                    description: |-
+                      Host is the externally-reachable DNS name (ingress/route mode), e.g. "kalybr.acme.example".
+
+                      It names the Ingress rule, and — the reason it exists — it is the only way this operator can know
+                      the deployment's own external origin outside nodePort mode. That origin is the `redirect_uri` sent
+                      to the customer's IdP: without it identity-core falls back to `http://localhost:8080`, and SSO
+                      cannot complete on the very access mode the certified appliance recommends. `ent-install.sh` has
+                      always written this field from INGRESS_HOST; until now the API had no place to put it, so a
+                      structural CRD pruned it on the way in and the value vanished silently.
+                    type: string
+                  ingressAnnotations:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      IngressAnnotations are attached verbatim to the rendered Ingress (ingress mode).
+
+                      Everything an ingress controller is CONFIGURED by lives in annotations: which issuer mints the
+                      certificate, whether an identity proxy guards the origin, rate limits, body size, WAF. This render
+                      emitted an Ingress with no annotations at all and no field to supply one, so a deployment that
+                      needed any of it could not be expressed in the CR — the operator server-side-applies, so the only
+                      remaining route was hand-editing a live object, which is the thing this operator exists to stop.
+
+                      Verbatim and unvalidated, deliberately. The keys are the controller's vocabulary, not ours
+                      (nginx.ingress.kubernetes.io/…, cert-manager.io/…, haproxy.org/…), and an allow-list here would be
+                      one more thing to edit every time a customer's controller grows a feature — failing closed on
+                      configuration this operator has no opinion about.
+
+                      Ingress only. A Route carries its own spec fields for the same concerns, and quietly copying nginx
+                      annotations onto one would be inert rather than wrong-looking.
+                    type: object
+                  ingressClassName:
+                    description: |-
+                      IngressClassName selects the ingress controller that adopts the Ingress (ingress mode).
+
+                      Empty relies on the cluster having an IngressClass marked as default. On a cluster that does not,
+                      an Ingress with no class is adopted by NOTHING: it is created, it reports no error, and no
+                      controller ever programs it. Naming the class is how that stays a configuration choice instead of
+                      a silent one.
+                    type: string
+                  mode:
+                    default: auto
+                    description: Mode is "auto" (default), "ingress", "nodePort",
+                      or "route".
+                    enum:
+                    - auto
+                    - ingress
+                    - nodePort
+                    - route
+                    type: string
+                  nodeIP:
+                    description: |-
+                      NodeIP is the externally-reachable node address (nodePort mode) used to build the
+                      consoles' NEXT_PUBLIC_API_URL and the OAuth redirect allowlist.
+                    type: string
+                  publicWebNodePort:
+                    default: 31300
+                    description: PublicWebNodePort exposes the public console (nodePort
+                      mode).
+                    format: int32
+                    type: integer
+                  tlsSecretName:
+                    description: |-
+                      TLSSecretName names a kubernetes.io/tls Secret in the deployment's namespace holding the
+                      certificate and key the ingress controller terminates with (ingress mode).
+
+                      Empty means the Ingress carries no `tls` block, and the appliance is served over plain HTTP. That
+                      is a supportable answer for a lab, and it is the WRONG one for anything customer-facing: with
+                      passwords retired, a mailed single-use sign-in link is the credential, and it and the session
+                      cookie it mints both travel in the clear. It is also the difference this field exists to make
+                      VISIBLE — the render used to assume https on every non-nodePort mode and emit an Ingress that
+                      asked for no certificate, so the deployment advertised an origin it could not serve.
+
+                      Bring your own certificate (`kubectl create secret tls`), or have cert-manager issue into this
+                      name with a Certificate resource. Either way the operator only references it: no private key
+                      passes through the bundle, the CR, or this operator.
+                    type: string
+                type: object
+              backup:
+                description: Backup configures scheduled DB backups. Default off.
+                properties:
+                  enabled:
+                    default: true
+                    description: |-
+                      Enabled turns on scheduled pg_dump backups. DEFAULTS TRUE (KAL-Phase12-018, GATE_REQ_REVIEW
+                      2026-09-05): it defaulted false, which meant an appliance installed with defaults took no backups
+                      and said nothing about it — leaving the customers least likely to read this reference as the ones
+                      with none.
+
+                      A POINTER, and the default lives in BackupEnabled(), because the CRD marker alone does not deliver
+                      it. Measured on the live appliance after the first deploy of this feature: the CR omits `backup`
+                      entirely, and structural defaulting only descends into objects that are PRESENT — so
+                      `+kubebuilder:default=true` on this leaf never fired, no CronJob was rendered, and the appliance
+                      took no backups while both this comment and docs/enterprise-upgrade.md said it would. The marker
+                      stays for the case where `backup:` is written with `enabled` omitted; nil is what the accessor
+                      answers, and it answers it identically in the apiserver, in preview-render (which builds this
+                      struct in Go and never reaches one) and in tests. Same shape as MigrationEnabled().
+
+                      Ignored where spec.database.mode is external — the customer's DBA owns that database's backup, and
+                      no CronJob is rendered whatever this says.
+                    type: boolean
+                  retention:
+                    default: 7
+                    description: Retention is how many successful backups to keep
+                      (CronJob history limit).
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  schedule:
+                    default: 0 2 * * *
+                    description: Schedule is the cron expression for the backup CronJob.
+                      Default nightly 02:00.
+                    type: string
+                type: object
+              database:
+                description: Database configures managed provisioning or an external
+                  DSN.
+                properties:
+                  dsnSecretRef:
+                    description: |-
+                      DSNSecretRef names the Secret holding the connection string when Mode is "external".
+                      The DSN is threaded through a secretKeyRef and NEVER appears as a literal in a manifest.
+                    type: string
+                  mode:
+                    default: managed
+                    description: Mode is "managed" (default — the operator runs PostgreSQL)
+                      or "external" (a customer DSN).
+                    enum:
+                    - managed
+                    - external
+                    type: string
+                  readReplicas:
+                    default: auto
+                    description: |-
+                      ReadReplicas is "auto" (derived from dimensionedFor) or an explicit count.
+                      Read replicas are useless unless something is pointed at them, so a non-zero count also
+                      injects DATABASE_URL_RO into the read-heavy services.
+                    pattern: ^(auto|[0-9]+)$
+                    type: string
+                type: object
+              diagnostics:
+                description: Diagnostics configures the operations/posture readout
+                  (KAL-Phase12-017).
+                properties:
+                  probeIssuerReachability:
+                    default: false
+                    description: |-
+                      ProbeIssuerReachability lets the posture readout fetch the configured OIDC issuer's discovery
+                      document to report whether it answers.
+
+                      Default FALSE, and that default is the product claim rather than caution. The enterprise edition
+                      makes no outbound network call, which is the strongest thing in its dependency story; enabling this
+                      trades that for the single most useful check on a deployment where SSO is the only way in. Left off,
+                      the field reports `not_checked` — deliberately a different value from `unknown`, because "we did not
+                      ask" and "we asked and could not tell" send an operator in opposite directions.
+                    type: boolean
+                type: object
+              dimensionedFor:
+                default: 5000
+                description: |-
+                  DimensionedFor is the master dial: a target agent count, as an INTEGER, not a named tier.
+
+                  It is a capacity STEP that degrades gracefully, never a hard ceiling — exceeding it must not
+                  reject writes. Default 5000 (design §7). Values above 100000 resolve the 100000 shape and record
+                  a Substitution, rather than being rejected: the escape hatches that row assumes (entity
+                  partitioning, sharded rescore) are not built, and refusing a number a customer legitimately
+                  wants is worse than serving it the largest shape that exists and saying so.
+                format: int32
+                minimum: 1
+                type: integer
+              edition:
+                default: enterprise
+                description: Edition selects the packaged feature set. Defaults to
+                  enterprise.
+                enum:
+                - enterprise
+                - public
+                type: string
+              globalDiscovery:
+                description: GlobalDiscovery is the sole optional external dependency,
+                  default bundled (air-gap installable).
+                properties:
+                  url:
+                    description: URL of an external discovery-svc. Empty means use
+                      the bundled snapshot.
+                    type: string
+                type: object
+              gpu:
+                default: false
+                description: |-
+                  GPU selects GPU-backed Ollama runners.
+
+                  It sets the runner KIND, never the COUNT: the count comes from dimensionedFor (design §7 table
+                  A — 1 CPU at 500, 1 at 5000, 2 at 50000, a pool at 100000), so a count field here would
+                  duplicate the dial. This is the one place the two axes meet, and they meet on different
+                  questions.
+                type: boolean
+              ha:
+                default: true
+                description: HA adds a DB synchronous standby, N+1 services and anti-affinity
+                  spread. Default true.
+                type: boolean
+              hardened:
+                default: true
+                description: |-
+                  Hardened applies rootless/arbitrary-UID SecurityContexts + PSA "restricted" namespace
+                  enforcement (the certified posture). Default true.
+                type: boolean
+              imageTag:
+                description: ImageTag pins the image tag for all workloads. Empty
+                  uses the operator's default.
+                type: string
+              migration:
+                description: Migration toggles operator-driven schema migration on
+                  upgrade. Default on.
+                properties:
+                  enabled:
+                    default: true
+                    description: |-
+                      Enabled runs the ledger-tracked migration Job when the image tag changes. Defaults true.
+
+                      The reason this used to be turned off is GONE. It read: "set false when an external step owns schema
+                      convergence (e.g. deploy-ent runs migrate.sh as the postgres superuser over the DB pod's unix socket
+                      — a privilege a separate Job lacks)". The Job now holds that privilege: it composes a .pgpass from
+                      `postgres-superpw` and connects as postgres, so it can write schema_migrations and alter tables
+                      kalybr_app does not own. Measured before the change: as the application role, the Job could not have
+                      applied a single migration, and the field defaulted true anyway — the mechanism the operator
+                      requirements list as complete could not work.
+
+                      Still legitimately false in one case: a CUSTOMER-OWNED database (spec.database.mode: external), where
+                      we hold no credential we control. The operator then reports MigrationComplete as ABSENT rather than
+                      False, and the readout says who owns convergence. See the controller's reconcileMigration.
+                    type: boolean
+                type: object
+              oidc:
+                description: |-
+                  Oidc is the CUSTOMER's own identity provider (KAL-Phase12-008). Unset ⇒ no SSO surface is rendered
+                  and the break-glass bootstrap remains the way in.
+                properties:
+                  clientID:
+                    description: ClientID is the confidential-client id registered
+                      at the IdP.
+                    type: string
+                  displayName:
+                    description: |-
+                      DisplayName labels the sign-in button, e.g. "Acme SSO". Empty ⇒ a neutral default. It is a UI string
+                      and reaches admin-web ONLY — auth-svc has no use for it, and rendering config to a service that never
+                      reads it is the dead-config pattern this edition has been bitten by.
+                    type: string
+                  groupsClaim:
+                    description: |-
+                      GroupsClaim names the claim that carries the user's directory groups (KAL-Phase12-021). Entra emits
+                      `groups` (object ids, on the ID token); Okta a custom claim of the operator's choosing (names). Empty
+                      ⇒ groups are never read and membership is manual only. The VALUE the IdP emits is what an
+                      administrator pastes into a group's directory mapping, verbatim.
+                    type: string
+                  issuer:
+                    description: |-
+                      Issuer is the IdP's issuer URL, e.g. "https://login.acme.example". Endpoints are discovered from
+                      <issuer>/.well-known/openid-configuration unless explicitly overridden. Empty ⇒ the whole surface is
+                      unrendered and no SSO button appears.
+                    type: string
+                  scope:
+                    description: |-
+                      Scope overrides the OAuth scope requested at the IdP (default "openid email profile"). Needed when
+                      the IdP only emits the groups claim for an extra scope (e.g. "openid email profile groups").
+                    type: string
+                type: object
+              overrides:
+                description: Overrides are applied AFTER all derivation — the human
+                  wins.
+                properties:
+                  disableServices:
+                    description: DisableServices drops services from the rendered
+                      set. Add-backs are default-ON; list any to drop.
+                    items:
+                      type: string
+                    type: array
+                  replicas:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: Replicas replaces the derived replica count for the
+                      named services.
+                    type: object
+                type: object
+              packaging:
+                default: auto
+                description: 'Packaging is the pod topology: auto (default, derived
+                  from the dial), folded, or unfolded.'
+                enum:
+                - auto
+                - folded
+                - unfolded
+                type: string
+              platform:
+                default: auto
+                description: Platform selects the render target. Default "auto" detects
+                  at reconcile.
+                enum:
+                - openshift
+                - kubernetes
+                - auto
+                type: string
+              probing:
+                description: Probing configures how this appliance REACHES the agents
+                  it serves. See ProbingSpec.
+                properties:
+                  aggCadenceSecs:
+                    description: |-
+                      AggCadenceSeconds overrides `RELIABILITY_AGG_CADENCE_SECS` — how often samples are rolled up into
+                      `agent_reliability`. Absent uses the binary default, 3600.
+
+                      The third knob in this area rendered ONLY by the fleet's Helm chart, and so the third that fell
+                      silently to a binary default on an appliance with no supported way to change it. Samples are the
+                      observation; `agent_reliability` and the Reliability pillar are DERIVED from them here, so this
+                      sets how long a freshly-probed estate reads `unmeasured` after the evidence already exists.
+                    format: int64
+                    minimum: 60
+                    type: integer
+                  caBundleSecret:
+                    description: |-
+                      CABundleSecret names a Secret in THIS namespace holding key `ca.crt`: extra TLS trust anchors
+                      for probing agents behind an internal CA. Mounted read-only and pointed at by PROBE_CA_BUNDLE.
+
+                      Needed because the prober links rustls with the compiled-in webpki root set, which does not read
+                      a host trust store — so an internal-CA agent fails every handshake and reads `down` with no way
+                      to configure around it. Anchors change which CERTIFICATES verify, never which ADDRESSES are
+                      reachable: the SSRF guard is untouched by this field.
+                    type: string
+                  freshnessTtlSecs:
+                    description: |-
+                      FreshnessTTLSeconds overrides `PROBE_FRESHNESS_TTL_SECS` — how long a probe result stays fresh,
+                      and so how often a HEALTHY endpoint is re-probed. Absent uses the binary default, 864000 (10d).
+
+                      The default is tuned for the public fleet, whose corpus is hundreds of thousands of endpoints on
+                      the open internet, where re-probing often is both expensive and rude. An appliance's estate is
+                      its own network's agents, typically hundreds — and until now there was no supported way to say
+                      so, because this knob was rendered only by the fleet's Helm chart. It matters more than it looks:
+                      `agent_reliability` stays `no_data` until an agent has `RELIABILITY_MIN_SAMPLES` weighted samples,
+                      so on the defaults a freshly-probed estate needs ~3 TTL periods — about a month — before the
+                      Reliability pillar reports anything at all.
+                    format: int64
+                    minimum: 3600
+                    type: integer
+                  hostAliases:
+                    description: |-
+                      HostAliases pins agent hostnames to addresses in the prober's pod (/etc/hosts), for an agent
+                      network whose names the cluster's DNS cannot resolve.
+
+                      Why here rather than the cluster's CoreDNS: editing the Corefile means writing a ConfigMap in
+                      kube-system — a shared object this appliance could break for every other workload, and a
+                      privilege a customer should refuse to grant a vendor's operator. A hostAlias achieves the same
+                      resolution, scoped to the one pod that needs it, with no privilege beyond the Deployment the
+                      operator already owns.
+                    items:
+                      description: ProbeHostAlias maps one address to the hostnames
+                        that should resolve to it inside the prober pod.
+                      properties:
+                        hostnames:
+                          description: Hostnames resolving to IP.
+                          items:
+                            type: string
+                          minItems: 1
+                          type: array
+                        ip:
+                          description: IP is the address the hostnames resolve to.
+                          minLength: 1
+                          type: string
+                      required:
+                      - hostnames
+                      - ip
+                      type: object
+                    type: array
+                  minSamples:
+                    description: |-
+                      MinSamples overrides `RELIABILITY_MIN_SAMPLES` — the weighted sample count below which an agent's
+                      reliability is reported as `no_data` (cold-start) rather than scored from too little evidence.
+                      Absent uses the binary default, 3.
+
+                      A decimal STRING, not a number: samples are freshness-weighted so the threshold is fractional,
+                      and Kubernetes API convention avoids floats in CRD schemas (they round-trip badly across clients).
+                    pattern: ^[0-9]+(\.[0-9]+)?$
+                    type: string
+                type: object
+              publicSignin:
+                description: PublicSignin carries the fleet's public admin-web sign-in
+                  config. Preview-only.
+                properties:
+                  oauthProviders:
+                    description: |-
+                      OAuthProviders is values.yaml oauth.providers (e.g. "github,google") — the SSO buttons the public
+                      consoles render, both from RUNTIME pod env (admin-web SIGNIN_OAUTH_PROVIDERS, public-web OAUTH_PROVIDERS).
+                    type: string
+                  personas:
+                    description: |-
+                      Personas is values.yaml ui.signinPersonas (e.g. "platform_owner,platform_finance,…") — the admin-web
+                      test-signin dropdown subset (SIGNIN_PERSONAS). Empty ⇒ the app's full default persona set.
+                    type: string
+                type: object
+              publicWeb:
+                description: PublicWeb controls the optional public console.
+                properties:
+                  enabled:
+                    default: true
+                    description: Enabled deploys the public console. Default true.
+                      Set false for admin-only installs.
+                    type: boolean
+                type: object
+              semanticSearch:
+                description: SemanticSearch is optional at every dimension, default
+                  off.
+                properties:
+                  embedderUrl:
+                    description: |-
+                      EmbedderURL points at a customer-supplied external embedder endpoint.
+                      When empty and Enabled is true, the operator sources the embedder per the
+                      operator-deployed Technology Preview path. Never an in-image model.
+                    type: string
+                  enabled:
+                    default: false
+                    description: |-
+                      Enabled turns on semantic/vector search. Default false — the certified default
+                      is lexical (tsvector/BM25) + reputation rerank.
+                    type: boolean
+                type: object
+              storage:
+                description: Storage configures the DB data volume. Default PVC.
+                properties:
+                  fsGroup:
+                    description: |-
+                      FSGroup group-owns the DB data volume, so a rootless database can create PGDATA inside it.
+
+                      A freshly provisioned PVC arrives owned by root. The certified image is non-root from its first
+                      instruction and can never chown it, so without a supplemental group `initdb` fails its first boot
+                      with "could not create directory .../pgdata: Permission denied" and the appliance never reaches
+                      Ready. The live Debian image hides this — its entrypoint starts as root and chowns PGDATA itself.
+
+                      LEAVE THIS UNSET ON OPENSHIFT. The restricted-v2 SCC declares `fsGroup: MustRunAs` over the range
+                      in the namespace's openshift.io/sa.scc.supplemental-groups annotation and REJECTS at admission any
+                      literal outside it — and 26 is far below every allocated range. OpenShift needs nothing here: the
+                      SCC defaults an in-range fsGroup itself and the kubelet performs the same ownership pass.
+
+                      SET IT TO 26 on upstream Kubernetes when running the certified images — 26 is the postgres uid/gid
+                      that image ships as its USER. Upstream defaults no fsGroup, and PSA "restricted" does not supply
+                      one (it governs runAsNonRoot, capabilities, seccomp and volume types, and says nothing about
+                      fsGroup), so on that platform an explicit value is both permitted and required.
+
+                      It is deliberately a CR field rather than a branch in the renderer. CON-8.1
+                      (TestSingleCodebaseInvariant) requires the core render to be byte-identical across platforms, so
+                      the difference has to be something the deployment STATES, not something the operator infers — and
+                      there is deliberately no default, because a default would put a literal into the OpenShift render.
+                    format: int64
+                    type: integer
+                  hostPath:
+                    default: /var/lib/kalybr-ent-db
+                    description: |-
+                      HostPath is the node-local PGDATA directory when Mode is "hostPath".
+
+                      KAL-Phase12-002 moved this from /var/lib/kalybr-ent-db together with a scripted `mv` of the
+                      directory itself. The two are ONE step and must not be separated: the volume source is
+                      HostPathDirectoryOrCreate, so a changed path without the data does not fail — it silently
+                      CREATES an empty directory and the appliance comes up with no database.
+                    type: string
+                  mode:
+                    default: pvc
+                    description: Mode is "pvc" (default, certified) or "hostPath"
+                      (single-node, no StorageClass).
+                    enum:
+                    - pvc
+                    - hostPath
+                    - emptyDir
+                    type: string
+                type: object
+              svcImageTag:
+                description: |-
+                  SvcImageTag overrides just the svc image tag, so a fast svc-only iteration can roll the
+                  multi-process pod without re-tagging the DB/UI images (which stay at ImageTag).
+                type: string
+            type: object
+          status:
+            description: KalybrStatus is the observed state.
+            properties:
+              conditions:
+                description: |-
+                  Conditions follow the standard metav1.Condition contract
+                  (Ready / DatabaseReady / MonitoringReady / MigrationComplete / Degraded).
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              migratedTag:
+                description: |-
+                  MigratedTag is the image tag whose DB migrations have been applied.
+                  Empty until the first migration Job succeeds.
+                type: string
+              observedAgentCount:
+                description: |-
+                  ObservedAgentCount is the live agent count reported by the deployment.
+                  Zero until it reports; populated by a later phase.
+                format: int32
+                type: integer
+              observedGeneration:
+                description: ObservedGeneration is the .metadata.generation last reconciled.
+                format: int64
+                type: integer
+              platform:
+                description: Platform is the platform resolved for this deployment
+                  ("openshift"/"kubernetes").
+                type: string
+              resolved:
+                description: Resolved is what the dial produced.
+                properties:
+                  database:
+                    description: Database is the resolved database topology.
+                    properties:
+                      cpu:
+                        type: string
+                      mem:
+                        type: string
+                      primary:
+                        format: int32
+                        type: integer
+                      readReplicas:
+                        format: int32
+                        type: integer
+                      standby:
+                        format: int32
+                        type: integer
+                      storage:
+                        type: string
+                    required:
+                    - primary
+                    - readReplicas
+                    - standby
+                    type: object
+                  dimensionedFor:
+                    description: |-
+                      DimensionedFor is the EFFECTIVE dimension after defaulting — whether it came from the CR, the
+                      CRD default or the Go zero-value fallback.
+                    format: int32
+                    type: integer
+                  ollama:
+                    description: Ollama is the resolved embedder topology.
+                    properties:
+                      gpu:
+                        type: boolean
+                      replicas:
+                        format: int32
+                        type: integer
+                    required:
+                    - gpu
+                    - replicas
+                    type: object
+                  packaging:
+                    description: Packaging is the resolved topology. Never "auto".
+                    enum:
+                    - auto
+                    - folded
+                    - unfolded
+                    type: string
+                  replicas:
+                    additionalProperties:
+                      format: int32
+                      type: integer
+                    description: Replicas is the per-service replica map, POST-override.
+                    type: object
+                  substitutions:
+                    description: Substitutions lists values the operator could not
+                      honour as derived. Empty when none.
+                    items:
+                      description: |-
+                        Substitution records a derived value the operator could NOT honour, and what it applied instead.
+
+                        Without this, a shape the cluster cannot deliver looks identical to one it can: `status.resolved`
+                        would report the intended numbers and the difference would live only in the operator's head.
+                      properties:
+                        applied:
+                          description: Applied is the value actually used, e.g. "3".
+                          type: string
+                        derived:
+                          description: Derived is the value the curve produced, e.g.
+                            "HPA 3-8".
+                          type: string
+                        reason:
+                          description: Reason states why, e.g. "metrics API unavailable".
+                          type: string
+                        subject:
+                          description: Subject is what was substituted — a service
+                            name, or "dimensionedFor".
+                          type: string
+                      required:
+                      - applied
+                      - derived
+                      - reason
+                      - subject
+                      type: object
+                    type: array
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

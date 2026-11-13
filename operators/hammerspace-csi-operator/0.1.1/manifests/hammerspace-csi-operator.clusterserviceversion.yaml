@@ -1,0 +1,479 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: hammerspace-csi-operator.v0.1.1
+  annotations:
+    capabilities: Basic Install
+    categories: Storage
+    description: Deploys and manages the Hammerspace Container Storage Interface driver.
+    containerImage: registry.connect.redhat.com/hammerspaceinc/csi-operator@sha256:d5825bb813e18defe095e4d2cf9af83dca01fec7b301b1f87dafeea37a3a7d51
+    createdAt: '2026-10-12'
+    support: Hammerspace
+    operators.openshift.io/valid-subscription: A valid Hammerspace software subscription
+      is required.
+    features.operators.openshift.io/disconnected: 'true'
+    features.operators.openshift.io/fips-compliant: 'false'
+    features.operators.openshift.io/proxy-aware: 'false'
+    features.operators.openshift.io/tls-profiles: 'false'
+    features.operators.openshift.io/token-auth-aws: 'false'
+    features.operators.openshift.io/token-auth-azure: 'false'
+    features.operators.openshift.io/token-auth-gcp: 'false'
+    features.operators.openshift.io/csi: 'true'
+    operatorframework.io/suggested-namespace: hammerspace-csi
+    operatorframework.io/suggested-namespace-template: '{"apiVersion": "v1", "kind":
+      "Namespace", "metadata": {"name": "hammerspace-csi", "labels": {"pod-security.kubernetes.io/enforce":
+      "privileged"}}}'
+    alm-examples: '[{"apiVersion": "storage.hammerspace.com/v1alpha1", "kind": "HammerspaceCSIDriver",
+      "metadata": {"name": "cluster"}, "spec": {"credentialsSecretName": "com.hammerspace.csi.credentials",
+      "tlsVerify": true, "storageClasses": [{"name": "hammerspace-nfs", "mode": "NFS"},
+      {"name": "hammerspace-block", "mode": "Block", "backingShareName": "k8s-block-storage"},
+      {"name": "hammerspace-ext4", "mode": "ext4", "backingShareName": "k8s-file-storage"},
+      {"name": "hammerspace-xfs", "mode": "xfs", "backingShareName": "k8s-file-storage-xfs"}]}}]'
+    com.redhat.openshift.versions: v4.22
+spec:
+  displayName: Hammerspace CSI Operator
+  description: Manages Hammerspace CSI workloads for NFS, raw block, and ext4/xfs
+    file-backed volumes. Install in hammerspace-csi (suggested); the driver is deployed
+    into the Operator's namespace. Requires an existing credentials Secret and Linux
+    nodes with NFS and loop-device support.
+  version: 0.1.1
+  maturity: stable
+  provider:
+    name: Hammerspace
+  minKubeVersion: 1.29.0
+  installModes:
+  - type: OwnNamespace
+    supported: true
+  - type: SingleNamespace
+    supported: false
+  - type: MultiNamespace
+    supported: false
+  - type: AllNamespaces
+    supported: false
+  customresourcedefinitions:
+    owned:
+    - name: hammerspacecsidrivers.storage.hammerspace.com
+      version: v1alpha1
+      kind: HammerspaceCSIDriver
+      displayName: Hammerspace CSI Driver
+      description: Singleton configuration for the Hammerspace CSI installation
+  install:
+    strategy: deployment
+    spec:
+      deployments:
+      - name: hammerspace-csi-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: hammerspace-csi-operator
+          template:
+            metadata:
+              labels:
+                app: hammerspace-csi-operator
+            spec:
+              containers:
+              - env:
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: POD_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.namespace
+                - name: RELATED_IMAGE_DRIVER
+                  value: registry.connect.redhat.com/hammerspaceinc/csi-plugin@sha256:6776d6a8eaf9a9ba7da4672f0a048ab6db6bc2fc555fa1c0195b94dc012e3006
+                - name: RELATED_IMAGE_PROVISIONER
+                  value: registry.redhat.io/openshift4/ose-csi-external-provisioner-rhel9@sha256:6e18c8a9e157113ebf690a3d8810761a8320b45c56a4afb64510a88513ddc0d8
+                - name: RELATED_IMAGE_ATTACHER
+                  value: registry.redhat.io/openshift4/ose-csi-external-attacher-rhel9@sha256:adb21a548ce65bbcf875b1202952f90e0232bb2a54320550cb7a9a3116cfee58
+                - name: RELATED_IMAGE_SNAPSHOTTER
+                  value: registry.redhat.io/openshift4/ose-csi-external-snapshotter-rhel9@sha256:688820a845e41c91943467179878a0133f20b378e8b3844f3a59c17b91100666
+                - name: RELATED_IMAGE_RESIZER
+                  value: registry.redhat.io/openshift4/ose-csi-external-resizer-rhel9@sha256:299dbee5b521fb5585eb543832ff45d71111ba484a6591ed0f2b075e1ac7812d
+                - name: RELATED_IMAGE_REGISTRAR
+                  value: registry.redhat.io/openshift4/ose-csi-node-driver-registrar-rhel9@sha256:55340264224b18a0e56e8215921eb42b99f55bddb159822e3332be62960429f8
+                - name: RELATED_IMAGE_LIVENESSPROBE
+                  value: registry.redhat.io/openshift4/ose-csi-livenessprobe-rhel9@sha256:c7e2d7b7a2ece690365e84117568aa1ef157fde601588c229ef4282a4fcde207
+                image: registry.connect.redhat.com/hammerspaceinc/csi-operator@sha256:d5825bb813e18defe095e4d2cf9af83dca01fec7b301b1f87dafeea37a3a7d51
+                imagePullPolicy: IfNotPresent
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: health
+                  initialDelaySeconds: 10
+                name: manager
+                ports:
+                - containerPort: 8081
+                  name: health
+                readinessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: health
+                resources:
+                  limits:
+                    memory: 256Mi
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
+              securityContext:
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: hammerspace-csi-operator
+      permissions:
+      - serviceAccountName: hammerspace-csi-operator
+        rules:
+        - apiGroups:
+          - ''
+          resources:
+          - services
+          - serviceaccounts
+          - configmaps
+          verbs: &id001
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - apps
+          resources:
+          - statefulsets
+          - daemonsets
+          verbs: *id001
+        - apiGroups:
+          - ''
+          resources:
+          - secrets
+          verbs:
+          - get
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs: *id001
+      clusterPermissions:
+      - serviceAccountName: hammerspace-csi-operator
+        rules:
+        - apiGroups:
+          - storage.hammerspace.com
+          resources:
+          - hammerspacecsidrivers
+          verbs:
+          - get
+          - update
+          - patch
+          resourceNames:
+          - cluster
+        - apiGroups:
+          - storage.hammerspace.com
+          resources:
+          - hammerspacecsidrivers/status
+          verbs:
+          - get
+          - update
+          - patch
+          resourceNames:
+          - cluster
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - csidrivers
+          verbs:
+          - create
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - csidrivers
+          verbs:
+          - get
+          - update
+          - patch
+          - delete
+          resourceNames:
+          - com.hammerspace.csi
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - storageclasses
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          - clusterrolebindings
+          verbs:
+          - create
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          verbs:
+          - get
+          - update
+          - patch
+          - delete
+          resourceNames:
+          - hammerspace-csi-node
+          - hammerspace-csi-provisioner
+          - hammerspace-csi-provisioner-snapshot-content-status
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          verbs:
+          - get
+          - update
+          - patch
+          - delete
+          resourceNames:
+          - hammerspace-csi-node
+          - hammerspace-csi-provisioner
+          - hammerspace-csi-provisioner-snapshot-content-status-binding
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - create
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - get
+          - update
+          - patch
+          - delete
+          resourceNames:
+          - hammerspace-csi
+        - apiGroups:
+          - ''
+          resources:
+          - pods
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ''
+          resources:
+          - pods/exec
+          verbs:
+          - create
+        - apiGroups:
+          - ''
+          resources:
+          - persistentvolumes
+          verbs:
+          - get
+          - patch
+          - list
+          - watch
+          - create
+          - delete
+          - update
+        - apiGroups:
+          - ''
+          resources:
+          - persistentvolumeclaims
+          - persistentvolumeclaims/status
+          verbs:
+          - get
+          - patch
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - storageclasses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ''
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ''
+          resources:
+          - events
+          verbs:
+          - list
+          - watch
+          - create
+          - update
+          - patch
+        - apiGroups:
+          - ''
+          resources:
+          - endpoints
+          verbs:
+          - list
+          - watch
+          - create
+          - update
+          - delete
+          - get
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotclasses
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotcontents
+          verbs:
+          - create
+          - get
+          - list
+          - watch
+          - update
+          - delete
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshots
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - volumeattachments
+          - volumeattachments/status
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+          - patch
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - storageclasses
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - csistoragecapacities
+          verbs:
+          - get
+          - list
+          - watch
+          - create
+          - update
+          - patch
+          - delete
+        - apiGroups:
+          - storage.k8s.io
+          resources:
+          - csinodes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - statefulsets
+          verbs:
+          - get
+        - apiGroups:
+          - ''
+          resources:
+          - pods
+          verbs:
+          - list
+          - watch
+        - apiGroups:
+          - ''
+          resources:
+          - nodes
+          verbs:
+          - get
+          - list
+          - update
+        - apiGroups:
+          - ''
+          resources:
+          - namespaces
+          - events
+          verbs:
+          - get
+          - list
+          - create
+        - apiGroups:
+          - ''
+          resources:
+          - persistentvolumes
+          - persistentvolumeclaims
+          - persistentvolumeclaims/status
+          - events
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+          - patch
+        - apiGroups:
+          - snapshot.storage.k8s.io
+          resources:
+          - volumesnapshotcontents
+          - volumesnapshotcontents/status
+          verbs:
+          - get
+          - list
+          - watch
+          - update
+          - patch
+  relatedImages:
+  - name: operator
+    image: registry.connect.redhat.com/hammerspaceinc/csi-operator@sha256:d5825bb813e18defe095e4d2cf9af83dca01fec7b301b1f87dafeea37a3a7d51
+  - name: attacher
+    image: registry.redhat.io/openshift4/ose-csi-external-attacher-rhel9@sha256:adb21a548ce65bbcf875b1202952f90e0232bb2a54320550cb7a9a3116cfee58
+  - name: driver
+    image: registry.connect.redhat.com/hammerspaceinc/csi-plugin@sha256:6776d6a8eaf9a9ba7da4672f0a048ab6db6bc2fc555fa1c0195b94dc012e3006
+  - name: livenessprobe
+    image: registry.redhat.io/openshift4/ose-csi-livenessprobe-rhel9@sha256:c7e2d7b7a2ece690365e84117568aa1ef157fde601588c229ef4282a4fcde207
+  - name: provisioner
+    image: registry.redhat.io/openshift4/ose-csi-external-provisioner-rhel9@sha256:6e18c8a9e157113ebf690a3d8810761a8320b45c56a4afb64510a88513ddc0d8
+  - name: registrar
+    image: registry.redhat.io/openshift4/ose-csi-node-driver-registrar-rhel9@sha256:55340264224b18a0e56e8215921eb42b99f55bddb159822e3332be62960429f8
+  - name: resizer
+    image: registry.redhat.io/openshift4/ose-csi-external-resizer-rhel9@sha256:299dbee5b521fb5585eb543832ff45d71111ba484a6591ed0f2b075e1ac7812d
+  - name: snapshotter
+    image: registry.redhat.io/openshift4/ose-csi-external-snapshotter-rhel9@sha256:688820a845e41c91943467179878a0133f20b378e8b3844f3a59c17b91100666

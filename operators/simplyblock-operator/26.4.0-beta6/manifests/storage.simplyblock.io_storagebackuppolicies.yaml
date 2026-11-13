@@ -1,0 +1,307 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: storagebackuppolicies.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: StorageBackupPolicy
+    listKind: StorageBackupPolicyList
+    plural: storagebackuppolicies
+    shortNames:
+    - sbp
+    singular: storagebackuppolicy
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterRef
+      name: Cluster
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.schedule
+      name: Schedule
+      type: string
+    - jsonPath: .status.attachedClaims.length()
+      name: Claims
+      type: integer
+    - jsonPath: .status.lastBackupAt
+      name: LastBackup
+      type: date
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StorageBackupPolicy schedules and retains the backups of the claims it
+          selects. It is the only thing that decides a backup is taken; the copies
+          themselves are the control plane's, are pruned by its retention, and reach
+          Kubernetes as StorageBackup objects the operator discovers.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of StorageBackupPolicy
+            properties:
+              claimSelector:
+                description: |-
+                  ClaimSelector selects the PersistentVolumeClaims this policy backs up. An
+                  absent selector selects nothing, which is deliberate: the cost of backing
+                  up too much is silent and recurring, and the cost of backing up too little
+                  is an error somebody sees. The controller reports an inert policy with a
+                  SelectorEmpty event rather than refusing it.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: |-
+                        A label selector requirement is a selector that contains values, a key, and an operator that
+                        relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: |-
+                            operator represents a key's relationship to a set of values.
+                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: |-
+                            values is an array of string values. If the operator is In or NotIn,
+                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                            the values array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                          x-kubernetes-list-type: atomic
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                    x-kubernetes-list-type: atomic
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
+                x-kubernetes-map-type: atomic
+              clusterRef:
+                description: |-
+                  ClusterRef names the StorageCluster whose backup target this policy writes
+                  to.
+
+                  Bounded at what a StorageCluster name may be, since a longer value names
+                  nothing that can exist.
+                maxLength: 63
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              consistencyGroupName:
+                description: |-
+                  ConsistencyGroupName names the consistency group this policy backs up as
+                  one unit, resolved in ClusterRef's cluster. When set, the policy takes one
+                  crash-consistent generation of the group per scheduled interval and backs
+                  up every member together, rather than backing up selected claims
+                  independently. The group is named rather than selected by label because the
+                  membership label's key is constant and only its value, the group name,
+                  varies. Set at most one of this and ClaimSelector.
+                maxLength: 63
+                type: string
+              maxAge:
+                description: |-
+                  MaxAge is how long to keep a backup ("30d," "720h"). Empty means no limit
+                  by age. Retention is enforced by the control plane, not here. Immutable,
+                  for the reason Schedule is.
+                pattern: ^[1-9]\d*[mhdw]$
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              maxVersions:
+                description: |-
+                  MaxVersions is how many backups of one claim to keep. Zero means no limit
+                  by count. Immutable, for the reason Schedule is.
+                format: int32
+                minimum: 0
+                type: integer
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              schedule:
+                description: |-
+                  Schedule is the tiered schedule the control plane runs the policy on, as a
+                  space-separated list of interval,keep_count pairs ("15m,4 60m,11 24h,7").
+                  Intervals must be strictly increasing, and the supported units are m, h,
+                  d, and w.
+
+                  Immutable, and that is a property of the control plane rather than a
+                  choice. The control plane offers no call that applies a changed schedule:
+                  it creates, deletes, attaches, and detaches a policy and nothing else. A
+                  mutable field the operator cannot reconcile would leave the declaration
+                  and the backups actually being taken permanently disagreeing, with the
+                  object still reporting Active, so the schedule is fixed at creation until
+                  that call exists. Changing one means replacing the policy.
+                pattern: ^(\d+[mhdw],\d+)( +\d+[mhdw],\d+)*$
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+            required:
+            - clusterRef
+            type: object
+            x-kubernetes-validations:
+            - message: field schedule is immutable once set
+              rule: '!has(oldSelf.schedule) || has(self.schedule)'
+            - message: field maxVersions is immutable once set
+              rule: '!has(oldSelf.maxVersions) || has(self.maxVersions)'
+            - message: field maxAge is immutable once set
+              rule: '!has(oldSelf.maxAge) || has(self.maxAge)'
+            - message: 'set at most one of claimSelector and consistencyGroupName:
+                a policy backs up either independent claims or one whole consistency
+                group'
+              rule: '!(has(self.claimSelector) && has(self.consistencyGroupName))'
+          status:
+            description: status defines the observed state of StorageBackupPolicy
+            properties:
+              attachedClaims:
+                description: |-
+                  AttachedClaims are the claims the policy currently covers. Detaching one
+                  stops new backups being taken and deletes none of the existing ones.
+                items:
+                  description: |-
+                    AttachedClaim is one claim the policy currently covers, in Kubernetes terms
+                    rather than in the control plane's.
+                  properties:
+                    attachedAt:
+                      description: AttachedAt is when the claim started matching the
+                        selector.
+                      format: date-time
+                      type: string
+                    clusterID:
+                      description: |-
+                        ClusterID is the backend cluster the claim's volume is in, whose policy
+                        it is attached to.
+                      type: string
+                    lvolID:
+                      description: |-
+                        LvolID is the logical volume the control plane attached the policy to. It
+                        is what a detach addresses, and it is recorded per claim so that a claim
+                        rebound onto a new volume is detached from the old one rather than
+                        silently left attached.
+                      type: string
+                    name:
+                      description: Name is the PersistentVolumeClaim's name in this
+                        namespace.
+                      type: string
+                    persistentVolumeName:
+                      description: PersistentVolumeName is the volume behind it.
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              clusterID:
+                description: ClusterID is the backend cluster the policy was created
+                  in.
+                type: string
+              lastBackupAt:
+                description: |-
+                  LastBackupAt is when the control plane last completed a backup under this
+                  policy, and it is what an age alert is computed from.
+                format: date-time
+                type: string
+              members:
+                description: |-
+                  Members is the policy in each member, when spec.clusterRef names a
+                  supercluster: one control-plane policy per member, each covering the
+                  claims whose volumes are in that member. ClusterID and PolicyID stay
+                  empty for such a policy.
+                items:
+                  description: |-
+                    BackupPolicyMemberStatus is the policy in one member cluster of a
+                    supercluster.
+                  properties:
+                    cluster:
+                      description: Cluster is the member StorageCluster.
+                      type: string
+                    clusterID:
+                      description: ClusterID is the member's backend cluster.
+                      type: string
+                    policyID:
+                      description: |-
+                        PolicyID is the control plane's identifier for the policy in that
+                        member.
+                      type: string
+                  required:
+                  - cluster
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - cluster
+                x-kubernetes-list-type: map
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the policy moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operator's own view of this policy.
+                enum:
+                - Pending
+                - Active
+                - Failed
+                type: string
+              policyID:
+                description: PolicyID is the control plane's identifier for the policy.
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

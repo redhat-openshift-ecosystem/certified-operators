@@ -1,0 +1,271 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: controlplaneops.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: ControlPlaneOps
+    listKind: ControlPlaneOpsList
+    plural: controlplaneops
+    shortNames:
+    - cpops
+    singular: controlplaneops
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.controlPlaneRef
+      name: ControlPlane
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ControlPlaneOps is a single operation performed against the control plane. It
+          runs to a terminal phase and stays afterward as the audit record of what was
+          done, with which parameters, and how it ended. Only one may be active per
+          control plane at a time, which the entity's status.activeOpsRef enforces.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              ControlPlaneOpsSpec is one operation to perform against the control plane.
+
+              Everything except spec.abort is frozen once the object is admitted, which is
+              what makes the status an audit of the request that ran rather than of whatever
+              the object says now. The parameters are consumed several steps apart:
+              Preflight reads spec.upgrade.image and Applying writes it, and Draining reads
+              spec.restart.components before Restarting rolls them. An edit in between
+              produces an operation that checked one thing and did another.
+
+              What is frozen is each parameter block's presence together with its
+              contents.
+            properties:
+              abort:
+                description: |-
+                  Abort asks a running operation to stop at its next step and unwind. It is
+                  the one field of this spec an update may change, because it is the one that
+                  is meant to be set after the operation started. Whether an abort is
+                  expressible from the current step is declared by that action's graph rather
+                  than checked here.
+                type: boolean
+              action:
+                description: |-
+                  Action is the operation to perform. Immutable, so that the status describes
+                  the operation that ran.
+                enum:
+                - Restart
+                - Upgrade
+                - Backup
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              backup:
+                description: Backup parameterizes action Backup and is ignored by
+                  the others.
+                properties:
+                  backupName:
+                    description: |-
+                      BackupName is the FoundationDBBackup to create or trigger. Absent uses the
+                      one already configured for the cluster, and fails when there is none and
+                      no name to create.
+                    type: string
+                  blobStore:
+                    description: |-
+                      BlobStore is the destination, in the form the FoundationDBBackup CRD takes
+                      it. The operator copies it through rather than interpreting it, since the
+                      backup is the FoundationDB operator's to perform.
+                    type: string
+                required:
+                - blobStore
+                type: object
+              controlPlaneRef:
+                description: |-
+                  ControlPlaneRef names the ControlPlane this operation acts on, in this
+                  object's own namespace. The operation never owns its target, because
+                  deleting the record of an operation must not delete the control plane it
+                  operated on.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              restart:
+                description: Restart parameterizes action Restart and is ignored by
+                  the others.
+                properties:
+                  components:
+                    description: |-
+                      Components names the workloads to restart. Empty restarts the whole
+                      control plane. Naming only components that status.components reports as
+                      non-essential skips the drain, because restarting them interrupts nothing.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                type: object
+              upgrade:
+                description: Upgrade parameterizes action Upgrade and is ignored by
+                  the others.
+                properties:
+                  image:
+                    description: |-
+                      Image is the version to move to. It replaces
+                      ControlPlane.spec.source.managed.image when the operation succeeds, so the
+                      entity keeps describing what is running.
+                    pattern: ^($|(([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*|\[[a-fA-F0-9:]+\])(:[0-9]+)?/)?[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*(/[a-z0-9]+((\.|_|__|-+)[a-z0-9]+)*)*(:[a-zA-Z0-9_][a-zA-Z0-9_.-]{0,127}(@sha256:[a-f0-9]{64})?|@sha256:[a-f0-9]{64}))$
+                    type: string
+                required:
+                - image
+                type: object
+            required:
+            - action
+            - controlPlaneRef
+            type: object
+            x-kubernetes-validations:
+            - message: 'spec.upgrade is immutable: Preflight checked the image the
+                operation was admitted with, and Applying writes it several steps
+                later'
+              rule: has(self.upgrade) == has(oldSelf.upgrade) && (!has(self.upgrade)
+                || self.upgrade == oldSelf.upgrade)
+            - message: 'spec.restart is immutable: the drain is decided from the component
+                list, so widening it afterward skips a drain the wider list would
+                have required'
+              rule: has(self.restart) == has(oldSelf.restart) && (!has(self.restart)
+                || self.restart == oldSelf.restart)
+            - message: 'spec.backup is immutable: the destination is what Requesting
+                created the FoundationDBBackup against'
+              rule: has(self.backup) == has(oldSelf.backup) && (!has(self.backup)
+                || self.backup == oldSelf.backup)
+          status:
+            description: ControlPlaneOpsStatus is the observed state of one control-plane
+              operation.
+            properties:
+              backupRef:
+                description: |-
+                  BackupRef names the FoundationDBBackup a Backup run created or triggered.
+                  The operation does not own it, because deleting the record of a backup
+                  must not delete the backup's configuration.
+                type: string
+              completedAt:
+                description: CompletedAt is when it reached a terminal phase.
+                format: date-time
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the operation moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operation's own progress.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                - Aborted
+                type: string
+              startedAt:
+                description: StartedAt is when the operation acquired its target's
+                  lock.
+                format: date-time
+                type: string
+              step:
+                description: |-
+                  Step is the position of the running action's state machine. It is
+                  persisted before the side effect that step performs, so a step reported
+                  here is a step that started.
+                properties:
+                  claim:
+                    description: |-
+                      Claim records that this state's side effect was started. Absent means
+                      no pass has started it since the state was entered.
+                    properties:
+                      attempt:
+                        description: Attempt counts the claims taken on this state,
+                          starting at 1.
+                        format: int32
+                        type: integer
+                      leaseUntil:
+                        description: |-
+                          LeaseUntil is when the claim expires and the side effect may be fired
+                          again.
+                        format: date-time
+                        type: string
+                      state:
+                        description: State is the state the claim was taken in.
+                        type: string
+                    required:
+                    - attempt
+                    - leaseUntil
+                    - state
+                    type: object
+                  deadline:
+                    description: |-
+                      Deadline is when that state expires, absent when it has none. It is an
+                      absolute instant, so a state whose deadline passed while the controller
+                      was down restores as already expired.
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      State is the state the machine was in. Empty means the resource has not
+                      been reconciled yet, and restores to the graph's initial state.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: unknown step
+                  rule: '!has(self.state) || self.state in [''Draining'',''Restarting'',''Awaiting'',''Preflight'',''Applying'',''Verifying'',''Requesting'',''Completed'']'
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

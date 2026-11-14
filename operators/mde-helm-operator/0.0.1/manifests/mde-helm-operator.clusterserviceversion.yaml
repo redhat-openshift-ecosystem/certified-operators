@@ -1,0 +1,607 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "defender.microsoft.com/v1alpha1",
+          "kind": "DefenderEndpoint",
+          "metadata": {
+            "name": "mde-onboarding",
+            "namespace": "mdc"
+          },
+          "spec": {
+            "onboarding": {
+              "existingSecret": "mde-onboarding"
+            },
+            "platform": "openshift"
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Security
+    createdAt: "2026-11-13T13:32:19Z"
+    description: Deploy and manage Microsoft Defender for Endpoint on OpenShift.
+    features.operators.openshift.io/disconnected: "false"
+    features.operators.openshift.io/fips-compliant: "false"
+    features.operators.openshift.io/proxy-aware: "false"
+    features.operators.openshift.io/tls-profiles: "false"
+    features.operators.openshift.io/token-auth-aws: "false"
+    features.operators.openshift.io/token-auth-azure: "false"
+    features.operators.openshift.io/token-auth-gcp: "false"
+    operatorframework.io/suggested-namespace: mdc-operator
+    operators.operatorframework.io/builder: operator-sdk-v1.42.3
+    operators.operatorframework.io/project_layout: helm.sdk.operatorframework.io/v1
+  labels:
+    operatorframework.io/arch.amd64: supported
+    operatorframework.io/arch.arm64: supported
+    operatorframework.io/os.linux: supported
+  name: mde-helm-operator.v0.0.1
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Use mde-onboarding as the resource name. Select an imported onboarding
+        Secret to deploy MDE. Optionally enter a cluster name or use automatic discovery.
+      displayName: Defender Endpoint
+      kind: DefenderEndpoint
+      name: defenderendpoints.defender.microsoft.com
+      specDescriptors:
+      - description: Optional cluster name. Omit to use the automatically discovered
+          name.
+        displayName: Cluster name
+        path: clusterName
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Optional daily image updates from the selected Microsoft MDE
+          repository.
+        displayName: Automatic MDE image updates
+        path: autoUpdate
+      - description: Optional proxy URL.
+        displayName: Outbound proxy
+        path: proxy
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Check for image updates daily, starting at the next scheduled
+          run. Updates can replace manually selected versions. Disable before pinning
+          an image tag or digest.
+        displayName: Follow latest MDE image
+        path: autoUpdate.enabled
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:booleanSwitch
+      - displayName: Platform
+        path: platform
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Select the imported onboarding Secret in this project containing
+          mdatp_onboard.json.
+        displayName: Onboarding Secret
+        path: onboarding.existingSecret
+        x-descriptors:
+        - urn:alm:descriptor:io.kubernetes:Secret
+      - displayName: Offboarding
+        path: offboarding
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: Admission policy
+        path: securityGating
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - displayName: Admission settings
+        path: AzureDefender
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Container image settings. Omitted values use defaults. Disable
+          automatic updates before selecting a specific image tag or digest.
+        displayName: Image settings
+        path: image
+      - displayName: Image repository
+        path: image.repository
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      - description: Image tag from the selected repository. Omit to use the default
+          version; clear any digest override when selecting a tag.
+        displayName: Image tag
+        path: image.tag
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - description: Registry containing the MDE image. Omit to use mcr.microsoft.com.
+          Automatic updates require this registry.
+        displayName: Image registry
+        path: image.registry
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:text
+      - displayName: Image digest
+        path: image.digest
+        x-descriptors:
+        - urn:alm:descriptor:com.tectonic.ui:hidden
+      version: v1alpha1
+  description: |
+    Deploy and manage Microsoft Defender for Endpoint (MDE) on OpenShift.
+
+    ## Features
+
+    - Deploy and uninstall MDE through a DefenderEndpoint resource.
+    - Use imported onboarding configuration and automatic cluster discovery.
+    - Select an image version or opt in to daily image updates.
+
+    ## Documentation
+
+    See [Microsoft Defender for Endpoint documentation](https://learn.microsoft.com/defender-endpoint/microsoft-defender-endpoint-linux)
+    for product guidance.
+
+    Installation requires cluster-wide permissions and privileged node access.
+    Restrict configuration changes to trusted administrators.
+  displayName: Microsoft Defender for Endpoint
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - project.openshift.io
+          resources:
+          - projects
+          verbs:
+          - create
+        - apiGroups:
+          - project.openshift.io
+          resourceNames:
+          - mdc
+          resources:
+          - projects
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          - nodes
+          - pods
+          - services
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          - configmaps
+          - secrets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          - cronjobs
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - replicasets
+          - statefulsets
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - nodes/proxy
+          verbs:
+          - get
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - roles
+          - rolebindings
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterroles
+          - clusterrolebindings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - security.openshift.io
+          resourceNames:
+          - privileged
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - use
+        - apiGroups:
+          - security.openshift.io
+          resources:
+          - securitycontextconstraints
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - networking.k8s.io
+          resources:
+          - ingresses
+          - networkpolicies
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - gateway.networking.k8s.io
+          resources:
+          - gateways
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - crd.projectcalico.org
+          resources:
+          - '*'
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
+          - config.openshift.io
+          resources:
+          - clusterversions
+          - infrastructures
+          - networks
+          - consoles
+          - authentications
+          - oauths
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - aro.openshift.io
+          resourceNames:
+          - cluster
+          resources:
+          - clusters
+          verbs:
+          - get
+        - apiGroups:
+          - operator.openshift.io
+          resources:
+          - cloudcredentials
+          - clustercsidrivers
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - operator.openshift.io
+          resourceNames:
+          - cluster
+          resources:
+          - consoles
+          verbs:
+          - get
+        - apiGroups:
+          - machine.openshift.io
+          resources:
+          - machines
+          - machinesets
+          verbs:
+          - get
+          - list
+        - apiGroups:
+          - autoscaling.openshift.io
+          resources:
+          - machineautoscalers
+          verbs:
+          - get
+          - list
+        serviceAccountName: mde-helm-operator-controller-manager
+      deployments:
+      - label:
+          app.kubernetes.io/name: mde-helm-operator
+        name: mde-helm-operator-controller-manager
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: mde-helm-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                app.kubernetes.io/name: mde-helm-operator
+            spec:
+              affinity:
+                nodeAffinity:
+                  requiredDuringSchedulingIgnoredDuringExecution:
+                    nodeSelectorTerms:
+                    - matchExpressions:
+                      - key: kubernetes.io/arch
+                        operator: In
+                        values:
+                        - amd64
+                        - arm64
+                      - key: kubernetes.io/os
+                        operator: In
+                        values:
+                        - linux
+              containers:
+              - args:
+                - --leader-elect
+                - --leader-election-id=mde-helm-operator
+                - --health-probe-bind-address=:8081
+                - --metrics-bind-address=0
+                env:
+                - name: WATCH_NAMESPACE
+                  value: mdc
+                - name: OPERATOR_IMAGE
+                  value: mcr.microsoft.com/mdatp/linux/operator/insiderfast@sha256:ce33e7b8f5f5b55b682b0dcf100612f345a4cbc40125e31c8bfc5d0338a0b59a
+                image: mcr.microsoft.com/mdatp/linux/operator/insiderfast@sha256:ce33e7b8f5f5b55b682b0dcf100612f345a4cbc40125e31c8bfc5d0338a0b59a
+                livenessProbe:
+                  httpGet:
+                    path: /healthz
+                    port: 8081
+                  initialDelaySeconds: 15
+                  periodSeconds: 20
+                name: manager
+                readinessProbe:
+                  httpGet:
+                    path: /readyz
+                    port: 8081
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+                resources:
+                  limits:
+                    cpu: 500m
+                    memory: 128Mi
+                  requests:
+                    cpu: 10m
+                    memory: 64Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+              initContainers:
+              - command:
+                - /bin/bash
+                - /usr/local/bin/ensure-mdc-project
+                image: mcr.microsoft.com/mdatp/linux/operator/insiderfast@sha256:ce33e7b8f5f5b55b682b0dcf100612f345a4cbc40125e31c8bfc5d0338a0b59a
+                name: project-bootstrap
+                resources:
+                  limits:
+                    cpu: 100m
+                    memory: 64Mi
+                  requests:
+                    cpu: 5m
+                    memory: 32Mi
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
+                  readOnlyRootFilesystem: true
+                volumeMounts:
+                - mountPath: /tmp
+                  name: project-bootstrap-tmp
+              securityContext:
+                runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
+              serviceAccountName: mde-helm-operator-controller-manager
+              terminationGracePeriodSeconds: 10
+              volumes:
+              - emptyDir:
+                  medium: Memory
+                  sizeLimit: 8Mi
+                name: project-bootstrap-tmp
+      permissions:
+      - rules:
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - roles
+          - rolebindings
+          verbs:
+          - create
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resourceNames:
+          - mde-onboarding-mdatp-linux-mdc-in-daemon-discovery-kubeadmin
+          resources:
+          - roles
+          verbs:
+          - get
+          - delete
+          - patch
+          - update
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resourceNames:
+          - mde-onboarding-mdatp-linux-mdc-in-daemon-discovery-kubeadmin-binding
+          resources:
+          - rolebindings
+          verbs:
+          - get
+          - delete
+          - patch
+          - update
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          - configmaps
+          - secrets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+          - patch
+        - apiGroups:
+          - ""
+          resources:
+          - pods/log
+          verbs:
+          - get
+        - apiGroups:
+          - apps
+          resources:
+          - daemonsets
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - batch
+          resources:
+          - jobs
+          - cronjobs
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - defender.microsoft.com
+          resources:
+          - defenderendpoints
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - defender.microsoft.com
+          resources:
+          - defenderendpoints/status
+          - defenderendpoints/finalizers
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - roles
+          - rolebindings
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - coordination.k8s.io
+          resources:
+          - leases
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        serviceAccountName: mde-helm-operator-controller-manager
+    strategy: deployment
+  installModes:
+  - supported: false
+    type: OwnNamespace
+  - supported: false
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - mde
+  - defender
+  - endpoint-protection
+  - helm
+  links:
+  - name: Microsoft Defender for Endpoint on Linux
+    url: https://learn.microsoft.com/defender-endpoint/microsoft-defender-endpoint-linux
+  maturity: alpha
+  provider:
+    name: Microsoft
+  relatedImages:
+  - image: mcr.microsoft.com/mdatp/linux/operator/insiderfast@sha256:ce33e7b8f5f5b55b682b0dcf100612f345a4cbc40125e31c8bfc5d0338a0b59a
+    name: mde-helm-operator
+  - image: mcr.microsoft.com/mdatp/linux/insiderfast@sha256:47dff76bae867eaeb64685979c6ff063fa0d020db8b85c3ce7c7cb2abdcdc157
+    name: mde-linux
+  version: 0.0.1

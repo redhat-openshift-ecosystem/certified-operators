@@ -1,0 +1,170 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  name: semaphores.ztouch.ztouch.net
+spec:
+  group: ztouch.ztouch.net
+  names:
+    kind: Semaphore
+    listKind: SemaphoreList
+    plural: semaphores
+    shortNames:
+    - sem
+    singular: semaphore
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterDomain
+      name: ClusterDomain
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |
+          Semaphore is the Schema for deploying SemaphoreUI on an OpenShift cluster via the ztouch-os-operator.
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: SemaphoreSpec defines the desired state of Semaphore.
+            properties:
+              adminEmail:
+                default: admin@localhost
+                description: Email address for the initial admin account.
+                type: string
+              adminFullname:
+                default: Admin
+                description: Display name for the initial admin account.
+                type: string
+              adminSecretName:
+                default: semaphore-admin-secret
+                description: |
+                  Name of the Secret holding the initial admin credentials (key: password; optional: username, email, fullname). Created by the chart with a random password if it does not exist, so nothing needs to be created beforehand; pre-create it only to choose the password yourself. An existing Secret is never changed. Read the generated password with: oc get secret <name> -o jsonpath='{.data.password}' | base64 -d
+                type: string
+              adminUsername:
+                default: admin
+                description: Username for the initial admin account.
+                type: string
+              ansibleCachePvcName:
+                default: semaphore-ansible-cache
+                description: |
+                  Name of the PVC for the Ansible Galaxy cache (~/.ansible), created by the chart. Mounted to avoid re-downloading Galaxy collections on every task run. Set to "" to skip.
+                type: string
+              ansibleCachePvcSize:
+                default: 5Gi
+                description: Storage size for the Ansible cache PVC.
+                type: string
+              clusterDomain:
+                description: |
+                  Base ingress domain of the target cluster (e.g. apps.<cluster>.<domain>). Auto-discovered from the cluster Ingress config if not set. Used to construct the Route hostname: semaphore-<namespace>.<clusterDomain>
+                type: string
+              databaseExistingClaim:
+                default: semaphore-database
+                description: Name of the PVC for the SQLite database file (created
+                  by the chart).
+                type: string
+              databasePvcSize:
+                default: 8Gi
+                description: Storage size for the database PVC.
+                type: string
+              deploymentName:
+                default: semaphore
+                description: |
+                  Base name for the Deployment, Service, Route, and all derived objects.
+                type: string
+              imagePullSecret:
+                default: ""
+                description: |
+                  Name of an image pull Secret, only for a private mirror of the image. The operator pins a public image, so none is needed otherwise. When set, it must exist in the namespace.
+                type: string
+              provisioning:
+                default:
+                  enabled: true
+                description: |
+                  Automates the manual SemaphoreUI dashboard setup steps — creating the project, a ci-bot task-runner user + API token, credentials, repositories, inventories, environments, templates, and schedules — via a post-install/post-upgrade Job that idempotently drives the Semaphore REST API. On by default: a Semaphore CR is already opt-in, and the no-licence case self-heals. Field reference and commented examples: helm-charts/semaphore/values.yaml and config/samples/ztouch_v1alpha1_semaphore.yaml.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              pythonRequirements:
+                default: |
+                  kubernetes>=24.2.0
+                  PyYAML>=3.11
+                  jsonpatch
+                  openshift
+                description: |
+                  Content of a requirements.txt the chart creates and owns as a ConfigMap, mounted at /etc/semaphore/requirements.txt. Semaphore's own container entrypoint pip-installs it on every startup - this is how modules like kubernetes.core.k8s get Python libraries (kubernetes, PyYAML, jsonpatch, openshift) without a custom image. On by default; override to add packages, or set to "" to disable the mount.
+                type: string
+              resources:
+                default:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                description: |
+                  Resource requests and limits for the SemaphoreUI container.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              restrictedSCC:
+                default: true
+                description: |
+                  Run Semaphore under OpenShift's default restricted-v2 SCC, with no anyuid grant. When true, the pod sets no fsGroup on OpenShift, so the SCC assigns one from the namespace's range and the volumes become writable for the random UID. Needs an image built for an arbitrary UID: the UBI semaphore-ee image (tag suffix -ubi). Leave false for the Alpine images (upstream semaphoreui/semaphore, semaphore-ee without -ubi), which need fsGroup 0 and the anyuid grant in config/cluster-rbac/semaphore-scc.yaml. No effect on plain Kubernetes.
+                type: boolean
+              semaphoreImagePullPolicy:
+                default: IfNotPresent
+                description: Image pull policy for the SemaphoreUI container.
+                type: string
+              storageClassName:
+                default: ""
+                description: |
+                  StorageClass for the three chart-managed PVCs (workdir, database, ansible-cache). Empty (the default) uses the cluster's default StorageClass; set a class name to use another one. A Bound claim's class cannot change, so set this before the first install.
+                type: string
+              workdirStorageSize:
+                default: 10Gi
+                description: Storage size for the workdir PVC.
+                type: string
+            required:
+            - adminSecretName
+            type: object
+          status:
+            description: SemaphoreStatus reflects the observed state of Semaphore.
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  type: object
+                type: array
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

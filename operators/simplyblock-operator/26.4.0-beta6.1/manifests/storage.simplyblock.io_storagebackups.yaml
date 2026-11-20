@@ -1,0 +1,492 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: storagebackups.storage.simplyblock.io
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: simplyblock-operator-conversion-webhook-service
+          namespace: simplyblock-operator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: storage.simplyblock.io
+  names:
+    kind: StorageBackup
+    listKind: StorageBackupList
+    plural: storagebackups
+    shortNames:
+    - sb
+    singular: storagebackup
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.pvcRef.name
+      name: PVC
+      type: string
+    - jsonPath: .status.backupID
+      name: BackupID
+      type: string
+    - jsonPath: .status.snapshotName
+      name: Snapshot
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: StorageBackup is the Schema for the storagebackups API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of StorageBackup
+            properties:
+              clusterName:
+                description: ClusterName is the target storage cluster name.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              pvcRef:
+                description: |-
+                  PVCRef identifies the PVC whose backing simplyblock volume should be snapshotted and backed up.
+                  Not required when SourceClusterUUID is set (imported backup).
+                properties:
+                  name:
+                    description: Name is the PVC name.
+                    type: string
+                  namespace:
+                    description: Namespace overrides the backup resource namespace
+                      for the PVC lookup.
+                    type: string
+                required:
+                - name
+                type: object
+              snapshotName:
+                description: SnapshotName optionally overrides the snapshot name the
+                  operator would otherwise choose.
+                type: string
+              sourceClusterUUID:
+                description: |-
+                  SourceClusterUUID, when non-empty, marks this StorageBackup as imported from another cluster.
+                  The StorageBackup controller will not create snapshots or backups for imported resources.
+                  Set by the BackupImport controller; do not set manually.
+                type: string
+            required:
+            - clusterName
+            type: object
+          status:
+            description: status defines the observed state of StorageBackup
+            properties:
+              allowedHosts:
+                description: AllowedHosts contains the allowed host metadata returned
+                  by the backup API.
+                items:
+                  additionalProperties:
+                    type: string
+                  type: object
+                type: array
+              apiStatus:
+                description: APIStatus is the raw status returned by the backup API.
+                type: string
+              backupID:
+                description: BackupID is the backend backup UUID.
+                type: string
+              clusterUUID:
+                description: ClusterUUID is the backend cluster UUID.
+                type: string
+              completedAt:
+                description: CompletedAt is when the backup completed.
+                format: date-time
+                type: string
+              createdAt:
+                description: CreatedAt is when the backup was created.
+                format: date-time
+                type: string
+              fsType:
+                description: |-
+                  FSType is the filesystem type of the source PersistentVolume ("ext4," "XFS"),
+                  captured at backup time so a restore can preserve it regardless of
+                  which StorageClass the restored PVC ends up using.
+                type: string
+              lvolID:
+                description: LvolID is the simplyblock volume UUID.
+                type: string
+              lvolName:
+                description: LvolName is the backend logical volume name.
+                type: string
+              message:
+                description: Message contains the latest reconciliation detail or
+                  error.
+                type: string
+              nodeID:
+                description: NodeID is the source storage node UUID.
+                type: string
+              phase:
+                description: Phase is the high-level backup lifecycle shown in kubectl
+                  output.
+                type: string
+              poolName:
+                description: PoolName is the simplyblock pool name derived from the
+                  CSI volume handle.
+                type: string
+              poolUUID:
+                description: PoolUUID is the backend pool UUID.
+                type: string
+              prevBackupID:
+                description: PrevBackupID links the previous backup in the chain.
+                type: string
+              pvName:
+                description: PVName is the bound PV name.
+                type: string
+              pvcNamespace:
+                description: PVCNamespace is the resolved PVC namespace.
+                type: string
+              s3ID:
+                description: S3ID is the backend S3 object identifier.
+                format: int64
+                type: integer
+              size:
+                description: Size is the backup size in bytes.
+                format: int64
+                type: integer
+              snapshotID:
+                description: SnapshotID is the UUID of the snapshot the operator created
+                  used for the backup request.
+                type: string
+              snapshotName:
+                description: SnapshotName is the snapshot name used for the backup
+                  request.
+                type: string
+              sourceClusterUUID:
+                description: |-
+                  SourceClusterUUID is set for imported backups; identifies the cluster that originally
+                  created the backup. When non-empty and different from the restore target cluster UUID,
+                  BackupRestore will automatically perform source-switch operations around the restore.
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .status.source.claimName
+      name: Claim
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.backup.size
+      name: Size
+      type: integer
+    - jsonPath: .status.source.poolName
+      name: Pool
+      priority: 1
+      type: string
+    - jsonPath: .status.backup.backupID
+      name: BackupID
+      priority: 1
+      type: string
+    - jsonPath: .status.source.group.consistencyGroupName
+      name: Group
+      priority: 1
+      type: string
+    - jsonPath: .status.source.group.generation
+      name: Generation
+      priority: 1
+      type: integer
+    - jsonPath: .status.backup.completedAt
+      name: Completed
+      type: date
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StorageBackup is one point-in-time copy of one volume that exists in a
+          cluster's store.
+
+          Objects are created by the operator from what the store holds and are never
+          written by a user: creating one by hand would claim a backup exists that the
+          store does not hold, and deleting one would hide a backup that is still there
+          and still restorable. Deleting the object never deletes the copy.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec identifies the backup this object reports on
+            properties:
+              clusterRef:
+                description: |-
+                  ClusterRef is the StorageCluster that holds this backup. The operator sets
+                  it on a record of an existing backup. Leave it unset when source is set:
+                  the cluster is then the one that provisioned the claim's volume.
+                maxLength: 63
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              source:
+                description: |-
+                  Source asks for a new backup of a claim, the way a VolumeSnapshot asks
+                  for a snapshot. It stays after the backup is taken and marks this object
+                  as a request. Leave it unset when clusterRef is set.
+                properties:
+                  claimName:
+                    description: |-
+                      ClaimName is the PersistentVolumeClaim to back up, in this object's own
+                      namespace. It must be bound to a volume this product provisioned.
+                    maxLength: 253
+                    minLength: 1
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                required:
+                - claimName
+                type: object
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+            type: object
+            x-kubernetes-validations:
+            - message: field clusterRef is immutable once set
+              rule: '!has(oldSelf.clusterRef) || has(self.clusterRef)'
+            - message: field source is immutable once set
+              rule: '!has(oldSelf.source) || has(self.source)'
+            - message: set exactly one of source (to request a backup) or clusterRef
+                (to record one the store holds)
+              rule: has(self.source) != has(self.clusterRef)
+          status:
+            description: status defines the observed state of StorageBackup
+            properties:
+              activeOpsRef:
+                description: |-
+                  ActiveOpsRef names the StorageBackupOps currently allowed to act on this
+                  backup, as namespace/name when it is in another namespace. Empty when none
+                  is running.
+                type: string
+              apiStatus:
+                description: |-
+                  APIStatus is the control plane's own lifecycle string, in the control
+                  plane's spelling, which is why it carries no Enum here. It is what keeps
+                  the states the four-value phase folds together — merging, deleting —
+                  legible.
+                type: string
+              backup:
+                description: Backup is the copy itself.
+                properties:
+                  backupID:
+                    description: BackupID is the control plane's identifier for the
+                      copy.
+                    type: string
+                  completedAt:
+                    format: date-time
+                    type: string
+                  previousBackupID:
+                    description: |-
+                      PreviousBackupID names the backup this one is incremental against, where
+                      the control plane reports one. It makes the chain legible, which matters
+                      because deleting a backup another depends on is not obviously safe.
+                    type: string
+                  s3ID:
+                    description: |-
+                      S3ID is the object behind the copy in the store. It is what somebody
+                      reconciling a bill against a bucket listing matches on.
+                    format: int64
+                    type: integer
+                  size:
+                    description: Size is the copy's size in bytes, which is what a
+                      bill tracks.
+                    format: int64
+                    minimum: 0
+                    type: integer
+                  startedAt:
+                    description: |-
+                      StartedAt and CompletedAt bound how long the copy took. They are the
+                      backup's own reported interval rather than transitions the operator
+                      observed, because the stream coalesces and a small backup can be complete
+                      before the operator ever saw it start.
+                    format: date-time
+                    type: string
+                type: object
+              clusterID:
+                description: |-
+                  ClusterID is the backend cluster whose stream this backup was last
+                  observed on. An object outliving its backup has to say which scope's
+                  silence is authoritative before it may be deleted, and spec.clusterRef
+                  names a Kubernetes object rather than a backend one. StorageDevice carries
+                  the same field for the same reason.
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the backup moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one. On this kind it
+                  moves at most once, since every spec field is fixed when the object is
+                  created.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operator's own view of this backup.
+                enum:
+                - Pending
+                - Creating
+                - Available
+                - Failed
+                type: string
+              source:
+                description: Source is what the volume was when the copy was taken.
+                properties:
+                  claimName:
+                    description: |-
+                      ClaimName and ClaimNamespace are the PersistentVolumeClaim the copy was
+                      taken from. They are the pair a user recognizes, and the reason the claim
+                      rather than the volume is the printed column.
+                    type: string
+                  claimNamespace:
+                    type: string
+                  clusterUUID:
+                    description: |-
+                      ClusterUUID is the cluster the volume lived in, which differs from the
+                      backup's own cluster when another cluster wrote it.
+                    type: string
+                  fsType:
+                    description: |-
+                      FSType is the filesystem the volume was formatted with, which a restore
+                      needs in order to produce a mountable claim.
+                    type: string
+                  group:
+                    description: |-
+                      Group is the group backup this copy belongs to, when it is a member of a
+                      consistency-group backup. Absent for a standalone single-volume backup.
+                    properties:
+                      consistencyGroupName:
+                        description: ConsistencyGroupName is the consistency group
+                          the generation was taken from.
+                        type: string
+                      generation:
+                        description: |-
+                          Generation is the group sequence this backup's generation was stamped with,
+                          so copies of the same generation can be recognized as one point in time.
+                        format: int64
+                        type: integer
+                      groupBackupID:
+                        description: |-
+                          GroupBackupID is the control-plane group backup this member belongs to.
+                          Every member copy of one generation shares it, which is also carried as the
+                          storage.simplyblock.io/group-backup-id label so the members are a selector.
+                        type: string
+                      memberCount:
+                        description: |-
+                          MemberCount is how many members the generation has, so a reader can tell a
+                          complete group backup from a partial one without listing every member.
+                        format: int32
+                        type: integer
+                    type: object
+                  lvolID:
+                    description: LvolID and LvolName identify the logical volume that
+                      was copied.
+                    type: string
+                  lvolName:
+                    type: string
+                  nodeID:
+                    description: |-
+                      NodeID is the storage node the copy was read from. It belongs to the
+                      source rather than to the copy: it says which machine held the data, which
+                      is what somebody correlating a backup against a node failure needs.
+                    type: string
+                  persistentVolumeName:
+                    description: PersistentVolumeName is the PV that was copied.
+                    type: string
+                  poolName:
+                    description: |-
+                      PoolName and PoolUUID are the StoragePool the volume was in. A restore
+                      names its own target pool rather than defaulting to this one, because a
+                      backup discovered from a shared store may name a pool this cluster does
+                      not have.
+                    type: string
+                  poolUUID:
+                    type: string
+                  snapshotID:
+                    description: |-
+                      SnapshotID and SnapshotName identify the snapshot the backup was taken
+                      from.
+                    type: string
+                  snapshotName:
+                    type: string
+                  volumeMode:
+                    description: |-
+                      VolumeMode is how the source volume was presented to its workload: as a
+                      filesystem or as a raw block device. A restore needs it because a claim
+                      restored as Filesystem from a Block source is staged as a blank device
+                      and formatted over the data.
+                    enum:
+                    - Filesystem
+                    - Block
+                    type: string
+                type: object
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

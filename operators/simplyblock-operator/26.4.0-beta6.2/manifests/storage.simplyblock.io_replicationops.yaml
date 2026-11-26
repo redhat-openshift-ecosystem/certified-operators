@@ -1,0 +1,329 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: replicationops.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: ReplicationOps
+    listKind: ReplicationOpsList
+    plural: replicationops
+    shortNames:
+    - replops
+    singular: replicationops
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .spec.scope
+      name: Scope
+      type: string
+    - jsonPath: .spec.ref
+      name: Ref
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.subphase
+      name: Subphase
+      type: string
+    - jsonPath: .status.forecast.etaSeconds
+      name: ETA
+      priority: 1
+      type: integer
+    - jsonPath: .status.forecast.converging
+      name: Converging
+      priority: 1
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          ReplicationOps is a one-shot user-driven CR for imperative replication operations:
+          failover (planned or unplanned), failback, and online migration to the target
+          cluster. The operator drives the backend calls
+          to completion and records per-volume outcomes in status.results. Only one ReplicationOps
+          may be active per ReplicationPolicy at a time, enforced via ReplicationPolicy.status.activeOpsRef.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ReplicationOpsSpec defines the desired state of a ReplicationOps.
+            properties:
+              action:
+                description: |-
+                  Action is the operation to perform. Immutable.
+                  failover: unplanned. Promotes the target clone; the source may be down.
+                  failback: restores the source as primary after a prior failover.
+                  migration: planned online cutover to the target cluster. Both clusters stay up.
+                             Every affected volume goes into one migration plan, which copies
+                             the data, then cuts the volumes over one at a time per source
+                             lvstore so each I/O freeze stays short. The operation runs until
+                             every volume has cut over, and reports progress and a forecast.
+                             Slot state progression: replicating → cutover_pending → cutover_done.
+                enum:
+                - failover
+                - failback
+                - migration
+                type: string
+              deleteSource:
+                description: |-
+                  DeleteSource instructs the backend to delete the old volume after a
+                  successful cutover. For migration it deletes the original source volume;
+                  for failback it deletes the failed-over volume on the target cluster.
+                type: boolean
+              dryRun:
+                description: |-
+                  DryRun asks for the migration plan and its forecast only: which
+                  volumes would move, to which target nodes, how much data that is, and
+                  how long it is expected to take. Nothing is enrolled, replicated, or
+                  cut over, and the operation succeeds once the forecast is in status.
+                  Allowed for action=migration only.
+                type: boolean
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              policyRef:
+                description: |-
+                  PolicyRef names the ReplicationPolicy, in mode migration, that a
+                  cluster-scoped migration enrolls not-yet-replicated claims under. It is
+                  required for scope=cluster and not allowed otherwise. A claim that
+                  already follows a different policy is reported as skipped, never
+                  re-enrolled.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              ref:
+                description: |-
+                  Ref is the name of the resource identified by Scope:
+                  a ReplicationPair name for scope=target,
+                  a ReplicationPolicy name for scope=policy,
+                  a ReplicationSlot name for scope=volume,
+                  or a StorageCluster name (or the cluster's UUID) for scope=cluster. Immutable.
+                type: string
+              scope:
+                description: |-
+                  Scope controls which volumes are affected. Immutable.
+                  target: all volumes across every policy that uses the named ReplicationPair.
+                  policy: all volumes managed by the named ReplicationPolicy CR.
+                  volume: a single ReplicationSlot (planned or unplanned per-volume operation).
+                  cluster: every PersistentVolumeClaim, in any namespace, whose volume lives
+                           on the named source storage cluster (migration only). Claims that
+                           are not replicated yet are enrolled under spec.policyRef.
+                enum:
+                - target
+                - policy
+                - volume
+                - cluster
+                type: string
+              sourceClusterID:
+                description: SourceClusterID is used for failback only. Omit to recover
+                  to the original source.
+                type: string
+            required:
+            - action
+            - ref
+            - scope
+            type: object
+            x-kubernetes-validations:
+            - message: field policyRef is immutable once set
+              rule: '!has(oldSelf.policyRef) || has(self.policyRef)'
+            - message: field dryRun is immutable once set
+              rule: '!has(oldSelf.dryRun) || has(self.dryRun)'
+          status:
+            description: ReplicationOpsStatus holds the observed state of a ReplicationOps.
+            properties:
+              completedAt:
+                description: CompletedAt is when the operation finished (successfully
+                  or not).
+                format: date-time
+                type: string
+              forecast:
+                description: |-
+                  Forecast is the latest estimate of how much data a migration still has
+                  to copy and when it completes.
+                properties:
+                  bytesRemaining:
+                    description: BytesRemaining is the data still to be copied across
+                      all volumes.
+                    format: int64
+                    type: integer
+                  completesAt:
+                    description: CompletesAt is the forecast completion time.
+                    format: date-time
+                    type: string
+                  converging:
+                    description: |-
+                      Converging is false when some source lvstore's volumes are written at
+                      least about as fast as it replicates them: their lag never closes, no
+                      cutover can start, and ETASeconds and CompletesAt are left unset. Unset
+                      when the storage control plane does not report the verdict.
+                    type: boolean
+                  dirtyBytesPerSec:
+                    description: |-
+                      DirtyBytesPerSec is the rate the clients write to the volumes still
+                      being copied, which replication has to outrun.
+                    format: int64
+                    type: integer
+                  etaSeconds:
+                    description: |-
+                      ETASeconds is the forecast time, in seconds, until the last volume has
+                      cut over.
+                    format: int64
+                    type: integer
+                  notConvergingLVS:
+                    description: |-
+                      NotConvergingLVS names the source lvstores whose volumes are written
+                      faster than they replicate.
+                    items:
+                      type: string
+                    type: array
+                  throughputBytesPerSec:
+                    description: ThroughputBytesPerSec is the transfer rate the forecast
+                      assumes.
+                    format: int64
+                    type: integer
+                  throughputMeasured:
+                    description: |-
+                      ThroughputMeasured is true when the rate was measured from completed
+                      transfers, and false when none has completed yet and a default rate
+                      was assumed.
+                    type: boolean
+                type: object
+              message:
+                description: Message is a human-readable description of the current
+                  phase.
+                type: string
+              phase:
+                description: Phase is the current lifecycle phase of this operation.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                type: string
+              planID:
+                description: |-
+                  PlanID is the storage control plane's migration plan that a migration
+                  operation drives. It is set once the plan is created and never replaced.
+                type: string
+              results:
+                description: |-
+                  Results holds a per-volume summary of the operation outcome. A
+                  migration updates it while it runs.
+                items:
+                  description: ReplicationOpsResult holds the outcome for a single
+                    volume in a ReplicationOps.
+                  properties:
+                    bytesRemaining:
+                      description: BytesRemaining is the data still to be copied for
+                        this volume.
+                      format: int64
+                      type: integer
+                    detail:
+                      description: Detail is an optional human-readable note (error
+                        message or skip reason).
+                      type: string
+                    etaSeconds:
+                      description: |-
+                        ETASeconds is the forecast time, in seconds, until this volume has
+                        cut over, counting the volumes queued ahead of it.
+                      format: int64
+                      type: integer
+                    pvcRef:
+                      description: |-
+                        PVCRef is the name of the PersistentVolumeClaim, when the operation
+                        resolved one, as "<namespace>/<name>" when it lives outside this
+                        operation's namespace.
+                      type: string
+                    slotRef:
+                      description: |-
+                        SlotRef is the name of the ReplicationSlot CR, as "<namespace>/<name>"
+                        when it lives outside this operation's namespace. It is empty for a
+                        PersistentVolumeClaim that a cluster-scoped migration did not enroll.
+                      type: string
+                    state:
+                      description: |-
+                        State is the migration progress of this volume as the storage control
+                        plane reports it: replicating (initial copy or catch-up), queued
+                        (caught up, waiting for its turn to cut over), converging (shrinking
+                        the final delta), cutting_over (I/O frozen, paths switching), done,
+                        failed, canceled, or skipped.
+                      type: string
+                    status:
+                      description: |-
+                        Status is the outcome for this volume. A migration reports pending
+                        while the volume is still replicating or cutting over.
+                      enum:
+                      - succeeded
+                      - skipped
+                      - failed
+                      - pending
+                      type: string
+                    targetLvolID:
+                      description: TargetLvolID is the UUID of the volume on the target
+                        cluster (failover only).
+                      type: string
+                    targetNodeID:
+                      description: |-
+                        TargetNodeID is the storage node on the target cluster that receives
+                        this volume.
+                      type: string
+                  required:
+                  - slotRef
+                  - status
+                  type: object
+                type: array
+              startedAt:
+                description: StartedAt is when the operation began.
+                format: date-time
+                type: string
+              subphase:
+                description: |-
+                  Subphase describes what the operation is currently doing within the phase
+                  (e.g., "TriggeringFailover", "UpdatingSlotStatuses", "ReleasingLock").
+                type: string
+              warnings:
+                description: |-
+                  Warnings are the risks the storage control plane found when it planned
+                  the migration and did not refuse it for, such as too little free
+                  capacity on the source for the snapshots the copy pins.
+                items:
+                  type: string
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

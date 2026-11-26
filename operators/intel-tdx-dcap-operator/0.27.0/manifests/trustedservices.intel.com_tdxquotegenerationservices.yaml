@@ -1,0 +1,202 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  labels:
+    app.kubernetes.io/managed-by: operator
+    app.kubernetes.io/name: tdx_quote_generation_service
+    app.kubernetes.io/part-of: intel-dcap-operator
+  name: tdxquotegenerationservices.trustedservices.intel.com
+spec:
+  group: trustedservices.intel.com
+  names:
+    kind: TdxQuoteGenerationService
+    plural: tdxquotegenerationservices
+    shortNames:
+    - tqgs
+    singular: tdx-quote-generation-service
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.conditions[?(@.type=="Ready")].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for TdxQuoteGenerationServiceSpec
+          via `CustomResource`
+        properties:
+          spec:
+            description: TdxQuoteGenerationService specification
+            properties:
+              nodeSelector:
+                description: Node selector labels in "key=value" format to target
+                  specific nodes
+                items:
+                  maxLength: 381
+                  type: string
+                  x-kubernetes-validations:
+                  - message: nodeSelector entries must be in key=value format with
+                      a valid label key and a non-empty label value
+                    rule: self.matches('^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?([.][a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)*/)?[A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?=[A-Za-z0-9]([-A-Za-z0-9_.]{0,61}[A-Za-z0-9])?$')
+                  - message: nodeSelector label key prefix must be at most 253 characters
+                    rule: '!self.contains(''/'') || self.matches(''^[^/]{1,253}/'')'
+                maxItems: 16
+                nullable: true
+                type: array
+                x-kubernetes-validations:
+                - message: nodeSelector keys must be unique
+                  rule: self.all(x, self.exists_one(y, y.split('=')[0] == x.split('=')[0]))
+              platformRegistration:
+                default:
+                  Offline: {}
+                description: Platform registration mode
+                oneOf:
+                - required:
+                  - Online
+                - required:
+                  - Offline
+                - required:
+                  - External
+                properties:
+                  External:
+                    description: External registration (no Deployment, no initContainer
+                      - PCK Certificate secrets and platform registration managed
+                      externally)
+                    type: object
+                  Offline:
+                    description: Offline registration (no Deployment created, platform-registration
+                      initContainer runs)
+                    type: object
+                  Online:
+                    description: Online registration with Intel PCS (requires Deployment)
+                    properties:
+                      apiKeySecretName:
+                        description: Optional secret name containing the Intel API
+                          key
+                        maxLength: 253
+                        nullable: true
+                        type: string
+                    type: object
+                    x-kubernetes-validations:
+                    - message: apiKeySecretName must be a valid Kubernetes Secret
+                        name
+                      rule: '!has(self.apiKeySecretName) || self.apiKeySecretName.matches(''^[a-z0-9]([-a-z0-9.]*[a-z0-9])?$'')'
+                type: object
+                x-kubernetes-validations:
+                - message: 'Exactly one platformRegistration mode must be set: Online,
+                    Offline, or External'
+                  rule: '[has(self.Online), has(self.Offline), has(self.External)].filter(mode,
+                    mode).size() == 1'
+            type: object
+          status:
+            description: TdxQuoteGenerationService status
+            nullable: true
+            properties:
+              conditions:
+                description: Status conditions following Kubernetes conventions
+                items:
+                  description: |-
+                    A condition represents a specific aspect of the resource's state.
+
+                    Conditions follow the Kubernetes API conventions:
+                    - `type`: A CamelCase condition type (e.g., "Ready", "Progressing")
+                    - `status`: "True", "False", or "Unknown"
+                    - `reason`: A CamelCase reason for the condition's last transition
+                    - `message`: A human-readable message with details
+                    - `lastTransitionTime`: When the condition last changed
+                    - `observedGeneration`: The generation that was observed
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another
+                      type: string
+                    message:
+                      description: Human-readable message with details about the condition
+                      nullable: true
+                      type: string
+                    observedGeneration:
+                      description: The generation that was last observed
+                      format: int64
+                      nullable: true
+                      type: integer
+                    reason:
+                      description: One-word CamelCase reason for the condition's last
+                        transition
+                      nullable: true
+                      type: string
+                    status:
+                      description: 'Status of the condition: "True", "False", or "Unknown"'
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: Type of condition (e.g., "Ready", "Progressing",
+                        "Degraded")
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              currentNumberScheduled:
+                default: 0
+                description: Number of nodes that are running at least one daemon
+                  pod and are supposed to
+                format: int32
+                type: integer
+              daemonsetName:
+                description: Name of the managed DaemonSet
+                nullable: true
+                type: string
+              desiredNumberScheduled:
+                default: 0
+                description: Number of nodes that should be running the daemon pod
+                format: int32
+                type: integer
+              numberReady:
+                default: 0
+                description: Number of nodes that should be running the daemon pod
+                  and have one or more running and ready
+                format: int32
+                type: integer
+              observedGeneration:
+                description: The generation most recently observed by the controller
+                format: int64
+                nullable: true
+                type: integer
+              registrationDeploymentName:
+                description: Name of the platform registration Deployment (only when
+                  Online mode)
+                nullable: true
+                type: string
+              registrationDeploymentReady:
+                description: Whether the registration deployment is ready (only when
+                  Online mode)
+                nullable: true
+                type: boolean
+            type: object
+        required:
+        - spec
+        title: TdxQuoteGenerationService
+        type: object
+        x-kubernetes-validations:
+        - message: Only one TdxQuoteGenerationService is allowed; the resource name
+            must be 'intel-tdx-dcap'
+          rule: self.metadata.name == 'intel-tdx-dcap'
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

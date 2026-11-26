@@ -1,0 +1,299 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: hvialerts.alert.hvi.ai
+spec:
+  group: alert.hvi.ai
+  scope: Namespaced
+  names:
+    plural: hvialerts
+    singular: hvialert
+    kind: HVIAlert
+    shortNames:
+    - hvia
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            type: object
+            properties:
+              tenantId:
+                type: string
+                minLength: 1
+                maxLength: 192
+                pattern: ^[A-Za-z0-9][A-Za-z0-9_.:-]*$
+              embeddingSpace:
+                type: string
+                minLength: 1
+                maxLength: 192
+                pattern: ^[A-Za-z0-9][A-Za-z0-9_.:-]*$
+              signingKeyIds:
+                type: array
+                minItems: 1
+                maxItems: 8
+                items:
+                  type: string
+                  minLength: 1
+                  maxLength: 63
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                x-kubernetes-list-type: set
+              modelProfile:
+                type: string
+                enum:
+                - core-prototype
+                - v4-candidate
+              acceptUnvalidated:
+                type: boolean
+                enum:
+                - true
+              secretRevision:
+                type: string
+                minLength: 1
+                maxLength: 64
+                pattern: ^[A-Za-z0-9_.-]+$
+              secrets:
+                type: object
+                properties:
+                  api:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                  model:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                  migration:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                required:
+                - api
+                - model
+                - migration
+              replicas:
+                type: object
+                properties:
+                  api:
+                    type: integer
+                    minimum: 1
+                    maximum: 8
+                  model:
+                    type: integer
+                    minimum: 1
+                    maximum: 8
+                required:
+                - api
+                - model
+              imagePullSecrets:
+                type: array
+                maxItems: 8
+                items:
+                  type: string
+                  minLength: 1
+                  maxLength: 63
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                x-kubernetes-list-type: set
+              network:
+                type: object
+                properties:
+                  dnsNamespace:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                required:
+                - dnsNamespace
+              route:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                required:
+                - enabled
+              modelTLS:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    enum:
+                    - openshift
+                    - external
+                  secretName:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                  caConfigMapName:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                required:
+                - source
+                - secretName
+                - caConfigMapName
+              apiTLS:
+                type: object
+                properties:
+                  source:
+                    type: string
+                    enum:
+                    - openshift
+                    - external
+                  secretName:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                required:
+                - source
+                - secretName
+              identity:
+                type: object
+                description: Existing Red Hat Keycloak in this cluster. Only non-secret
+                  references; OIDC is mandatory.
+                properties:
+                  issuer:
+                    type: string
+                    maxLength: 512
+                    pattern: ^https://[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?/realms/[A-Za-z0-9][A-Za-z0-9_.:-]*$
+                  realm:
+                    type: string
+                    minLength: 1
+                    maxLength: 192
+                    pattern: ^[A-Za-z0-9][A-Za-z0-9_.:-]*$
+                  namespace:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                  serviceName:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                  port:
+                    type: integer
+                    minimum: 1
+                    maximum: 65535
+                  clientId:
+                    type: string
+                    minLength: 1
+                    maxLength: 192
+                    pattern: ^[A-Za-z0-9][A-Za-z0-9_.:-]*$
+                  secretName:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                  bindingsConfigMapName:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                  caSource:
+                    type: string
+                    enum:
+                    - openshift
+                    - external
+                  caConfigMapName:
+                    type: string
+                    minLength: 1
+                    maxLength: 63
+                    pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                  maxTokenLifetimeSeconds:
+                    type: integer
+                    minimum: 60
+                    maximum: 300
+                required:
+                - issuer
+                - realm
+                - namespace
+                - serviceName
+                - port
+                - clientId
+                - secretName
+                - bindingsConfigMapName
+                - caSource
+                - caConfigMapName
+                - maxTokenLifetimeSeconds
+            required:
+            - tenantId
+            - embeddingSpace
+            - signingKeyIds
+            - modelProfile
+            - acceptUnvalidated
+            - secretRevision
+            - secrets
+            - replicas
+            - imagePullSecrets
+            - network
+            - route
+            - modelTLS
+            - apiTLS
+            - identity
+            x-kubernetes-validations:
+            - rule: self.identity.issuer.endsWith("/realms/" + self.identity.realm)
+              message: Identity issuer must name the configured Keycloak realm
+            - rule: '!self.identity.issuer.lowerAscii().contains("configure")'
+              message: Replace the placeholder identity issuer
+            - rule: self.identity.bindingsConfigMapName != "alert-config" && self.identity.bindingsConfigMapName
+                != self.identity.caConfigMapName && self.identity.bindingsConfigMapName
+                != self.modelTLS.caConfigMapName
+              message: Client bindings must use a separate externally managed ConfigMap
+            - rule: self.identity.caConfigMapName != "alert-config" && self.identity.caConfigMapName
+                != self.modelTLS.caConfigMapName
+              message: Identity trust must use a separate ConfigMap
+            - rule: '!has(oldSelf.identity) || self.identity.issuer == oldSelf.identity.issuer'
+              message: identity.issuer is immutable; use an explicit identity/data
+                transition
+            - rule: '!has(oldSelf.identity) || self.identity.realm == oldSelf.identity.realm'
+              message: identity.realm is immutable; use an explicit identity/data
+                transition
+            - rule: '!has(oldSelf.identity) || self.identity.clientId == oldSelf.identity.clientId'
+              message: identity.clientId is immutable; use an explicit identity/data
+                transition
+            - rule: '!self.route.enabled || self.apiTLS.source == "openshift"'
+              message: External API certificates require a separately managed ingress
+                and route.enabled=false
+            - rule: self.embeddingSpace.startsWith(self.modelProfile + "-")
+              message: Embedding space must match the selected profile
+            - rule: '!self.embeddingSpace.upperAscii().contains("CONFIGURE") && self.signingKeyIds.all(k,
+                !k.startsWith("configure-"))'
+              message: Replace placeholder space and signing key identities
+            - rule: self.tenantId == oldSelf.tenantId
+              message: tenantId is immutable; use an explicit new deployment/data
+                transition
+            - rule: self.embeddingSpace == oldSelf.embeddingSpace
+              message: embeddingSpace is immutable; use an explicit new deployment/data
+                transition
+            - rule: self.signingKeyIds == oldSelf.signingKeyIds
+              message: signingKeyIds is immutable; use an explicit new deployment/data
+                transition
+            - rule: self.modelProfile == oldSelf.modelProfile
+              message: modelProfile is immutable; use an explicit new deployment/data
+                transition
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        x-kubernetes-validations:
+        - rule: self.metadata.name == "hvi-alert"
+          message: This candidate supports one HVIAlert named hvi-alert per namespace

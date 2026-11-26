@@ -1,0 +1,317 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  creationTimestamp: null
+  name: zabbixmcpservers.operator.zabbix.com
+spec:
+  group: operator.zabbix.com
+  names:
+    kind: ZabbixMCPServer
+    listKind: ZabbixMCPServerList
+    plural: zabbixmcpservers
+    singular: zabbixmcpserver
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.mcpServerStatus
+      name: Status
+      type: string
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: Ready
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        description: A standalone Zabbix MCP server that exposes Zabbix API tools
+          to clients.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Configuration for a Zabbix MCP server.
+            properties:
+              allowedIP:
+                default: 0.0.0.0/0,::/0
+                description: |-
+                  Comma-separated client IP addresses, CIDRs, or DNS names allowed to connect
+                  to the MCP server. Restrict access here or with a network policy.
+                maxLength: 2048
+                type: string
+              debugLevel:
+                default: 3
+                description: Sets the MCP server's log verbosity.
+                format: int32
+                maximum: 5
+                minimum: 0
+                type: integer
+              frontendURL:
+                description: |-
+                  Base URL of the Zabbix frontend. The operator appends /api_jsonrpc.php and
+                  preserves any path prefix.
+                minLength: 1
+                pattern: ^https?://\S+$
+                type: string
+              globalEnv:
+                description: Global environment settings
+                properties:
+                  debug:
+                    description: Enable component debugging
+                    type: boolean
+                type: object
+              ignoreURLCertErrors:
+                default: false
+                description: |-
+                  Skip TLS certificate verification for requests to the Zabbix API. Use only
+                  in development environments.
+                type: boolean
+              image:
+                description: |-
+                  Image optionally overrides the MCP server image selected by the operator.
+                  When omitted, the manager's RELATED_IMAGE_ZBX_MCP_SERVER value is used.
+                pattern: ^\S+$
+                type: string
+              imagePullPolicy:
+                description: Image pull policy for operand containers
+                enum:
+                - Always
+                - IfNotPresent
+                - Never
+                type: string
+              imagePullSecrets:
+                description: Image pull secrets
+                items:
+                  description: LocalResourceName is a name of a Kubernetes resource
+                    in the custom resource namespace
+                  maxLength: 253
+                  minLength: 1
+                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                  type: string
+                maxItems: 32
+                type: array
+              maxResponseSize:
+                default: 64K
+                description: |-
+                  Maximum size of serialized responses from read tools. Valid values are
+                  16K–256K; without a K suffix the value is in bytes.
+                pattern: ^[0-9]+([Kk])?$
+                type: string
+                x-kubernetes-validations:
+                - message: maxResponseSize must be between 16K and 256K
+                  rule: '(self.endsWith(''K'') || self.endsWith(''k'')) ? int(self.substring(0,
+                    size(self) - 1)) >= 16 && int(self.substring(0, size(self) - 1))
+                    <= 256 : int(self) >= 16384 && int(self) <= 262144'
+              podMetadata:
+                description: Metadata added to managed Pod templates. Operator-managed
+                  labels take precedence on conflicts.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Additional annotations
+                    maxProperties: 128
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Additional labels
+                    maxProperties: 64
+                    type: object
+                type: object
+              replicas:
+                default: 1
+                description: Number of MCP server Pods to run.
+                format: int32
+                maximum: 20
+                minimum: 1
+                type: integer
+              routeEnabled:
+                description: |-
+                  Expose the MCP server through an OpenShift Route. When omitted, a Route is
+                  created only if the Route API is available; true on a cluster without the
+                  Route API is an error. The Service uses ClusterIP when a Route is created
+                  and LoadBalancer otherwise.
+                type: boolean
+              serviceMetadata:
+                description: Metadata added to managed Services. Operator-managed
+                  labels take precedence on conflicts.
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Additional annotations
+                    maxProperties: 128
+                    type: object
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Additional labels
+                    maxProperties: 64
+                    type: object
+                type: object
+              timeout:
+                default: 10
+                description: Maximum wait for a Zabbix API request, in seconds.
+                format: int32
+                maximum: 30
+                minimum: 3
+                type: integer
+              tlsSecret:
+                description: |-
+                  Kubernetes TLS Secret containing tls.crt and tls.key. When set, the MCP
+                  server uses them to serve HTTPS.
+                maxLength: 253
+                minLength: 1
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                type: string
+              toolAccessRules:
+                description: |-
+                  Ordered rules for allowing or denying MCP tools. The first matching rule
+                  decides whether a tool is exposed. These rules replace the image's default
+                  policy; an empty list keeps it.
+                items:
+                  description: MCPServerToolAccessRule allows or denies MCP tools
+                    whose names match a pattern.
+                  properties:
+                    pattern:
+                      description: Wildcard or RE2 pattern matched against the original
+                        tool name.
+                      maxLength: 2048
+                      minLength: 1
+                      type: string
+                    type:
+                      description: Selects an allow or deny rule, using wildcard or
+                        RE2 matching.
+                      enum:
+                      - allow
+                      - deny
+                      - allowRegexp
+                      - denyRegexp
+                      type: string
+                  required:
+                  - pattern
+                  - type
+                  type: object
+                maxItems: 100
+                type: array
+                x-kubernetes-list-type: atomic
+              toolPrefix:
+                description: |-
+                  Prefix added to each MCP tool name. Use at most 64 letters, digits,
+                  underscores, hyphens, or dots.
+                maxLength: 64
+                pattern: ^[A-Za-z0-9_.-]*$
+                type: string
+            required:
+            - frontendURL
+            type: object
+          status:
+            description: ZabbixMCPServerStatus reports the MCP server rollout state.
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the resource state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              mcpServerStatus:
+                description: Status of the managed MCP server Deployment.
+                type: string
+              observedGeneration:
+                description: ObservedGeneration is the generation last processed by
+                  the controller
+                format: int64
+                type: integer
+            type: object
+        type: object
+        x-kubernetes-validations:
+        - message: metadata.name must be no more than 63 characters because it is
+            used as the managed Service and Deployment name
+          rule: self.metadata.name.size() <= 63
+        - message: metadata.name must be a lowercase DNS label because it is used
+            as a Service and Deployment name
+          rule: self.metadata.name.matches('^[a-z]([-a-z0-9]*[a-z0-9])?$')
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

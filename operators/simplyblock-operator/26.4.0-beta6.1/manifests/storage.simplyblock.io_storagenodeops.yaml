@@ -1,0 +1,484 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: storagenodeops.storage.simplyblock.io
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: simplyblock-operator-conversion-webhook-service
+          namespace: simplyblock-operator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: storage.simplyblock.io
+  names:
+    kind: StorageNodeOps
+    listKind: StorageNodeOpsList
+    plural: storagenodeops
+    shortNames:
+    - snops
+    singular: storagenodeops
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.storageNodeRef
+      name: Node
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.subPhase
+      name: SubPhase
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StorageNodeOps is a one-shot operational CR targeting a single StorageNode.
+          Analogous to a Kubernetes Job — it drives an action (shutdown, restart, suspend,
+          resume, remove/drain) to completion and records the result. Only one
+          StorageNodeOps can be active per StorageNode at a time.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: StorageNodeOpsSpec defines the desired state of a StorageNodeOps.
+            properties:
+              action:
+                description: Action is the operation to perform. Immutable.
+                enum:
+                - shutdown
+                - restart
+                - suspend
+                - resume
+                - remove
+                - migrate
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              drain:
+                description: Drain configures the drain workflow. Only applicable
+                  when action=remove.
+                properties:
+                  systemVolumeFilterRegex:
+                    description: |-
+                      SystemVolumeFilterRegex is a Go regular expression matched against backend
+                      volume names. Matching volumes are treated as system volumes: excluded from
+                      drain migration and deleted inline during the Verifying phase.
+                      Defaults to "^sb-fio-baseline-.*".
+                    type: string
+                type: object
+              force:
+                description: Force enables forced execution where the backend supports
+                  it.
+                type: boolean
+              newSsdPcie:
+                description: |-
+                  NewSsdPcie lists additional NVMe PCIe addresses to bind on the target host
+                  during a migration. Passed through to the control-plane restart as
+                  new_ssd_pcie. Only applicable when action=migrate.
+                items:
+                  type: string
+                type: array
+              reattachVolume:
+                description: |-
+                  ReattachVolume reattaches volumes during the node restart.
+                  Applicable when action=restart or action=migrate.
+                type: boolean
+              storageNodeRef:
+                description: StorageNodeRef is the name of the target StorageNode.
+                  Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              targetWorkerNode:
+                description: |-
+                  TargetWorkerNode is the Kubernetes worker hostname the storage node is
+                  relocated onto. Required (and only used) when action=migrate.
+
+                  A migration is NOT a drain/remove: the storage node keeps its backend UUID
+                  and its partition / logical-volume assignments follow it. The operator
+                  issues a control-plane restart pointed at the target host's
+                  storage-node-api (node_address), waits for the node to come back online
+                  there, then /promotes it (starting a rebalance) and re-points the
+                  StorageNode's spec.workerNode and the owning StorageNodeSet.workerNodes
+                  from the source worker to this one. No fresh storage node is provisioned
+                  and no VolumeMigration CRs are created. Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+            required:
+            - action
+            - storageNodeRef
+            type: object
+            x-kubernetes-validations:
+            - message: field targetWorkerNode is immutable once set
+              rule: '!has(oldSelf.targetWorkerNode) || has(self.targetWorkerNode)'
+          status:
+            description: StorageNodeOpsStatus holds the observed state of a StorageNodeOps.
+            properties:
+              completedAt:
+                description: CompletedAt is when the operation finished (successfully
+                  or not).
+                format: date-time
+                type: string
+              message:
+                description: Message is a human-readable description of the current
+                  state or failure reason.
+                type: string
+              phase:
+                description: Phase is the high-level lifecycle phase.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                type: string
+              startedAt:
+                description: StartedAt is when the operation began.
+                format: date-time
+                type: string
+              subPhase:
+                description: SubPhase tracks the active drain step when action=remove
+                  and phase=Running.
+                enum:
+                - Validating
+                - Suspending
+                - Migrating
+                - Verifying
+                - Removing
+                - Preparing
+                - Restarting
+                - Promoting
+                type: string
+              triggered:
+                description: |-
+                  Triggered indicates the backend action POST has been sent (used during
+                  Suspending to avoid duplicate POSTs across reconcile iterations).
+                type: boolean
+              volumesMigrated:
+                description: VolumesMigrated is the count of volumes successfully
+                  migrated (drain only).
+                type: integer
+              volumesPending:
+                description: VolumesPending is the count of volumes awaiting migration
+                  (drain only).
+                type: integer
+            type: object
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .spec.nodeRef
+      name: Node
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StorageNodeOps is a single operation performed against one StorageNode. It runs
+          to a terminal phase and stays afterward as the audit record of what was done, to
+          which node, with which parameters, and how it ended.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: StorageNodeOpsSpec is one operation to perform against one
+              StorageNode.
+            properties:
+              abort:
+                description: |-
+                  Abort asks a running operation to stop at its next step and unwind. It is
+                  the only mutable field on this spec, because it is the only thing about an
+                  operation that can legitimately be decided after it started. Whether an
+                  abort is expressible from the current step is declared by that action's
+                  graph rather than checked here.
+                type: boolean
+              action:
+                description: Action is the operation to perform.
+                enum:
+                - Shutdown
+                - Restart
+                - Suspend
+                - Resume
+                - Remove
+                - Migrate
+                - HostMaintenance
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              force:
+                description: |-
+                  Force passes the control plane's force flag where the action supports it.
+                  Migrate defaults it to true, because the control plane rejects a non-forced
+                  restart of a node that is not already offline.
+                type: boolean
+              migrate:
+                description: Migrate parameterizes action Migrate and is ignored by
+                  the others.
+                properties:
+                  newSsdPcie:
+                    description: |-
+                      NewSsdPcie lists additional NVMe PCI addresses to bind on the target host,
+                      passed through to the control-plane restart as new_ssd_pcie and merged into
+                      the node's effective allow list so they survive a later rebuild.
+                    items:
+                      type: string
+                    type: array
+                  targetWorkerNode:
+                    description: TargetWorkerNode is the Kubernetes worker the node
+                      is relocated onto.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                required:
+                - targetWorkerNode
+                type: object
+              nodeRef:
+                description: |-
+                  NodeRef names the StorageNode this operation acts on. The operation never
+                  owns its target, because deleting the record of an operation must not delete
+                  the node it operated on.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              reattachVolume:
+                description: |-
+                  ReattachVolume asks the control plane to reattach this node's volumes as
+                  part of a restart. Applies to Restart, Migrate, and HostMaintenance.
+                type: boolean
+              remove:
+                description: Remove parameterizes action Remove and is ignored by
+                  the others.
+                properties:
+                  systemVolumeFilterRegex:
+                    default: ^sb-fio-baseline-.*
+                    description: |-
+                      SystemVolumeFilterRegex matches backend volume names that are system
+                      volumes: excluded from the drain's migration and deleted during
+                      verification rather than blocking it.
+                    type: string
+                type: object
+            required:
+            - action
+            - nodeRef
+            type: object
+          status:
+            description: StorageNodeOpsStatus is the observed state of one node operation.
+            properties:
+              completedAt:
+                description: CompletedAt is when it reached a terminal phase.
+                format: date-time
+                type: string
+              drain:
+                description: |-
+                  Drain is the drain's progress over the node's volumes, set only for action
+                  Remove.
+                properties:
+                  volumesMigrated:
+                    description: VolumesMigrated is how many of them have completed.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  volumesTotal:
+                    description: |-
+                      VolumesTotal is the number of PV-managed volumes the drain has to move,
+                      written once at the end of Validating and not modified afterward.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                required:
+                - volumesMigrated
+                - volumesTotal
+                type: object
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as the
+                  operation moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operation's own progress.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                - Aborted
+                type: string
+              removal:
+                description: |-
+                  Removal is the control plane's progress through the removal, written by
+                  a Remove while it waits in AwaitingRemoval.
+                properties:
+                  devices:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Devices is the control-plane status each of the node's StorageDevices
+                      last reported, keyed by the StorageDevice's name. A device moves from
+                      online through failed to failed_and_migrated, or to removed, as the
+                      removal rebuilds its data onto the peers.
+                    type: object
+                  lastPrepareTime:
+                    description: LastPrepareTime is when the removal's first step
+                      was last sent again.
+                    format: date-time
+                    type: string
+                  lastProgressTime:
+                    description: LastProgressTime is when NodeStatus or any of Devices
+                      last changed.
+                    format: date-time
+                    type: string
+                  nodeStatus:
+                    description: |-
+                      NodeStatus is the node's status as the control plane last reported it,
+                      in the control plane's own spelling: pending_removal, migrating_devices,
+                      migrating_lvols, in_removal, removed, or removed_failed.
+                    type: string
+                  prepareAttempts:
+                    description: |-
+                      PrepareAttempts is how many times the removal's first step was sent
+                      again for a node that stayed pending_removal, because the control plane
+                      reported the step failed or nothing moved for longer than a shutdown
+                      takes. The operation fails once the attempts run out.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              startedAt:
+                description: StartedAt is when the operation acquired its target's
+                  lock.
+                format: date-time
+                type: string
+              step:
+                description: |-
+                  Step is the position of the running action's state machine. The value is
+                  one of the steps the running action declares.
+                properties:
+                  claim:
+                    description: |-
+                      Claim records that this state's side effect was started. Absent means
+                      no pass has started it since the state was entered.
+                    properties:
+                      attempt:
+                        description: Attempt counts the claims taken on this state,
+                          starting at 1.
+                        format: int32
+                        type: integer
+                      leaseUntil:
+                        description: |-
+                          LeaseUntil is when the claim expires and the side effect may be fired
+                          again.
+                        format: date-time
+                        type: string
+                      state:
+                        description: State is the state the claim was taken in.
+                        type: string
+                    required:
+                    - attempt
+                    - leaseUntil
+                    - state
+                    type: object
+                  deadline:
+                    description: |-
+                      Deadline is when that state expires, absent when it has none. It is an
+                      absolute instant, so a state whose deadline passed while the controller
+                      was down restores as already expired.
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      State is the state the machine was in. Empty means the resource has not
+                      been reconciled yet, and restores to the graph's initial state.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: unknown step
+                  rule: '!has(self.state) || self.state in [''Requesting'',''Departing'',''Awaiting'',''Validating'',''MigratingDevices'',''MigratingVolumes'',''Verifying'',''Removing'',''AwaitingRemoval'',''Preparing'',''Relocating'',''AwaitingNode'',''Promoting'',''Holding'',''ShuttingDown'',''Releasing'',''AwaitingHost'',''Restarting'',''Cleanup'',''Completed'']'
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

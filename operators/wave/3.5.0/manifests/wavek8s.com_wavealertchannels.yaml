@@ -1,0 +1,193 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    helm.sh/resource-policy: keep
+  creationTimestamp: null
+  name: wavealertchannels.wavek8s.com
+spec:
+  group: wavek8s.com
+  names:
+    kind: WaveAlertChannel
+    plural: wavealertchannels
+    singular: wavealertchannel
+  scope: Cluster
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: Auto-generated derived type for WaveAlertChannelSpec via `CustomResource`
+        properties:
+          spec:
+            properties:
+              http:
+                description: |-
+                  Exactly one of `http`, `slackWebhook`, `slackWebApi` MUST be present.
+                  Runtime guard enforces; CEL admission "exactly-one-of" lands in the
+                  Foundation slice when CEL injection ships.
+                nullable: true
+                properties:
+                  headersSecretRef:
+                    description: Secret ref pointing at a JSON-encoded headers map
+                      (e.g. `{"Authorization":"Bearer ..."}`).
+                    nullable: true
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  method:
+                    description: HTTP method (`"POST" | "PUT" | "PATCH" | "DELETE"`).
+                      Defaults to POST in the reconciler.
+                    nullable: true
+                    type: string
+                  proxySecretRef:
+                    description: Secret ref for an HTTPS proxy URL.
+                    nullable: true
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  urlSecretRef:
+                    description: Secret ref for the destination URL (may carry auth
+                      in the URL).
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                required:
+                - urlSecretRef
+                type: object
+              slackWebApi:
+                nullable: true
+                properties:
+                  channel:
+                    description: Channel ID or `#channel-name`.
+                    type: string
+                  proxySecretRef:
+                    description: K8s Secret key reference (the `wave-autoscale` namespace
+                      is fixed; design §10).
+                    nullable: true
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  tokenSecretRef:
+                    description: K8s Secret key reference (the `wave-autoscale` namespace
+                      is fixed; design §10).
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                required:
+                - channel
+                - tokenSecretRef
+                type: object
+              slackWebhook:
+                nullable: true
+                properties:
+                  proxySecretRef:
+                    description: K8s Secret key reference (the `wave-autoscale` namespace
+                      is fixed; design §10).
+                    nullable: true
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                  webhookUrlSecretRef:
+                    description: K8s Secret key reference (the `wave-autoscale` namespace
+                      is fixed; design §10).
+                    properties:
+                      key:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - key
+                    - name
+                    type: object
+                required:
+                - webhookUrlSecretRef
+                type: object
+            type: object
+          status:
+            nullable: true
+            properties:
+              conditions:
+                default: []
+                items:
+                  description: |-
+                    Shared status condition shape — mirrors metav1.Condition.
+                    Used by all 15 `WaveXStatus` structs (added in Tasks 6-8).
+
+                    No `Default` derive on purpose: an all-empty-string condition (empty `type`/
+                    `status`/`reason`) is never valid, so we never want one constructed implicitly.
+                    `WaveXStatus` structs default their `conditions` to an empty `Vec`, which does
+                    not require `WaveCondition: Default`.
+                  properties:
+                    lastTransitionTime:
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              observedGeneration:
+                format: int64
+                nullable: true
+                type: integer
+            type: object
+        required:
+        - spec
+        title: WaveAlertChannel
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

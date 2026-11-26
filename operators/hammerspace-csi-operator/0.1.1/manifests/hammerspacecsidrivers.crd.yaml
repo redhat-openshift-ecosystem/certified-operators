@@ -1,0 +1,124 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: hammerspacecsidrivers.storage.hammerspace.com
+spec:
+  group: storage.hammerspace.com
+  scope: Cluster
+  names:
+    plural: hammerspacecsidrivers
+    singular: hammerspacecsidriver
+    kind: HammerspaceCSIDriver
+    shortNames:
+    - hscsi
+  versions:
+  - name: v1alpha1
+    served: true
+    storage: true
+    subresources:
+      status: {}
+    schema:
+      openAPIV3Schema:
+        type: object
+        required:
+        - spec
+        properties:
+          apiVersion: &id001
+            type: string
+          kind: *id001
+          metadata:
+            type: object
+          spec:
+            type: object
+            required:
+            - credentialsSecretName
+            properties:
+              credentialsSecretName:
+                type: string
+                minLength: 1
+                maxLength: 253
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+              tlsVerify:
+                type: boolean
+                default: true
+              logLevel:
+                type: string
+                enum:
+                - error
+                - warn
+                - info
+                - debug
+                default: info
+              nodeSelector:
+                type: object
+                additionalProperties: *id001
+                x-kubernetes-validations:
+                - rule: '!(''kubernetes.io/os'' in self) || self[''kubernetes.io/os'']
+                    == ''linux'''
+                  message: Only Linux nodes are supported
+              tolerations:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    key: *id001
+                    operator:
+                      type: string
+                      enum:
+                      - Exists
+                      - Equal
+                    value: *id001
+                    effect:
+                      type: string
+                      enum:
+                      - ''
+                      - NoSchedule
+                      - PreferNoSchedule
+                      - NoExecute
+                    tolerationSeconds:
+                      type: integer
+                      format: int64
+              storageClasses:
+                type: array
+                default: []
+                maxItems: 16
+                x-kubernetes-list-type: map
+                x-kubernetes-list-map-keys:
+                - name
+                items:
+                  type: object
+                  required:
+                  - name
+                  - mode
+                  properties:
+                    name:
+                      type: string
+                      minLength: 1
+                      maxLength: 253
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                    mode:
+                      type: string
+                      enum:
+                      - NFS
+                      - Block
+                      - ext4
+                      - xfs
+                    backingShareName:
+                      type: string
+                      minLength: 1
+                      maxLength: 80
+                      pattern: ^[^/|\n]+$
+                  x-kubernetes-validations:
+                  - rule: 'self.mode == ''NFS'' ? !has(self.backingShareName) : has(self.backingShareName)'
+                    message: Block/ext4/xfs require backingShareName; NFS must omit
+                      it
+            x-kubernetes-validations:
+            - rule: has(self.storageClasses) == has(oldSelf.storageClasses) && (!has(self.storageClasses)
+                || self.storageClasses == oldSelf.storageClasses)
+              message: StorageClass definitions are immutable in this release
+          status:
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        x-kubernetes-validations:
+        - rule: self.metadata.name == 'cluster'
+          message: Only the singleton named cluster is supported

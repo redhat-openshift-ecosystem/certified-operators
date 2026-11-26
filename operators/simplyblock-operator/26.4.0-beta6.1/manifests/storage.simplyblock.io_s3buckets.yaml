@@ -1,0 +1,223 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: s3buckets.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: S3Bucket
+    listKind: S3BucketList
+    plural: s3buckets
+    shortNames:
+    - s3bkt
+    singular: s3bucket
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.bucketName
+      name: Bucket
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.persistentVolumeClaimName
+      name: PVC
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          S3Bucket is the desired existence of one S3 bucket: its backing volume,
+          its pNFS export, and the per-node mount deliveries that make its gateway's
+          pods see it.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: S3BucketSpec is the desired state of one S3 bucket's backing
+              volume.
+            properties:
+              bucketName:
+                description: |-
+                  BucketName is the S3 bucket name as presented to clients, validated
+                  against the S3 bucket-naming grammar rather than the Kubernetes
+                  object-name grammar, since the two disagree on underscores and case.
+                  Immutable.
+                pattern: ^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              capacityBytes:
+                description: |-
+                  CapacityBytes is the backing volume's requested size. An increase
+                  reconciles to a PVC expansion. A decrease is rejected, the same
+                  restriction the PVC it wraps already carries.
+                format: int64
+                type: integer
+              objectStoreRef:
+                description: |-
+                  ObjectStoreRef names the ObjectStore whose gateway Deployment serves
+                  this bucket. Immutable: a bucket does not move between gateways.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              storageClassName:
+                description: |-
+                  StorageClassName names the StorageClass the backing PVC is created
+                  against. It must select the pnfs fstype, or the bucket never leaves
+                  Pending: versitygw's --bucketlinks mapping depends on every gateway
+                  pod sharing this volume RWX. Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+            required:
+            - bucketName
+            - capacityBytes
+            - objectStoreRef
+            - storageClassName
+            type: object
+          status:
+            description: S3BucketStatus is what the bucket's provisioning currently
+              is.
+            properties:
+              conditions:
+                description: |-
+                  Conditions carries why a bucket is Degraded, which a phase alone
+                  cannot express. Expected types: VolumeBound, ExportReady,
+                  MountDelivered.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              message:
+                type: string
+              mountDeliveredNodes:
+                description: |-
+                  MountDeliveredNodes lists the nodes whose CSI node plugin has
+                  confirmed this bucket staged and published, mirrored from the
+                  ObjectStore's gateway Deployment's pod placement. Observed, not
+                  desired.
+                items:
+                  type: string
+                type: array
+              nfsExportName:
+                description: |-
+                  NFSExportName is the NFSExport CR the CSI controller created for the
+                  PVC, found by matching its spec.volumeRef against the bound
+                  PersistentVolume's CSI volume handle. Empty until the PVC is Bound.
+                type: string
+              observedGeneration:
+                format: int64
+                type: integer
+              persistentVolumeClaimName:
+                description: |-
+                  PersistentVolumeClaimName is the PVC this reconciler created for the
+                  bucket's backing volume, recorded rather than recomputed so a later
+                  change to the naming scheme cannot orphan an existing bucket's volume.
+                type: string
+              phase:
+                description: Phase is the bucket's lifecycle position.
+                enum:
+                - Pending
+                - Provisioning
+                - Ready
+                - Degraded
+                - Deleting
+                type: string
+              phaseDeadline:
+                description: |-
+                  PhaseDeadline is when the current phase must be given up on. Persisted
+                  so an operator restarted mid-Provisioning resumes the same deadline
+                  rather than granting a fresh one every time it comes back up.
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

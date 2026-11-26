@@ -1,0 +1,186 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  creationTimestamp: null
+  name: transparentdataencryptions.cnpg.enterprisedb.io
+spec:
+  group: cnpg.enterprisedb.io
+  names:
+    kind: TransparentDataEncryption
+    listKind: TransparentDataEncryptionList
+    plural: transparentdataencryptions
+    shortNames:
+    - tde
+    singular: transparentdataencryption
+  scope: Namespaced
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: TransparentDataEncryption is the Schema for the transparentdataencryptions
+          API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TransparentDataEncryptionSpec contains the Transparent Data
+              Encryption configuration.
+            properties:
+              keyLength:
+                default: 128
+                description: |-
+                  KeyLength is the AES key length, in bits, used to encrypt the database
+                  files. It is applied only when initializing a new Postgres cluster.
+                  AES-256 requires EDB Postgres Advanced Server or EDB Postgres Extended
+                  Server 16 or newer.
+                enum:
+                - 128
+                - 256
+                format: int32
+                type: integer
+                x-kubernetes-validations:
+                - message: keyLength is immutable
+                  rule: self == oldSelf
+              passphraseCommand:
+                description: |-
+                  PassphraseCommand is the command executed to get the passphrase that will be
+                  passed to the OpenSSL command to encrypt and decrypt
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a
+                      valid secret key.
+                    type: string
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                type: object
+                x-kubernetes-map-type: atomic
+              secretKeyRef:
+                description: Reference to the secret that contains the encryption
+                  key
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a
+                      valid secret key.
+                    type: string
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                type: object
+                x-kubernetes-map-type: atomic
+              unwrapCommand:
+                description: UnwrapCommand is the decryption command provided by the
+                  user
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a
+                      valid secret key.
+                    type: string
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                type: object
+                x-kubernetes-map-type: atomic
+              wrapCommand:
+                description: WrapCommand is the encrypt command provided by the user
+                properties:
+                  key:
+                    description: The key of the secret to select from.  Must be a
+                      valid secret key.
+                    type: string
+                  name:
+                    default: ""
+                    description: |-
+                      Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
+                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    type: string
+                  optional:
+                    description: Specify whether the Secret or its key must be defined
+                    type: boolean
+                required:
+                - key
+                type: object
+                x-kubernetes-map-type: atomic
+            type: object
+            x-kubernetes-validations:
+            - message: if wrapCommand or unwrapCommand is set, both must be set
+              rule: '!(has(self.wrapCommand) || has(self.unwrapCommand)) || (has(self.wrapCommand)
+                && has(self.unwrapCommand))'
+            - message: only one of secretKeyRef, passphraseCommand or wrapCommand/unwrapCommand
+                can be set
+              rule: '(has(self.secretKeyRef) ? 1 : 0) + (has(self.passphraseCommand)
+                ? 1 : 0) + ((has(self.wrapCommand) || has(self.unwrapCommand)) ? 1
+                : 0) <= 1'
+            - message: transparentdataencryption is immutable, it cannot be changed
+                after creation
+              rule: self == oldSelf
+        required:
+        - metadata
+        - spec
+        type: object
+        x-kubernetes-validations:
+        - message: at least one of secretKeyRef, passphraseCommand, wrapCommand or
+            unwrapCommand must be set
+          rule: has(self.spec.secretKeyRef) || has(self.spec.passphraseCommand) ||
+            has(self.spec.wrapCommand) || has(self.spec.unwrapCommand)
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

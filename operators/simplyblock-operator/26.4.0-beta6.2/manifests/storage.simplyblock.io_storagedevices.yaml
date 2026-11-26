@@ -1,0 +1,375 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: storagedevices.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: StorageDevice
+    listKind: StorageDeviceList
+    plural: storagedevices
+    shortNames:
+    - sd
+    singular: storagedevice
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.nodeRef
+      name: Node
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.role
+      name: Role
+      type: string
+    - jsonPath: .status.deviceStatus
+      name: Status
+      type: string
+    - jsonPath: .status.capacity.totalBytes
+      name: Total
+      type: integer
+    - jsonPath: .status.health.performance.verdict
+      name: Performance
+      type: string
+    - jsonPath: .status.health.smart.verdict
+      name: SMART
+      type: string
+    - jsonPath: .status.hardware.pciAddress
+      name: PCI
+      priority: 1
+      type: string
+    - jsonPath: .status.hardware.serialNumber
+      name: Serial
+      priority: 1
+      type: string
+    - jsonPath: .status.site
+      name: Site
+      priority: 1
+      type: string
+    - jsonPath: .status.remote
+      name: Remote
+      priority: 1
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StorageDevice is one storage backend device belonging to one storage node. It
+          is the bottom of the ownership spine and the narrowest thing an operation can
+          target.
+
+          Objects are created by the operator from what the control plane reports and
+          are never written by a user: the device's existence follows from the node
+          having it, and which devices a node uses is decided in the node's own spec.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec identifies the mirrored control-plane device
+            properties:
+              deviceID:
+                description: |-
+                  DeviceID is the control plane's identifier for the device. With NodeRef it
+                  is the whole of this object's identity.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              nodeRef:
+                description: |-
+                  NodeRef names the StorageNode this device belongs to. The node owns this
+                  object by controller reference, so deleting the node deletes its devices.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+            required:
+            - deviceID
+            - nodeRef
+            type: object
+          status:
+            description: status defines the observed state of the device
+            properties:
+              activeOpsRef:
+                description: |-
+                  ActiveOpsRef names the StorageDeviceOps currently allowed to act on this
+                  device, and is empty when none is. It is the operation lock every entity
+                  of this group carries, and until StorageDeviceOps exists nothing takes it,
+                  so the field is present and always empty. Declaring it now is what lets a
+                  reader tell "no operation is running" from "this kind cannot say," and it
+                  keeps the lock out of the change that introduces the operations.
+                type: string
+              capacity:
+                description: |-
+                  Capacity is how big the device is. What it holds is served as
+                  StorageDeviceMetrics instead.
+                properties:
+                  totalBytes:
+                    description: |-
+                      TotalBytes is the device's usable size, as the control plane reports it
+                      with the device.
+                    format: int64
+                    minimum: 0
+                    type: integer
+                type: object
+              clusterID:
+                description: |-
+                  ClusterID and NodeID are the backend ids of the stream this device was
+                  last observed on. They are recorded because an object outliving its device
+                  has to say which scope's absence would be authoritative before the mirror
+                  may delete it; the object's own spec names Kubernetes objects rather than
+                  backend ones, so it cannot answer that on its own.
+                type: string
+              deviceStatus:
+                description: |-
+                  DeviceStatus is the control plane's own string, in the control plane's
+                  spelling, which is why it carries no Enum here.
+                type: string
+              hardware:
+                description: Hardware identifies the part.
+                properties:
+                  model:
+                    description: Model is the manufacturer's model string.
+                    type: string
+                  nvmeController:
+                    description: |-
+                      NVMeController is the controller the device is served through, in the
+                      control plane's spelling.
+                    type: string
+                  pciAddress:
+                    description: |-
+                      PCIAddress is the device's address on the host ("0000:5e:00.0"), where it
+                      has one. A logical block device may not: the address can belong to the
+                      controller it hangs off rather than to the device.
+                    type: string
+                  serialNumber:
+                    description: SerialNumber is what is printed on the drive.
+                    type: string
+                type: object
+              health:
+                description: |-
+                  Health is how well the device works: its performance against the fleet
+                  and its own health log. It is assessed by the operator rather than
+                  reported by the control plane, and a device that is slow or failing
+                  raises an alert on the control plane's alerts endpoint as well.
+                properties:
+                  performance:
+                    description: Performance is the device measured against its fleet.
+                    properties:
+                      assessedAt:
+                        description: AssessedAt is when the device was last assessed.
+                        format: date-time
+                        type: string
+                      fleetLatencyMicroseconds:
+                        description: |-
+                          FleetLatencyMicroseconds is the median latency per I/O of the fleet the
+                          device is compared against.
+                        format: int64
+                        type: integer
+                      iopsRatioPercent:
+                        description: |-
+                          IOPSRatioPercent is the I/O the device serves as a percentage of the share
+                          its weight entitles it to: 100 is exactly its share. A device far above
+                          its share is expected to be slower, and one far below it while slower is
+                          one that is not keeping up.
+                        format: int32
+                        type: integer
+                      latencyMicroseconds:
+                        description: |-
+                          LatencyMicroseconds is the device's mean latency per I/O over the
+                          assessment window.
+                        format: int64
+                        type: integer
+                      latencyRatioPercent:
+                        description: |-
+                          LatencyRatioPercent is the device's latency as a percentage of the fleet
+                          median: 100 is exactly the median.
+                        format: int32
+                        type: integer
+                      reason:
+                        description: Reason is the measurement behind the verdict,
+                          in one sentence.
+                        type: string
+                      since:
+                        description: Since is when the verdict last changed.
+                        format: date-time
+                        type: string
+                      verdict:
+                        description: |-
+                          Verdict is the operator's judgment. It changes only after the condition
+                          has held for several consecutive assessments, so a single burst does not
+                          flip it.
+                        enum:
+                        - Ok
+                        - Slow
+                        - Unknown
+                        type: string
+                    type: object
+                  smart:
+                    description: |-
+                      SMART is the device's own health log. It is read on a schedule, and a
+                      StorageDeviceOps with action CheckHealth reads it immediately.
+                    properties:
+                      availableSparePercent:
+                        description: AvailableSparePercent is the spare capacity left,
+                          from 0 to 100.
+                        format: int32
+                        type: integer
+                      availableSpareThresholdPercent:
+                        description: |-
+                          AvailableSpareThresholdPercent is the spare capacity below which the
+                          device itself reports a critical warning.
+                        format: int32
+                        type: integer
+                      checkedAt:
+                        description: CheckedAt is when the health log was last read,
+                          successfully or not.
+                        format: date-time
+                        type: string
+                      criticalWarning:
+                        description: CriticalWarning is the NVMe critical-warning
+                          bit field. Zero is healthy.
+                        format: int32
+                        type: integer
+                      mediaErrors:
+                        description: |-
+                          MediaErrors is how many unrecovered data-integrity errors the device has
+                          reported over its life.
+                        format: int64
+                        type: integer
+                      pendingSectors:
+                        description: PendingSectors is how many sectors a SATA device
+                          is waiting to remap.
+                        format: int64
+                        type: integer
+                      percentageUsed:
+                        description: |-
+                          PercentageUsed is the device's own estimate of how much of its rated life
+                          is used. It can exceed 100.
+                        format: int32
+                        type: integer
+                      powerOnHours:
+                        description: PowerOnHours is how long the device has been
+                          powered.
+                        format: int64
+                        type: integer
+                      reallocatedSectors:
+                        description: ReallocatedSectors is how many sectors a SATA
+                          device has remapped.
+                        format: int64
+                        type: integer
+                      reason:
+                        description: Reason names what in the health log decided the
+                          verdict.
+                        type: string
+                      smartPassed:
+                        description: |-
+                          SMARTPassed is a SATA or SAS device's overall self-assessment. It is
+                          absent on NVMe, which reports CriticalWarning instead.
+                        type: boolean
+                      source:
+                        description: |-
+                          Source is where the health log came from: `spdk` for a device the
+                          storage engine drives directly, `nvme-cli` or `smartctl` for a device the
+                          host kernel drives.
+                        type: string
+                      temperatureCelsius:
+                        description: TemperatureCelsius is the device's composite
+                          temperature.
+                        format: int32
+                        type: integer
+                      unsafeShutdowns:
+                        description: |-
+                          UnsafeShutdowns is how often the device lost power without a clean
+                          shutdown.
+                        format: int64
+                        type: integer
+                      verdict:
+                        description: Verdict is the operator's judgment of the health
+                          log.
+                        enum:
+                        - Ok
+                        - Warning
+                        - Failing
+                        - Unsupported
+                        - Unknown
+                        type: string
+                    type: object
+                type: object
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the device moves, and never a log.
+                type: string
+              nodeID:
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from. On this kind it moves at most once, since every spec field is fixed
+                  when the object is created.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operator's own view of the device.
+                enum:
+                - Online
+                - Degraded
+                - Unknown
+                - Removed
+                - Failed
+                - Migrated
+                type: string
+              remote:
+                description: |-
+                  Remote marks a device of a stretched cluster's remote node: listed here
+                  from the control plane so either site shows every device, and operated on
+                  only by its own site.
+                type: boolean
+              role:
+                description: Role is what the device carries.
+                enum:
+                - Storage
+                - Journal
+                type: string
+              site:
+                description: |-
+                  Site is the sync-replication site of the device's node, copied from the
+                  node; empty off a sync cluster.
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

@@ -1,0 +1,676 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.14.0
+  creationTimestamp: null
+  name: ztouchos.ztouch.ztouch.net
+spec:
+  group: ztouch.ztouch.net
+  names:
+    kind: ZTouchOS
+    listKind: ZTouchOSList
+    plural: ztouchos
+    shortNames:
+    - ztos
+    singular: ztouchos
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterDomain
+      name: ClusterDomain
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |
+          zTouchOS is the Schema for deploying the zTouch.OS dashboard on an OpenShift cluster.
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: zTouchOSSpec defines the desired state of zTouchOS.
+            properties:
+              callerAuthEnforced:
+                default: false
+                description: |
+                  Make the configurer authenticate its own callers (TokenReview on Authorization: Bearer). It listens on the ClusterIP at :5000 because the optimizer needs the cross-pod path, so with this off any pod on the cluster can POST /deploy and have it applied with the dashboard SA's cluster-wide privileges. Enable only AFTER the dashboard and optimizer images that send a token are rolled out: until then the configurer logs "UNAUTHENTICATED caller" for every caller lacking one, and enabling this first breaks every deploy. Default false.
+                type: boolean
+              cbrsEnforcementEnabled:
+                default: false
+                description: |
+                  Permit CBRS grant enforcement to be switched on from the dashboard. This is a ceiling, not a switch: enforcement parks, undeploys or runs a playbook against a radio's workload when the SAS revokes its grant, so arming it needs this AND an operator turning it on in the UI. While false, the dashboard cannot enable enforcement, so a cluster never configured for CBRS cannot have workloads torn down from a browser.
+                type: boolean
+              cbrsProxyCaBundleKey:
+                default: ""
+                description: |
+                  Key within cbrsProxyTlsSecretName holding the CA to verify the SAS against. Empty uses the system roots. INDEPENDENT of cbrsProxyMtlsEnabled: a SAS can require that we trust its certificate without requiring one from us, which is exactly the development SAS's shape -- and tying the two together made that combination unconfigurable.
+                type: string
+              cbrsProxyDataPvcName:
+                default: cbrs-proxy-data
+                description: |
+                  PVC for the proxy's SQLite state. Persistent because the event outbox must survive a restart: a grant suspension arriving while the pod cycles would otherwise be lost, and acting on exactly that event is why the service exists.
+                type: string
+              cbrsProxyDataPvcSize:
+                default: 1Gi
+                description: Size of the CBRS proxy state PVC.
+                type: string
+              cbrsProxyGrantMaxWidthMhz:
+                default: ""
+                description: |
+                  How much of an offered channel to request, in MHz. Empty uses the proxy's default of one 10 MHz CBRS channel, the granularity 47 CFR 96.5 defines. A SAS advertises what is AVAILABLE, which in a quiet band can be the whole 150 MHz -- asking for all of it is both more spectrum than any radio here uses and an invalid request waiting to happen. Raise it for a radio that genuinely uses a wider carrier.
+                type: string
+              cbrsProxyHeartbeatIntervalSeconds:
+                default: 60
+                description: |
+                  Starting heartbeat cadence in seconds. A SAS may set its own per grant via heartbeatInterval (Table 30), and that is honoured PER GRANT rather than globally: one cadence for the whole fleet would either be too slow for the strictest grant or hammer the SAS for the rest.
+                type: integer
+              cbrsProxyLogLevel:
+                default: info
+                description: Log level for the CBRS proxy (debug, info, warn, error).
+                type: string
+              cbrsProxyMtlsEnabled:
+                default: false
+                description: |
+                  Send a client certificate to the SAS, from tls.crt and tls.key in cbrsProxyTlsSecretName. A production SAS requires one. The development SAS does not ask for one, which is why this is separate from trusting the SAS's own certificate.
+                type: boolean
+              cbrsProxyResources:
+                default:
+                  limits:
+                    cpu: 500m
+                    memory: 256Mi
+                  requests:
+                    cpu: 20m
+                    memory: 32Mi
+                description: |
+                  Resource requests and limits for the CBRS proxy. Small -- a static Go binary, one goroutine per loop, a SQLite file measured in kilobytes. The memory limit is generous rather than tuned: being OOMKilled would stop the heartbeats that keep radios authorised.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              cbrsProxySasBaseUrl:
+                default: ""
+                description: |
+                  The Spectrum Access System's base URL, with NO version suffix: the client appends /v1.2/<operation>, which is where WINNF-TS-0016 puts the protocol version. There is no default because a SAS is an external authority with nothing in the cluster to derive it from. Setting it here PINS it: the dashboard's Spectrum Access System setup page then reports itself read-only and names this field, so a GitOps install is never silently overridden. Leave it empty to configure the SAS from that page instead -- rendering does not fail without it, because refusing to render would take the dashboard down and leave no page to configure one from. For development set deployCbrsFakeSas on the dev operator (ZTouchOSDev) instead and the fake SAS's URL is seeded into cbrsSasConfigSecretName; the prod operator never deploys it. This previously defaulted to the vendor's fake SAS in cbrs-system, a namespace deleted on 2026-09-08, so the proxy started and failed DNS on every heartbeat -- which reads as a SAS outage rather than a missing setting.
+                type: string
+              cbrsProxySasTimeoutSeconds:
+                default: 10
+                description: |
+                  How long one SAS call may take. Bounds the heartbeat loop: an unbounded call to a hung SAS would stall it, and grants would silently stop being heartbeated rather than failing visibly.
+                type: integer
+              cbrsProxySasTlsServerName:
+                default: ""
+                description: |
+                  The name the SAS's certificate is verified against, when it differs from the host in cbrsProxySasBaseUrl. Verification stays ON -- the certificate must still be signed by the CA above and must still carry this name -- so this is not a skip-verify switch, and there is no way to disable verification at all. The development SAS needs `localhost`: its certificate is self-signed for that name with a SAN of localhost/127.0.0.1 only, while its Service answers on a cluster DNS name the certificate does not carry, so the handshake fails on hostname mismatch without this.
+                type: string
+              cbrsProxySasUserId:
+                default: ""
+                description: |
+                  The account every registration is attributed to: the organisation identifier a SAS operator issues, which Federated Wireless calls a UR-ID and hands over at onboarding. WINNF-TS-0016 Table 7 makes userId Required, and the proxy refuses to register without one rather than attributing spectrum to a guess. May instead be supplied through the dashboard's Spectrum Access System setup page; a value here wins.
+                type: string
+              cbrsProxyServiceName:
+                default: cbrs-proxy
+                description: |
+                  Name of the CBRS proxy Deployment and Service. The dashboard's SAS_PROXY_URL is built from this when deployCbrsProxy is on.
+                type: string
+              cbrsProxyTlsSecretName:
+                default: ""
+                description: |
+                  Secret mounted at /etc/cbrs-proxy/tls, holding TLS material for talking to the SAS. Empty mounts nothing. What is USED from it is decided by cbrsProxyMtlsEnabled and cbrsProxyCaBundleKey, which are independent of each other.
+                type: string
+              cbrsSasConfigSecretName:
+                default: ztouch-os-sas-config
+                description: |
+                  The Secret the dashboard's Spectrum Access System setup page writes, holding sasBaseUrl, sasUserId and optionally tls.crt, tls.key and caBundle. A customer cannot be expected to edit this CR, so the GUI writes a narrow Secret in its own namespace -- the same shape the licence key already uses. An explicit value in this CR always wins over it, so a GitOps install is never silently overridden by something a browser did.
+                type: string
+              claimsNamespaces:
+                default: ""
+                description: Fallback only. resource-inventory lists ResourceClaims
+                  cluster-wide (ztouch-os-rbac-role grants that); only if that call
+                  is refused does it fall back to this comma-separated list of namespaces,
+                  plus the release namespace, which is always included. Empty (the
+                  default) means the release namespace alone.
+                type: string
+              clusterApiUrl:
+                description: |
+                  OpenShift API server URL (e.g. https://api.<cluster>.<domain>:6443). Auto-discovered from the cluster Infrastructure config if not set.
+                type: string
+              clusterDomain:
+                description: |
+                  Base ingress domain of the target cluster (e.g. apps.<cluster>.<domain>). Auto-discovered from the cluster Ingress config if not set.
+                type: string
+              configWriterResources:
+                description: |
+                  DEPRECATED AND UNUSED. Sized the config-writer init container, which was removed: it wrote /usr/src/app/build/public/config.json, a path nothing serves, with an `echo` whose unquoted braces produced invalid JSON. Setting this field now does nothing.
+                  THE DEFAULT IS REMOVED, so no CR carries this field any more unless somebody writes it: CRD defaults are injected on READ, which is why it appeared on every CR (including ones that only ever set three fields) and would have appeared on a fresh install too. Measured on kind: with the default gone a `spec: {}` CR comes back without it.
+                  The PROPERTY is retained a while longer because the API server rejects unknown fields rather than pruning them ("strict decoding error: unknown field spec.configWriterResources"), so removing it outright would break any manifest that still names it. Delete it once none do -- no in-cluster patching is needed, only the manifests people apply.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              deployCbrsProxy:
+                default: false
+                description: |
+                  Whether to deploy our own CBRS domain proxy. It is the only component that talks to a Spectrum Access System, which makes it authoritative for whether a radio may lawfully transmit: SAS-CBSD is CBSD-initiated, so grant state is whatever the last heartbeat response said and nothing else heartbeats. Gated by the `radio-units` entitlement. With this on, sasProxyUrl is overridden to point at it; leaving it false keeps an install pointed at whatever sasProxyUrl says, so a cluster still running the vendor's proxy is untouched.
+                type: boolean
+              deployDeployQueue:
+                default: false
+                description: |
+                  Whether to deploy the deploy-queue and its drainer. Paid tier (requires `optimizer`); its only dashboard consumer is the in-flight workloads view.
+                type: boolean
+              deployMplaneController:
+                default: false
+                description: |
+                  Whether to deploy the O-RAN M-plane controller: radios call home to it over NETCONF, it keeps their supervision watchdog reset and reports what it reads from each (MAC, identity, sync, alarms, delay windows). Read-only toward radios. Gated by the `radio-units` entitlement like the CBRS proxy; with no settings, radios can reach it from inside the cluster only (mplaneCallHomeMode).
+                type: boolean
+              deployOptimizer:
+                default: false
+                description: |
+                  Whether to deploy the optimizer-service. Paid tier (requires `optimizer`). Defaults false so a fresh install never pulls an image it is not entitled to.
+                type: boolean
+              deployQueueDataPvcName:
+                default: deploy-queue-data
+                description: Name of the PVC used by the deploy-queue for SQLite persistence.
+                type: string
+              deployQueueDataPvcSize:
+                default: 1Gi
+                description: Storage request for the deploy-queue-data PVC.
+                type: string
+              deployQueueResources:
+                default:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                description: |
+                  Standard Kubernetes ResourceRequirements (requests/limits) for the deploy-queue container. Only rendered when deployDeployQueue is true.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              deployQueueServiceName:
+                default: deploy-queue
+                description: In-cluster service name for the deploy queue.
+                type: string
+              deploySemaphore:
+                default: false
+                description: |
+                  Whether to auto-provision the Semaphore CR (Ansible / Pipelines UI) instead of it being applied by hand. Paid tier (requires `automation`). Renders a Semaphore custom resource rather than a Deployment; the operator's own watch on that CRD then runs helm-charts/semaphore against it. Defaults false so a fresh install never creates a Semaphore CR it is not entitled to. Backs off automatically (renders nothing) if a Semaphore CR of that name already exists in this namespace and isn't managed by this release, so a cluster with one applied by hand before this existed is left untouched.
+                type: boolean
+              deploymentName:
+                default: ztouch-os
+                description: Base name used for the Deployment and all derived objects.
+                type: string
+              deploymentSaName:
+                default: ztouch-os-sa
+                description: Name of the ServiceAccount used by the Deployment.
+                type: string
+              entitlementDrivenDeployment:
+                default: true
+                description: 'When true, an optional component whose deploy flag is
+                  false is deployed anyway if the license grants its feature, read
+                  from entitlementSummaryConfigMap. An explicitly true flag always
+                  wins, so pinning a flag still forces a component on regardless of
+                  the license. Defaults true: a pasted license produces the components
+                  it pays for without anyone editing a CR, which is the whole point.
+                  Existing CRs are NOT affected by this default changing — the API
+                  server persisted the previous default into them, so only newly created
+                  CRs pick it up. Set false for flag-only deployment.'
+                type: boolean
+              entitlementSecret:
+                default: ztouch-entitlement
+                description: Name of the Secret the license-daemon writes the entitlement
+                  JWT into.
+                type: string
+              entitlementSummaryConfigMap:
+                default: ztouch-entitlement-summary
+                description: 'Name of the ConfigMap the license-daemon publishes a
+                  derived entitlement summary into: one "true" key per granted feature,
+                  plus `valid`. Lets consumers read booleans instead of interpreting
+                  a licence themselves. Empty disables it.'
+                type: string
+              imagePullSecret:
+                default: ""
+                description: |
+                  Name of an image pull Secret, only for a private mirror of the images. None is needed otherwise: the images the operator installs are public, and a licensed component pulls with the Secret the licence delivers. When set, it must exist in the namespace.
+                type: string
+              ingressAnnotations:
+                additionalProperties:
+                  type: string
+                description: |
+                  Controller-specific annotations merged into the Ingress. There is no portable equivalent of the Route's haproxy.router.openshift.io/timeout: nginx spells it nginx.ingress.kubernetes.io/proxy-read-timeout, traefik wants a Middleware object. Values are strings, and the useful ones are numbers -- an unquoted 360 makes the object fail to decode entirely.
+                type: object
+              ingressClassName:
+                description: |
+                  IngressClass for the Ingress above. Unset means the cluster's default IngressClass, which is the common case; name one on a cluster running more than one controller. Omitted from the object rather than rendered empty, because "" requests the class literally named "" and matches nothing.
+                type: string
+              ingressHost:
+                description: |
+                  Hostname to publish the dashboard on, for clusters that are not OpenShift. There is deliberately no default: OpenShift assigns a Route's host, Kubernetes does not, and a guessed hostname yields an Ingress the controller admits and never matches -- harder to diagnose than no Ingress at all. Left unset no Ingress is created and the install is reachable only with kubectl port-forward, which is what it was before this field existed. Ignored on OpenShift.
+                type: string
+              ingressTlsSecretName:
+                description: |
+                  Name of a kubernetes.io/tls Secret for ingressHost. Required whenever ingressHost is set on a cluster that authenticates with a password: the session cookie is issued with Secure, so over plain HTTP a browser accepts the login response and then discards the cookie -- signing in and being signed straight back out, with nothing in any log. The chart refuses to render rather than ship that. A cert-manager Certificate's Secret works unchanged.
+                type: string
+              ingressTlsTerminatedUpstream:
+                description: |
+                  Set true ONLY when TLS terminates in FRONT of this Ingress -- an external load balancer or a mesh gateway -- so the browser still speaks HTTPS while the Ingress itself serves plain HTTP. Waives the ingressTlsSecretName requirement and changes nothing else. Wrong on a cluster where the browser really does reach http://, which is the case that requirement exists for.
+                type: boolean
+              licenseApiUrl:
+                default: https://api.keygen.sh/v1/accounts/771a3f87-c0bb-4695-a6e4-6455765cee8d
+                description: Keygen API endpoint.
+                type: string
+              licenseDaemonResources:
+                default:
+                  limits:
+                    cpu: 200m
+                    memory: 128Mi
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                description: |
+                  Standard Kubernetes ResourceRequirements (requests/limits) for the license-daemon container.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              licenseFileTtlS:
+                default: "172800"
+                description: 'Lifetime of each issued entitlement artifact in seconds,
+                  passed to Keygen as ttl= and therefore rolling: every successful
+                  refresh mints a new one. Doubles as the backstop if the daemon dies
+                  outright, since services verify the artifact offline and keep working
+                  until it expires. Must be at least twice licenseIntervalS.'
+                type: string
+              licenseIntervalS:
+                default: "3600"
+                description: 'License revalidation interval in seconds. Sets two things
+                  at once: how long a suspended or revoked license keeps working (the
+                  daemon only learns by re-validating), and how many attempts fit
+                  inside licenseFileTtlS before a valid entitlement expires, since
+                  each refresh mints a fresh artifact and a failure leaves the previous
+                  one as grace. Must be at most half of licenseFileTtlS — the chart
+                  refuses to render otherwise, because a larger value guarantees a
+                  paid-up cluster eventually locks itself out.'
+                type: string
+              licenseKeySecretKey:
+                default: licenseKey
+                description: Key within licenseKeySecretName that holds the license
+                  key value.
+                type: string
+              licenseKeySecretName:
+                default: ztouch-license-key
+                description: |
+                  Name of the Secret holding the Keygen license key. Written by the dashboard's License page when the key is entered there, so it need not exist at install time; or create it yourself: oc create secret generic <name> --from-literal=licenseKey=<key>. The key never appears in the CR spec or pod spec.
+                type: string
+              licenseRetryIntervalS:
+                default: "60"
+                description: Retry interval in seconds while no valid license is present.
+                  licenseIntervalS is the steady-state refresh for a license that
+                  already works; this is the much shorter poll used until one does,
+                  so a key supplied after install is picked up in about a minute rather
+                  than a day.
+                type: string
+              mplaneActivationEnabled:
+                default: false
+                description: |
+                  Let the M-plane controller ACTIVATE carriers, which makes the radio transmit. Needs mplaneWritesEnabled too. Turn on only when the spectrum is authorised and reserved.
+                type: boolean
+              mplaneCallHomeAddress:
+                default: ""
+                description: multus mode. The pod's address on that network, with
+                  its prefix (e.g. 192.0.2.10/24).
+                type: string
+              mplaneCallHomeLoadBalancerAnnotations:
+                default: {}
+                description: loadBalancer mode, optional. Annotations for the call-home
+                  Service (e.g. a MetalLB pool).
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              mplaneCallHomeLoadBalancerIP:
+                default: ""
+                description: loadBalancer mode, optional. A fixed IP for the call-home
+                  Service.
+                type: string
+              mplaneCallHomeMode:
+                default: cluster
+                description: |
+                  How radios reach the call-home port (TCP 4334). cluster (the default) is the in-cluster Service only, and needs no settings. hostNetwork binds it on one node's address (needs mplaneCallHomeNode); loadBalancer uses a LoadBalancer Service with externalTrafficPolicy Local; multus attaches the pod to the radios' management network (needs mplaneCallHomeNetwork and mplaneCallHomeAddress). Every mode keeps the radio's own source address, which the controller keys a session on. A mode set without what it needs falls back to cluster, reported on the controller's /healthz, rather than failing the release.
+                enum:
+                - cluster
+                - hostNetwork
+                - loadBalancer
+                - multus
+                type: string
+              mplaneCallHomeNetwork:
+                default: ""
+                description: |
+                  multus mode: a NetworkAttachmentDefinition in the release namespace on the radios' management network, allowing static IPs.
+                type: string
+              mplaneCallHomeNode:
+                default: ""
+                description: |
+                  hostNetwork mode: the node whose address the radios' DHCP option 43 names. The pod is pinned there. multus mode, optional: the node that carries the radios' management network when not every node does (a bridge or VLAN made on one node); the pod is pinned there.
+                type: string
+              mplaneConfirmTimeoutS:
+                default: 60
+                description: |
+                  Seconds a radio change has to be confirmed before the radio rolls it back.
+                type: integer
+              mplaneControllerApiPort:
+                default: 18080
+                description: |
+                  The controller API's container port (the Service still listens on 8080). Not 8080 because in hostNetwork mode it binds the node's port.
+                type: integer
+              mplaneControllerLogLevel:
+                default: INFO
+                description: Log level of the M-plane controller.
+                type: string
+              mplaneControllerResources:
+                default:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 50m
+                    memory: 128Mi
+                description: Resource requests and limits for the M-plane controller.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              mplaneControllerServiceName:
+                default: m-plane-controller
+                description: Name of the M-plane controller's Deployment and API Service.
+                type: string
+              mplaneCredentialsSecretName:
+                default: m-plane-credentials
+                description: |
+                  Secret holding the M-plane logins, by reference: keys `username` and `password` (the default login) and optionally `groups.yaml` (logins per address range). Created by the cluster admin, never rendered by the chart. Optional in the pod: a missing Secret shows as "no M-plane credentials" on each radio.
+                type: string
+              mplaneDialTargets:
+                default: []
+                description: |
+                  Radios that do not call home, which the M-plane controller connects to itself on their NETCONF port and keeps reconnecting to: host or host:port (830 by default), by IP address. The login comes from the credentials Secret (groups.yaml by address, or the default login). Needs no host networking.
+                items:
+                  type: string
+                type: array
+              mplaneSupervisionGuardS:
+                default: 10
+                description: |
+                  Supervision guard time. A radio whose watchdog is not reset within interval + guard drops the session and calls home again.
+                type: integer
+              mplaneSupervisionIntervalS:
+                default: 60
+                description: Supervision notification interval sent to each radio.
+                  Resets go out every interval / 2.
+                type: integer
+              mplaneWritesEnabled:
+                default: false
+                description: |
+                  Let the M-plane controller configure radios (carriers are created inactive, so no RF) and deactivate their carriers. A write also needs the radio's host key pinned in known_hosts.yaml in the credentials Secret.
+                type: boolean
+              oauthProxyResources:
+                default:
+                  limits:
+                    cpu: 200m
+                    memory: 256Mi
+                  requests:
+                    cpu: 50m
+                    memory: 64Mi
+                description: |
+                  Standard Kubernetes ResourceRequirements (requests/limits) for the oauth-proxy container in the ztouch-os pod.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              optimizerAutoDeploy:
+                default: "true"
+                description: Whether the optimizer auto-deploys placed workloads.
+                type: string
+              optimizerResources:
+                default:
+                  limits:
+                    cpu: 1000m
+                    memory: 1Gi
+                  requests:
+                    cpu: 250m
+                    memory: 256Mi
+                description: |
+                  Standard Kubernetes ResourceRequirements (requests/limits) for the optimizer-service container. Only rendered when deployOptimizer is true.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              optimizerServiceName:
+                default: optimizer-service
+                description: In-cluster service name for the optimizer.
+                type: string
+              partOfName:
+                default: ztouch-os-domain
+                description: Value for the app.kubernetes.io/part-of label.
+                type: string
+              playbookApplyEnabled:
+                default: false
+                description: |
+                  Perform deployments and teardowns through the Ansible playbooks instead of in-process Kubernetes API calls. The configurer owns the apply, so every caller (dashboard, optimizer, agent) inherits the playbook transport and each run becomes an auditable Semaphore task. Requires a reachable Semaphore and API token; when either is missing the configurer falls back to the in-process apply, so a cluster without Ansible is unaffected. Default false.
+                type: boolean
+              playbooksSecretName:
+                default: ztouch-playbooks-git-token
+                description: 'Secret the license-daemon writes the customer''s Ansible
+                  playbook repository URL and PAT into, read from `metadata.playbooks`
+                  on the license. The same delivery channel as the registry credentials:
+                  a cluster installs the operator knowing nothing about who owns it,
+                  and the license key is the only per-customer thing that ever reaches
+                  it, so rotation is a vendor-side edit in Keygen rather than something
+                  a customer pastes. Deleted on revoke, like the pull secret. Empty
+                  disables it. Semaphore''s provisioning must name this Secret in
+                  provisioning.credentials[].loginPasswordSecretName, or its Job''s
+                  Role will not grant get on it.'
+                type: string
+              proxySessionCookieExpire:
+                default: 12h
+                description: |
+                  How long a signed-in dashboard session lasts before the operator must re-authenticate. MUST stay strictly below the cluster's accessTokenMaxAgeSeconds (oc get oauth cluster -o jsonpath='{.spec.tokenConfig}'; empty means the 24h default). The cookie and the access token are minted together, so a shorter cookie dies first and the proxy redirects cleanly to re-auth. A longer cookie is the failure that matters: the proxy still believes you are signed in while the backend is handed a dead token, so every cluster call 401s behind a UI that looks logged in.
+                type: string
+              proxySessionCookieRefresh:
+                default: ""
+                description: |
+                  Empty (the default) omits oauth-proxy's -cookie-refresh flag. It was previously hard-coded to 30m and was a scheduled logout rather than a keep-alive: OpenShift's OAuth provider issues no refresh token, so each "refresh" is really a live token validation and any failure clears the session. Set this only to re-enable periodic revocation checking, accepting that each check can sign the operator out; "4h" gives 6 checks a day instead of 48.
+                type: string
+              proxySessionSecretName:
+                default: ztouch-os-proxy
+                description: Name of the Secret used to store the OAuth proxy session
+                  key.
+                type: string
+              proxyUpstreamTimeout:
+                default: 360s
+                description: |
+                  How long the oauth-proxy and the Route wait for the dashboard to answer. Must exceed the configurer's playbook budget (PLAYBOOK_TIMEOUT_SECONDS, 300s) and the dashboard's own 320s wait, because deploy/teardown block until the Ansible run finishes. Set too low, a request that succeeded is reported to the browser as a 502.
+                type: string
+              pullSecretName:
+                default: ztouch-quay-pull
+                description: Pull secret the license-daemon creates/rotates from Keygen
+                  registry metadata.
+                type: string
+              pythonBackendResources:
+                default:
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                description: |
+                  Standard Kubernetes ResourceRequirements (requests/limits) for the python-app container in the ztouch-os pod.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              quayPullSecret:
+                default: ztouch-quay-pull
+                description: Name of the quay.io pull secret (used by optimizer).
+                type: string
+              resourceInventoryResources:
+                default:
+                  limits:
+                    cpu: 750m
+                    memory: 2Gi
+                  requests:
+                    cpu: 150m
+                    memory: 512Mi
+                description: |
+                  Standard Kubernetes ResourceRequirements (requests/limits) for the resource-inventory container.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              resourceInventoryServiceName:
+                default: resource-inventory
+                description: In-cluster service name for the resource inventory.
+                type: string
+              ruApiKey:
+                default: ""
+                description: |
+                  Static API key the CBRS SAS proxy sends as X-API-Key when reporting a grant change. Written into the Secret named by ruApiKeySecretName; leave empty and the existing Secret contents are kept, so an upgrade cannot drop the key and lock the proxy out. To keep the credential out of this resource entirely, create that Secret out of band and leave this empty. With neither set the grant webhook rejects every report with 503, which is the intended fail-closed default.
+                type: string
+              ruApiKeySecretName:
+                default: ztouch-os-ru-api-key
+                description: |
+                  Secret holding the CBRS northbound API key under the key `api_key`. The dashboard reads it by reference rather than inline, so the credential is not exposed in the Deployment spec.
+                type: string
+              ruDataPvcName:
+                default: ztouch-os-ru-data
+                description: Name of the PVC used by the dashboard for Radio Unit
+                  data (ru.db).
+                type: string
+              ruDataPvcSize:
+                default: 8Gi
+                description: Storage request for the ztouch-os-ru-data PVC.
+                type: string
+              saSecretName:
+                default: ztouch-os-sa-secret-precise
+                description: Name of the long-lived ServiceAccount token Secret.
+                type: string
+              sasProxyUrl:
+                default: ""
+                description: |
+                  OVERRIDE ONLY. The SAS proxy's northbound API, asked whether a radio holds an active grant before a workload may deploy against it. Leave empty and the chart derives it from cbrsProxyServiceName and the release namespace, so it follows wherever ZTouchOS is installed. It previously defaulted to a URL with one namespace written into it, which was right on a single install and wrong everywhere else -- the gate would ask a Service in a namespace it does not run in and report "cannot confirm" for every radio. Set this only for a proxy this chart did not deploy, and then fully qualify it. With no proxy running at all the gate reports "cannot confirm" rather than "no grant", which is correct: nothing has established whether a radio may transmit.
+                type: string
+              semaphoreApiTokenSecret:
+                default: semaphore-api-token
+                description: Name of the Secret containing the Semaphore API token
+                  (key 'token').
+                type: string
+              semaphoreCrKind:
+                default: Semaphore
+                description: |
+                  Kind of the auto-provisioned Semaphore CR (see deploySemaphore). Must match a kind the SAME operator instance reconciling this CR also watches (watches.yaml vs watches-dev.yaml) -- otherwise the CR is picked up by a different operator instance's cluster-wide watch instead of this one's. Prod stays "Semaphore"; a ZTouchOSDev CR should set this to "SemaphoreDev".
+                type: string
+              semaphoreImagePullSecret:
+                default: ""
+                description: |
+                  Pull secret for the auto-provisioned Semaphore CR's image, only for a private mirror. The operator pins a public image, so none is needed otherwise.
+                type: string
+              semaphoreProjectName:
+                default: ""
+                description: 'Semaphore project the dashboard''s Pipelines page opens
+                  on. Normally left empty: it is read from semaphoreProvisioningConfigMap,
+                  so it stays in step with what provisioning actually created and
+                  no per-customer value lives in the chart. Set it only for an airgapped
+                  install that provisions from the Semaphore CR and has no daemon
+                  to publish anything. Empty and undiscoverable is supported, not
+                  a failure -- the page then defaults to whichever project Semaphore
+                  lists first, as it did before provisioning existed.'
+                type: string
+              semaphoreProvisioningConfigMap:
+                default: ztouch-semaphore-provisioning
+                description: 'ConfigMap the license-daemon republishes the customer''s
+                  Semaphore provisioning into, fetched from semaphore_task_templates/provisioning.yaml
+                  in their playbook repo. That file declares which templates the customer
+                  may run, so adding a playbook needs no chart change and no operator
+                  rebuild. The daemon overwrites exactly two values in it from the
+                  license: the Secret holding the PAT, and the repo''s own URL. The
+                  Semaphore chart reads this to render its desired state. Empty disables
+                  discovery and falls back to the provisioning declared in the Semaphore
+                  CR, which is also what airgapped installs use since the daemon is
+                  typically absent there.'
+                type: string
+              semaphoreRestrictedSCC:
+                description: |
+                  Forwarded as restrictedSCC to the auto-provisioned Semaphore CR: run Semaphore under OpenShift's restricted-v2 SCC (no anyuid). Only for the UBI semaphore-ee image, which is what the operator pins. Unset leaves the Semaphore CRD's own default: true for a newly created Semaphore CR, while one created earlier keeps the false stored in it (fsGroup 0 + the legacy anyuid binding).
+                type: boolean
+              semaphoreServiceName:
+                default: semaphore
+                description: In-cluster service name for the Semaphore orchestrator.
+                type: string
+              semaphoreUrl:
+                description: |
+                  Override the Semaphore URL. Defaults to the in-cluster service (http://semaphore.<namespace>.svc.cluster.local:3000). Set to an external URL to point at a different Semaphore instance.
+                type: string
+              storageClassName:
+                default: ""
+                description: |
+                  StorageClass for the chart-managed PVCs (yaml-library, ztouch-os-ru-data, cbrs-proxy-data; deploy-queue-data under the dev operator). Empty (the default) uses the cluster's default StorageClass: the field is then omitted from the PVCs and admission fills it in, which works on any cluster with a dynamic provisioner. Set a class name to use another one (a cluster with several classes). Forwarded to the Semaphore CR. A Bound claim's class cannot change, so set this before the first install.
+                type: string
+              thanosHostUrl:
+                description: |
+                  URL of the Thanos querier endpoint on this cluster. Auto-discovered from the thanos-querier Route in openshift-monitoring if not set.
+                type: string
+              vaultSecretName:
+                default: ztouch-playbooks-vault
+                description: Secret the license-daemon writes the customer's Ansible
+                  Vault password into, read from `metadata.vault` (`{id, secret}`)
+                  on the license. Same delivery channel and same reasoning as playbooksSecretName
+                  above. Deleted on revoke, like the pull and playbooks secrets. Empty
+                  disables it. Shaped as an ordinary login_password credential Secret
+                  (`login`=id, `password`=secret) -- name it in the Semaphore CR's
+                  provisioning.credentials[].loginPasswordSecretName and reference
+                  that credential from templates[].vaults[].credentialName, or its
+                  Job's Role will not grant get on it.
+                type: string
+              webappResources:
+                default:
+                  limits:
+                    cpu: 1000m
+                    memory: 1Gi
+                  requests:
+                    cpu: 100m
+                    memory: 256Mi
+                description: |
+                  Standard Kubernetes ResourceRequirements (requests/limits) for the web-app container in the ztouch-os pod. Override per cluster when the default footprint doesn't fit — e.g. a CPU-constrained node.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              yamlLibraryPvcName:
+                default: yaml-library
+                description: Name of the PVC used by the dashboard for the YAML config
+                  library.
+                type: string
+              yamlLibraryPvcSize:
+                default: 8Gi
+                description: Storage request for the yaml-library PVC.
+                type: string
+            type: object
+          status:
+            description: zTouchOSStatus reflects the observed state of zTouchOS.
+            properties:
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  type: object
+                type: array
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

@@ -1,0 +1,355 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: testfailovers.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: TestFailover
+    listKind: TestFailoverList
+    plural: testfailovers
+    shortNames:
+    - tfo
+    singular: testfailover
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.scope
+      name: Scope
+      type: string
+    - jsonPath: .spec.sourceRef
+      name: Source
+      type: string
+    - jsonPath: .spec.sourceCluster
+      name: "On"
+      type: string
+    - jsonPath: .spec.bubbleCluster
+      name: Bubble
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          TestFailover is a one-way, non-disruptive test-failover drill. It recovers a
+          source volume, or a consistency group, from a snapshot into an isolated
+          namespace on a chosen cluster as bound PVCs, without touching the source. The
+          hub reads the source on its cluster and places the bubble on the recovery
+          cluster through OCM. It runs to a terminal phase, or holds Ready until it is
+          deleted, and deletion reclaims the clones and any snapshots the drill took.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              TestFailoverSpec is the request for one non-disruptive test-failover drill.
+
+              The source is named by where it runs and what it is, so the hub can find it
+              without anyone extracting a backend handle by hand. SourceNamespace is
+              required for a Volume drill, where the source is a PVC, and unused for a Group
+              drill, where SourceRef names a consistency group.
+            properties:
+              bubbleCluster:
+                description: |-
+                  BubbleCluster is the OCM ManagedCluster to recover onto: a DR target holding
+                  the replicated point, or another cluster. It must differ from SourceCluster;
+                  test-failover recovers onto a different cluster, never in place. Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              bubbleNamespace:
+                default: bubble
+                description: |-
+                  BubbleNamespace is the namespace on the bubble cluster where the recovered
+                  PVCs are created. Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              scope:
+                description: Scope selects what the drill recovers. Immutable.
+                enum:
+                - Volume
+                - Group
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              sourceCluster:
+                description: |-
+                  SourceCluster is the OCM ManagedCluster the source runs on. The hub reads
+                  the source there through a ManagedClusterView. Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              sourceNamespace:
+                description: |-
+                  SourceNamespace is the namespace of the source PVC on SourceCluster.
+                  Required for scope=Volume. Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              sourceRef:
+                description: |-
+                  SourceRef names the source on SourceCluster: a PersistentVolumeClaim in
+                  SourceNamespace (scope=Volume), or a consistency group (scope=Group).
+                  Immutable.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              sourceStorageCluster:
+                description: |-
+                  SourceStorageCluster is the backend UUID of the storage cluster the
+                  source lives on. A Group drill resolves the group there. Without it the
+                  UUID comes from a local StorageCluster named like SourceCluster, which a
+                  hub apart from the sites does not have; the DR hub sets it. Immutable.
+                pattern: ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              ttlSeconds:
+                description: |-
+                  TTLSeconds is an optional maximum lifetime: the drill is torn down after it
+                  even without a delete, so a forgotten drill cannot hold a clone forever.
+                format: int64
+                minimum: 0
+                type: integer
+            required:
+            - bubbleCluster
+            - scope
+            - sourceCluster
+            - sourceRef
+            type: object
+            x-kubernetes-validations:
+            - message: field sourceStorageCluster is immutable once set
+              rule: '!has(oldSelf.sourceStorageCluster) || has(self.sourceStorageCluster)'
+            - message: field sourceNamespace is immutable once set
+              rule: '!has(oldSelf.sourceNamespace) || has(self.sourceNamespace)'
+            - message: field bubbleNamespace is immutable once set
+              rule: '!has(oldSelf.bubbleNamespace) || has(self.bubbleNamespace)'
+            - message: sourceNamespace is required for scope=Volume
+              rule: self.scope != 'Volume' || has(self.sourceNamespace)
+          status:
+            description: TestFailoverStatus is the observed state of one drill.
+            properties:
+              clones:
+                description: Clones is one entry per recovered volume.
+                items:
+                  description: |-
+                    TestFailoverClone is one recovered volume: the source it came from, the
+                    snapshot and clone the drill built, and the PVC placed on the bubble cluster.
+                  properties:
+                    cloneID:
+                      description: CloneID is the backend id of the writable clone.
+                      type: string
+                    pvcName:
+                      description: PVCName is the bound PVC in the bubble namespace
+                        on the bubble cluster.
+                      type: string
+                    sizeBytes:
+                      description: SizeBytes is the recovered volume's size.
+                      format: int64
+                      type: integer
+                    snapshotID:
+                      description: |-
+                        SnapshotID is the recovery-point snapshot: the replicated snapshot already on
+                        the bubble cluster's backend that the clone is built from.
+                      type: string
+                    sourceFSType:
+                      description: |-
+                        SourceFSType is the source PV's CSI fsType, carried onto the bubble PV so the
+                        node plugin stages the clone with the filesystem it actually carries. The
+                        clone is a block copy of the source, so its filesystem is the source's; an
+                        empty fsType makes the node plugin default to ext4 and refuse to mount an XFS
+                        volume.
+                      type: string
+                    sourceHandle:
+                      description: SourceHandle is the source volume's backend handle,
+                        read from its PV.
+                      type: string
+                    sourceRef:
+                      description: |-
+                        SourceRef is the source volume, or group member, the recovered volume maps
+                        to.
+                      type: string
+                    sourceVolumeContext:
+                      additionalProperties:
+                        type: string
+                      description: |-
+                        SourceVolumeContext is the source PV's CSI volumeAttributes, minus the
+                        identity and provisioner keys, carried onto the bubble PV so the node plugin
+                        receives a non-nil VolumeContext when it stages the clone. The clone's own
+                        identity (NQN, connections, nsId, and so on) is re-resolved from the clone
+                        handle at stage time, so only the class-level parameters are carried; the
+                        identity keys are dropped so a failed clone lookup can never point the mount
+                        back at the source.
+                      type: object
+                    sourceVolumeMode:
+                      description: |-
+                        SourceVolumeMode is the source PV's volumeMode (Filesystem or Block),
+                        carried onto the bubble PV and PVC. A VM's disk is a Block claim; a bubble
+                        claim that omitted the mode defaulted to Filesystem and the kubelet asked
+                        the node plugin to mount a raw guest disk (2026-10-03).
+                      type: string
+                  required:
+                  - sourceRef
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - sourceRef
+                x-kubernetes-list-type: map
+              completedAt:
+                description: CompletedAt is when the drill reached a terminal phase.
+                format: date-time
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as the
+                  drill moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the drill's own progress.
+                enum:
+                - Pending
+                - Provisioning
+                - Ready
+                - Failed
+                - TearingDown
+                type: string
+              readyAt:
+                description: ReadyAt is when every recovered PVC became bound.
+                format: date-time
+                type: string
+              report:
+                description: Report is the drill's evidence, populated as it reaches
+                  Ready.
+                properties:
+                  bubbleCluster:
+                    description: BubbleCluster is the cluster the drill recovered
+                      onto.
+                    type: string
+                  invariantsHeld:
+                    description: |-
+                      InvariantsHeld is true only when the source fingerprint taken before the
+                      drill matches the one taken at Ready. A Ready drill with this false is a
+                      defect.
+                    type: boolean
+                  recoveryPoint:
+                    description: RecoveryPoint is the snapshot or group generation
+                      the drill recovered.
+                    type: string
+                  recoveryPointAgeSeconds:
+                    description: RecoveryPointAgeSeconds is the drill time minus the
+                      recovery-point time.
+                    format: int64
+                    type: integer
+                  recoveryPointTime:
+                    description: RecoveryPointTime is when that point was taken.
+                    format: date-time
+                    type: string
+                type: object
+              startedAt:
+                description: StartedAt is when the drill started.
+                format: date-time
+                type: string
+              step:
+                description: Step is the position of the running drill's state machine.
+                properties:
+                  claim:
+                    description: |-
+                      Claim records that this state's side effect was started. Absent means
+                      no pass has started it since the state was entered.
+                    properties:
+                      attempt:
+                        description: Attempt counts the claims taken on this state,
+                          starting at 1.
+                        format: int32
+                        type: integer
+                      leaseUntil:
+                        description: |-
+                          LeaseUntil is when the claim expires and the side effect may be fired
+                          again.
+                        format: date-time
+                        type: string
+                      state:
+                        description: State is the state the claim was taken in.
+                        type: string
+                    required:
+                    - attempt
+                    - leaseUntil
+                    - state
+                    type: object
+                  deadline:
+                    description: |-
+                      Deadline is when that state expires, absent when it has none. It is an
+                      absolute instant, so a state whose deadline passed while the controller
+                      was down restores as already expired.
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      State is the state the machine was in. Empty means the resource has not
+                      been reconciled yet, and restores to the graph's initial state.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: unknown step
+                  rule: '!has(self.state) || self.state in [''ResolvingSource'',''ResolvingPoint'',''Shipping'',''Cloning'',''Placing'',''Releasing'']'
+              triggered:
+                description: |-
+                  Triggered records that the current step's side effect was issued, so a
+                  restart does not repeat it.
+                type: boolean
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

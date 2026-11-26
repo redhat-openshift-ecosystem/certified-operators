@@ -1,0 +1,560 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: persistentvolumeops.storage.simplyblock.io
+spec:
+  group: storage.simplyblock.io
+  names:
+    kind: PersistentVolumeOps
+    listKind: PersistentVolumeOpsList
+    plural: persistentvolumeops
+    shortNames:
+    - pvops
+    singular: persistentvolumeops
+  scope: Cluster
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.persistentVolumeName
+      name: Volume
+      type: string
+    - jsonPath: .spec.action
+      name: Action
+      type: string
+    - jsonPath: .spec.migrate.targetNodeRef.name
+      name: Target
+      type: string
+    - jsonPath: .spec.relocate.targetClusterRef
+      name: Target Cluster
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.step.state
+      name: Step
+      type: string
+    - jsonPath: .status.message
+      name: Message
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          PersistentVolumeOps is a single operation performed against one
+          PersistentVolume. It is the one Ops kind in this group whose target is a core
+          Kubernetes type rather than a kind this group defines, so it locks its target
+          with an annotation rather than a status field, is cluster-scoped because its
+          target is, cannot be owned by the namespaced operation that created it, and
+          derives its cluster, pool, and volume from the volume's CSI handle rather
+          than being told.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: |-
+              PersistentVolumeOpsSpec is one operation to perform against one
+              PersistentVolume.
+
+              The action and its parameter block have to agree: Migrate requires
+              spec.migrate and Relocate requires spec.relocate, and neither action
+              accepts the other's block.
+            properties:
+              abort:
+                description: |-
+                  Abort asks a running operation to stop at its next step and unwind. It is
+                  expressible from Validating and Migrating and not from Verifying, which
+                  the action's graph declares rather than this field: once the copy has
+                  finished, the volume has moved and there is nothing to undo.
+                type: boolean
+              action:
+                description: |-
+                  Action is the operation to perform. Immutable: an operation that changed
+                  what it was doing halfway through would have a status describing neither.
+                enum:
+                - Migrate
+                - Relocate
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              creatorRef:
+                description: |-
+                  CreatorRef names the object that created this one, and that object's
+                  finalizer is what aborts and deletes this one when it goes. Absent on an
+                  operation written by hand, which has no creator to cascade from.
+                  Immutable, because an operation changing whose fan-out it belongs to
+                  would change who cascades over it.
+                properties:
+                  kind:
+                    description: Kind is the creating object's kind, which is StorageNodeOps
+                      for a drain.
+                    type: string
+                  name:
+                    description: Name is the creator's object name.
+                    type: string
+                  namespace:
+                    description: Namespace is where the creator lives.
+                    type: string
+                  uid:
+                    description: |-
+                      UID is what makes the reference address one creator rather than one name:
+                      a creator deleted and recreated under the same name must not inherit the
+                      fan-out it did not issue, and cascade a delete over it.
+                    type: string
+                required:
+                - kind
+                - name
+                - namespace
+                - uid
+                type: object
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              migrate:
+                description: Migrate parameterizes action Migrate.
+                properties:
+                  targetNodeRef:
+                    description: |-
+                      TargetNodeRef locates the StorageNode to move the volume's backing
+                      logical volume to. It names the Kubernetes object rather than the backend
+                      UUID, so that a migration can be written by hand without looking one up;
+                      the controller resolves the UUID from the node's status. The node's
+                      cluster must be the volume's, which the webhook checks rather than the
+                      type, because that is a fact about two other objects.
+
+                      The marker sits on the reference rather than on its fields, so the pair
+                      is immutable together and a target cannot be half-changed into a name in
+                      one cluster and a namespace in another.
+                    properties:
+                      name:
+                        description: Name is the StorageNode object's name.
+                        type: string
+                      namespace:
+                        description: |-
+                          Namespace is where the StorageNode lives, which is the namespace of the
+                          StorageCluster that owns it.
+                        type: string
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                required:
+                - targetNodeRef
+                type: object
+              persistentVolumeName:
+                description: |-
+                  PersistentVolumeName names the PersistentVolume this operation acts on.
+                  It is a name rather than a reference because a PersistentVolume is
+                  cluster-scoped, and it names the volume rather than the claim because a
+                  claim can be deleted while its volume is retained — under a Retain
+                  reclaim policy the logical volume still occupies capacity on a node that
+                  may be draining, and is still worth moving.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              relocate:
+                description: Relocate parameterizes action Relocate.
+                properties:
+                  targetClusterRef:
+                    description: |-
+                      TargetClusterRef names the member StorageCluster to move the volume to,
+                      in the namespace of the volume's current member. It must be another
+                      member of the same supercluster, and must accept new volumes.
+                    maxLength: 63
+                    minLength: 1
+                    type: string
+                    x-kubernetes-validations:
+                    - message: field is immutable
+                      rule: self == oldSelf
+                required:
+                - targetClusterRef
+                type: object
+            required:
+            - action
+            - persistentVolumeName
+            type: object
+            x-kubernetes-validations:
+            - message: field creatorRef is immutable once set
+              rule: '!has(oldSelf.creatorRef) || has(self.creatorRef)'
+            - message: migrate is required for action Migrate and must be absent otherwise
+              rule: 'self.action == ''Migrate'' ? has(self.migrate) : !has(self.migrate)'
+            - message: relocate is required for action Relocate and must be absent
+                otherwise
+              rule: 'self.action == ''Relocate'' ? has(self.relocate) : !has(self.relocate)'
+          status:
+            description: PersistentVolumeOpsStatus is the observed state of one volume
+              operation.
+            properties:
+              completedAt:
+                description: CompletedAt is when it reached a terminal phase.
+                format: date-time
+                type: string
+              deferredSince:
+                description: |-
+                  DeferredSince is when the operation was first held — behind another
+                  operation's lock, or behind a control plane that is not accepting
+                  migrations yet. It is what the auto-rebalancer reads to decide whether a
+                  migration has waited long enough to give up on, and it is in status
+                  rather than in memory because the operator may restart and an observer
+                  needs to see that the operation is waiting and since when.
+                format: date-time
+                type: string
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the operation moves, and never a log.
+                type: string
+              migration:
+                description: |-
+                  Migration is everything about the migration rather than about the
+                  operation.
+                properties:
+                  clusterUUID:
+                    description: |-
+                      ClusterUUID, PoolUUID, and VolumeUUID are the three parts of the volume's
+                      CSI volume handle, recorded so that later steps address the backend
+                      without re-reading the PersistentVolume, and so that a failed operation
+                      says which volume it was working on after the volume is gone.
+                    type: string
+                  connections:
+                    description: |-
+                      Connections are the paths the migration published on the target.
+                      Verifying confirms none of them is left connected.
+                    items:
+                      description: |-
+                        MigrationConnection is one NVMe-oF path the migration published on the
+                        target.
+
+                        The connect parameters travel with the address because the path is connected
+                        on a consuming host rather than here, and what is recorded has to be the
+                        connect that will actually be made: the host attaches every path with the
+                        same controller-loss timeout the CSI driver uses, which is not the hour the
+                        control plane answers with, and a record of the control plane's answer would
+                        describe a connect nobody performs.
+                      properties:
+                        address:
+                          description: Address and Port are where it answers.
+                          type: string
+                        ctrlLossTimeoutSeconds:
+                          description: |-
+                            CtrlLossTimeoutSeconds and FastIOFailTimeoutSeconds are pointers because
+                            zero is a choice ("fail I/O immediately") rather than a missing value.
+                          format: int32
+                          type: integer
+                        fastIOFailTimeoutSeconds:
+                          format: int32
+                          type: integer
+                        keepAliveTimeoutSeconds:
+                          format: int32
+                          type: integer
+                        nqn:
+                          description: NQN is the subsystem the target answers this
+                            path for.
+                          type: string
+                        nrIOQueues:
+                          format: int32
+                          type: integer
+                        port:
+                          format: int32
+                          type: integer
+                        reconnectDelaySeconds:
+                          format: int32
+                          type: integer
+                        transport:
+                          description: Transport is the fabric, which is TCP.
+                          type: string
+                      type: object
+                    type: array
+                  continuedAt:
+                    description: |-
+                      ContinuedAt is when this operation asked the control plane to start the
+                      copy, written before the call rather than after it.
+
+                      The order is what makes the request at-most-once, and that is the point.
+                      A repeated continue is the shape that has lost writes here: a read
+                      timeout on a call that had in fact committed made the operator retry a
+                      transfer, and the retry copied nothing while the source was unfrozen. So
+                      a recorded continue is never issued again, and an operation that crashed
+                      between this write and the call waits out its step's deadline instead —
+                      a rare stall, against a silent data loss.
+                    format: date-time
+                    type: string
+                  memberCount:
+                    description: |-
+                      MemberCount is how many volumes the migrated NVMe-oF subsystem holds, as
+                      the control plane reports it. More than one member means the sibling
+                      volumes move along with the named one, so the count is both the
+                      operation's blast radius and the term the copy's deadline scales by.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  migrationUUID:
+                    description: MigrationUUID is the control plane's identifier for
+                      the copy.
+                    type: string
+                  poolUUID:
+                    type: string
+                  sourceNodeUUID:
+                    description: |-
+                      SourceNodeUUID is where the volume was before the move, recorded so that
+                      a failure says what it was and not only what it was going to be.
+                    type: string
+                  subsystemNQN:
+                    description: |-
+                      SubsystemNQN is the volume's NVMe-oF subsystem, which is what the
+                      migration is addressed by: the control plane migrates a subsystem rather
+                      than one volume inside it.
+                    type: string
+                  targetNodeUUID:
+                    description: |-
+                      TargetNodeUUID is the backend identifier resolved from
+                      spec.migrate.targetNodeRef, recorded so the later steps address the
+                      target without resolving the node object again.
+                    type: string
+                  validationJobs:
+                    description: ValidationJobs are the Jobs started to check those
+                      paths.
+                    items:
+                      description: |-
+                        ValidationJob is one Job started to check a path is reachable from one node.
+
+                        It is tracked so that Verifying can delete every Job the operation started,
+                        including after a restart. The namespace is recorded for the same reason
+                        spec.migrate.targetNodeRef carries one: a Job is namespaced and this object
+                        is not, so a name alone would not locate it.
+                      properties:
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                        node:
+                          description: |-
+                            Node is the worker the Job is pinned to, which is a node consuming one of
+                            the migrated subsystem's volumes.
+                          type: string
+                        succeeded:
+                          description: |-
+                            Succeeded records a node whose paths were checked and found ready, so a
+                            restart does not run the check again on a node that already passed and
+                            whose Job its own TTL may already have reaped.
+                          type: boolean
+                      required:
+                      - name
+                      - namespace
+                      type: object
+                    type: array
+                  volumeUUID:
+                    type: string
+                type: object
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operation's own progress.
+                enum:
+                - Pending
+                - Running
+                - Succeeded
+                - Failed
+                - Aborted
+                type: string
+              relocate:
+                description: Relocate is the progress of a Relocate.
+                properties:
+                  committed:
+                    description: |-
+                      Committed is set before the first commit is requested. It refuses an
+                      abort from then on, because a committed cutover cannot be taken back.
+                    type: boolean
+                  nodesMissingPaths:
+                    description: |-
+                      NodesMissingPaths are the consuming nodes that did not hold the target's
+                      paths when the control plane cut a volume over without waiting for them.
+                      Pods on these nodes lose the volume until they are restarted, and the
+                      operation fails once the volume's new location is recorded.
+                    items:
+                      type: string
+                    type: array
+                    x-kubernetes-list-type: set
+                  pathJobs:
+                    description: |-
+                      PathJobs are the Jobs that connect the target's paths on the nodes
+                      consuming the subsystem, one per node.
+                    items:
+                      description: |-
+                        ValidationJob is one Job started to check a path is reachable from one node.
+
+                        It is tracked so that Verifying can delete every Job the operation started,
+                        including after a restart. The namespace is recorded for the same reason
+                        spec.migrate.targetNodeRef carries one: a Job is namespaced and this object
+                        is not, so a name alone would not locate it.
+                      properties:
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                        node:
+                          description: |-
+                            Node is the worker the Job is pinned to, which is a node consuming one of
+                            the migrated subsystem's volumes.
+                          type: string
+                        succeeded:
+                          description: |-
+                            Succeeded records a node whose paths were checked and found ready, so a
+                            restart does not run the check again on a node that already passed and
+                            whose Job its own TTL may already have reaped.
+                          type: boolean
+                      required:
+                      - name
+                      - namespace
+                      type: object
+                    type: array
+                  sourceClusterUUID:
+                    description: SourceClusterUUID is the member the volume started
+                      in.
+                    type: string
+                  targetClusterUUID:
+                    description: TargetClusterUUID is the member the volume is moving
+                      to.
+                    type: string
+                  targetPoolUUID:
+                    description: |-
+                      TargetPoolUUID is the pool in the target member the volumes land in: the
+                      target's pool of the same supercluster pool as the source's.
+                    type: string
+                  volumes:
+                    description: |-
+                      Volumes are every volume moving together: the named one and those
+                      sharing its subsystem.
+                    items:
+                      description: |-
+                        RelocatedVolume is one volume a Relocate moves, and how far its cutover is.
+
+                        The control plane cuts the volumes of one subsystem over one at a time, so
+                        each carries its own task and its own release rather than the operation
+                        carrying one for all of them.
+                      properties:
+                        cutOver:
+                          description: CutOver is set once the target serves the volume.
+                          type: boolean
+                        persistentVolumeName:
+                          description: |-
+                            PersistentVolumeName is the PersistentVolume carrying the volume, when one
+                            does. It is what the volume's new location is recorded on.
+                          type: string
+                        proceeded:
+                          description: |-
+                            Proceeded is set before the volume's cutover is first released. The
+                            release is resent while the cutover waits for it.
+                          type: boolean
+                        targetVolumeUUID:
+                          description: TargetVolumeUUID is the volume's backend UUID
+                            in the target member.
+                          type: string
+                        taskID:
+                          description: |-
+                            TaskID is the control plane's task carrying the volume's cutover and the
+                            deletion of its source, from the commit's answer.
+                          type: string
+                        volumeUUID:
+                          description: VolumeUUID is the volume's backend UUID in
+                            the source member.
+                          type: string
+                      required:
+                      - volumeUUID
+                      type: object
+                    type: array
+                    x-kubernetes-list-map-keys:
+                    - volumeUUID
+                    x-kubernetes-list-type: map
+                type: object
+              startedAt:
+                description: StartedAt is when the operation began.
+                format: date-time
+                type: string
+              step:
+                description: |-
+                  Step is the position of the running action's state machine. It is
+                  persisted before the side effect that step performs, so a step reported
+                  here is a step that started.
+                properties:
+                  claim:
+                    description: |-
+                      Claim records that this state's side effect was started. Absent means
+                      no pass has started it since the state was entered.
+                    properties:
+                      attempt:
+                        description: Attempt counts the claims taken on this state,
+                          starting at 1.
+                        format: int32
+                        type: integer
+                      leaseUntil:
+                        description: |-
+                          LeaseUntil is when the claim expires and the side effect may be fired
+                          again.
+                        format: date-time
+                        type: string
+                      state:
+                        description: State is the state the claim was taken in.
+                        type: string
+                    required:
+                    - attempt
+                    - leaseUntil
+                    - state
+                    type: object
+                  deadline:
+                    description: |-
+                      Deadline is when that state expires, absent when it has none. It is an
+                      absolute instant, so a state whose deadline passed while the controller
+                      was down restores as already expired.
+                    format: date-time
+                    type: string
+                  state:
+                    description: |-
+                      State is the state the machine was in. Empty means the resource has not
+                      been reconciled yet, and restores to the graph's initial state.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: unknown step
+                  rule: '!has(self.state) || self.state in [''Validating'',''Migrating'',''Verifying'',''Replicating'',''Committing'',''AwaitingCutover'',''AttachingPaths'',''Proceeding'',''Completed'']'
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

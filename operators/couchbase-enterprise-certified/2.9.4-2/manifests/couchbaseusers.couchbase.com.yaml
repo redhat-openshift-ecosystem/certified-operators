@@ -1,0 +1,103 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    config.couchbase.com/version: 2.9.0
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: couchbaseusers.couchbase.com
+spec:
+  group: couchbase.com
+  names:
+    kind: CouchbaseUser
+    listKind: CouchbaseUserList
+    plural: couchbaseusers
+    singular: couchbaseuser
+  scope: Namespaced
+  versions:
+  - name: v2
+    schema:
+      openAPIV3Schema:
+        description: CouchbaseUser allows the automation of Couchbase user management.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: CouchbaseUserSpec allows the specification of Couchbase user
+              configuration.
+            properties:
+              authDomain:
+                description: The domain which provides user authentication.
+                enum:
+                - local
+                - external
+                type: string
+              authSecret:
+                description: |-
+                  Name of the Kubernetes Secret that provides the user's initial password for the Couchbase domain.
+                  Once the user is created, changes to this field will be ignored.
+                  The initial password must comply with all password policies defined for Couchbase clusters
+                  that have RBAC management enabled and for which the user matches the RBAC resource selector.
+                type: string
+              fullName:
+                description: Full Name of Couchbase user.
+                type: string
+              locked:
+                description: |-
+                  Locked defines whether the user is locked and can only be used when a using the internal auth domain for the user.
+                  This field is only available for Couchbase Server 8.0.0+.
+                type: boolean
+              name:
+                description: Username of the couchbase user.
+                type: string
+              password:
+                description: |-
+                  Password allows user specific password settings to be set.
+                  This field is only available for Couchbase Server 8.0.0+.
+                properties:
+                  expiresAfter:
+                    description: |-
+                      ExpiresAfter allows setting a fixed duration after a user changes their password when they will be required to change their password again.
+                      Consider that this duration will be checked against the users last password change date, not the current date and time and could therefore
+                      result in the user being required to change their password immediately.
+                      This field is only available for Couchbase Server 8.0.0+. More info:
+                      https://golang.org/pkg/time/#ParseDuration
+                    type: string
+                  expiresAt:
+                    description: |-
+                      ExpiresAt allows setting a timestamp when a user's password will expire. After that timestamp has passed, the user
+                      will be required to change their password.
+                      If set to a timestamp in the past, the user's password must have been changed since then or they
+                      will be required to change their password.
+                      This field is only available for Couchbase Server 8.0.0+.
+                    format: date-time
+                    type: string
+                  requireInitialChange:
+                    description: |-
+                      RequireInitialChange defines whether a user will be required to change
+                      their password the first time they login and is only effective when a user is first being created.
+                      This field is only available for Couchbase Server 8.0.0+.
+                    type: boolean
+                type: object
+            required:
+            - authDomain
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true

@@ -1,0 +1,724 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  creationTimestamp: null
+  name: storagepools.storage.simplyblock.io
+spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: simplyblock-operator-conversion-webhook-service
+          namespace: simplyblock-operator-system
+          path: /convert
+      conversionReviewVersions:
+      - v1
+  group: storage.simplyblock.io
+  names:
+    kind: StoragePool
+    listKind: StoragePoolList
+    plural: storagepools
+    shortNames:
+    - sp
+    singular: storagepool
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Backend pool status
+      jsonPath: .status.status
+      name: Status
+      type: string
+    - description: Backend pool UUID
+      jsonPath: .status.uuid
+      name: UUID
+      type: string
+    - description: Configured capacity limit
+      jsonPath: .spec.capacityLimit
+      name: Capacity
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: StoragePool is the Schema for the storagepools API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of StoragePool
+            properties:
+              action:
+                description: |-
+                  Action triggers an imperative pool operation.
+                  FIXME: Unused for now
+                type: string
+              allowedNodes:
+                description: |-
+                  AllowedNodes is the list of Kubernetes worker node names allowed to access volumes
+                  in this pool. The operator resolves each node name to a deterministic NQN derived
+                  from the node's UID: nqn.2014-08.io.simplyblock:uuid:<node-uid>.
+                  The CSI node uses the same formula so no manual NQN management is required.
+                items:
+                  type: string
+                type: array
+              capacityLimit:
+                description: |-
+                  CapacityLimit is the maximum aggregate capacity that can be allocated from this pool.
+                  This maps to sbctl pool add --pool-max. Use sizes like 20M, 20G, or 0 for unlimited.
+                type: string
+              clusterName:
+                description: ClusterName is the target storage cluster name.
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              dhchap:
+                default: false
+                description: |-
+                  DHCHAP enables DH-HMAC-CHAP key generation for the pool. Authentication is only
+                  enforced when allowedNodes is non-empty. Also controls whether the StoragePool's StorageClass
+                  gets an allowedTopologies restriction, which — like StorageClass Parameters — is
+                  immutable in the Kubernetes API, hence this field is immutable too.
+                type: boolean
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              logicalVolumeMaxSize:
+                description: |-
+                  LogicalVolumeMaxSize is the maximum size allowed for any single logical volume
+                  created in this pool. This maps to sbctl pool add --lvol-max. Use sizes like
+                  20M, 20G, or 0 for unlimited.
+                type: string
+              qos:
+                description: QosSpec defines QosSpec limits for the pool.
+                properties:
+                  iops:
+                    description: IOPS is the IOPS limit for the pool.
+                    format: int32
+                    type: integer
+                  throughput:
+                    description: Throughput contains throughput limits for the pool.
+                    properties:
+                      read:
+                        description: Read is the read throughput limit for the pool.
+                        format: int32
+                        type: integer
+                      readWrite:
+                        description: ReadWrite is the combined read/write throughput
+                          limit for the pool.
+                        format: int32
+                        type: integer
+                      write:
+                        description: Write is the write throughput limit for the pool.
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              status:
+                description: |-
+                  Status is an optional desired-status hint for backend workflows.
+                  FIXME: Unused for now
+                type: string
+              storageClassParameters:
+                default: {}
+                description: |-
+                  StorageClassParameters sets default StorageClass parameter values for volumes in this pool.
+                  Immutable: the underlying StorageClass's Parameters/AllowedTopologies cannot be patched in
+                  the Kubernetes API once created, so there is no supported way to change these after the
+                  fact. Create a new StoragePool to provision volumes with different settings.
+                properties:
+                  encryption:
+                    default: false
+                    description: Encryption enables encryption for logical volumes.
+                    type: boolean
+                  fabric:
+                    default: tcp
+                    description: Fabric is the transport fabric, for example, TCP.
+                    type: string
+                  filesystem:
+                    default: xfs
+                    description: Filesystem is the filesystem used to format logical
+                      volumes of this pool.
+                    enum:
+                    - ext4
+                    - xfs
+                    type: string
+                  maxNamespacePerSubsys:
+                    default: "1"
+                    description: MaxNamespacePerSubsys limits namespaces per NVMf
+                      subsystem.
+                    type: string
+                  qosRMbytes:
+                    default: "0"
+                    description: QosRMbytes sets the read throughput limit in MB/s
+                      (0 = unlimited).
+                    type: string
+                  qosRwIops:
+                    default: "0"
+                    description: QosRwIops sets the read/write IOPS limit (0 = unlimited).
+                    type: string
+                  qosRwMbytes:
+                    default: "0"
+                    description: QosRwMbytes sets the read/write throughput limit
+                      in MB/s (0 = unlimited).
+                    type: string
+                  qosWMbytes:
+                    default: "0"
+                    description: QosWMbytes sets the write throughput limit in MB/s
+                      (0 = unlimited).
+                    type: string
+                  tune2fsReservedBlocks:
+                    description: |-
+                      Tune2fsReservedBlocks sets the ext4 reserved-blocks percentage. Left unset, the node
+                      plugin skips tune2fs entirely and mkfs.ext4's own default reserve applies, matching a
+                      StorageClass that omits tune2fs_reserved_blocks. A default of `0` here would not be a
+                      no-op: it actively runs `tune2fs -m 0` on every volume, since the node plugin only skips
+                      the call when the parameter is empty (see stageVolume in the CSI driver), not when it is
+                      `0`.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+            required:
+            - clusterName
+            type: object
+            x-kubernetes-validations:
+            - message: field dhchap is immutable once set
+              rule: '!has(oldSelf.dhchap) || has(self.dhchap)'
+            - message: field storageClassParameters is immutable once set
+              rule: '!has(oldSelf.storageClassParameters) || has(self.storageClassParameters)'
+            - message: dhchap requires a non-empty allowedNodes
+              rule: '!has(self.dhchap) || !self.dhchap || (has(self.allowedNodes)
+                && size(self.allowedNodes) > 0)'
+          status:
+            description: status defines the observed state of StoragePool
+            properties:
+              allowedNodes:
+                description: AllowedNodes lists the Kubernetes node names currently
+                  registered on the backend.
+                items:
+                  type: string
+                type: array
+              qos:
+                description: QoS contains observed/configured QoS values.
+                properties:
+                  host:
+                    description: Host is the backend host handling pool QosSpec enforcement.
+                    type: string
+                  iops:
+                    description: IOPS is the observed/configured IOPS value.
+                    format: int32
+                    type: integer
+                  throughput:
+                    description: Throughput contains observed/configured throughput
+                      values.
+                    properties:
+                      read:
+                        description: Read is the observed/configured read throughput
+                          value.
+                        format: int32
+                        type: integer
+                      readWrite:
+                        description: ReadWrite is the observed/configured combined
+                          read/write throughput value.
+                        format: int32
+                        type: integer
+                      write:
+                        description: Write is the observed/configured write throughput
+                          value.
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
+              status:
+                description: Status is the backend lifecycle status.
+                type: string
+              uuid:
+                description: UUID is the backend pool UUID.
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: false
+    subresources:
+      status: {}
+  - additionalPrinterColumns:
+    - jsonPath: .spec.clusterRef
+      name: Cluster
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.limits.capacity
+      name: Capacity
+      type: string
+    - jsonPath: .status.storageClassNames
+      name: Classes
+      type: string
+    - jsonPath: .status.uuid
+      name: UUID
+      priority: 1
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: |-
+          StoragePool carves a StorageCluster into a unit with its own capacity limit
+          and QoS ceilings, and it is what a StorageClass is assigned to. It is
+          therefore the join between the storage administrator's world and the
+          application developer's, a join held together by three labels, an opaque
+          parameter map, and a finalizer rather than by the API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: StoragePoolSpec is the desired state of one tenancy unit
+              within a cluster.
+            properties:
+              allowedNodes:
+                description: |-
+                  AllowedNodes restricts which hosts may carry this pool's volumes, by
+                  Kubernetes Node name. Empty means every node in the cluster. Narrowing it
+                  stops new volumes landing on the removed nodes and leaves the existing
+                  ones where they are. Requires volumeDefaults.enableDHCHAP to be true.
+
+                  The list is left exactly as authored: a name that no longer resolves is
+                  dropped from Status.AllowedNodes rather than pruned from here, so a node
+                  removed for maintenance and added back under the same name returns to the
+                  pools that named it without anybody re-authoring them.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+              clusterRef:
+                description: |-
+                  ClusterRef names the StorageCluster this pool is carved out of, in this
+                  pool's own namespace. The cluster owns this object by controller
+                  reference, so deleting the cluster deletes its pools, held behind each
+                  pool's own finalizer while classes are assigned or volumes are bound.
+
+                  A supercluster may be named: the pool is then created in every member
+                  under this pool's name, and spec.limits.capacity is divided evenly among
+                  the members that accept new volumes.
+
+                  Immutable from creation: which cluster a pool is in is its identity.
+
+                  The maximum is what a StorageCluster name may be rather than what a
+                  reference may be: a longer value names nothing that can exist, and the
+                  reference is immutable, so admitting one creates a pool whose only remedy
+                  is deletion.
+                maxLength: 63
+                type: string
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+              limits:
+                description: |-
+                  Limits are the ceilings the pool as a whole is held to. Mutable: raising a
+                  pool's capacity is an ordinary operation the control plane supports, and it
+                  does not touch any StorageClass.
+                properties:
+                  capacity:
+                    description: |-
+                      Capacity is the total capacity the pool may allocate, written the way an
+                      administrator writes one: `10T`, `500G`. Empty is unlimited.
+                    type: string
+                  iops:
+                    description: |-
+                      IOPS is the pool-wide ceiling on operations per second, both directions
+                      together. Zero is unlimited, which is the control plane's own convention
+                      for these values.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  maxVolumeSize:
+                    description: |-
+                      MaxVolumeSize is the largest single logical volume the pool will create.
+                      Empty is unlimited.
+                    type: string
+                  throughput:
+                    description: Throughput is the pool-wide throughput ceiling.
+                    properties:
+                      read:
+                        description: Read is the read-only ceiling, written as max_read_mbytes_per_sec.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      readWrite:
+                        description: |-
+                          ReadWrite is the ceiling on both directions together, written as
+                          max_mbytes_per_sec. It is not an access mode, which is the confusion the
+                          older class key qos_rw_mbytes invited.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      write:
+                        description: Write is the write-only ceiling, written as max_write_mbytes_per_sec.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
+                type: object
+                x-kubernetes-validations:
+                - message: limits.iops and limits.throughput are not yet supported
+                    in beta1
+                  rule: '!has(self.iops) && !has(self.throughput)'
+              volumeDefaults:
+                description: |-
+                  VolumeDefaults are what every volume in the pool is created with.
+                  Immutable once set, because StorageClass.parameters is immutable in the
+                  Kubernetes API: a pool whose defaults changed would have a class the
+                  operator cannot update. Changing them means creating a new pool.
+                properties:
+                  enableClientCompression:
+                    description: |-
+                      EnableClientCompression compresses each volume on the node that consumes
+                      it (VDO), before a write ever reaches the wire, rather than on the storage
+                      node. Distinct from EnableCompression, and independent of
+                      EnableClientDeduplication: either, both, or neither may be set. A volume
+                      requesting this is pinned to a node whose kernel can run dm-vdo.
+                    type: boolean
+                  enableClientDeduplication:
+                    description: |-
+                      EnableClientDeduplication deduplicates each volume on the node that
+                      consumes it (VDO), independent of EnableClientCompression. It carries a
+                      significant fixed RAM cost per volume for VDO's index, so it is meant for
+                      the pools where duplicate data is actually expected (VM images, container
+                      layers, backup targets) rather than enabled by default.
+                    type: boolean
+                  enableCompression:
+                    description: EnableCompression compresses logical volumes.
+                    type: boolean
+                  enableDHCHAP:
+                    description: |-
+                      EnableDHCHAP authenticates NVMe-oF connections to this pool's volumes.
+                      Authentication is only enforced when AllowedNodes is non-empty, because
+                      the generated class gets its node selector from that list and a class's
+                      parameters cannot be edited afterward.
+                    type: boolean
+                  enableReplication:
+                    description: EnableReplication replicates logical volumes.
+                    type: boolean
+                  fabric:
+                    description: |-
+                      Fabric is the storage fabric a volume is served over, defaulting to the
+                      cluster's.
+                    type: string
+                  filesystem:
+                    default: xfs
+                    description: |-
+                      Filesystem is what a volume is formatted with. The values are the kernel's
+                      names for filesystems, which is why they are not recased: this group did
+                      not invent the words.
+                    enum:
+                    - ext4
+                    - xfs
+                    type: string
+                  iops:
+                    description: |-
+                      IOPS is each volume's ceiling on operations per second, both directions
+                      together. Zero is unlimited. It is written into the class as max_iops.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                  maxNamespacesPerSubsystem:
+                    description: |-
+                      MaxNamespacesPerSubsystem caps how many namespaces share one NVMe-oF
+                      subsystem.
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  priorityClass:
+                    description: |-
+                      PriorityClass is the I/O service class the pool's volumes run in: the
+                      name of one of the cluster's spec.serviceClasses.classes. Omitted, they
+                      run in Default. A volume whose class the cluster does not define is not
+                      created.
+                    type: string
+                  throughput:
+                    description: Throughput is each volume's throughput ceiling, in
+                      megabytes per second.
+                    properties:
+                      read:
+                        description: Read is the read-only ceiling, written as max_read_mbytes_per_sec.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      readWrite:
+                        description: |-
+                          ReadWrite is the ceiling on both directions together, written as
+                          max_mbytes_per_sec. It is not an access mode, which is the confusion the
+                          older class key qos_rw_mbytes invited.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      write:
+                        description: Write is the write-only ceiling, written as max_write_mbytes_per_sec.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
+                  tune2fsReservedBlocks:
+                    description: |-
+                      Tune2fsReservedBlocks is the reserved-block percentage passed to tune2fs
+                      on an ext4 volume. Empty means the filesystem's own default, which is not
+                      the same as `0`: the node plugin skips the call entirely when this is
+                      empty, and runs `tune2fs -m 0` when it is `0`.
+                    type: string
+                type: object
+                x-kubernetes-validations:
+                - message: field is immutable
+                  rule: self == oldSelf
+            required:
+            - clusterRef
+            type: object
+            x-kubernetes-validations:
+            - message: field volumeDefaults is immutable once set
+              rule: '!has(oldSelf.volumeDefaults) || has(self.volumeDefaults)'
+            - message: allowedNodes requires volumeDefaults.enableDHCHAP to be true
+              rule: '!has(self.allowedNodes) || size(self.allowedNodes) == 0 || (has(self.volumeDefaults)
+                && has(self.volumeDefaults.enableDHCHAP) && self.volumeDefaults.enableDHCHAP)'
+          status:
+            description: StoragePoolStatus is the observed state of one pool.
+            properties:
+              activeOpsRef:
+                description: |-
+                  ActiveOpsRef names the StoragePoolOps currently allowed to act on this
+                  pool. Empty when none is running.
+                type: string
+              allowedNodes:
+                description: |-
+                  AllowedNodes is Spec.AllowedNodes resolved against the Node objects that
+                  exist, which is what the control plane's host list and the per-pool node
+                  labels are derived from. An empty list here is not the same as an absent
+                  Spec.AllowedNodes: absent means every node, and empty after resolution
+                  means the pool can place nothing.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+              defaultStorageClassName:
+                description: |-
+                  DefaultStorageClassName is the class the operator wrote for the default
+                  pool, set on that pool only. It records that the class was created, so a
+                  class missing while this is set was deleted deliberately and is not
+                  written again.
+                type: string
+              limits:
+                description: Limits is what the control plane reports the ceilings
+                  to be.
+                properties:
+                  capacity:
+                    description: |-
+                      Capacity is the capacity limit the control plane is enforcing, written
+                      as a quantity. Empty is unlimited.
+                    type: string
+                  host:
+                    description: Host is the backend host enforcing the pool's QoS.
+                    type: string
+                  iops:
+                    description: IOPS is the combined ceiling the control plane is
+                      enforcing.
+                    format: int32
+                    type: integer
+                  throughput:
+                    description: Throughput is the throughput ceiling the control
+                      plane is enforcing.
+                    properties:
+                      read:
+                        description: Read is the read-only ceiling, written as max_read_mbytes_per_sec.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      readWrite:
+                        description: |-
+                          ReadWrite is the ceiling on both directions together, written as
+                          max_mbytes_per_sec. It is not an access mode, which is the confusion the
+                          older class key qos_rw_mbytes invited.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      write:
+                        description: Write is the write-only ceiling, written as max_write_mbytes_per_sec.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                    type: object
+                type: object
+              members:
+                description: |-
+                  Members is the pool in each member, when spec.clusterRef names a
+                  supercluster. The pool is Ready once every member that accepts new
+                  volumes holds it.
+                items:
+                  description: PoolMemberStatus is the pool in one member cluster
+                    of a supercluster.
+                  properties:
+                    cluster:
+                      description: Cluster is the member StorageCluster.
+                      type: string
+                    limits:
+                      description: |-
+                        Limits are what the member's control plane enforces for its pool. Its
+                        capacity is this member's share of spec.limits.capacity.
+                      properties:
+                        capacity:
+                          description: |-
+                            Capacity is the capacity limit the control plane is enforcing, written
+                            as a quantity. Empty is unlimited.
+                          type: string
+                        host:
+                          description: Host is the backend host enforcing the pool's
+                            QoS.
+                          type: string
+                        iops:
+                          description: IOPS is the combined ceiling the control plane
+                            is enforcing.
+                          format: int32
+                          type: integer
+                        throughput:
+                          description: Throughput is the throughput ceiling the control
+                            plane is enforcing.
+                          properties:
+                            read:
+                              description: Read is the read-only ceiling, written
+                                as max_read_mbytes_per_sec.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                            readWrite:
+                              description: |-
+                                ReadWrite is the ceiling on both directions together, written as
+                                max_mbytes_per_sec. It is not an access mode, which is the confusion the
+                                older class key qos_rw_mbytes invited.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                            write:
+                              description: Write is the write-only ceiling, written
+                                as max_write_mbytes_per_sec.
+                              format: int32
+                              minimum: 0
+                              type: integer
+                          type: object
+                      type: object
+                    message:
+                      description: Message says why the phase is what it is.
+                      type: string
+                    phase:
+                      description: Phase is this member's pool's phase.
+                      enum:
+                      - Pending
+                      - Ready
+                      - Deleting
+                      type: string
+                    uuid:
+                      description: UUID is the backend pool UUID in that member, empty
+                        until it is created.
+                      type: string
+                  required:
+                  - cluster
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - cluster
+                x-kubernetes-list-type: map
+              message:
+                description: |-
+                  Message is the reason the phase is what it is: one sentence, replaced as
+                  the pool moves, and never a log.
+                type: string
+              observedGeneration:
+                description: |-
+                  ObservedGeneration is the generation the rest of this status was computed
+                  from, so a stale status can be told from a current one.
+                format: int64
+                type: integer
+              phase:
+                description: Phase is the operator's own view of this pool.
+                enum:
+                - Pending
+                - Ready
+                - Deleting
+                type: string
+              status:
+                description: |-
+                  Status is the lifecycle the control plane reports, in the control plane's
+                  own spelling, which is why it carries no Enum here.
+                type: string
+              storageClassNames:
+                description: |-
+                  StorageClassNames are the classes assigned to this pool, found by the
+                  three storage.simplyblock.io labels a class carries. Empty means no class
+                  draws from this pool yet, which is a valid state and what a freshly
+                  created cluster's default pool has before anybody writes one. Publishing
+                  it is what makes the assignment readable from the pool, and what a
+                  deletion is held on.
+                items:
+                  type: string
+                type: array
+                x-kubernetes-list-type: set
+              uuid:
+                description: |-
+                  UUID is the backend pool UUID. Empty means the pool has not been created.
+                  A pool of a supercluster has one backend pool in each member and none of
+                  its own, so its UUID stays empty and Members carries each member's.
+                type: string
+            type: object
+        type: object
+        x-kubernetes-validations:
+        - message: a StoragePool name is at most 63 characters, because it is written
+            into the storage.simplyblock.io/pool label that assigns StorageClasses
+            to this pool
+          rule: size(self.metadata.name) <= 63
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: null
+  storedVersions: null

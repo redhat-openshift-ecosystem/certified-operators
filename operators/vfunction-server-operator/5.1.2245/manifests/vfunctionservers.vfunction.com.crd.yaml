@@ -1,0 +1,1091 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: vfunctionservers.vfunction.com
+  labels:
+    name: vfunction
+    app.kubernetes.io/name: vfunction
+    app.kubernetes.io/instance: vfunction-server
+    app.kubernetes.io/managed-by: operator
+spec:
+  group: vfunction.com
+  names:
+    kind: VfunctionServer
+    listKind: VfunctionServerList
+    plural: vfunctionservers
+    singular: vfunctionserver
+  scope: Namespaced
+  preserveUnknownFields: false
+  versions:
+    # v1: kept for operators of earlier versions in the same cluster - no status subresource (they write the status
+    # with a full update). Same schema as v2, so the objects are shared (conversion: None).
+    - name: v1
+      served: true
+      storage: true
+      # shown by "kubectl get vfunctionserver" (more with -o wide) and in UIs that list the resource
+      additionalPrinterColumns:
+        - name: State
+          type: string
+          jsonPath: .status.state
+        - name: Version
+          type: string
+          jsonPath: .status.currentVersion
+        - name: Installed
+          type: string
+          jsonPath: .status.installed
+        - name: Host
+          type: string
+          jsonPath: .spec.host
+        - name: Last-Working
+          type: string
+          jsonPath: .status.lastWorkingVersion
+          priority: 1
+        - name: Last-Failed
+          type: string
+          jsonPath: .status.lastFailedVersion
+          priority: 1
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          description: VfunctionServer is the Schema for the vfunctionservers API
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: VfunctionServerSpec defines the desired state of VfunctionServer
+              properties:
+                admin:
+                  properties:
+                    email:
+                      type: string
+                    name:
+                      type: string
+                    password:
+                      description: Not needed with security.existing_secret (ADMIN_PASSWORD is read from that Secret)
+                      type: string
+                  required:
+                    - email
+                    - name
+                  type: object
+                host:
+                  type: string
+                org_name:
+                  type: string
+                offline:
+                  type: string
+                mysql:
+                  properties:
+                    external_mysql_ip:
+                      type: string
+                    external_mysql_port:
+                      type: string
+                    external_mysql_user:
+                      type: string
+                    external_mysql_password:
+                      type: string
+                    max_pod_memory_capacity:
+                      type: string
+                    max_pod_cpu_capacity:
+                      type: string
+                    pod_ephemeral_storage:
+                      type: string
+                    quality_of_service_class:
+                      type: string
+                    restore_db_from_last_dump:
+                      type: string
+                  type: object
+                nginx:
+                  properties:
+                    force_http:
+                      type: string
+                    ipv6_disabled:
+                      type: string
+                    service_type:
+                      type: string
+                  type: object
+                route:
+                  properties:
+                    use_route:
+                      type: string
+                    tls_termination:
+                      type: string
+                    use_tls_certificate:
+                      type: string
+                  type: object
+                measurements:
+                  properties:
+                    min_number_of_services:
+                      type: string
+                    max_number_of_services:
+                      type: string
+                    max_pod_memory_capacity:
+                      type: string
+                    max_pod_cpu_capacity:
+                      type: string
+                    pod_ephemeral_storage:
+                      type: string
+                    quality_of_service_class:
+                      type: string
+                    S3:
+                      properties:
+                        bucket:
+                          type: string
+                        key:
+                          type: string
+                        secret:
+                          type: string
+                        region:
+                          type: string
+                      required:
+                        - bucket
+                        - key
+                        - secret
+                      type: object
+                  type: object
+                authentication:
+                  properties:
+                    authority:
+                      type: string
+                    client_id:
+                      type: string
+                    client_secret:
+                      type: string
+                    jwks_url:
+                      type: string
+                    issuer:
+                      type: string
+                    ca_root_crt:
+                      type: string
+                    ca_root_existing_secret:
+                      description: Optional existing Secret with key ca-root-crt (instead of ca_root_crt).
+                      type: string
+                  required:
+                    - authority
+                    - client_id
+                    - jwks_url
+                    - issuer
+                  type: object
+                tls:
+                  properties:
+                    use_letsencrypt:
+                      type: string
+                    crt:
+                      type: string
+                    key:
+                      type: string
+                    existing_secret:
+                      description: Optional existing kubernetes.io/tls Secret with tls.crt and tls.key (instead of crt / key), e.g. from cert-manager.
+                      type: string
+                  type: object
+                backup:
+                  properties:
+                    mysql:
+                      properties:
+                        restore_during_installation:
+                          type: string
+                        S3:
+                          properties:
+                            bucket:
+                              type: string
+                            key:
+                              type: string
+                            secret:
+                              type: string
+                            region:
+                              type: string
+                          required:
+                            - bucket
+                            - key
+                            - secret
+                          type: object
+                      type: object
+                  type: object
+                storage:
+                  properties:
+                    storage_class:
+                      type: string
+                    mysql_persistent_volume:
+                      type: string
+                    mysql_persistent_volume_claim:
+                      type: string
+                    mysql_persistent_volume_claim_access_mode:
+                      type: string
+                    storage_persistent_volume:
+                      type: string
+                    storage_persistent_volume_claim:
+                      type: string
+                    storage_persistent_volume_claim_access_mode:
+                      type: string
+                    lets_encrypt_persistent_volume:
+                      type: string
+                    lets_encrypt_persistent_volume_claim:
+                      type: string
+                    lets_encrypt_persistent_volume_claim_access_mode:
+                      type: string
+                    logs_persistent_volume:
+                      type: string
+                    logs_persistent_volume_claim:
+                      type: string
+                    logs_pvc_access_mode:
+                      type: string
+                  type: object
+                distributed:
+                  properties:
+                    distributed_mode:
+                      type: string
+                    otlp:
+                      properties:
+                        min_number_of_services:
+                          type: string
+                        max_number_of_services:
+                          type: string
+                        max_pod_memory_capacity:
+                          type: string
+                        max_pod_cpu_capacity:
+                          type: string
+                        pod_ephemeral_storage:
+                          type: string
+                        max_folder_size_in_mb:
+                          type: string
+                        quality_of_service_class:
+                          type: string
+                      type: object
+                    dm:
+                      properties:
+                        min_number_of_services:
+                          type: string
+                        max_number_of_services:
+                          type: string
+                        max_pod_memory_capacity:
+                          type: string
+                        max_pod_cpu_capacity:
+                          type: string
+                        pod_ephemeral_storage:
+                          type: string
+                        quality_of_service_class:
+                          type: string
+                      type: object
+                  type: object
+                logging:
+                  properties:
+                    use_fluentd:
+                      type: string
+                    coralogix:
+                      properties:
+                        private_key:
+                          type: string
+                        endpoint:
+                          type: string
+                        app_name:
+                          type: string
+                      type: object
+                    grafana:
+                      properties:
+                        loki_url:
+                          type: string
+                        loki_username:
+                          type: string
+                        loki_password:
+                          type: string
+                        app_name:
+                          type: string
+                      type: object
+                    opensearch:
+                      properties:
+                        host:
+                          type: string
+                        port:
+                          type: string
+                        scheme:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        index_prefix:
+                          type: string
+                      type: object
+                    datadog:
+                      properties:
+                        api_key:
+                          type: string
+                        site:
+                          type: string
+                        service:
+                          type: string
+                      type: object
+                  type: object
+                resources:
+                  properties:
+                    set_pod_resources:
+                      type: string
+                    set_pod_memory_capacity_resource:
+                      type: string
+                    default_pod_memory_capacity:
+                      type: string
+                    set_pod_cpu_capacity_resource:
+                      type: string
+                    default_pod_cpu_capacity:
+                      type: string
+                    set_pod_ephemeral_storage_resource:
+                      type: string
+                    default_pod_ephemeral_storage:
+                      type: string
+                    quality_of_service_class:
+                      type: string
+                  type: object
+                security:
+                  properties:
+                    image_pull_policy:
+                      type: string
+                    force_hashed_images:
+                      type: string
+                    use_network_policies:
+                      type: string
+                    existing_secret:
+                      description: Name of a customer-managed Secret (in the same namespace) that holds all the credentials. When set, the operator doesn't generate credentials.
+                      type: string
+                    rotatable_secret:
+                      description: Optional Secret with the credentials that may be rotated (EXTERNAL_MYSQL_PASSWORD, OIDC_CLIENT_SECRET, AWS_SECRET_ACCESS_KEY, AWS_S3_SECRET). Defaults to existing_secret.
+                      type: string
+                    use_reloader:
+                      description: '"Yes" annotates the Deployments for Stakater Reloader, so they restart together when the rotatable secret changes.'
+                      type: string
+                    use_inline_secrets_if_external_key_is_missing:
+                      description: '"Yes" uses the plain value from the configuration (with a warning) when existing_secret / rotatable_secret / tls.existing_secret / authentication.ca_root_existing_secret is set but the key is missing there. Certificates are never taken from a "******" value.'
+                      type: string
+                    proxy:
+                      properties:
+                        http_proxy:
+                          type: string
+                        https_proxy:
+                          type: string
+                        additional_no_proxy:
+                          type: string
+                      type: object
+                    use_rate_limiting:
+                      type: string
+                    requests_per_second:
+                      type: string
+                  type: object
+                affinity:
+                  properties:
+                    node_affinity:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                          values:
+                            type: string
+                          services:
+                            type: string
+                        required:
+                          - key
+                          - operator
+                          - values
+                        type: object
+                      type: array
+                      nullable: true
+                    node_selectors:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          value:
+                            type: string
+                          services:
+                            type: string
+                        required:
+                          - key
+                          - value
+                        type: object
+                      type: array
+                      nullable: true
+                    additional_labels:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          value:
+                            type: string
+                          kind:
+                            type: string
+                          services:
+                            type: string
+                        required:
+                          - key
+                          - value
+                        type: object
+                      type: array
+                      nullable: true
+                    additional_annotations:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          value:
+                            type: string
+                          kind:
+                            type: string
+                          services:
+                            type: string
+                        required:
+                          - key
+                          - value
+                        type: object
+                      type: array
+                      nullable: true
+                  type: object
+                generated:
+                  properties:
+                    client_id:
+                      type: string
+                    client_secret:
+                      type: string
+                    app_client_id:
+                      type: string
+                    app_client_secret:
+                      type: string
+                  required:
+                    - client_id
+                    - client_secret
+                    - app_client_id
+                    - app_client_secret
+                  type: object
+                version:
+                  type: string
+                build:
+                  type: string
+                upgrade:
+                  type: string
+                retry_upgrade:
+                  type: string
+                custom_docker_registry:
+                  type: string
+                custom_image_pull_secret:
+                  type: string
+              required:
+                - admin
+                - host
+                - org_name
+              type: object
+            status:
+              description: VfunctionServerStatus defines the observed state of VfunctionServer
+              properties:
+                state:
+                  type: string
+                installed:
+                  type: string
+                currentVersion:
+                  type: string
+                mysqlImage:
+                  type: string
+                storageImage:
+                  type: string
+                nginxImage:
+                  type: string
+                vfapiParserImage:
+                  type: string
+                vfapiIdpImage:
+                  type: string
+                vfapiMcpImage:
+                  type: string
+                vfapiMeasurementsImage:
+                  type: string
+                vfapiOrganizationsImage:
+                  type: string
+                vfapiUsersImage:
+                  type: string
+                vfapiOtlpImage:
+                  type: string
+                vfapiDmImage:
+                  type: string
+                identifier:
+                  type: string
+                lastWorkingVersion:
+                  type: string
+                lastFailedVersion:
+                  type: string
+                lastRestoreRequest:
+                  description: The DB restore request handled last (annotation vfunction.com/restore-db-from-last-dump).
+                  type: string
+                offline:
+                  type: boolean
+                externalMysqlInitialized:
+                  type: string
+                lastDailyReportDate:
+                  type: string
+                configurationState:
+                  properties:
+                    route:
+                      type: string
+                    deploymentSelectors:
+                      type: string
+                    measurementAutoScaling:
+                      type: string
+                    dmAutoScaling:
+                      type: string
+                    otlpAutoScaling:
+                      type: string
+                    mysql:
+                      type: string
+                    measurements:
+                      type: string
+                    dm:
+                      type: string
+                    otlp:
+                      type: string
+                    logging:
+                      type: string
+                    resources:
+                      type: string
+                  type: object
+              type: object
+          type: object
+    # v2: used by this operator - the status is a subresource (status writes never touch the spec and vice versa)
+    - name: v2
+      served: true
+      storage: false
+      # shown by "kubectl get vfunctionserver" (more with -o wide) and in UIs that list the resource
+      additionalPrinterColumns:
+        - name: State
+          type: string
+          jsonPath: .status.state
+        - name: Version
+          type: string
+          jsonPath: .status.currentVersion
+        - name: Installed
+          type: string
+          jsonPath: .status.installed
+        - name: Host
+          type: string
+          jsonPath: .spec.host
+        - name: Last-Working
+          type: string
+          jsonPath: .status.lastWorkingVersion
+          priority: 1
+        - name: Last-Failed
+          type: string
+          jsonPath: .status.lastFailedVersion
+          priority: 1
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      subresources:
+        status: {}
+      schema:
+        openAPIV3Schema:
+          description: VfunctionServer is the Schema for the vfunctionservers API
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: VfunctionServerSpec defines the desired state of VfunctionServer
+              properties:
+                admin:
+                  properties:
+                    email:
+                      type: string
+                    name:
+                      type: string
+                    password:
+                      description: Not needed with security.existing_secret (ADMIN_PASSWORD is read from that Secret)
+                      type: string
+                  required:
+                    - email
+                    - name
+                  type: object
+                host:
+                  type: string
+                org_name:
+                  type: string
+                offline:
+                  type: string
+                mysql:
+                  properties:
+                    external_mysql_ip:
+                      type: string
+                    external_mysql_port:
+                      type: string
+                    external_mysql_user:
+                      type: string
+                    external_mysql_password:
+                      type: string
+                    max_pod_memory_capacity:
+                      type: string
+                    max_pod_cpu_capacity:
+                      type: string
+                    pod_ephemeral_storage:
+                      type: string
+                    quality_of_service_class:
+                      type: string
+                    restore_db_from_last_dump:
+                      type: string
+                  type: object
+                nginx:
+                  properties:
+                    force_http:
+                      type: string
+                    ipv6_disabled:
+                      type: string
+                    service_type:
+                      type: string
+                  type: object
+                route:
+                  properties:
+                    use_route:
+                      type: string
+                    tls_termination:
+                      type: string
+                    use_tls_certificate:
+                      type: string
+                  type: object
+                measurements:
+                  properties:
+                    min_number_of_services:
+                      type: string
+                    max_number_of_services:
+                      type: string
+                    max_pod_memory_capacity:
+                      type: string
+                    max_pod_cpu_capacity:
+                      type: string
+                    pod_ephemeral_storage:
+                      type: string
+                    quality_of_service_class:
+                      type: string
+                    S3:
+                      properties:
+                        bucket:
+                          type: string
+                        key:
+                          type: string
+                        secret:
+                          type: string
+                        region:
+                          type: string
+                      required:
+                        - bucket
+                        - key
+                        - secret
+                      type: object
+                  type: object
+                authentication:
+                  properties:
+                    authority:
+                      type: string
+                    client_id:
+                      type: string
+                    client_secret:
+                      type: string
+                    jwks_url:
+                      type: string
+                    issuer:
+                      type: string
+                    ca_root_crt:
+                      type: string
+                    ca_root_existing_secret:
+                      description: Optional existing Secret with key ca-root-crt (instead of ca_root_crt).
+                      type: string
+                  required:
+                    - authority
+                    - client_id
+                    - jwks_url
+                    - issuer
+                  type: object
+                tls:
+                  properties:
+                    use_letsencrypt:
+                      type: string
+                    crt:
+                      type: string
+                    key:
+                      type: string
+                    existing_secret:
+                      description: Optional existing kubernetes.io/tls Secret with tls.crt and tls.key (instead of crt / key), e.g. from cert-manager.
+                      type: string
+                  type: object
+                backup:
+                  properties:
+                    mysql:
+                      properties:
+                        restore_during_installation:
+                          type: string
+                        S3:
+                          properties:
+                            bucket:
+                              type: string
+                            key:
+                              type: string
+                            secret:
+                              type: string
+                            region:
+                              type: string
+                          required:
+                            - bucket
+                            - key
+                            - secret
+                          type: object
+                      type: object
+                  type: object
+                storage:
+                  properties:
+                    storage_class:
+                      type: string
+                    mysql_persistent_volume:
+                      type: string
+                    mysql_persistent_volume_claim:
+                      type: string
+                    mysql_persistent_volume_claim_access_mode:
+                      type: string
+                    storage_persistent_volume:
+                      type: string
+                    storage_persistent_volume_claim:
+                      type: string
+                    storage_persistent_volume_claim_access_mode:
+                      type: string
+                    lets_encrypt_persistent_volume:
+                      type: string
+                    lets_encrypt_persistent_volume_claim:
+                      type: string
+                    lets_encrypt_persistent_volume_claim_access_mode:
+                      type: string
+                    logs_persistent_volume:
+                      type: string
+                    logs_persistent_volume_claim:
+                      type: string
+                    logs_pvc_access_mode:
+                      type: string
+                  type: object
+                distributed:
+                  properties:
+                    distributed_mode:
+                      type: string
+                    otlp:
+                      properties:
+                        min_number_of_services:
+                          type: string
+                        max_number_of_services:
+                          type: string
+                        max_pod_memory_capacity:
+                          type: string
+                        max_pod_cpu_capacity:
+                          type: string
+                        pod_ephemeral_storage:
+                          type: string
+                        max_folder_size_in_mb:
+                          type: string
+                        quality_of_service_class:
+                          type: string
+                      type: object
+                    dm:
+                      properties:
+                        min_number_of_services:
+                          type: string
+                        max_number_of_services:
+                          type: string
+                        max_pod_memory_capacity:
+                          type: string
+                        max_pod_cpu_capacity:
+                          type: string
+                        pod_ephemeral_storage:
+                          type: string
+                        quality_of_service_class:
+                          type: string
+                      type: object
+                  type: object
+                logging:
+                  properties:
+                    use_fluentd:
+                      type: string
+                    coralogix:
+                      properties:
+                        private_key:
+                          type: string
+                        endpoint:
+                          type: string
+                        app_name:
+                          type: string
+                      type: object
+                    grafana:
+                      properties:
+                        loki_url:
+                          type: string
+                        loki_username:
+                          type: string
+                        loki_password:
+                          type: string
+                        app_name:
+                          type: string
+                      type: object
+                    opensearch:
+                      properties:
+                        host:
+                          type: string
+                        port:
+                          type: string
+                        scheme:
+                          type: string
+                        user:
+                          type: string
+                        password:
+                          type: string
+                        index_prefix:
+                          type: string
+                      type: object
+                    datadog:
+                      properties:
+                        api_key:
+                          type: string
+                        site:
+                          type: string
+                        service:
+                          type: string
+                      type: object
+                  type: object
+                resources:
+                  properties:
+                    set_pod_resources:
+                      type: string
+                    set_pod_memory_capacity_resource:
+                      type: string
+                    default_pod_memory_capacity:
+                      type: string
+                    set_pod_cpu_capacity_resource:
+                      type: string
+                    default_pod_cpu_capacity:
+                      type: string
+                    set_pod_ephemeral_storage_resource:
+                      type: string
+                    default_pod_ephemeral_storage:
+                      type: string
+                    quality_of_service_class:
+                      type: string
+                  type: object
+                security:
+                  properties:
+                    image_pull_policy:
+                      type: string
+                    force_hashed_images:
+                      type: string
+                    use_network_policies:
+                      type: string
+                    existing_secret:
+                      description: Name of a customer-managed Secret (in the same namespace) that holds all the credentials. When set, the operator doesn't generate credentials.
+                      type: string
+                    rotatable_secret:
+                      description: Optional Secret with the credentials that may be rotated (EXTERNAL_MYSQL_PASSWORD, OIDC_CLIENT_SECRET, AWS_SECRET_ACCESS_KEY, AWS_S3_SECRET). Defaults to existing_secret.
+                      type: string
+                    use_reloader:
+                      description: '"Yes" annotates the Deployments for Stakater Reloader, so they restart together when the rotatable secret changes.'
+                      type: string
+                    use_inline_secrets_if_external_key_is_missing:
+                      description: '"Yes" uses the plain value from the configuration (with a warning) when existing_secret / rotatable_secret / tls.existing_secret / authentication.ca_root_existing_secret is set but the key is missing there. Certificates are never taken from a "******" value.'
+                      type: string
+                    proxy:
+                      properties:
+                        http_proxy:
+                          type: string
+                        https_proxy:
+                          type: string
+                        additional_no_proxy:
+                          type: string
+                      type: object
+                    use_rate_limiting:
+                      type: string
+                    requests_per_second:
+                      type: string
+                  type: object
+                affinity:
+                  properties:
+                    node_affinity:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                          values:
+                            type: string
+                          services:
+                            type: string
+                        required:
+                          - key
+                          - operator
+                          - values
+                        type: object
+                      type: array
+                      nullable: true
+                    node_selectors:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          value:
+                            type: string
+                          services:
+                            type: string
+                        required:
+                          - key
+                          - value
+                        type: object
+                      type: array
+                      nullable: true
+                    additional_labels:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          value:
+                            type: string
+                          kind:
+                            type: string
+                          services:
+                            type: string
+                        required:
+                          - key
+                          - value
+                        type: object
+                      type: array
+                      nullable: true
+                    additional_annotations:
+                      items:
+                        properties:
+                          key:
+                            type: string
+                          value:
+                            type: string
+                          kind:
+                            type: string
+                          services:
+                            type: string
+                        required:
+                          - key
+                          - value
+                        type: object
+                      type: array
+                      nullable: true
+                  type: object
+                generated:
+                  properties:
+                    client_id:
+                      type: string
+                    client_secret:
+                      type: string
+                    app_client_id:
+                      type: string
+                    app_client_secret:
+                      type: string
+                  required:
+                    - client_id
+                    - client_secret
+                    - app_client_id
+                    - app_client_secret
+                  type: object
+                version:
+                  type: string
+                build:
+                  type: string
+                upgrade:
+                  type: string
+                retry_upgrade:
+                  type: string
+                custom_docker_registry:
+                  type: string
+                custom_image_pull_secret:
+                  type: string
+              required:
+                - admin
+                - host
+                - org_name
+              type: object
+            status:
+              description: VfunctionServerStatus defines the observed state of VfunctionServer
+              properties:
+                state:
+                  type: string
+                installed:
+                  type: string
+                currentVersion:
+                  type: string
+                mysqlImage:
+                  type: string
+                storageImage:
+                  type: string
+                nginxImage:
+                  type: string
+                vfapiParserImage:
+                  type: string
+                vfapiIdpImage:
+                  type: string
+                vfapiMcpImage:
+                  type: string
+                vfapiMeasurementsImage:
+                  type: string
+                vfapiOrganizationsImage:
+                  type: string
+                vfapiUsersImage:
+                  type: string
+                vfapiOtlpImage:
+                  type: string
+                vfapiDmImage:
+                  type: string
+                identifier:
+                  type: string
+                lastWorkingVersion:
+                  type: string
+                lastFailedVersion:
+                  type: string
+                lastRestoreRequest:
+                  description: The DB restore request handled last (annotation vfunction.com/restore-db-from-last-dump).
+                  type: string
+                offline:
+                  type: boolean
+                externalMysqlInitialized:
+                  type: string
+                lastDailyReportDate:
+                  type: string
+                configurationState:
+                  properties:
+                    route:
+                      type: string
+                    deploymentSelectors:
+                      type: string
+                    measurementAutoScaling:
+                      type: string
+                    dmAutoScaling:
+                      type: string
+                    otlpAutoScaling:
+                      type: string
+                    mysql:
+                      type: string
+                    measurements:
+                      type: string
+                    dm:
+                      type: string
+                    otlp:
+                      type: string
+                    logging:
+                      type: string
+                    resources:
+                      type: string
+                  type: object
+              type: object
+          type: object
